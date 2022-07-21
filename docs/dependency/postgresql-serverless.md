@@ -1,6 +1,6 @@
 # POSTGRESQL-SERVERLESS
 
-For self-managed relational databases, Sleakops supports as a [dependency](./dependency.md) kubernetes-managed relational database, with the benefits of DEPENDENCY_BENEFITS. You can read more about those benefits in this [link](BENEFITS_LINK).
+For self-managed relational databases, Sleakops supports as a [dependency](./index.md) kubernetes-managed relational database, with the benefits of DEPENDENCY_BENEFITS. You can read more about those benefits in this [link](https://example.com).
 
 ## Parameters
 

@@ -1,6 +1,6 @@
 # ELASTICACHE-AWS
 
-For caching solutions, Sleakoks supports as a [dependency](./dependency.md) ElastiCache for Redis. You can read more about its benefits in this [link](https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/WhatIs.html).
+For caching solutions, Sleakoks supports as a [dependency](./index.md) ElastiCache for Redis. You can read more about its benefits in this [link](https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/WhatIs.html).
 
 When you create this dependency, you only need to provide the parameters listed below:
 
@@ -11,7 +11,7 @@ When you create this dependency, you only need to provide the parameters listed 
 | NumCacheNodes | The number of nodes in the caching cluster                                                                                     |
 | Port          | If you don't use the default port 6379, the used port goes here.                                                               |
 
-The subnet group needed will be within your environment [VPC](vpc.md) according with our [proposed architecture](architecture.md).
+The subnet group needed will be within your environment VPC according with our [proposed architecture](/docs/provider/aws.mdx).
 
 Additional parameters are the default for this resource, in AWS default.redis6.2 .
 

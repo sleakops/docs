@@ -1,6 +1,6 @@
 # BUCKET-AWS
 
-For storage solutions, Sleakops supports as a [dependency](./dependency.md) Amazon Simple Storage Service (Amazon S3), with the benefits of object storage built to sotre and retrieve any amount of data from anywhere. You can read more about those benefits in this [link](https://aws.amazon.com/s3/).
+For storage solutions, Sleakops supports as a [dependency](./index.md) Amazon Simple Storage Service (Amazon S3), with the benefits of object storage built to sotre and retrieve any amount of data from anywhere. You can read more about those benefits in this [link](https://aws.amazon.com/s3/).
 
 ## Parameters
 

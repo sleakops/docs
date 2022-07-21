@@ -1,6 +1,6 @@
 # POSTGRESQL-AWS
 
-For database solutions, Sleakops supports as a [dependency](./dependency.md) AWS-managed Postgresql RDS, with the benefits of cloud-managed RDS like scalability, backups, software patchings. You can read more about those benefits in this [link](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Welcome.html#Welcome.Concepts.RDS).
+For database solutions, Sleakops supports as a [dependency](./index.md) AWS-managed Postgresql RDS, with the benefits of cloud-managed RDS like scalability, backups, software patchings. You can read more about those benefits in this [link](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Welcome.html#Welcome.Concepts.RDS).
 
 ## Parameters
 
@@ -15,7 +15,7 @@ When you create this dependency, you only need to provide the parameters listed 
 | dbMasterUsername | Master username                                                                                                                                            |
 | dbMasterPassword | Master password                                                                                                                                            |
 
-The subnet group needed will be within your environment [VPC](vpc.md) according with our [proposed architecture](architecture.md).
+The subnet group needed will be within your environment VPC according with our [proposed architecture](/docs/provider/aws.mdx).
 
 The additional parameter_group_name is the default for the engine version (default.postgres14)
 
