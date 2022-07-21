@@ -5,11 +5,10 @@ import styles from './styles.module.css';
 const FeatureList = [
   {
     title: 'Easy to Use',
-    Svg: require('@site/static/img/undraw_docusaurus_mountain.svg').default,
+    imgUrl: "/img/dashboard.png",
     description: (
       <>
-        Docusaurus was designed from the ground up to be easily installed and
-        used to get your website up and running quickly.
+        Crea y monitorea toda la infra de tus aplicaciones escalables a traves de nuestra plataforma.
       </>
     ),
   },
@@ -24,22 +23,22 @@ const FeatureList = [
     ),
   },
   {
-    title: 'Powered by React',
-    Svg: require('@site/static/img/undraw_docusaurus_react.svg').default,
+    title: 'Powered by Craftech',
+    imgUrl: "/img/clusters.png",
     description: (
       <>
-        Extend or customize your website layout by reusing React. Docusaurus can
-        be extended while reusing the same header and footer.
+        Sleakops nace como consecuencia de la experiencia de Craftech, una empresa orientada a dar servicios de DevOps
       </>
     ),
   },
 ];
 
-function Feature({Svg, title, description}) {
+function Feature({Svg, imgUrl, title, description}) {
   return (
     <div className={clsx('col col--4')}>
       <div className="text--center">
-        <Svg className={styles.featureSvg} role="img" />
+        {Svg && (<Svg className={styles.featureSvg} role="img" />)}
+        {imgUrl && (<img src={imgUrl} />)}
       </div>
       <div className="text--center padding-horiz--md">
         <h3>{title}</h3>
