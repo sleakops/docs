@@ -1,4 +1,4 @@
-# ELASTICACHE-AWS
+# Elasticache-AWS
 
 For caching solutions, Sleakoks supports as a [dependency](./index.md) ElastiCache for Redis. You can read more about its benefits in this [link](https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/WhatIs.html).
 

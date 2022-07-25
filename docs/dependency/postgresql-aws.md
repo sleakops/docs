@@ -1,4 +1,4 @@
-# POSTGRESQL-AWS
+# PostgreSQL-AWS
 
 For database solutions, Sleakops supports as a [dependency](./index.md) AWS-managed Postgresql RDS, with the benefits of cloud-managed RDS like scalability, backups, software patchings. You can read more about those benefits in this [link](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Welcome.html#Welcome.Concepts.RDS).
 
