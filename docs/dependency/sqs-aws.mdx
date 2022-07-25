@@ -1,0 +1,21 @@
+import { FiExternalLink } from "react-icons/fi";
+
+# SQS-AWS
+
+*SQS* is a message queuing service disposed by AWS, it's idea is to be used to diminish the complexity and necessity to manage and operate this kind of message service and delegate a big part of this tasks to AWS. *SQS* as a queuing service admits us to send, store and receive messages, it's main funcionality is to order them on a robust queue to not lose any and also to allow us to send different requests to software components without having to wait for the specific service to be available.
+
+You can find much more information of *SQS* on it's [developer guide <FiExternalLink/>](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/welcome.html).
+
+## Parameters
+
+When creating this dependency you have to define some parameters, more info about them can be found on AWS or on [Pulumi SQS page <FiExternalLink/>](https://www.pulumi.com/registry/packages/aws/api-docs/sqs/), at this moment you specify the following parameters:
+
+| Name             | Description                                                                                                                                                |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| sqsFifoQueue           | Defines if this SQS queue follows Fifo type queue or standard, **True** makes the SQS Fifo, standard if **False**. |
+| sqsFifoDeduplication  | Enables/Disables FIFO queue deduplication. Can only be **True** if you're setting a Fifo queue. |
+| sqsMessageDelaySeconds  | Time in seconds that messages delivery in the queue will be delayed. |
+| sqsMessageMaxSize  | Maximum limit of how many bytes a message can contain. Degault is 262144 (256 KiB). |
+| sqsMessageRetentionSeconds  | Seconds that SQS retains a message. Default is 345600 (4 days). |
+
+It's important for you to know that we set Server-side encryption (SSE) of messages **True** as default. 
