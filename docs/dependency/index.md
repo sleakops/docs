@@ -24,6 +24,8 @@ We provide a specific page for each dependency type.
 
 - [Bucket-aws](./bucket-aws.md)
 
+- [sqs-aws](./sqs-aws.mdx)
+
 <!-- # Integracion de dependencias -->
 
 <!-- ## Intro
