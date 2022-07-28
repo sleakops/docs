@@ -1,0 +1,23 @@
+import { FiExternalLink } from "react-icons/fi";
+
+# AWS PostgreSQL
+
+For database solutions, Sleakops supports as a [dependency](./index.md) AWS-managed Postgresql RDS, with the benefits of cloud-managed RDS like scalability, backups, software patchings.
+You can read more about those benefits in this [link](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Welcome.html#Welcome.Concepts.RDS).
+
+## Parameters
+
+When you create this dependency, you only need to provide the parameters listed below:
+
+| Name             | Description                                                                                                                                           |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| dbname           | The database name                                                                                                                                     |
+| dbInstanceClass  | The EC2 [instance type](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.DBInstanceClass.html#Concepts.DBInstanceClass.Types) and size |
+| dbStorage        | The amount of storage for the instance                                                                                                                |
+| dbEngineVersion  | Postgresql engine version, currently only **14.2**                                                                                                    |
+| dbMasterUsername | Master username                                                                                                                                       |
+| dbMasterPassword | Master password                                                                                                                                       |
+
+The subnet group needed will be within your environment VPC according with our [proposed architecture](/docs/provider/aws.mdx).
+
+The additional parameter_group_name is the default for the engine version (default.postgres14).
