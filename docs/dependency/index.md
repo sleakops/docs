@@ -16,11 +16,11 @@ Some examples are:
 
 We provide a specific page for each dependency type.
 
-- [Postgresql-aws](./postgresql-aws.md)
+- [Postgresql-aws](./postgresql-aws.mdx)
 
 - [MySQL-aws](./mysql-aws.mdx)
 
-- [Elasticache-aws](./elasticache-aws.md)
+- [Elasticache-aws](./elasticache-aws.mdx)
 
 - [Postgresql-serverless](./postgresql-serverless.md)
 

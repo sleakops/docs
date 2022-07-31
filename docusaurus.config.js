@@ -39,8 +39,22 @@ const config = {
     ],
   ],
 
+  themes: [
+    [
+      require.resolve("@easyops-cn/docusaurus-search-local"),
+      { // https://github.com/easyops-cn/docusaurus-search-local#theme-options
+        // ... Your options.
+        // `hashed` is recommended as long-term-cache of index file is possible.
+        hashed: true,
+        // For Docs using Chinese, The `language` is recommended to set to:
+        // ```
+        // language: ["en", "zh"],
+        // ```
+      },
+    ],
+  ],
+
   presets: [
-      '@docusaurus/theme-search-algolia',
     [
       'classic',
       /** @type {import('@docusaurus/preset-classic').Options} */
@@ -71,29 +85,6 @@ const config = {
         defaultMode: 'dark',
         disableSwitch: false,
         respectPrefersColorScheme: false,
-      },
-      algolia: {
-        // The application ID provided by Algolia
-        appId: 'O2IZ7YUGVA',
-  
-        // Public API key: it is safe to commit it
-        apiKey: '510753b1d5f2a64e0cf7d7ff2a6c6f5d',
-  
-        indexName: 'sleakops_docs',
-  
-        // Optional: see doc section below
-        contextualSearch: true,
-  
-        // Optional: Specify domains where the navigation should occur through window.location instead on history.push. Useful when our Algolia config crawls multiple documentation sites and we want to navigate with window.location.href to them.
-        externalUrlRegex: 'console\\.sleakops\\.com|docs\\.sleakops.\\.com',
-  
-        // Optional: Algolia search parameters
-        searchParameters: {},
-  
-        // Optional: path for search page that enabled by default (`false` to disable it)
-        searchPagePath: 'search',
-  
-        //... other Algolia params
       },
       navbar: {
         title: 'SleakOps',
