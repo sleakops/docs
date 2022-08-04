@@ -1,6 +1,6 @@
 # Dependencies
 
-Inside Sleakops we call dependencies to the different pieces of underlying infrastructure your apps need to run in the cloud, such as, relational databases, storage services and caches. Some dependencies are linked to provider-specific services and others are chart-based kubernetes packages.
+Inside Sleakops we call dependencies to the different pieces of underlying infrastructure your apps need to run in the cloud, such as, relational databases, storage services or caches. Some dependencies are linked to provider-specific services and others are chart-based kubernetes packages.
 
 Our dependencies model has the following properties: a name, provider (currently only AWS), an enviroment, dependency type and a configuration, which is specific to the dependency type.
 
@@ -16,9 +16,11 @@ Some examples are:
 
 We provide a specific page for each dependency type.
 
-- [Postgresql-aws](./postgresql-aws.md)
+- [Postgresql-aws](./postgresql-aws.mdx)
 
-- [Elasticache-aws](./elasticache-aws.md)
+- [MySQL-aws](./mysql-aws.mdx)
+
+- [Elasticache-aws](./elasticache-aws.mdx)
 
 - [Postgresql-serverless](./postgresql-serverless.md)
 

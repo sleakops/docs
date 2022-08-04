@@ -29,38 +29,55 @@ const config = {
     locales: ['en'],
   },
 
-  plugins: [
+  themes: [
     [
-      '@docusaurus/plugin-google-analytics',
-      {
-          trackingID: 'UA-128497858-1',
-          anonymizeIP: true,
+      require.resolve("@easyops-cn/docusaurus-search-local"),
+      { // https://github.com/easyops-cn/docusaurus-search-local#theme-options
+        // ... Your options.
+        // `hashed` is recommended as long-term-cache of index file is possible.
+        hashed: true,
+        // For Docs using Chinese, The `language` is recommended to set to:
+        // ```
+        // language: ["en", "zh"],
+        // ```
       },
     ],
   ],
 
+
   presets: [
-      '@docusaurus/theme-search-algolia',
     [
       'classic',
-      /** @type {import('@docusaurus/preset-classic').Options} */
-      ({
+      {
+        // Debug defaults to true in dev, false in prod
+        debug: true,
+        // Will be passed to @docusaurus/theme-classic.
+        theme: {
+          customCss: [require.resolve('./src/css/custom.css')],
+        },
+        // Will be passed to @docusaurus/plugin-content-docs (false to disable)
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
         },
-        blog: {
-          showReadingTime: true,
-        },
-        theme: {
-          customCss: require.resolve('./src/css/custom.css'),
-        },
+        // Will be passed to @docusaurus/plugin-content-blog (false to disable)
+        blog: {},
+        // Will be passed to @docusaurus/plugin-content-pages (false to disable)
+        pages: {},
+        // Will be passed to @docusaurus/plugin-content-sitemap (false to disable)
         sitemap: {
           changefreq: 'weekly',
           priority: 0.5,
           ignorePatterns: ['/tags/**'],
           filename: 'sitemap.xml',
         },
-      }),
+        // Will be passed to @docusaurus/plugin-google-gtag (only enabled when explicitly specified)
+        // gtag: {},
+        // Will be passed to @docusaurus/plugin-google-analytics (only enabled when explicitly specified)
+        googleAnalytics: {
+          trackingID: 'UA-128497858-1',
+          anonymizeIP: true,
+        },
+      },
     ],
   ],
 
@@ -71,29 +88,6 @@ const config = {
         defaultMode: 'dark',
         disableSwitch: false,
         respectPrefersColorScheme: false,
-      },
-      algolia: {
-        // The application ID provided by Algolia
-        appId: 'O2IZ7YUGVA',
-  
-        // Public API key: it is safe to commit it
-        apiKey: '510753b1d5f2a64e0cf7d7ff2a6c6f5d',
-  
-        indexName: 'sleakops_docs',
-  
-        // Optional: see doc section below
-        contextualSearch: true,
-  
-        // Optional: Specify domains where the navigation should occur through window.location instead on history.push. Useful when our Algolia config crawls multiple documentation sites and we want to navigate with window.location.href to them.
-        externalUrlRegex: 'console\\.sleakops\\.com|docs\\.sleakops.\\.com',
-  
-        // Optional: Algolia search parameters
-        searchParameters: {},
-  
-        // Optional: path for search page that enabled by default (`false` to disable it)
-        searchPagePath: 'search',
-  
-        //... other Algolia params
       },
       navbar: {
         title: 'SleakOps',
