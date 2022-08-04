@@ -29,16 +29,6 @@ const config = {
     locales: ['en'],
   },
 
-  plugins: [
-    [
-      '@docusaurus/plugin-google-analytics',
-      {
-          trackingID: 'UA-128497858-1',
-          anonymizeIP: true,
-      },
-    ],
-  ],
-
   themes: [
     [
       require.resolve("@easyops-cn/docusaurus-search-local"),
@@ -54,27 +44,40 @@ const config = {
     ],
   ],
 
+
   presets: [
     [
       'classic',
-      /** @type {import('@docusaurus/preset-classic').Options} */
-      ({
+      {
+        // Debug defaults to true in dev, false in prod
+        debug: true,
+        // Will be passed to @docusaurus/theme-classic.
+        theme: {
+          customCss: [require.resolve('./src/css/custom.css')],
+        },
+        // Will be passed to @docusaurus/plugin-content-docs (false to disable)
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
         },
-        blog: {
-          showReadingTime: true,
-        },
-        theme: {
-          customCss: require.resolve('./src/css/custom.css'),
-        },
+        // Will be passed to @docusaurus/plugin-content-blog (false to disable)
+        blog: {},
+        // Will be passed to @docusaurus/plugin-content-pages (false to disable)
+        pages: {},
+        // Will be passed to @docusaurus/plugin-content-sitemap (false to disable)
         sitemap: {
           changefreq: 'weekly',
           priority: 0.5,
           ignorePatterns: ['/tags/**'],
           filename: 'sitemap.xml',
         },
-      }),
+        // Will be passed to @docusaurus/plugin-google-gtag (only enabled when explicitly specified)
+        // gtag: {},
+        // Will be passed to @docusaurus/plugin-google-analytics (only enabled when explicitly specified)
+        googleAnalytics: {
+          trackingID: 'UA-128497858-1',
+          anonymizeIP: true,
+        },
+      },
     ],
   ],
 
