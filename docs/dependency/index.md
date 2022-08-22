@@ -24,7 +24,7 @@ We provide a specific page for each dependency type.
 
 - [Postgresql-serverless](./postgresql-serverless.md)
 
-- [Bucket-aws](./bucket-aws.md)
+- [Bucket-aws](./s3bucket-aws.mdx)
 
 - [sqs-aws](./sqs-aws.mdx)
 
