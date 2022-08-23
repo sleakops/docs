@@ -1,0 +1,26 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Cluster
+
+## What is a Cluster
+
+Simply said, a Cluster is a place where to enclose lots of containers. The task of managing a big quantity of containers turns out to be really hard so there are tools meant to do this management, they are called cluster orchestration tools and if you are talking about the cluster, you are almost always talking about some cluster orchestration tool.
+
+## How SleakOps handle clusters 
+
+At this moment SleakOps only accepts [EKS <FiExternalLink/>](https://aws.amazon.com/eks/) as a cluster orchestration tool and every cluster you create will be handled by Kubernetes through these resources, with SleakOps you can also establish how many nodes you want and its type to better fulfill your needs.
+Before creating the Cluster we generate some necessary services for it to work expectedly. Every container orchestration tool needs access to other resources to manipulate its configurations as the tool needs to manage them, so we have to set a Role and the desired attached policies.
+The cluster envelope an unlimited amount of resources and someone needs to have control of what or who can access the cluster to interact with them, this is done through a [Security Group <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html), again, we define Security Group Rules [Security Group Rule <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html#SecurityGroupRules) to admit traffic from and to our resources as we desire. 
+Then we are ready to create the cluster, we put it inside the VPC of the account and we attach to it these services. 
+
+## Nodes
+
+The nodes are virtual machines that give the cluster its compute resources and contain the pods. On SleakOps we let you select the node type that you need for your cluster and we can say that the node type defines the capacity of every piece of your cluster.
+The services that a node needs are almost the same as the cluster, the main difference is that every node has to have a network connection to the cluster so they can communicate with each other, because of this we need one more [Security Group Rule <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html#SecurityGroupRules) and that every node can scale based on the configuration you give to it.
+
+## SleakOps Kubernetes integration
+
+It's important to know that we automatically install metrics-server and open an IP to give SleakOps access to the information of the cluster, this is used to allow different integrations of SleakOps with the cluster.
+You can see our Kubernetes implementations and integrations our the [K8s documentation](./k8s.mdx).
