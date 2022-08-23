@@ -1,0 +1,33 @@
+import { FiExternalLink } from "react-icons/fi";
+
+# Service
+
+In Sleakops a service is a part of an application,
+
+## Create a service
+
+To create a service you provide the following information:
+
+- A project and an environment for the service to be deployed.
+- A name to identify the service
+- A URL that serves as the endpoint for the service.
+- A docker image, tag and command for the containerized image. If no command is provided, the default Docker command will be used.
+
+Along with information about the resource set needed for this service to run.
+
+| Name             | Description                                                                                                                                                                 |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CPU Min          | Min CPU requested in milicores. More information [here <FiExternalLink/>](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-cpu)    |
+| CPU Max          | Max CPU requested in milicores. More information [here <FiExternalLink/>](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-cpu)    |
+| Memory Min       | Min memory requested in MegaBytes. More information [here <FiExternalLink/>](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-cpu) |
+| Memory Max       | Max memory requested in MegaBytes. More information [here <FiExternalLink/>](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-cpu) |
+| Autoscaling      | Enables Horizontal Pod Austocaling as described [here <FiExternalLink/>](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/).                       |
+| CPU Target       | Only when autoscaling is enabled. Average CPU utilization that triggers the scaling.                                                                                        |
+| Memory Target    | Only when autoscaling is enabled. Average memory utilization that triggers the scaling.                                                                                     |
+| Replica Min      | Only when autoscaling is enabled. Min amount of replicas to be achieved.                                                                                                    |
+| Replica Max      | Only when autoscaling is enabled. Max amount of replicas to be achieved.                                                                                                    |
+| Replicas Desired | Only when autoscaling is enabled. The number of replicas that the service initially has.                                                                                    |
+
+### Cloud resources
+
+Sleakops doesn't generate any resources in your provider when you create a service.
