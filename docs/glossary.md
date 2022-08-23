@@ -3,7 +3,7 @@ sidebar_label: Glossary of concepts
 sidebar_position: 2
 ---
 
-# Glosarry of concepts
+# Glossary of concepts
 
 ## Providers
 

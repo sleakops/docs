@@ -1,3 +1,5 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
 
 # Providers
@@ -17,14 +19,15 @@ Next to this, you have to create the provider so SleakOps need access to this pr
   />
 </Zoom>
 
-The first thing that we see in the architecture is the distribution of three [Accounts <FiExternalLink/>](https://aws.amazon.com/organizations/) (_mgt_, _dev_ and _prod_), following the creation flux, these are the resources that are initially created. Once the Accounts are up, we set to each one of them what we call Network Module, it contains a lot of different AWS services that are used to make the network connections inside accounts, it's extensive so let's dive in on what it creates:
+The first thing that we see in the architecture is the distribution of three [Accounts <FiExternalLink/>](https://aws.amazon.com/organizations/) (_mgt_, _dev_ and _prod_), following the creation flow, these are the resources that are initially created. Once the Accounts are up, we set to each one of them what we call Network Module, it contains a lot of different AWS services that are used to make the network connections inside accounts, it's extensive so let's dive in on what it creates:
+
 - [Virtual Private Cloud (VPC) <FiExternalLink/>](https://aws.amazon.com/vpc/): Needed because inside it is where we build our infrastructure and a big part of its connections.
 - [Internet Gateway (IGW) <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Internet_Gateway.html): The door of the VPC that allows us to access the resources inside it.
 - [Elastic IP (Eip) <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-eips.html): The IP related to the Internet Gateway.
 - [Route Tables <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Route_Tables.html): As you can assume by analyzing the schema, we make three, the Public, the Private and the Persistence Route Tables.
-- [Subnets <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/configure-subnets.html): Similar to Route Tables. We create a Public Subnet, a Private Subnet and a Persistence Subnet. After this, the subnets are associated with their respective Route Tables via a  [Route Table Association <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Route_Tables.html#route-table-assocation).
-- [Route <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Route_Tables.html#route-table-routes): It's applied on network traffic resources like an Internet Gateway and a NatGateway, for Public and Private Route Tables respectively. Specifies a route in a Route Table within a VPC. 
-- [NatGateway <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html): Allow resources on a private subnet to connect to services outside of the VPC, but negate traffic into this subnet. 
+- [Subnets <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/configure-subnets.html): Similar to Route Tables. We create a Public Subnet, a Private Subnet and a Persistence Subnet. After this, the subnets are associated with their respective Route Tables via a [Route Table Association <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Route_Tables.html#route-table-assocation).
+- [Route <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Route_Tables.html#route-table-routes): It's applied on network traffic resources like an Internet Gateway and a NatGateway, for Public and Private Route Tables respectively. Specifies a route in a Route Table within a VPC.
+- [NatGateway <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html): Allow resources on a private subnet to connect to services outside of the VPC, but negate traffic into this subnet.
 
 Now we establish the connection between the accounts with [VPC Peering connections <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/peering/what-is-vpc-peering.html), in the _mgt_ account we use a Network Peering Connection that works as the Requester while in the other accounts we need the Network Peering Accepter. All these cases need a Route for the traffic.
 
