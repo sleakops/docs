@@ -1,0 +1,19 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Hosted Zone
+
+First of all, as defined by AWS, a hosted zone is basically a container for records that contain information about how a domain routes its incoming traffic. 
+
+## Route53, how SleakOps uses it
+
+As initially described on [Provider](/docs/provider/index.mdx) SleakOps create a [Route53 <FiExternalLink/>](https://aws.amazon.com/route53/) HostedZone inside the 'prod' account, this Zone will be considered and called the Primary HostedZone because it is where you use the 'pure' domain you've defined on the Provider creation, similarly, SleakOps will create other HostedZones, which are Secondaries and will be handled as subdomains of the domain when you create an [Environment](/docs/environment/index.mdx).
+
+### How SleakOps manages domains and subdomains
+
+With these AWS services we create both private and public domains. Public domains describe how to route traffic on the internet while Private domains are about how you want to route traffic inside the VPC. Also, both of them will be handled by the external-dns Pod we deploy on each Cluster created and it will make the subdomains needed based on the [Services](/docs/services/index.mdx) your uses. For more information on external-dns you can check its [Github <FiExternalLink/>](https://github.com/kubernetes-sigs/external-dns).
+
+## DNS Delegation
+
+At this moment SleakOps only creates the Route53 HostedZones and manages them with 'external-dns', but you have to delegate your DNS service to the Primary Route53 of SleakOps manually. To do that you'll have to follow the steps described on this [link <FiExternalLink/>](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/MigratingDNS.html) and check what applies to your case.
