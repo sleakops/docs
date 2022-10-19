@@ -19,3 +19,12 @@ When the cluster is ready and you have provided all the arguments for the Docker
 
 Finally, the image is pushed to the ECR of the project, which is hosted in the management account,
 according to our [proposed architecture](/docs/provider/aws.mdx). The resulting image has the project name and is tagged `environment-name_latest`.
+
+## Summary of resources created in the cluster
+
+As previously discussed when the Kaniko job is created, all the resources listed below are also created inside the respective cluster:
+
+- A cluster secret containing the ECR credentials needed to push the image.
+- A persistent volume for the Kaniko tasks to store the context it needs.
+- The respective persistent volume claim.
+- The job itself.
