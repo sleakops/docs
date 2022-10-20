@@ -5,20 +5,15 @@ Remember that a project and environment make a namespace in a cluster. Sleakops 
 
 ## Create deployments
 
-To create a deployment for a project in an environment you need to provide a [environment](./environment), [project](./project) and a [release](./deployment/release)
-
+To create a deployment for a project in an environment you need to provide a [environment](/docs/environment), [project](/docs/project) and a [release](/docs/deployment/release)
 
 ## How SleakOps handle deployments
 
-When you creates a Sleakops deployment a Helm release will be installed in your [cluster](../cluster) using a Helm chart built when a [release](./release) is created
-A Kubernetes deployment will pull an image (named as: environment_name-latest), built in [initial-build](../project/initial-build), from the corresponding image repository (aws ECR) built in [project](../project)
+When you creates a Sleakops deployment a Helm release will be installed in your [cluster](/docs/cluster) using a Helm chart built when a [release](/docs/deployment/release.mdx) is created
+A Kubernetes deployment will pull an image (named as: environment_name-latest), built in [initial-build](/docs/project/initial-build), from the corresponding image repository (aws ECR) built in [project](/docs/project)
 and decired numbers of Kubernete pods will be created, running the decired image. A Kubernete service and ingress will be created to allow the creation of the corresponding subdomains
 
-
-
-
 ## Cloud resources
-
 
 When you create a deployment in Sleakops, the related cluster will receive these entities:
 
@@ -29,5 +24,3 @@ When you create a deployment in Sleakops, the related cluster will receive these
 - a Kubernetes job for each job-service Sleakops service type
 - a Kubernetes cronjob for each cronjob-service Sleakops service type
 - a Kubernetes release for each Sleakops release
-
-
