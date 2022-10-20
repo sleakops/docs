@@ -4,8 +4,18 @@ import { FiExternalLink } from "react-icons/fi";
 
 # User
 
-Within SleakOps we have three user roles, Viewer, Editor and Admin, only Editors and Admins can create infrastructure but Admins can change other users' accounts and roles.
-At this moment SleakOps automatically creates a user on the root account of the provider while giving it enough permissions to rotate to the created Organizations to interact with the created infrastructure. The password given to the created users is: "'user.first_name' '.' 'user.last_name' '-' 'company.name'".  
+A variety of things needs to be defined when you create a user, we have three fundamental fields of user permissions:
+Role: This field defines what the user can do inside SleakOps, it's separated into three roles, 'Admin', 'Editor' and 'Viewer'. Simply, a Viewer is read-only, while Editors and Admins can create infrastructure or resources inside SleakOps but the Admin can also create and delete users. 
+AWS Organizations User: If you already have organizations in your Company they will be shown and selected here, at this moment SleakOps only creates a user on the AWS root account that can SwitchRole to OrganizationAccountAccessRole of the accounts selected, you can make this through the links shown on Sleakops Home.
+Provider VPN User: It's similar to the AWS field but here you set if a user it's also created on the Pritunl Server of the Provider you give. More information can be checked on [VPN documentation](/vpn.mdx)
+
+At this moment SleakOps automatically creates a user and set its password as: "'user.first_name''.''user.last_name''-''company.name'". This user will be obligated to change his password on his first login.
+The access given by the AWS Organizations User field is the switch role, to do it you just simply log in to the root account on AWS and you can switch roles with the 'Account Switcher' that you can find on the Sleakos Home on the 'Organizations Table'.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img src="/img/users/organizations-account-switcher.png" alt="organizations-account-switcher" />
+</Zoom>
+
 
 When you create a [Provider ](/docs/provider/index.mdx) you get a Pritunl VPN where you need a profile so we also create a profile on the VPN. To manipulate the AWS resources through the console or, for example, through Lens, you must be connected to it. To do that you have to download Pritunl and import your profile on the client, find the steps on the [VPN documentation](/vpn.mdx).
 
