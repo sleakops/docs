@@ -5,12 +5,29 @@ Remember that a project and environment make a namespace in a cluster. Sleakops 
 
 ## Create deployments
 
-To create a deployment for a project in an environment you only need to provide a release name.
+To create a deployment for a project in an environment you need to provide a [environment](./environment), [project](./project) and a [release](./deployment/release)
 
-### Cloud resources
+
+## How SleakOps handle deployments
+
+When you creates a Sleakops deployment a Helm release will be installed in your [cluster](../cluster) using a Helm chart built when a [release](./release) is created
+A Kubernetes deployment will pull an image (named as: environment_name-latest), built in [initial-build](../project/initial-build), from the corresponding image repository (aws ECR) built in [project](../project)
+and decired numbers of Kubernete pods will be created, running the decired image. A Kubernete service and ingress will be created to allow the creation of the corresponding subdomains
+
+
+
+
+## Cloud resources
+
 
 When you create a deployment in Sleakops, the related cluster will receive these entities:
 
-- a Kubernetes deployment
-- a Kubernetes service for every Sleakops service
-- a Kubernetes Ingress for every Sleakops service
+- a Kubernetes deployment for each web-service and worker Sleakops services types
+- a Kubernetes service for each web-service Sleakops services type
+- a Kubernetes Ingress for each web-service Sleakops services type
+- a Kubernetes hpa for each Sleakops service
+- a Kubernetes job for each job-service Sleakops service type
+- a Kubernetes cronjob for each cronjob-service Sleakops service type
+- a Kubernetes release for each Sleakops release
+
+
