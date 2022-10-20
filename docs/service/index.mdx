@@ -1,19 +1,34 @@
-import { FiExternalLink } from "react-icons/fi";
+import { FiExternalLink, FiCornerRightDown } from "react-icons/fi";
 
 # Service
 
 In Sleakops a service is an entity of an application, as in a microservices architecture.
 
-## Create a service
+## Create a Service
 
-To create a service you provide the following information:
+To create a service you provide the following basic information:
 
-- A project and an environment for the service to be deployed.
-- A name to identify the service
-- A URL that serves as the endpoint for the service.
-- A docker image, tag and command for the containerized image. If no command is provided, the default Docker command will be used.
+- Project and Environment for the service to be deployed.
+- A 'name' to identify the service.
+- A 'command' (or CMD of Dockerfile) that will be applied to the service execution. If no command is provided, the default Docker command will be used. 
+- Service TYPE which are described [below <FiCornerRightDown/>](#service-types).
+- Resource set which is also described [below <FiCornerRightDown/>](#resource-set)
 
-Along with information about the resource set needed for this service to run.
+### Service Types
+
+Depending on the Service type chosen you will need to fill in different fields, besides that, the Command will always be applied so there is where comes the importance of that field which is normally the line you use to make the service work. The actual possible service types are:
+- Worker: Requires nothing else, just be sure that the defined CMD activates the worker.
+- Cron Job: You need to define the 'Cron' or the frequency of a Job execution, which is basically, set how often the Job occurs.
+- Hook: An 'event' is required to be set, when this event happens the Hook triggers the CMD.
+- Web Service: A Web Service requires an 'url' that will work as its endpoint. SleakOps generate this url based on the name of the service and external-dns will use the hierarchy of where it has been created. As an example, the URL will be: {service_name}.{environment_name}.{provider_domain_name}.
+
+## Create a Job
+
+A Job uses the same fields that the Service, the difference radicates in that a Job can be created and executed at any moment, by the other side, while you create a Service as a structural need of your Deployment a Job is something that you create to be executed at the moment.
+
+### Resource Set
+
+You'll also need to set the resource set needed for this service to run.
 
 | Name             | Description                                                                                                                                                                 |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -30,4 +45,4 @@ Along with information about the resource set needed for this service to run.
 
 ### Cloud resources
 
-Sleakops doesn't generate any resources in your provider when you create a service.
+Sleakops doesn't generate any resources in your provider when you create a service but you should take into account that the resource set you've defined come from the nodes of the Cluster, so these resources like RAM and Cores are consumed from the EC2 instance.
