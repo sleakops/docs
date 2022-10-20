@@ -9,10 +9,11 @@ First of all, as defined by AWS, a hosted zone is basically a container for reco
 ## Route53, how SleakOps uses it
 
 As initially described on [Provider](/docs/provider/index.mdx) SleakOps create a [Route53 <FiExternalLink/>](https://aws.amazon.com/route53/) HostedZone inside the 'prod' account, this Zone will be considered and called the Primary HostedZone because it is where you use the 'pure' domain you've defined on the Provider creation, similarly, SleakOps will create other HostedZones, which are Secondaries and will be handled as subdomains of the domain when you create an [Environment](/docs/environment.mdx).
+When an Environment is created we also create its right Records on the Primary HostedZone to connect the Services of the Environment with the domain delegated on 'prod'.
 
 ### How SleakOps manages domains and subdomains
 
-With these AWS services we create both private and public domains. Public domains describe how to route traffic on the internet while Private domains are about how you want to route traffic inside the VPC. Also, both of them will be handled by the external-dns Pod we deploy on each Cluster created and it will make the subdomains needed based on the [Services](/docs/service/index.mdx) your uses. For more information on external-dns you can check its [Github <FiExternalLink/>](https://github.com/kubernetes-sigs/external-dns).
+With these AWS services, we create public domains. Public domains describe how to route traffic on the internet. Also, both of them will be handled by the external-dns Pod we deploy on each Cluster created and it will make the subdomains needed based on the [Services](/docs/service/index.mdx) you create. For more information on external-dns you can check its [Github <FiExternalLink/>](https://github.com/kubernetes-sigs/external-dns).
 
 ## DNS Delegation
 
