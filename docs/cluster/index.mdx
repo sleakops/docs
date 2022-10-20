@@ -13,7 +13,7 @@ Simply said, a Cluster is a place where to enclose lots of containers. The task 
 At this moment SleakOps only accepts [EKS <FiExternalLink/>](https://aws.amazon.com/eks/) as a cluster orchestration tool and every cluster you create will be handled by Kubernetes through these resources, with SleakOps you can also establish how many nodes you want and its type to better fulfill your needs.
 Before creating the Cluster we generate some necessary services for it to work expectedly. Every container orchestration tool needs access to other resources to manipulate its configurations as the tool needs to manage them, so we have to set a Role and the desired attached policies.
 The cluster envelope an unlimited amount of resources and someone needs to have control of what or who can access the cluster to interact with them, this is done through a [Security Group <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html), again, we define Security Group Rules [Security Group Rule <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html#SecurityGroupRules) to admit traffic from and to our resources as we desire. 
-Then we are ready to create the cluster, we put it inside the VPC of the account and we attach to it these services. 
+Then we are ready to create the cluster, we put it inside the VPC of the account and attach it to these services. 
 
 ## Nodes
 
@@ -22,5 +22,5 @@ The services that a node needs are almost the same as the cluster, the main diff
 
 ## SleakOps Kubernetes integration
 
-It's important to know that we automatically install metrics-server and open an IP to give SleakOps access to the information of the cluster, this is used to allow different integrations of SleakOps with the cluster.
-You can see our Kubernetes implementations and integrations our the [K8s documentation](./k8s.mdx).
+It's important to know that we install, by default, various Kubernetes resources that are useful to automate infrastructure, going from service endpoints, to monitoring and server performance. To achieve all this we open an IP to give SleakOps access to the information of the cluster, this is used to allow different integrations of SleakOps with the cluster and also to be able to correctly deploy all these resources.
+Our most basic integration is that of the metrics, can read about it on the [K8s documentation](./k8s.mdx).

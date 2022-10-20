@@ -1,0 +1,16 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Kubernetes cluster SleakOps built-in resources
+
+As we pointed out on the Clusters index we take advantage of many K8s resources to manage the infrastructure. The metrics-server is crucial for basic monitoring of the Cluster but we also install other basic resources and check what metrics-server is on its [github <FiExternalLink/>](https://github.com/kubernetes-sigs/metrics-server).
+Other resources require many other utilities to be correctly handled, this is all created and configurated by SleakOps.
+
+## AWS Load Balancer Controller
+
+This is a more complex K8s resource, information about it can be found [here <FiExternalLink/>](https://kubernetes-sigs.github.io/aws-load-balancer-controller/v2.4/). To make the Load Balancer work inside the Kubernetes cluster we also have to create some Policies and Roles on the AWS account, you should consider this before attempting to delete AWS resources. The load balancer can be defined as a service made to distribute the cluster workload between the installed services.
+
+## External-dns
+
+Many services need endpoints that allow people to access them, even the apps need them. These tasks are normally manually made, but the External-dns resource, again, with all the permissions that it requires inside the cluster and the AWS account, handles all the endpoints construction and configurations needed for the services and deployments you generate inside the Provider. 
