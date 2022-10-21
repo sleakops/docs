@@ -5,7 +5,7 @@ import styles from './styles.module.css';
 const FeatureList = [
   {
     title: 'Easy to Use',
-    imgUrl: "/img/dashboard.png",
+    imgUrl: "/img/clusters-dashboard.png",
     description: (
       <>
         Crea y monitorea toda la infra de tus aplicaciones escalables a traves de nuestra plataforma.
@@ -24,7 +24,7 @@ const FeatureList = [
   },
   {
     title: 'Powered by Craftech',
-    imgUrl: "/img/clusters.png",
+    imgUrl: "/img/clusters-dashboard.png",
     description: (
       <>
         Sleakops nace como consecuencia de la experiencia de Craftech, una empresa orientada a dar servicios de DevOps

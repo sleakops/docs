@@ -6,35 +6,38 @@ import { FiExternalLink } from "react-icons/fi";
 
 In Sleakops a release represents a deployable state of all the services (web-services, workers, cronjobs, jobs) of a [project](/docs/project) in a [environment](/docs/environment)
 
-## Release creation
+## Release Creation
 
 To create a release you must have one or more services with unreleased changes ('draft' state), a [environment](/docs/environment) and a version number to set to the release
-after that you are ready to [deploy](/docs/deployment) this realease on selected [cluster](/docs/cluster).
+after that you are ready to [deploy](/docs/deployment) this release on selected [cluster](/docs/cluster).
 
 ## How SleakOps handle release
 
-When a release is created a Helm chart is created and pushed to a chart repository created (if not exists) in this point.
-This chart contanis all your SleakOps services and depends of the type of these services, the chart, will contain different resources.
+When a release is created a Helm chart is built and pushed to a chart repository created (if it does not exists) at this point.
+This chart contains all your SleakOps services and depending on the type of these services, the chart, will contain different resources.
 
 ## Helm chart resources
 
-###SleakOps web-service service:
+### SleakOps web-service service:
 
 a Kubernetes deployment
 a Kubernetes service
-a Kubernetes hpa
+a Kubernetes HPA (Horizontal Pod Autoscaler)
 a Kubernetes ingress
 
 Ingress generates his hosts using <service_name>.<environment_name>.<organization_name>\.<yourdomain\.com>
 
-###SleakOps worker service:
-a Kubernetes deployment
-a Kubernetes hpa
+### SleakOps worker service:
 
-###SleakOps hook service:
+a Kubernetes deployment
+a Kubernetes HPA
+
+### SleakOps hook service:
+
 a Kubernetes job
 
-This jos uses Kubernete hooks to start
+This job uses Kubernetes hooks to start
 
-###SleakOps cronjob service:
+### SleakOps cronjob service:
+
 a Kubernetes cronjob
