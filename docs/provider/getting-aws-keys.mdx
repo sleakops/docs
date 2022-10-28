@@ -1,0 +1,163 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Getting AWS keys
+
+To use Sleakops, you need to provide an access key, and a secret key in the [Provider](/docs/provider/index.mdx) creation page,
+which you must obtain from the [AWS console page <FiExternalLink/>](https://aws.amazon.com/console/).
+These are used to make programmatic calls to the AWS API.
+
+## How to obtain an access key from the Console
+
+Root user access keys provide unrestricted access to your entire AWS account.
+As Sleakops needs long-term access keys, we recommend creating a new IAM user and generating access keys for that user instead.
+This is also a practice recommended by AWS.
+
+In this tutorial, an AWS account named **sleakops_user** was created.
+
+### Create an IAM user with programmatic access
+
+Enter the console as usual with the email and password you set for your root account.
+
+<Zoom>
+  <img
+    src="/img/provider/getting-aws-keys/get-keys-1.png"
+    alt="AWS console main page"
+  />
+</Zoom>
+
+Then search for the IAM service.
+
+<Zoom>
+  <img
+    src="/img/provider/getting-aws-keys/get-keys-2.png"
+    alt="Search the IAM service"
+  />
+</Zoom>
+
+Next, go to the Users section.
+
+<Zoom>
+  <img
+    src="/img/provider/getting-aws-keys/get-keys-3.png"
+    alt="IAM management page"
+  />
+</Zoom>
+
+Click on Add User button.
+
+<Zoom>
+  <img
+    src="/img/provider/getting-aws-keys/get-keys-4.png"
+    alt="IAM user page, with an arrow pointing to the button"
+  />
+</Zoom>
+
+Once inside the Add User stepper, give the user a name meaningful to your use case.
+Also, check the button Access Key - Programmatic access. If you wish to enter the
+AWS console with this user you should check that button as well.
+
+<Zoom>
+  <img
+    src="/img/provider/getting-aws-keys/get-keys-5.png"
+    alt="First step for creating a user."
+  />
+</Zoom>
+
+Go to the Attach Existing policies directly and give the user the AdministratorAccess
+policy which allows access to manage all resources.
+This policy gives SleakOps access to deploy all the infrastructure needed.
+Review other pages of this documentation to learn more about the AWS resources we create for you.
+
+<Zoom>
+  <img
+    src="/img/provider/getting-aws-keys/get-keys-6.png"
+    alt="Second step for creating a user."
+  />
+</Zoom>
+
+If you wish you may add tags to the user.
+Tags give plenty of help in organizing the resources that are created.
+SleakOps make use of tags for every resource.
+
+<Zoom>
+  <img
+    src="/img/provider/getting-aws-keys/get-keys-7.png"
+    alt="Third step for creating a user."
+  />
+</Zoom>
+
+Review the details before creating the user.
+When you feel that everything is ok, click on Add User
+
+<Zoom>
+  <img
+    src="/img/provider/getting-aws-keys/get-keys-8.png"
+    alt="Fourth step for creating a user."
+  />
+</Zoom>
+
+The user was successfully created, and the credentials Sleakops needs are shown and
+should be introduced directly on the Provider creation page. Remember that the secret
+key is only shown once, if you miss it you will need to create another pair and delete
+this one. Further information on that issue will be presented in the next section.
+
+<Zoom>
+  <img
+    src="/img/provider/getting-aws-keys/get-keys-9.png"
+    alt="Fifth step for creating a user."
+  />
+</Zoom>
+
+## How to manage access keys
+
+Whether you created an IAM user or using the root account (not recommended), you might manage your keys following this section
+Once inside the AWS console main page. Click on your username.
+
+<Zoom>
+  <img
+    src="/img/provider/getting-aws-keys/manage-keys-1.png"
+    alt=" step to manage access keys."
+  />
+</Zoom>
+
+Then go to security credentials.
+
+<Zoom>
+  <img
+    src="/img/provider/getting-aws-keys/manage-keys-2.png"
+    alt=" step to manage access keys."
+  />
+</Zoom>
+
+Enter the Access keys (access key ID and secret access key) section, where you should
+see your keys if any. From here you might deactivate keys, delete them or create
+new ones.
+
+<Zoom>
+  <img
+    src="/img/provider/getting-aws-keys/manage-keys-3.png"
+    alt=" step to manage access keys."
+  />
+</Zoom>
+
+If you need a new key click on Create new access key button.
+
+<Zoom>
+  <img
+    src="/img/provider/getting-aws-keys/manage-keys-4.png"
+    alt=" step to manage access keys."
+  />
+</Zoom>
+
+You successfully created the keys needed to use on the Provider creation page.
+As noted on the AWS console, up to two access keys might exists at a time.
+If you need more providers you might need to repeat these steps by creating more IAM users.
+
+<Zoom>
+  <img
+    src="/img/provider/getting-aws-keys/manage-keys-5.png"
+    alt=" step to manage access keys."
+  />
+</Zoom>
