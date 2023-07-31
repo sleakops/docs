@@ -12,5 +12,5 @@ sidebar_position: 2
 - ** Projects **: Represents a codebase and it is managed by a git repository.
 - ** Services **: An abstract way to expose an application running on a set of Pods as a network service.
 - ** Deployments **:
-- ** Releases **: Represents a deployable state of all the services
-- ** Var Group **: Dictionary that provides configuration for services
+- ** Releases **: Represents a deployable state of all the services.
+- ** Var Group **: Dictionary that provides configuration for services.
