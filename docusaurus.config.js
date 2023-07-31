@@ -16,8 +16,8 @@ const config = {
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'sleakops', // Usually your GitHub org/user name.
-  projectName: 'docs', // Usually your repo name.
+  organizationName: 'Craftech', // Usually your GitHub org/user name.
+  projectName: 'sleakops', // Usually your repo name.
   deploymentBranch: 'main',
   trailingSlash: false,
 
@@ -63,7 +63,9 @@ const config = {
         // Will be passed to @docusaurus/plugin-content-blog (false to disable)
         blog: {},
         // Will be passed to @docusaurus/plugin-content-pages (false to disable)
-        pages: {},
+        pages: {
+          routeBasePath: '/pages',
+        },
         // Will be passed to @docusaurus/plugin-content-sitemap (false to disable)
         sitemap: {
           changefreq: 'weekly',
@@ -120,7 +122,7 @@ const config = {
             items: [
               {
                 label: 'Tutorial',
-                to: '/docs',
+                to: '/',
               },
             ],
           },
@@ -129,15 +131,15 @@ const config = {
             items: [
               {
                 label: 'Stack Overflow',
-                href: 'https://stackoverflow.com/questions/tagged/docusaurus',
+                href: 'https://stackoverflow.com/questions/tagged/sleakops',
               },
               {
                 label: 'Discord',
-                href: 'https://discordapp.com/invite/docusaurus',
+                href: 'https://discordapp.com/invite/sleakops',
               },
               {
                 label: 'Twitter',
-                href: 'https://twitter.com/docusaurus',
+                href: 'https://twitter.com/sleakops',
               },
             ],
           },

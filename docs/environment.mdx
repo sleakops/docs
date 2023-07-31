@@ -16,13 +16,13 @@ This case might be implemented by creating environments for developers (dev), qu
 Each of these might have custom settings appropriate for the needs of different roles, such as developers and testers.
 Environments are independent of one another.
 
-A cluster must be selected to create an environment, hence that according to our [proposed architecture](/docs/provider/aws.mdx) the prod account must only contain production environments.
+A cluster must be selected to create an environment, hence that according to our [proposed architecture](/provider/aws.mdx) the prod account must only contain production environments.
 The dev account must host all other non-productive environments.
 
 ## Infrastructure created with an environment
 
 For an environment to function correctly it needs DNS resolution, so when an environment is created a secondary hosted zone is also created in the Route 53 service with the corresponding association.
-Remember that the primary zone was created during the [Provider](/docs/provider) creation and assigned to the prod account.
+Remember that the primary zone was created during the [Provider](/provider) creation and assigned to the prod account.
 
 You can read more about the Kubernetes resources that an environment creates in the next section.
 
@@ -30,12 +30,12 @@ You can read more about the Kubernetes resources that an environment creates in 
 
 Environment and projects are closely related as every matching between two might represent a namespace.
 Namespaces are resources represented in SleakOps, sometimes referred to as project_env.
-Namespace creation is triggered with the creation of [services](/docs/service/index.mdx) or [dependencies](/docs/dependency/index.mdx) resources.
+Namespace creation is triggered with the creation of [services](/service/index.mdx) or [dependencies](/dependency/index.mdx) resources.
 
 This namespace requires SleakOps to create:
 
 - A proper namespace inside the Kubernetes cluster of the environment.
-- A Kubernetes job to perform the [initial build image](/docs/project/initial-build.mdx).
+- A Kubernetes job to perform the [initial build image](/project/initial-build.mdx).
 
 ### Pricing
 
