@@ -13,9 +13,9 @@ COPY --chown=node:node . /app/
 
 
 # Install (not ci) with dependencies, and for Linux vs. Linux Musl (which we use for -alpine)
-COPY package.json ./
+COPY package.json yarn.lock ./
 
-RUN npm i
+RUN yarn --frozen-lockfile
 
 # Switch to the node user vs. root
 USER node
