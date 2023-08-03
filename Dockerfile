@@ -15,12 +15,12 @@ COPY --chown=node:node . /app/
 # Install (not ci) with dependencies, and for Linux vs. Linux Musl (which we use for -alpine)
 COPY package.json yarn.lock ./
 
-RUN yarn --frozen-lockfile
+RUN yarn
 
-# Switch to the node user vs. root
-USER node
+# # Switch to the node user vs. root
+# USER node
 
 # Expose port 4000
 EXPOSE 4000
 # Start the app in debug mode so we can attach the debugger
-CMD ["npm", "start"]
+CMD ["yarn", "run", "start"]
