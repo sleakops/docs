@@ -1,27 +1,28 @@
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
+import { FaKey } from "react-icons/fa";
 
-# Kubernetes integrations
+# Generating Kubeconfig for Easy Cluster Access
 
-Eventually is highly probable that you install many services inside the cluster, and you can even implement various deployments, to maintain the order we differentiate some Namespaces within the cluster, you should know that we create a Namespace for every existing combination of [Project](/project/index.mdx) and [Environment](/environment.mdx), we simply call it a ProjectEnv. Then, every dependency and deployment is allocated inside a Namespace equal to its associated ProjectEnv.
+To access your EKS cluster, follow these simple steps:
 
-SleakOps has different Kubernetes integrations to help you work more easily with the cluster, this is why we install metrics-server and why we need to open little access to it for SleakOps. The most obvious implementation is the cluster dashboard where you can monitor your cluster, to use it just go to the 'Clusters' tab and select the cluster you want to check its metrics.
+- Log in to the SleakOps dashboard.
 
+- Navigate to the Cluster tab.
+
+- Click on the "Generate Kubeconfig" <FaKey/> button on the cluster you want to access. As shown in the picture
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
-  <img src="/img/cluster/clusters-dashboard.png" alt="clusters-dashboard" />
+  <img src="/img/cluster/generate_kubeconfig.png" alt="clusters-dashboard" />
 </Zoom>
 
-In addition, over the dashboard and for every cluster you will find a "Generate Kubeconfig" button where you can copy the cluster kubeconfig so you can use it at your will.
-
+- Complete the steps given and download your kubeconfig file.
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
-  <img src="/img/cluster/dashboard-kubeconfig.png" alt="dashboard-kubeconfig" />
+  <img src="/img/cluster/kubeconfig_steps.png" alt="clusters-dashboard" />
 </Zoom>
 
-## Connecting to Lens
-
-Lens is a powerful tool for monitoring a cluster but first, it needs access to your cluster. This is an example of a good and useful way to use the generated kubeconfig, you can simply copy the kubeconfig as described above and paste it to Lens, remember that you need to be connected to your created VPN.
-
+- With the kubeconfig file in hand, you can seamlessly interact with your EKS cluster using familiar Kubernetes tools and commands, like [Lens <FiExternalLink/>](https://k8slens.dev/). 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img src="/img/cluster/lens-kubeconfig.png" alt="kubeconfig-to-lens" />
 </Zoom>
+

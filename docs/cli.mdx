@@ -1,0 +1,114 @@
+import Zoom from "react-medium-image-zoom";
+import { FiExternalLink } from "react-icons/fi";
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# CLI
+
+
+## Streamline CI/CD with SleakOps CLI
+SleakOps CLI is a Python package designed to simplify your CI/CD workflows. 
+With just two straightforward subcommands, you can effortlessly create builds and deploy your applications, ensuring a smooth and efficient development process. 
+To get started, simply install SleakOps using pip:
+```
+pip install sleakops
+```
+
+### 1. Authentication
+
+To authenticate with the SleakOps CLI, you need an API_KEY. You can obtain this key from the [console <FiExternalLink/>](https://console.sleakops.com/settings/apikey) by clicking on Generate API-Key. 
+Each company is allowed to have only one active API_KEY at a time. If you request a new API_KEY, the old one will be automatically revoked. The page shows the company keys and who generated them.
+
+Once you have your API_KEY, you can use it as an argument when running SleakOps commands or set it as an environment variable named SLEAKOPS_KEY. 
+
+
+### 2. Create a Build
+
+To create a build for your application, use the following command:
+
+```
+sleakops build [options]
+```
+
+This command initiates the build process, and SleakOps takes care of compiling your code, running tests, and packaging the application for deployment. You can specify additional options to tailor the build process to your specific needs.
+
+There are two required arguments **project** and **branch**, which are used to know what to build. 
+Besides, you might add a **commit** to build a previous commit, a **tag** for the image, and the *provider* if you need to specify it.
+
+As previously mentioned the key might be an input here or a environment variable.
+
+Also, you might mark if you want the process to **wait** the build to be finished or not.
+
+
+### 3. Make a Deploy
+Once your build is ready, you can effortlessly deploy your application using the following command:
+```
+sleakops deploy [options]
+```
+SleakOps seamlessly handles the deployment process, ensuring that your application is up and running in no time. You can specify deployment options to fine-tune the process according to your requirements.
+
+Here **project** and **environment** are the required arguments. User might add a **build** or **tag** image to specify an image. Here the **wait** and **key** options are present to, the usage is the same as in the build command.
+
+## CI/CD Examples
+With SleakOps CLI, you can integrate your CI/CD pipelines, automate the build and deployment process, and focus on delivering exceptional applications without the hassle of manual intervention. 
+Enjoy a seamless development experience with SleakOps, and make your custom CI/CD workflows.
+
+
+<Tabs
+  defaultValue="GitHub"
+  values={[
+    {label: 'GitHub', value: 'GitHub'},
+    {label: 'GitLab', value: 'GitLab'},
+    {label: 'BitBucket', value: 'BitBucket'},
+  ]}>
+<TabItem value="GitHub"> 
+
+    name: Deploy
+    on:
+    push:
+        branches:
+        - main
+
+    jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+        - name: Checkout repository
+            uses: actions/checkout@v2
+
+        - name: Install SleakOps CLI
+            run: pip install sleakops
+
+        - name: Run SleakOps deploy
+            run: sleakops deploy -p core -e main -w
+</TabItem>
+<TabItem value="GitLab"> 
+
+    image: python:3.9
+
+    stages:
+    - deploy
+
+    deploy:
+    stage: deploy
+    script:
+        - apt-get update -qy
+        - apt-get install -y python3-pip
+        - pip3 install sleakops
+        - sleakops deploy -p core -e main -w
+</TabItem>
+<TabItem value="BitBucket">
+
+    image: python:3.9
+
+    pipelines:
+    default:
+        - step:
+            name: Deploy
+            script:
+            - apt-get update -qy
+            - apt-get install -y python3-pip
+            - pip3 install sleakops
+            - sleakops deploy -p core -e main -w
+</TabItem>
+</Tabs >
