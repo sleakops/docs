@@ -4,21 +4,21 @@ import { FiExternalLink } from "react-icons/fi";
 
 # User
 
-A variety of things needs to be defined when you create a user, we have three fundamental fields of user permissions:
-Role: This field defines what the user can do inside SleakOps, it's separated into three roles, 'Admin', 'Editor' and 'Viewer'. Simply, a Viewer is read-only, while Editors and Admins can create infrastructure or resources inside SleakOps but the Admin can also create and delete users. 
-AWS Organizations User: If you already have organizations in your Company they will be shown and selected here, at this moment SleakOps only creates a user on the AWS root account that can SwitchRole to OrganizationAccountAccessRole of the accounts selected, you can make this through the links shown on Sleakops Home.
-Provider VPN User: It's similar to the AWS field but here you set if a user it's also created on the Pritunl Server of the Provider you give. More information can be checked on [VPN documentation](/vpn.mdx)
+## User Creation
 
-At this moment SleakOps automatically creates a user and set its password as: "'user.first_name''.''user.last_name''-''company.name'". This user will be obligated to change his password on his first login.
-The access given by the AWS Organizations User field is the switch role, to do it you just simply log in to the root account on AWS and you can switch roles with the 'Account Switcher' that you can find on the Sleakos Home on the 'Organizations Table'.
+Sleakops has three fundamental fields of user permissions:
+Role: Defines what the user is allowed to do inside SleakOps, it's separated into three roles, 'Admin', 'Editor' and 'Read Only'.
+- Viewer: Read-only user.
+- Editor: It has PowerUser permissions which allows them to create infrastructure resources in Sleakops and AWS but not to manage users. You have to select to which accounts the User will have permissions. 
+- Admin: Same as Editors but with the addition that they can manage other users permissions and they have complete access to every account. 
+
+AWS Account Accesses: This field shows you every account, here you select to which accounts the user (Editor or Read-only) will have access.
+VPN Account Accesses: It's similar to the AWS account accesses field but here you set if a user it's also created on the VPN Server of the account you give. More information can be checked on [VPN documentation](/vpn.mdx)
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
-  <img src="/img/users/organizations-account-switcher.png" alt="organizations-account-switcher" />
+  <img src="/img/users/USER-creation-form.png" alt="USER-creation-form" />
 </Zoom>
 
+For access into the AWS accounts SleakOps initially sets a random password and sends it to the email of the created user. The user can login with that password but it will be obligated to change its password on the first login. For SleakOps platform access we use the password that was set on the User form.
 
-When you create a [Provider ](/provider/index.mdx) you get a Pritunl VPN where you need a profile so we also create a profile on the VPN. To manipulate the AWS resources through the console or, for example, through Lens, you must be connected to it. To do that you have to download Pritunl and import your profile on the client, find the steps on the [VPN documentation](/vpn.mdx).
-
-<!-- - Como se le gestioanr el acceso a un cluster? -->
-<!-- - El acceso a la vpn? -->
-<!-- - El acceso a la consola de aws? -->
+After this user creation an AWS User will be created on the 'security' Account, this account is where we control acesses to all the SleakOps AWS accounts, for more information check the ['security' account documentation ](/provider/security_account.mdx). We will also create, depending on the configuration, users on the VPN servers, read how to use them on the corresponding [documentation ](/user/vpn_access.mdx) and on the SleakOps user.
