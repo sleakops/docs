@@ -4,23 +4,16 @@ import { FiExternalLink } from "react-icons/fi";
 
 # Cluster
 
-## What is a Cluster
+A cluster is a group of interconnected computers or instances that work together as a single unit to perform specific tasks or run applications. In the context of [AWS Elastic Kubernetes Service <FiExternalLink/>](https://docs.aws.amazon.com/eks/) (EKS), a cluster consists of one or more EC2 instances (nodes) that form the foundation for running containerized applications using Kubernetes orchestration.
 
-Simply said, a Cluster is a place where to enclose lots of containers. The task of managing a big quantity of containers turns out to be really hard so there are tools meant to do this management, they are called cluster orchestration tools and if you are talking about the cluster, you are almost always talking about some cluster orchestration tool.
+When creating a cluster the configuration options offer you the flexibility and control needed to create an EKS cluster that aligns precisely with your requirements. In the following sections, we will dive deeper into node provisioning, high-availability, and cluster shutdown features, providing you with valuable insights to manage your EKS cluster effectively. So, let's get started!
 
-## How SleakOps handle clusters 
+## Memory and CPU Limits
+During cluster creation, you have the power to define upper limits for memory and CPU resources. By setting these limits, you ensure that your resources are utilized effectively, avoiding any over-commitment.
 
-At this moment SleakOps only accepts [EKS <FiExternalLink/>](https://aws.amazon.com/eks/) as a cluster orchestration tool and every cluster you create will be handled by Kubernetes through these resources, with SleakOps you can also establish how many nodes you want and its type to better fulfill your needs.
-Before creating the Cluster we generate some necessary services for it to work expectedly. Every container orchestration tool needs access to other resources to manipulate its configurations as the tool needs to manage them, so we have to set a Role and the desired attached policies.
-The cluster wraps an unlimited amount of resources and someone needs to have control of what or who can access the cluster to interact with them, this is done through a [Security Group <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html), again, we define Security Group Rules [Security Group Rule <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html#SecurityGroupRules) to admit traffic from and to our resources as we desire. 
-Then we are ready to create the cluster, we put it inside the VPC of the account and attach it to these services. 
 
-## Nodes
+## High-Availability for Reliability
+To guarantee constant and reliable availability of your critical systems and services, you can enable the "High-Availability" feature. With HA enabled the EKS cluster is distributed across multiple Availability Zones (AZs), providing redundancy and fault tolerance. This way, even if one AZ experiences an issue, your cluster continues to function smoothly, ensuring uninterrupted operations.
 
-The nodes are virtual machines that give the cluster its compute resources and contain the pods. On SleakOps we let you select the node type that you need for your cluster and we can say that the node type defines the capacity of every piece of your cluster.
-The services that a node needs are almost the same as the cluster, the main difference is that every node has to have a network connection to the cluster so they can communicate with each other, because of this we need one more [Security Group Rule <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html#SecurityGroupRules) and that every node can scale based on the configuration you give to it.
-
-## SleakOps Kubernetes integration
-
-It's important to know that we install, by default, various Kubernetes resources that are useful to automate infrastructure, going from service endpoints, to monitoring and server performance. To achieve all this we open an IP to give SleakOps access to the information of the cluster, this is used to allow different integrations of SleakOps with the cluster and also to be able to correctly deploy all these resources.
-Our most basic integration is that of the metrics, can read about it on the [K8s documentation](./k8s.mdx).
+## Cluster Shutdown
+Another essential option is the "Cluster Shutdown" feature. By enabling this option, you can choose a preferred time window for the cluster to be on. This functionality allows you to optimize your resource utilization and minimize costs during idle periods, for instance, for a development cluster.
