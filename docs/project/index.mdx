@@ -1,12 +1,14 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
 
 # Project
 
-In Sleakops a project represents a codebase and it is managed by a git repository. Once a [provider](provider/index.mdx) has been created, you can create projects for your company. Create as many projects as repositories your application has.
+In Sleakops a project represents a codebase and it is managed by a git repository. Once you have a [cluster ](cluster/index.mdx) and an [environment ](environment.mdx) has been created, you can create projects for your company. Create as many projects as repositories your application has.
 
-Projects are related to several other Sleakops entities like environments and services. The union of a project with an environment makes a namespace for the cluster. Services depend on projects to produce containerized images from a Dockerfile.
+Projects are related to several other Sleakops entities like environments and services. The union of a project with an environment makes a namespace for the cluster and this is one of the main SleakOps entities, we call it ProjectEnv. 
 
-## Create projects
+## Create ProjectEnvs
 
 To create a project you need to give Sleakops authorization to access repositories from an external git provider account where the sources of your project are hosted.
 Sleakops integrates these third-party git applications:
@@ -15,7 +17,16 @@ Sleakops integrates these third-party git applications:
 - GitLab. If your GitLab is self-hosted, please follow these [instructions](project/gitlab.mdx).
 - Bitbucket
 
-### Cloud resources
+Completing this first step now you are allowed to create a Project, you have to select which of the repositories you want to use and also the branch this ProjectEnv will use and the location of the Dockerfile in your repository.
 
-When working with AWS, every time you add a project you get a new empty [ECR <FiExternalLink/>](https://aws.amazon.com/ecr/) repository, hosted in the management account,
-according to our [proposed architecture](/provider/aws.mdx).
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img src="/img/project/PROJECT-form.png" alt="PROJECT-form" style={{ height: '500px', width: 'auto' }}/>
+</Zoom>
+
+### Related resources
+
+If you create a Project/ProjectEnv SleakOps creates an [AWS ECR <FiExternalLink/>](https://aws.amazon.com/ecr/) that is where we save all the charts, templates and build images that we use to later do the Deployments on the EKS Cluster. As previously stated, we consider this ProjectEnv a Cluster [Namespace <FiExternalLink/>](https://aws.amazon.com/ecr/) where we allocate all the services that are deployed on the Kubernetes Deployment.
+
+Something else that we manage as directly related to the ProjectEnv is a [Service Account <FiExternalLink/>](https://aws.amazon.com/ecr/), it is a Kubernetes resource that allows us to manage the permissions of the resources we create inside the cluster so they are able to connect with the AWS services you create.
+
+At this point we analyze with simple tools the correctness of your Dockerfile and how you are configurating it and also we Build an Image of that Dockerfile that are later used to deploy all your services, for this we use Kaniko, for more info of this third party tool checks its [Documentation <FiExternalLink/>](https://github.com/GoogleContainerTools/kaniko). When you submit the form we run the first build, more info [here ](project/build/initial-build.mdx).

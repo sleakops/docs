@@ -1,0 +1,24 @@
+import { FiExternalLink } from "react-icons/fi";
+
+
+# Build
+
+We have repeteadly talked about Build in both [Project documentation ](/project/index.mdx) and [Initial Build documentation](/project/index.mdx). It's easy to understand a Build in the context o [Docker <FiExternalLink/>](https://docs.docker.com/) because it is an image of Docker that can be used to compile and assemble source code, dependencies and libraries. 
+
+### Build creation
+
+To create a Build you only need four parameters, only the Project field is required as the other three are, if not set, chosen by default:
+- Project: Refers to what we call ProjectEnv, here you choose which ProjectEnv you want to build.
+- Branch: Lets you choose any branch of the repository that you've chosen as Project. Defaults to Environment name.
+- Commit hash: You can also choose the commit has to build a specific commit and not the last one as we do by default. Defaults to last commit.
+- Tag: Just a tag to differentiate builds. Defaults to 'latest'
+
+## Why do we need to Build a Docker image?
+
+First of all, this 'images' is what is used to deploy all the services inside Kubernetes as Docker containers through [Helm charts <FiExternalLink/>](https://helm.sh/docs/). Sleakops uses [Kaniko <FiExternalLink/>](https://github.com/GoogleContainerTools/kaniko) tool image, which is a tool to create container images from a Dockerfile, inside a Kubernetes cluster. This tool requires access to your repository as it builds the images using the files of the commit that you have provided. 
+
+:::info
+
+Always remember that you need a Build to update the code that the Deployment runs inside the Kubernetes Cluster.
+
+:::
