@@ -8,17 +8,12 @@ In Sleakops a release represents a deployable state of all the services (web-ser
 
 ## Release Creation
 
-To create a release you must have one or more services with unreleased changes ('draft' state), a [environment](/environment) and a version number to set to the release
-after that you are ready to [deploy](/deployment) this release on selected [cluster](/cluster).
+Sleakops administrate release for you. every you modify, delete or add a servicer, worker, hook or cronjobs. Sleakops give you option to publish change. 
+Every time to publish those changes Sleakops create a new release with autoincrement versions.
 
-## How SleakOps handle release
+### Helm chart resources
 
-When a release is created a Helm chart is built and pushed to a chart repository created (if it does not exists) at this point.
-This chart contains all your SleakOps services and depending on the type of these services, the chart, will contain different resources.
-
-## Helm chart resources
-
-### SleakOps web-service service:
+#### web-service:
 
 a Kubernetes deployment
 a Kubernetes service
@@ -27,17 +22,18 @@ a Kubernetes ingress
 
 Ingress generates his hosts using <service_name>.<environment_name>.<organization_name>\.<yourdomain\.com>
 
-### SleakOps worker service:
+
+#### Worker:
 
 a Kubernetes deployment
 a Kubernetes HPA
 
-### SleakOps hook service:
+#### Hook:
 
 a Kubernetes job
 
 This job uses Kubernetes hooks to start
 
-### SleakOps cronjob service:
+#### Cronjob:
 
 a Kubernetes cronjob
