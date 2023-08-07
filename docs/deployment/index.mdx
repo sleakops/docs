@@ -1,69 +1,69 @@
 # Deployment
 
-In Sleakops a deployment is the last step in getting your cloud infrastructure ready. Once all services are created, a [projectenv](/project) can be deployed. This 'Deployment' process, from the Sleakops point of view ends with the execution of a Kubernetes Helm release inside the cluster namespace of this projectenv.
+In Sleakops, a deployment is the final step in preparing your cloud infrastructure. Once all services are created, a [projectenv](/project) can be deployed. From Sleakops' perspective, the 'Deployment' process concludes with the execution of a Kubernetes Helm release inside the projectenv's cluster namespace.
 
-## How SleakOps handle Deployments
+## How SleakOps Handles Deployments
 
-To run the Deployment we use the images that we save on the project image repository (AWS ECR) that is created when you create the [ProjectEnv](/project). Initially, Sleakops create the image with [Kaniko <FiExternalLink/> ](https://github.com/GoogleContainerTools/kaniko) and push it at the moment you create a [Build ](/project/build), also, at the moment of the Deployment we pull the one corresponding to the Build being deployed. 
-The next step is to create the Helm chart, for this we use some general purpose-built Helm templates that we modify by applying the required values based on the services you've created and its configuration. For example, a Kubernetes service, ingress, workers, and the other Services will be created. After we built the Helm Chart we upload it to the ECR and we use it to create a Helm Release.
+To execute the deployment, we use images saved in the project's image repository (AWS ECR), which is created when you establish the [ProjectEnv](/project). Initially, Sleakops creates the image with [Kaniko <FiExternalLink/> ](https://github.com/GoogleContainerTools/kaniko) and pushes it the moment you establish a [Build ](/project/build). Additionally, at the time of the Deployment, we pull the image corresponding to the Build being deployed. 
+
+The subsequent step involves creating the Helm chart. We modify some general purpose-built Helm templates by applying the required values based on the services you've created and their configurations. For instance, a Kubernetes service, ingress, workers, and other Services are created. After building the Helm Chart, we upload it to the ECR and use it to establish a Helm Release.
 
 :::info
 
-You will have all these resources on your own AWS Accounts, nothing is saved only by Sleakops.
+All these resources reside in your own AWS Accounts. Sleakops does not exclusively store any data.
 
 :::
 
-## How to create a Deployment
+## How to Create a Deployment
 
-Right now to run a Deployment you have to make this call 'indirectly' unless you use the Deployment CLI. However, there are multiple ways to run a deploy, these are shown [below ](#running-a-deploy). You should know that we force run some Deployments that are required to maximize uptime so the actual state of the deployed infrastructure is not affected.
+As of now, to execute a Deployment, you must make this call 'indirectly' unless you use the Deployment CLI. However, multiple methods exist for deploying, as shown [below ](#running-a-deploy). Be aware that we enforce some Deployments to maximize uptime and ensure the current state of the deployed infrastructure remains unaffected.
 
 :::caution Forced Deployment
 
-At this moment and in some cases Sleakops forces some Deployments, read [here ](#forced-deployments) when and why we do it.
+Currently, in certain scenarios, Sleakops enforces some Deployments. Read [here ](#forced-deployments) to understand when and why we do this.
 
 :::
 
 ### Running a Deploy {#running-a-deploy}
 
-If it is not a forced deploment we'll show you a switcher to decide if you want to deploy your changes.
+If it's not a forced deployment, we'll show you a switcher to decide if you want to deploy your changes.
 
-- [Service](/service/index.mdx): Lets you choose if you want to Deploy the changes unless you change something of the 'alias' configuration, that will force a deployment. This Deployment always create a new Helm chart.
-- [VariableGroup](/vargroup): Same as Services but does not create a new Helm chart, it only changes the [values ](https://helm.sh/docs/chart_best_practices/values/) of the Deployment.
-- [Dependency](/dependency): Forces a Deployment to deploy its related VariableGroup which you might need for your Services to work.
+- [Service](/service/index.mdx): Allows you to decide whether to Deploy the changes unless you modify the 'alias' configuration, which forces a deployment. This Deployment always creates a new Helm chart.
+- [VariableGroup](/vargroup): Functions similar to Services but does not create a new Helm chart. It only changes the [values ](https://helm.sh/docs/chart_best_practices/values/) of the Deployment.
+- [Dependency](/dependency): Enforces a Deployment to deploy its related VariableGroup, which your Services might require to function.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img src="/img/deployment/DEPLOY-deploy-switcher.png" alt="DEPLOY-deploy-switcher" style={{ height: '125px', width: 'auto' }}/>
 </Zoom>
 
+If you don't deploy your changes when you make them or if your change doesn't force a deployment, then you have two ways to execute a Deployment:
 
-If you do not deploy your changes at the moment you do them or if your change does not force a deployment then you have two ways to run a Deployment:
-
-- [Build section](/project/build): From the Deploy button, here you can select which Build you want to deploy.
+- [Build section](/project/build): From the Deploy button, you can select which Build you wish to deploy.
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img src="/img/deployment/DEPLOY-build-button.png" alt="DEPLOY-build-button" style={{ height: '250px', width: 'auto' }}/>
 </Zoom>
 
-- Unpublished changed banner: This banner appears when something is not yet deployed on the cluster. When using this banner you can choose to deploy only the VariableGroups and not the Services on 'draft' state.
+- Unpublished Changes Banner: This banner appears when something is yet to be deployed on the cluster. Using this banner, you can opt to deploy only the VariableGroups and not the Services in 'draft' state.
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img src="/img/deployment/DEPLOY-deploy-changes-banner.png" alt="DEPLOY-deploy-changes-banner" style={{ height: '350px', width: 'auto' }}/>
 </Zoom>
 
 #### Forced Deployments {#forced-deployments}
 
-As an explanation, forced deployments are sometimes required to minimize the downtime of the services that are deployed on the Cluster but also to make your services work. This is because the helm templates should always be updated with the Kubernetes Secrets existing on the namespace to avoid failures. The actions that will force a deployment are:
+For clarification, forced deployments are sometimes necessary to minimize the downtime of the services deployed on the Cluster and also to ensure your services function properly. This is because the Helm templates should always be updated with the Kubernetes Secrets existing in the namespace to avoid failures. The actions that will enforce a deployment are:
 
 - Service Alias configuration changes: Required to update the Kubernetes Ingress resource.
-- Dependency deletion: Required to update the templates with the deletion of its related VariableGroup/Secret.
-- VariableGroup deletion: Same as Dependency deletion.
+- Dependency deletion: Necessary to update the templates with the deletion of its related VariableGroup/Secret.
+- VariableGroup deletion: Functions the same as Dependency deletion.
 
-## Cloud resources
+## Cloud Resources
 
-When you create a deployment in Sleakops, the related cluster will receive these Kubernetes entities:
+When you create a deployment in Sleakops, the associated cluster will receive these Kubernetes entities:
 
 - Release for each Sleakops release
-- Deployment for each web-service and worker Sleakops services types.
-- Service for each web-service Sleakops services type
-- Ingress for each web-service Sleakops services type
-- hpa for each Sleakops service
+- Deployment for each web-service and worker Sleakops service types
+- Service for each web-service Sleakops service type
+- Ingress for each web-service Sleakops service type
+- HPA (Horizontal Pod Autoscaler) for each Sleakops service
 - Job for each job-service Sleakops service type
 - CronJob for each cronjob-service Sleakops service type
