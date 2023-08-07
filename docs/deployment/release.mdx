@@ -2,42 +2,36 @@ import { FiExternalLink } from "react-icons/fi";
 
 # Release
 
-## What is a Release
+## What is a Release?
 
-In Sleakops a release represents a deployable state of all the services (web-services, workers, cronjobs, jobs) of a [project](/project) in a [environment](/environment)
+In Sleakops, a release represents a deployable state of all the services (web services, workers, cron jobs, and jobs) of a [project](/project) in an [environment](/environment).
 
 ## Release Creation
 
-To create a release you must have one or more services with unreleased changes ('draft' state), a [environment](/environment) and a version number to set to the release
-after that you are ready to [deploy](/deployment) this release on selected [cluster](/cluster).
+Sleakops administers releases for you. Every time you modify, delete, or add a service, worker, hook, or cron job, Sleakops gives you the option to publish the changes. Each time you publish those changes, Sleakops creates a new release with auto-incremented versions.
 
-## How SleakOps handle release
+### Helm Chart Resources
 
-When a release is created a Helm chart is built and pushed to a chart repository created (if it does not exists) at this point.
-This chart contains all your SleakOps services and depending on the type of these services, the chart, will contain different resources.
+#### Web Service:
 
-## Helm chart resources
+- A Kubernetes deployment
+- A Kubernetes service
+- A Kubernetes HPA (Horizontal Pod Autoscaler)
+- A Kubernetes ingress
 
-### SleakOps web-service service:
+The ingress generates its hosts using <service_name>.<environment_name>.<organization_name>.<yourdomain\.com>
 
-a Kubernetes deployment
-a Kubernetes service
-a Kubernetes HPA (Horizontal Pod Autoscaler)
-a Kubernetes ingress
+#### Worker:
 
-Ingress generates his hosts using <service_name>.<environment_name>.<organization_name>\.<yourdomain\.com>
+- A Kubernetes deployment
+- A Kubernetes HPA
 
-### SleakOps worker service:
+#### Hook:
 
-a Kubernetes deployment
-a Kubernetes HPA
+- A Kubernetes job
 
-### SleakOps hook service:
+This job uses Kubernetes hooks to start.
 
-a Kubernetes job
+#### Cron Job:
 
-This job uses Kubernetes hooks to start
-
-### SleakOps cronjob service:
-
-a Kubernetes cronjob
+- A Kubernetes cron job
