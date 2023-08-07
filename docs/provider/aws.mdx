@@ -6,7 +6,7 @@ import { FiExternalLink } from "react-icons/fi";
 
 This is an illustrative example of a general application.
 
-<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<Zoom>
   <img
     src="/img/provider/aws/craftech-reference-architecture.png"
     alt="craftech-reference-architecture"
@@ -15,30 +15,27 @@ This is an illustrative example of a general application.
 
 Sleakops implements a well-defined infrastructure architecture designed to optimize operational excellence while ensuring a secure and scalable environment for users. The architecture consists of four accounts, each serving distinct purposes and isolated from one another.
 
-Every account has a VPN instance that is generated from the creation of the first cluster.
+Each account has a VPN instance generated upon the creation of the first cluster.
 
-### Segurity account
+### Security Account
 
-- Handler user to administrate user access.
+- The Security Account serves as a centralized hub for managing IAM users and their access to the system. 
 
+### Management Account (Management Environment)
 
-### Management account (Management Environment)
-
-- Contains an EKS cluster with integrated CI/CD (Github and HashiCorp Vault).
+- Contains an EKS cluster with integrated CI/CD (GitHub and HashiCorp Vault).
 - Vault manages credentials for CloudWatch, enhancing monitoring capabilities.
 - VPC Peering enables private connections to other accounts.
 
-
-### Production account (Production Environment)
+### Production Account (Production Environment)
 
 - Supports external users and requires a fully functional database (RDS Master).
 - Utilizes Private DB Subnet for RDS Master, RDS Slave, and ElastiCache, each on different Availability Zones (AZs) for high availability.
 - Backend Deployment with replicas distributed across different AZs.
 - Frontend Deployment with LoadBalancer for even distribution of network load.
-- Route53 serves as a DNS and performs health checks for the application.
+- Route53 serves as DNS and performs health checks for the application.
 - AWS CloudFront serves static frontend content from an S3 bucket.
 - RDS Slave acts as a replica of RDS Master for failover scenarios, maximizing uptime.
-
 
 ### Development Account (dev, qa, and staging Environments)
 
@@ -47,6 +44,4 @@ Every account has a VPN instance that is generated from the creation of the firs
 - Ensures isolated testing to prevent issues for external users.
 - Similar architecture to prod but without RDS Slave for reduced high availability requirements.
 
-
 Sleakops' architecture provides users with a powerful, scalable, and secure environment for deploying and managing applications. The clear separation of accounts and environments allows for efficient development, testing, and production workflows with maximum control over resources.
-
