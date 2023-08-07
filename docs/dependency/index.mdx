@@ -1,33 +1,34 @@
+import { FiExternalLink } from "react-icons/fi";
+
+
 # Dependencies
+In Sleakops, we refer to the various pieces of other infrastructure items your applications might require to operate in the cloud as "dependencies". 
+These dependencies encompass a range of services, including relational databases, storage services, and caches. 
+Each dependency is linked to provider-specific services, ensuring seamless integration with the cloud platform.
 
-In Sleakops we call dependencies to the different pieces of underlying infrastructure your apps need to run in the cloud, such as relational databases, storage services or caches. Some dependencies are linked to provider-specific services and others are chart-based Kubernetes packages.
+It's important to note that dependencies in Sleakops are extra services within the AWS ecosystem. 
+These services are crucial for enhancing the functionality and performance of your applications, enabling you to leverage the full potential of AWS's extensive suite of cloud services.
 
-Our dependencies model has the following properties: a name, provider (currently only AWS), an environment, dependency type and a configuration, which is specific to the dependency type.
 
-Some examples are:
+## Managing the output
+Sleakops simplifies the process of managing dependency outputs through the use of [Variable Groups](/vargroup). 
 
-- AWS managed RDS
+:::info
 
-- AWS managed Redis with Elasticache
+A Variable Group is a Sleakops resource that creates a secret inside the cluster, providing a secure storage solution for sensitive information.
 
-- AWS s3 buckets
+:::
 
-- Redis instances in our cluster
+When you create a dependency, Sleakops allows you to customize the keys for the secrets it generates and automatically creates an associated variable group.
+For instance, you can easily match the SQL master password with a name that suits your application's requirements. 
+This customization empowers you to consume secrets with names that you decide, offering flexibility and control over how your applications interact with essential resources.
 
-We provide a specific page for each dependency type.
+Variable Groups securely store and manage the outputs of your dependencies, allowing integration and easy access to sensitive information within your EKS environment. 
 
-- [Postgresql-aws](./postgresql-aws.mdx)
+## Secure Service Consumption within EKS
 
-- [MySQL-aws](./mysql-aws.mdx)
+At Sleakops, security is a top priority. When it comes to consuming various dependencies, such as relational databases, storage services, and caches, we ensure a secure and streamlined process within your EKS environment. Sleakops achieves this without the need for IAM keys.
 
-- [Elasticache-aws](./elasticache-aws.mdx)
+By utilizing [Kubernetes Service Accounts <FiExternalLink/>](https://kubernetes.io/docs/concepts/security/service-accounts/), your applications can directly access the required services within the AWS ecosystem from the EKS cluster. This native integration provides secure and authenticated access without the complexities of managing IAM credentials. With Sleakops, you can effortlessly grant your applications the necessary permissions to interact with AWS services, ensuring a seamless and secure experience.
 
-- [Postgresql-serverless](./postgresql-serverless.mdx)
-
-- [Bucket-aws](./s3bucket-aws.mdx)
-
-- [sqs-aws](./sqs-aws.mdx)
-
-### Cloud resources
-
-Chart-based Kubernetes packages create the resources described in the charts. Provider-specific services create the resources described in each of the provider pages.
+Let Sleakops handle the creation and management of Service Accounts, so you can focus on building and deploying your applications with confidence. Embrace secure service consumption within your EKS environment with Sleakops, simplifying your cloud-native experience.
