@@ -1,6 +1,6 @@
 # Deployment
 
-A Deployment in Sleakops signifies the introduction of a new version of your application. This involves three primary components, collectively representing a Helm Release:
+A Deployment in Sleakops means the introduction of a new version of your application. This involves three primary components, collectively representing a Helm Release:
 - [Releases](/release): This is a versioned combination of your [Services](/service) such as WebServices, Workers, CronJobs, and Hooks.
 - Build Image: Represented by a [Build](/project/build).
 - Configuration Values: This includes resources like [Volumes](/cluster/volumes.mdx) and [VariableGroups](/vargroup).
@@ -13,9 +13,9 @@ Whenever there's an update to any of these resources, Sleakops will prompt you f
 
 ## How SleakOps Handles Deployments
 
-To execute the deployment, we use images saved in the project's image repository (AWS ECR). Sleakops creates the image with [Kaniko <FiExternalLink/> ](https://github.com/GoogleContainerTools/kaniko) and pushes it at the moment you establish a [Build ](/project/build). Additionally, at the time of the Deployment, we pull the image corresponding to the Build being deployed. 
+To execute the deployment, we use images saved in your project's image repository (AWS ECR), we push them at the moment you establish a [Build ](/project/build). When a Deployment is created, we pull the image corresponding to the Build being deployed. 
 
-The subsequent step involves creating the Helm chart. We modify some general purpose-built Helm templates by applying the required values based on the services you've created and their configurations. For instance, a Kubernetes service, ingress, workers, and other Services are created. After building the Helm Chart, we upload it to the ECR and use it to establish a Helm Release.
+The subsequent step involves creating and deploying the Helm chart. We build it, upload it to the ECR and use it to establish a Helm Release. The Helm release includes required Kubernetes services, ingresses, workers, and other services are created.
 
 :::info
 
@@ -25,8 +25,7 @@ All these resources reside in your own AWS Accounts. Sleakops does not exclusive
 
 ## How to Create a Deployment
 
-There are multiple ways to generate a Deployment, these are shown [below ](#running-a-deploy)
-As of now, to execute a Deployment, you must make this call 'indirectly' unless you use the Deployment CLI. However, multiple methods exist for deploying, as shown [below ](#running-a-deploy). Be aware that we enforce some Deployments to maximize uptime and ensure the current state of the deployed infrastructure remains unaffected.
+There are multiple ways to generate a Deployment, these are shown [below ](#running-a-deploy). Be aware that we enforce some Deployments to maximize uptime and ensure the current state of the deployed infrastructure remains unaffected.
 
 :::caution Forced Deployment
 
