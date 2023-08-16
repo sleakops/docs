@@ -1,0 +1,35 @@
+# More on Deployments:
+
+:::info
+
+This is an extension of the main [Deployment documentation](/deployment). Have in mind that this will extend that info, you should read it first.
+
+:::
+
+## How SleakOps Handles Deployments
+
+To execute the deployment, we use the [Build ](/project/build) images saved in your project's image repository (AWS ECR) that we create with the [ProjectEnv ](/project) entity on the [Initial Build ](/project/build/initial-build.mdx) or with the creation of a Build entity what pushes it into the ECR. When a Deployment is created, we pull the image corresponding to the Build being deployed. 
+
+The subsequent step involves creating and deploying the Helm chart. We built it with some purpose-build templates, upload it to the same ECR that we use for the Build images and use it to deploy a Helm Release into the Kubernetes cluster inside this ProjectEnv namespace.
+
+:::info
+
+All these resources reside in your own AWS Accounts. Sleakops does not exclusively store any data.
+
+:::
+
+### Forced Deployments
+
+:::caution Forced Deployment
+
+Currently, in certain scenarios, Sleakops enforces some Deployments. Read [here ](#forced-deployments) to understand when and why we do this.
+
+:::
+
+There are multiple ways to generate a Deployment, these were shown in the main [Deployment documentation](/deployment). However, be aware that we enforce some Deployments to maximize uptime and ensure the current state of the deployed infrastructure remains unaffected and to minimize the downtime of the services deployed on the Cluster. This is because the Helm templates should always be updated with the Kubernetes Secrets existing in the namespace to avoid failures. 
+
+As you might already read, if it's not a forced deployment, we'll show you a switcher to decide if you want to deploy your changes. The occassions where we force a deployment are the following.
+
+- [Service](/service/index.mdx) Alias configuration changes: Forces a Deployment if you changed something on the 'alias' configuration. 
+- [Dependency](/dependency): Always forces a Deployment to update is related VariableGroup state into the templates of the Helm Chart, which your Services might require to function or to not broke.
+- [VariableGroup](/vargroup) deletion: Same case as Dependency deletion.
