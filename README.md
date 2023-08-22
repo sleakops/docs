@@ -1,6 +1,6 @@
 # SleakOps Documentation
 
-Welcome to SleakOps's documentation repository! This contains the source code for the hosted docs at [https://docs.sleakops.com](https://docs.sleakops.com). 
+Welcome to SleakOps's documentation repository! This contains the source code for the hosted docs at [https://docs.sleakops.com](https://docs.sleakops.com)
 
 This website is built using [Docusaurus 2](https://docusaurus.io/), see the Docusaurus documentation [here](https://docusaurus.io/docs). 
 
