@@ -1,26 +1,43 @@
 # Deployment
 
-In Sleakops a deployment is the last step in getting your cloud infrastructure ready. Once all services are created a project can be deployed in a selected environment.
-Remember that a project and environment make a namespace in a cluster. Sleakops will provide a Kubernetes deployment in the aforementioned cluster with all the services from the project.
+A Deployment in Sleakops signifies the installation of a new version of your application. This involves three primary components, together forming a Helm Release:
+- [Releases](/deployment/release.mdx): These are versioned combinations of your [Services](/service) including WebServices, Workers, CronJobs, and Hooks.
+- Build Image: Represented by a [Build](/project/build).
+- Configuration Values: These comprise resources like [Volumes](/cluster/volumes.mdx) and [VariableGroups](/vargroup).
 
-## Create deployments
+:::info
 
-To create a deployment for a project in an environment you need to provide a [environment](/environment), [project](/project) and a [release](/deployment/release)
+When there's an update to any of these resources, Sleakops will notify you about a Deployment via the unpublished banner shown [below](#unpublished-banner).
 
-## How SleakOps handle deployments
+:::
 
-When you create a Sleakops deployment a Helm release will be installed in your [cluster](/cluster) using a Helm chart built when a [release](/deployment/release.mdx) is created
-A Kubernetes deployment will pull an image (named as: environment_name-latest), built in [initial-build](/project/build/initial-build), from the corresponding image repository (AWS ECR) built in [project](/project)
-and desired numbers of Kubernetes pods will be created, running the desired image. A Kubernetes service and ingress will be created to allow the creation of the corresponding subdomains
+## Deploying your ProjectEnv
 
-## Cloud resources
+Upon creating a Deployment, we fetch the image corresponding to the Build to be deployed. Before this, we execute the Helm Release in the appropriate cluster namespace. This Helm release includes necessary Kubernetes services, ingresses, workers, and other services.
 
-When you create a deployment in Sleakops, the related cluster will receive these entities:
+Various methods exist to generate a Deployment. These are outlined below. Note that we force certain Deployments. For details, refer to [More on Deployment](/deployment/more_on_deployment.mdx#forced-deployments).
 
-- a Kubernetes deployment for each web-service and worker Sleakops services types.
-- a Kubernetes service for each web-service Sleakops services type
-- a Kubernetes Ingress for each web-service Sleakops services type
-- a Kubernetes hpa for each Sleakops service
-- a Kubernetes job for each job-service Sleakops service type
-- a Kubernetes cronjob for each cronjob-service Sleakops service type
-- a Kubernetes release for each Sleakops release
+- [Service](/service/index.mdx): Provides a switcher allowing you to decide whether to run a new Deployment.
+- [VariableGroup](/vargroup): Operates similarly to Services but doesn't create a new Release. Instead, it only updates the [values](https://helm.sh/docs/chart_best_practices/values/) of the Deployment.
+- [Dependency](/dependency): Triggers a Deployment automatically. Delve deeper into this at [More on Deployment](/deployment/more_on_deployment.mdx).
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img src="/img/deployment/DEPLOY-deploy-switcher.png" alt="DEPLOY-deploy-switcher" style={{ height: '125px', width: 'auto' }}/>
+</Zoom>
+
+### Manual Deployment
+
+If you skip deploying your changes immediately, or if your modification doesn't enforces a deployment, you have three methods to execute a Deployment:
+
+- [Build section](/project/build): Utilizing the Deploy button, you can determine which Build to deploy.
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img src="/img/deployment/DEPLOY-build-button.png" alt="DEPLOY-build-button" style={{ height: '250px', width: 'auto' }}/>
+</Zoom>
+
+<a id="unpublished-banner"></a>
+- Unpublished Changes Banner: This banner is shown when there's content pending that was not yet deployed on the cluster. Through this banner, you have the choice to deploy only the VariableGroups or if you want to deploy everything, including the Services in the 'draft' state.
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img src="/img/deployment/DEPLOY-deploy-changes-banner.png" alt="DEPLOY-deploy-changes-banner" style={{ height: '350px', width: 'auto' }}/>
+</Zoom>
+
+- Via the [CLI ](/cli).
