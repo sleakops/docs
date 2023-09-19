@@ -5,8 +5,7 @@ import { FiExternalLink } from "react-icons/fi";
 # Project
 
 In Sleakops a project represents a codebase and it is managed by a git repository. Once you have a [cluster ](cluster/index.mdx) and an [environment ](environment.mdx) has been created, you can create projects for your company. Create as many projects as repositories your application has.
-
-Projects are related to several other Sleakops entities like environments and services. The union of a project with an environment makes a namespace for the cluster and this is one of the main SleakOps entities, we call it ProjectEnv. 
+To differentiate we call it ProjectEnv and in the cluster it acts as a Namespace.
 
 ## Create ProjectEnvs
 
@@ -17,16 +16,10 @@ Sleakops integrates these third-party git applications:
 - GitLab. If your GitLab is self-hosted, please follow these [instructions](project/gitlab.mdx).
 - Bitbucket
 
-Completing this first step now you are allowed to create a Project, you have to select which of the repositories you want to use and also the branch this ProjectEnv will use and the location of the Dockerfile in your repository.
+Completing this first step now you are allowed to create a Project, you have to select which of the repositories you want to use, the branch this ProjectEnv will use and the location of the Dockerfile in your repository. Optionally you can also set Kubernetes volumes if you need them, more info on [More on ProjectEnv ](project/more_on_project.mdx).
 
-<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
-  <img src="/img/project/PROJECT-form.png" alt="PROJECT-form" style={{ height: '500px', width: 'auto' }}/>
-</Zoom>
+:::info Docker Args
 
-### Related resources
+If your Dockerfile requires Docker Args you will have to set them after the ProjectEnv creation. You can do this in the ProjectEnv list.
 
-If you create a Project/ProjectEnv SleakOps creates an [AWS ECR <FiExternalLink/>](https://aws.amazon.com/ecr/) that is where we save all the charts, templates and build images that we use to later do the Deployments on the EKS Cluster. As previously stated, we consider this ProjectEnv a Cluster [Namespace <FiExternalLink/>](https://aws.amazon.com/ecr/) where we allocate all the services that are deployed on the Kubernetes Deployment.
-
-Something else that we manage as directly related to the ProjectEnv is a [Service Account <FiExternalLink/>](https://aws.amazon.com/ecr/), it is a Kubernetes resource that allows us to manage the permissions of the resources we create inside the cluster so they are able to connect with the AWS services you create.
-
-At this point we analyze with simple tools the correctness of your Dockerfile and how you are configurating it and also we Build an Image of that Dockerfile that are later used to deploy all your services, for this we use Kaniko, for more info of this third party tool checks its [Documentation <FiExternalLink/>](https://github.com/GoogleContainerTools/kaniko). When you submit the form we run the first build, more info [here ](project/build/initial-build.mdx).
+:::
