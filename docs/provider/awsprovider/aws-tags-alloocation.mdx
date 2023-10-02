@@ -1,0 +1,30 @@
+---
+sidebar_label: Cost Allocation Tags
+---
+
+import Zoom from "react-medium-image-zoom";
+import { FiExternalLink } from "react-icons/fi";
+
+# AWS Cost Allocation Tags
+
+Most AWS resources allow you to add [Tags <FiExternalLink/>](https://docs.aws.amazon.com/tag-editor/latest/userguide/tagging.html) as metadata. These tags are generally used to manage, identify, organize, search for, and filter resources. However, they can also be employed to filter the costs of resources. To use them in this way, they first need to be set as [Cost Allocation Tags <FiExternalLink/>](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/cost-alloc-tags.html).
+
+At SleakOps, we require you to take a few steps to enable accurate cost monitoring. After you create a Provider, we remove our access to your management account by deleting the SleakOpsIntegrationRole you initially created for us. In doing so, we also lose our ability to transform the tag keys we use for cost monitoring into Cost Allocation Tags. This process is more complicated than it sounds.
+
+Approximately one day after you've created your first SleakOps Provider, you should see the tags: Account, Cluster, Environment, ProjectEnv, and Dependencies on the Cost Allocation Tags tab of your management account. If you are logged into the management account, you can access it from [here <FiExternalLink/>](https://us-east-1.console.aws.amazon.com/billing/home?region=us-east-1#/tags). Once there, please select all these Tag Keys and activate them to be Cost Allocation Tags. This will enable us to query the cost values of your AWS Resources.
+
+<Zoom>
+  <img
+    src="/img/provider/aws/provider-activate-tags.png"
+    alt="Activating Cost Allocation Tags"
+    style={{ height: '250px', width: 'auto' }}
+  />
+</Zoom>
+
+<Zoom>
+  <img
+    src="/img/provider/aws/provider-activated-tag.png"
+    alt="Activated Cost Allocation Tag"
+    style={{ height: '250px', width: 'auto' }}
+  />
+</Zoom>
