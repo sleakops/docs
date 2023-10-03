@@ -62,53 +62,72 @@ Enjoy a seamless development experience with SleakOps, and make your custom CI/C
     {label: 'BitBucket', value: 'BitBucket'},
   ]}>
 <TabItem value="GitHub"> 
+name: Deploy
+on:
+push:
+    branches:
+    - main
 
-    name: Deploy
-    on:
-    push:
-        branches:
-        - main
+jobs:
+  build:
+      runs-on: ubuntu-latest
+      steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-    jobs:
-    deploy:
-        runs-on: ubuntu-latest
-        steps:
-        - name: Checkout repository
-            uses: actions/checkout@v2
+      - name: Install SleakOps CLI
+        run: pip install sleakops
 
-        - name: Install SleakOps CLI
-            run: pip install sleakops
+      - name: Run SleakOps build
+        run: sleakops build -p core -b main -w
+  deploy:
+      runs-on: ubuntu-latest
+      steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-        - name: Run SleakOps deploy
-            run: sleakops deploy -p core -e main -w
+      - name: Install SleakOps CLI
+        run: pip install sleakops
+
+      - name: Run SleakOps deploy
+        run: sleakops deploy -p core -e main -w
 </TabItem>
 <TabItem value="GitLab"> 
+image: python:3.9
 
-    image: python:3.9
+stages:
+  - build
+  - deploy
 
-    stages:
-    - deploy
+build:
+  stage: deploy
+  script:
+      - apt-get update -qy
+      - apt-get install -y python3-pip
+      - pip3 install sleakops
+      - sleakops build -p core -b main -w
 
-    deploy:
-    stage: deploy
-    script:
-        - apt-get update -qy
-        - apt-get install -y python3-pip
-        - pip3 install sleakops
-        - sleakops deploy -p core -e main -w
+deploy:
+  stage: deploy
+  script:
+      - apt-get update -qy
+      - apt-get install -y python3-pip
+      - pip3 install sleakops
+      - sleakops deploy -p core -e main -w
 </TabItem>
 <TabItem value="BitBucket">
 
-    image: python:3.9
+image: python:3.9
 
-    pipelines:
-    default:
-        - step:
-            name: Deploy
-            script:
-            - apt-get update -qy
-            - apt-get install -y python3-pip
-            - pip3 install sleakops
-            - sleakops deploy -p core -e main -w
+pipelines:
+default:
+  - step:
+    name: Deploy
+    script:
+    - apt-get update -qy
+    - apt-get install -y python3-pip
+    - pip3 install sleakops
+    - sleakops build -p core -b main -w
+    - sleakops deploy -p core -e main -w
 </TabItem>
 </Tabs >
