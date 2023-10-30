@@ -54,20 +54,15 @@ With SleakOps CLI, you can integrate your CI/CD pipelines, automate the build an
 Enjoy a seamless development experience with SleakOps, and make your custom CI/CD workflows.
 
 
-<Tabs
-  defaultValue="GitHub"
-  values={[
-    {label: 'GitHub', value: 'GitHub'},
-    {label: 'GitLab', value: 'GitLab'},
-    {label: 'BitBucket', value: 'BitBucket'},
-  ]}>
-<TabItem value="GitHub"> 
+<Tabs>
+<TabItem value="GitHub" > 
+<code>
 name: Deploy
-on:
-push:
-    branches:
-    - main
 
+on:
+  push:
+      branches:
+      - main
 jobs:
   build:
       runs-on: ubuntu-latest
@@ -96,8 +91,10 @@ jobs:
         env:
           SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
         run: sleakops deploy -p core -e main -w
+</code>
 </TabItem>
 <TabItem value="GitLab"> 
+<code>
 image: python:3.9
 
 stages:
@@ -121,20 +118,22 @@ deploy:
       - apt-get install -y python3-pip
       - pip3 install sleakops
       - sleakops deploy -p core -e main -w
+</code>
 </TabItem>
 <TabItem value="BitBucket">
-
+<code>
 image: python:3.9
 
 pipelines:
-default:
-  - step:
-    name: Deploy
-    script:
-    - apt-get update -qy
-    - apt-get install -y python3-pip
-    - pip3 install sleakops
-    - sleakops build -p core -b main -w
-    - sleakops deploy -p core -e main -w
+  default:
+    - step:
+      name: Deploy
+      script:
+      - apt-get update -qy
+      - apt-get install -y python3-pip
+      - pip3 install sleakops
+      - sleakops build -p core -b main -w
+      - sleakops deploy -p core -e main -w
+</code>
 </TabItem>
 </Tabs >
