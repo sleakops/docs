@@ -79,8 +79,11 @@ jobs:
         run: pip install sleakops
 
       - name: Run SleakOps build
+        env:
+          SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
         run: sleakops build -p core -b main -w
   deploy:
+      needs: [build]
       runs-on: ubuntu-latest
       steps:
       - name: Checkout repository
@@ -90,6 +93,8 @@ jobs:
         run: pip install sleakops
 
       - name: Run SleakOps deploy
+        env:
+          SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
         run: sleakops deploy -p core -e main -w
 </TabItem>
 <TabItem value="GitLab"> 
@@ -109,6 +114,8 @@ build:
 
 deploy:
   stage: deploy
+  needs:
+    - build
   script:
       - apt-get update -qy
       - apt-get install -y python3-pip
