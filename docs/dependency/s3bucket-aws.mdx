@@ -7,3 +7,30 @@ This highly durable and secure object storage service provides a scalable soluti
 
 
 You can read more about those benefits in [AWS S3 docs <FiExternalLink/>](https://aws.amazon.com/s3/).
+
+
+## How to create a backup for an s3 bucket
+
+:::caution
+For this to work you should have admin access to the account where the bucket is.
+:::
+
+:::note
+
+Prerequisites:
+
+- AWS CLI installed on your local machine. 
+For instructions on how to install it, see the [official docs<FiExternalLink/>](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+- Access and secret keys for your IAM user.
+For instructions on how to get them, see the [official docs<FiExternalLink/>](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html#Using_CreateAccessKey)
+- Access and secret keys in the default profile for AWS CLI. If you have them with another name append ```--profile PROFILE_NAME``` to the assume-role command
+- The account id and bucket name. Both are available through Sleakops console
+:::
+
+To create an s3 backup run the following commands:
+
+
+```bash
+aws sts assume-role --role-arn arn:aws:iam::ACCOUNT_ID:role/SleakopsAdminRole
+aws s3 sync s3://BUCKET_NAME /path/to/local/directory
+```
