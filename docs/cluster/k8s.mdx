@@ -31,3 +31,31 @@ To access your EKS cluster, follow these simple steps:
   <img src="/img/cluster/lens-kubeconfig.png" alt="kubeconfig-to-lens" />
 </Zoom>
 
+
+
+# Troubleshooting
+
+- While accessing your EKS cluster, you may encounter connectivity issues, especially if the DNS server of the Virtual Private Cloud (VPC) fails to resolve all domains within the VPC. In such cases, Lens might attempt to connect to the cluster through its public IP address, leading to connection timeouts or errors.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img src="/img/cluster/lens-timeout.png" alt="lens-connection-error" />
+</Zoom>
+
+
+
+To resolve this issue, follow these steps:
+
+1. **Find the VPC DNS Server IP Address**:
+    - Switch role to the desired AWS account.
+    - Navigate to the VPC service.
+    - Locate a VPC associated with the account. Typically, VPCs are named according to the account they belong to.
+    - `VPC_DNS_SERVER_IP` will be the VPC ip ending in '.2'. For example if the VPC network is 10.10.0.0/24 then VPC_DNS_SERVER_IP will be 10.10.0.2
+
+2. **Add VPC DNS Server**: Ensure that the VPC DNS server is included in the list of system DNS servers. This step helps Lens and other tools resolve cluster domain names correctly.
+
+
+**Update `resolv.conf` File**: For Linux users, a quick fix involves adding the VPC DNS server to the `resolv.conf` file. You can do this by appending the VPC DNS server address as a new 'nameserver' entry.
+
+```bash
+echo "nameserver VPC_DNS_SERVER_IP" | sudo tee -a /etc/resolv.conf
+
