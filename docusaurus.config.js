@@ -124,35 +124,43 @@ const config = {
                 label: 'Tutorial',
                 to: '/',
               },
+              {
+                label: "About us",
+                href: "https://sleakops.com/"
+              },
+              {
+                label: "Contact us",
+                href: "https://sleakops.com/contact"
+              }
             ],
           },
-          {
-            title: 'Community',
-            items: [
-              {
-                label: 'Stack Overflow',
-                href: 'https://stackoverflow.com/questions/tagged/sleakops',
-              },
-              {
-                label: 'Discord',
-                href: 'https://discordapp.com/invite/sleakops',
-              },
-              {
-                label: 'Twitter',
-                href: 'https://twitter.com/sleakops',
-              },
-            ],
-          },
+          // {
+          //   title: 'Community',
+          //   items: [
+          //     {
+          //       label: 'Stack Overflow',
+          //       href: 'https://stackoverflow.com/questions/tagged/sleakops',
+          //     },
+          //     {
+          //       label: 'Discord',
+          //       href: 'https://discordapp.com/invite/sleakops',
+          //     },
+          //     {
+          //       label: 'Twitter',
+          //       href: 'https://twitter.com/sleakops',
+          //     },
+          //   ],
+          // },
           {
             title: 'More',
             items: [
-              // {
-              //   label: 'Blog',
-              //   to: '/blog',
-              // },
               {
-                label: 'GitHub',
-                href: 'https://github.com/facebook/docusaurus',
+                label: 'Terms & Conditions',
+                href: 'https://craftech.notion.site/Terms-Conditions-efb8d9a980654625af456732ed44b197',
+              },
+              {
+                label: 'Privacy Policy',
+                href: 'https://craftech.notion.site/Privacy-Policy-of-SleakOps-55b977da50d84871809879d065b16b3b',
               },
             ],
           },
