@@ -1,0 +1,64 @@
+---
+sidebar_label: Accounts
+sidebar_position: 1
+---
+
+import Zoom from "react-medium-image-zoom";
+
+# Accounts
+
+## Provider's Accounts
+
+Sleakops implements a well-defined infrastructure architecture designed to optimize operational excellence while ensuring a secure and scalable environment for users. The architecture consists of four accounts, each serving distinct purposes and isolated from one another.
+
+Each account has a VPN instance generated upon the creation of the first cluster.
+
+Once the Accounts are up, we set to each one of them what we call [Network Module](https://www.notion.so/Network-Module-8878f087137540debda5660b2eaa0efa?pvs=21)  it contains a lot of different AWS services that are used to make the network connections inside accounts.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/provider/aws/craftech-reference-architecture.png"
+    alt="reference-architecture"
+  />
+</Zoom>
+
+### Security Account
+
+The Security Account serves as a centralized hub for managing IAM users and their access to the system. Learn how to switch between accounts in [AWS Console Autentication](https://docs.sleakops.com/user/aws_console_authentication).
+
+### **Management Account**
+
+Designed to maintain internal services used for application maintenance, regardless of whether they are shared across accounts. Example: Sentry.
+
+- Contains an EKS cluster with integrated CI/CD (GitHub and HashiCorp Vault).
+- Vault manages credentials for CloudWatch, enhancing monitoring capabilities.
+- VPC Peering enables private connections to other accounts.
+
+### **Development Account**
+
+For the different stages of your application before it goes into production.
+
+- Contains three environments: dev, QA, and staging.
+- Replicas of the prod environment for code writing, testing, and pre-releases.
+- Ensures isolated testing to prevent issues for external users.
+- Similar architecture to prod but without RDS Slave for reduced high availability requirements.
+
+### Production Account
+
+This account is intended for your application to be installed in a production environment, isolated from the rest of your application's stages.
+
+- Supports external users and requires a fully functional database (RDS Master).
+- Utilizes Private DB Subnet for RDS Master, RDS Slave, and ElastiCache, each on different Availability Zones (AZs) for high availability.
+- Backend Deployment with replicas distributed across different AZs.
+- Frontend Deployment with LoadBalancer for even distribution of network load.
+- Route53 serves as DNS and performs health checks for the application.
+- AWS CloudFront serves static frontend content from an S3 bucket.
+- RDS Slave acts as a replica of RDS Master for failover scenarios, maximizing uptime.
+
+<div style={{ display: 'flex', alignItems: 'flex-start' }}>
+  <img src="/img/provider/provideraccountselect.png" alt="reference-architecture" style={{ marginRight: '20px', maxWidth: '200px' }} />
+  <div>
+    <p>To select an account and be able to work on it, select it from the left pane.</p>
+    <p>The left icon refers to the Provider that groups the accounts.</p>
+  </div>
+</div>
