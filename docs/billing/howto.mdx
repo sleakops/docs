@@ -1,0 +1,20 @@
+---
+sidebar_label: How to calculate the billing ? 
+sidebar_position: 0
+---
+
+
+Usamos cost allocation tags para todos los recursos que son generados desde sleakops, para poder categorizarlos y relacionar los recursos dentro de AWS con las entidades que maneja Sleakops. 
+
+Podes ver todos los costos extras, como son el uso de la API de cloudwatch, o crear algun otro recurso por fuera de sleakops como apartado "otros" dentro de la pantalla billing en Sleakops 
+
+## Cost allocation tags:
+
+Para poder usar estos tags, es necesario activarlos previamente. Esto se hace en la cuenta root del cliente. 
+Para que estos tags se puedan usar como tags de costos, se debe esperar al menos 24hs despues de asignar el tag a algun recurso. 
+Por esto, desde sleakops, cuando integramos el provider. Dejamos una lambda dentro de la cuenta root con el proposito de activar estos tags. 
+Esta lambda intenta 3 veces, sino puede la lambda se elimina y la responsabilidad queda del lado del cliente. 
+
+
+#### ¿ Que pasa sino se activan esos tags? 
+La infra va a seguir funcionando. No podrias ver los costos de tu infra estructura dentro de sleakops. 
