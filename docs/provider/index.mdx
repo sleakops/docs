@@ -4,48 +4,84 @@ import { FiExternalLink } from "react-icons/fi";
 
 # Providers
 
-## What is a provider?
+In SleakOps a Provider represents the connection to your AWS Cloud, the credentials granted to SleakOps to it and the set of accounts created in order to properly manage the infrastructure. 
 
-The Provider is the first step to start on SleakOps after you've created your company. As well as in every case, when someone wants to start up its infrastructure it needs to decide which one of all the cloud infrastructure providers to use based on different pros and cons that each one has. Here, we are talking exactly about that, a provider is the cloud provider that you want, it can be AWS, Azure or GCP.
+On AWS, SleakOps will create an Organization with the name you selected and it will include a set of accounts into it.
 
-Next to this, you have to create the provider so SleakOps need access to this provider through credentials. This starts the process of generating different infrastructure resources and services that are needed to replicate the Architecture Reference Schema presented for that Cloud Provider. In this case, we will describe the construction of the presented [AWS Reference Architecture](/provider/awsprovider/aws).
+In order to provide you with a clear view of your AWS cost and resources, SleakOps activates [AWS Tags](https://docs.aws.amazon.com/tag-editor/latest/userguide/tagging.html)  on your account. Specially SleakOps uses [Cost Allocation Tags](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/cost-alloc-tags.html) .
 
+## Let's create your provider on SleakOps
 
-Account Security:
-In this account, we will keep all the users who have access to this provider.
+### 1. Navigate to the providers section
 
-Account Management:
-This account is designed to maintain internal services that are used for the maintenance of the application, whether shared across accounts or not. Example: Sentry.
-
-Account Development:
-This account is for maintaining the different stages of your application before it goes into production.
-
-Account Production:
-This account is intended for your application to be installed in a production environment, isolated from the rest of your application's stages.
-
-
-
-## Building process and required resources
+Into the *Left Pane*, access the *Setting* option and then *Providers* and then, at the top right corner, click on the *Create* button.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
-    src="/img/provider/aws/craftech-reference-architecture.png"
-    alt="craftech-reference-architecture"
+    src="/img/provider/providerstep1.png"
+    alt="provider-section"
   />
 </Zoom>
 
-The first thing that we see in the architecture is the distribution of three [Accounts <FiExternalLink/>](https://aws.amazon.com/organizations/) (_mgt_, _dev_ and _prod_), following the creation flow, these are the resources that are initially created. Once the Accounts are up, we set to each one of them what we call Network Module, it contains a lot of different AWS services that are used to make the network connections inside accounts, it's extensive so let's dive in on what it creates:
+### 2. Set up basic Information
 
-- [Virtual Private Cloud (VPC) <FiExternalLink/>](https://aws.amazon.com/vpc/): Needed because inside it is where we build our infrastructure and a big part of its connections.
-- [Internet Gateway (IGW) <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Internet_Gateway.html): The door of the VPC that allows us to access the resources inside it.
-- [Elastic IP (Eip) <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-eips.html): The IP related to the Internet Gateway.
-- [Route Tables <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Route_Tables.html): As you can assume by analyzing the schema, we make three, the Public, the Private and the Persistence Route Tables.
-- [Subnets <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/configure-subnets.html): Similar to Route Tables. We create a Public Subnet, a Private Subnet and a Persistence Subnet. After this, the subnets are associated with their respective Route Tables via a [Route Table Association <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Route_Tables.html#route-table-assocation).
-- [Route <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Route_Tables.html#route-table-routes): It's applied on network traffic resources like an Internet Gateway and a NatGateway, for Public and Private Route Tables respectively. Specifies a route in a Route Table within a VPC.
-- [NatGateway <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html): Allow resources on a private subnet to connect to services outside of the VPC, but negate traffic into this subnet.
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/provider/providerstep2.png"
+    alt="provider-basic-information"
+  />
+</Zoom>
 
-Now we establish the connection between the accounts with [VPC Peering connections <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/peering/what-is-vpc-peering.html), in the _mgt_ account we use a Network Peering Connection that works as the Requester while in the other accounts we need the Network Peering Accepter. All these cases need a Route for the traffic.
+These are the settings you must define:
 
-When generating these connections we also create the [Pritunl <FiExternalLink/>](https://pritunl.com/) VPN on _mgt_. For this, we use an [EC2 instance <FiExternalLink/>](https://aws.amazon.com/ec2/) that contains the VPN Server and configure three [Security Group Rules <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html#SecurityGroupRules) to the [Security Group <FiExternalLink/>](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html) to regulate the traffic.
+| Setting  | Description |
+| --- | --- |
+| Name | Select a name for the Organizative Unit into AWS under the needed accounts will be created. |
+| Region | AWS region to use. If you want to know more about them, you can visit this documentation https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html. |
+| Domain | Here you must provide the domain you own in which the different environments will be deployed.  It must be delegated to the Primary Route53 of SleakOps manually. Follow the steps described on this https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/MigratingDNS.html. |
+| Email | By default SleakOps uses the email from the root account provided, If you want to use other email to register your SleakOps accounts in AWS, fill in this field. |
 
-Another difference between the networking on these organizations is that on the 'prod' account we also create a [HostedZone](/provider/awsprovider/hostedzone).
+Once you’ve completed the form, click on *Next* to move forward.
+
+### 3. Connect to your AWS Root Account
+
+:::info
+⚠️ You must be logged into your AWS Account.
+:::
+
+To start installing your application, we need to connect to your AWS Root Account. Here's how to do it:
+
+- By clicking the *Next* button, you’ll be redirected to AWS to create an IAM role in your main account called "SleakopsIntegrationRole". 
+<ol>
+    <li>This role lets us access necessary resources, making installation quick and smooth.</li>
+    <li>After installation, we will remove this role to keep your account secure.</li>
+</ol>
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/provider/providerstep3.png"
+    alt="provider-root-account-access"
+  />
+</Zoom>
+
+### 4. Ongoing Organizative Unit process started
+
+:::info
+😃 Creating your Organizative Unit doesn't generate any cost on your AWS account.
+:::
+
+Once the connection is established role is created, SleakOps will automatically start the Organizative Unit creation. 
+
+This process will take a few minutes. 
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/provider/providerstep4.png"
+    alt="provider-process-started"
+  />
+</Zoom>
+
+### 5. Learn about the infrastructure architecture created by SleakOps for you.
+
+In order to understand what was created on your AWS, please see [Accounts](/provider/accounts).
+
