@@ -26,7 +26,18 @@ const config = {
   // to replace "en" with "zh-Hans".
   i18n: {
     defaultLocale: "en",
-    locales: ["en"],
+    locales: ["en", "es"],
+    localeConfigs: {
+      en: {
+        htmlLang: 'en',
+        label: 'English',
+      },
+      es: {
+        htmlLang: 'es',
+        label: 'Español',
+        path: 'es',
+      },
+    }
   },
 
   themes: [
@@ -57,8 +68,15 @@ const config = {
         },
         // Will be passed to @docusaurus/plugin-content-docs (false to disable)
         docs: {
-          sidebarPath: require.resolve("./sidebars.js"),
+          sidebarPath: require.resolve('./sidebars.js'),
           routeBasePath: "/",
+          // editLocalizedFiles: true,
+          // editUrl: ({locale, docPath}) => {
+          //   if (locale === 'es') {
+          //     return `https://github.com/your-repo/edit/main/i18n/es/docusaurus-plugin-content-docs/current/${docPath}`;
+          //   }
+          //   return `https://github.com/your-repo/edit/main/docs/${docPath}`;
+          // },
         },
         // Will be passed to @docusaurus/plugin-content-blog (false to disable)
         blog: {},
@@ -106,6 +124,10 @@ const config = {
           //   label: 'docs',
           // },
           // {to: '/blog', label: 'Blog', position: 'left'},
+          // {
+          //   type: 'localeDropdown',
+          //   position: 'left',
+          // },
           {
             href: "https://console.sleakops.com",
             label: "Console",
