@@ -1,0 +1,24 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# User
+
+## User Creation
+
+Sleakops has three fundamental fields of user permissions:
+Role: Defines what the user is allowed to do inside SleakOps, it's separated into three roles, 'Admin', 'Editor' and 'Read Only'.
+- Viewer: Read-only user.
+- Editor: It has PowerUser permissions which allows them to create infrastructure resources in Sleakops and AWS but not to manage users. You have to select to which accounts the User will have permissions. 
+- Admin: Same as Editors but with the addition that they can manage other users permissions and they have complete access to every account. 
+
+AWS Account Accesses: This field shows you every account, here you select to which accounts the user (Editor or Read-only) will have access.
+VPN Account Accesses: It's similar to the AWS account accesses field but here you set if a user it's also created on the VPN Server of the account you give. More information can be checked on [VPN documentation](/vpn/index.mdx)
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img src="/img/users/USER-creation-form.png" alt="USER-creation-form" />
+</Zoom>
+
+For access into the AWS accounts SleakOps initially sets a random password and sends it to the email of the created user. The user can login with that password but it will be obligated to change its password on the first login. For SleakOps platform access we use the password that was set on the User form.
+
+After this user creation an AWS User will be created on the 'security' Account, this account is where we control acesses to all the SleakOps AWS accounts. We will also create, depending on the configuration, users on the VPN servers, read how to use them on the corresponding [documentation ](/vpn/vpn_user_connection.mdx) and on the SleakOps user.

@@ -1,0 +1,81 @@
+import { FiExternalLink } from "react-icons/fi";
+import TabItem from '@theme/TabItem';
+import Tabs from '@theme/Tabs';
+
+# AWS PostgreSQL
+
+With Sleakops, you can easily integrate PostgreSQL databases using Amazon RDS, a managed database service that provides a robust and scalable solution for your relational data storage needs.
+This integration ensures seamless deployment and management of PostgreSQL databases, allowing you to focus on your application development.
+
+
+You can read more about those benefits in [AWS <FiExternalLink/>](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Welcome.html#Welcome.Concepts.RDS).
+
+
+:::tip
+
+Values and credentials for the next sections should be retrieved from Sleakops console on the edition page 
+of the vargroups corresponding to the Dependency.
+
+:::
+
+## How to create a dump for PostgreSQL
+
+There are multiple ways to create a dump for a PostgreSQL database.
+
+```bash
+pg_dump -h POSTGRESQL_ADDRESS -U POSTGRESQL_USERNAME -W > dump.sql 
+```
+
+
+For more information on how to create a dump read the [official documentation<FiExternalLink/>](https://www.postgresql.org/docs/current/app-pgdump.html).
+
+
+## How to import a database dump to RDS
+
+1. [Connect to the VPN](../vpn/vpn_user_connection) of the account where the RDS is. 
+2. Connect to the database
+
+<Tabs>
+<TabItem value="Using docker (Recommended)" >
+
+:::note
+
+A prerequisite to this method is to have the docker installed on your local machine.
+
+:::
+
+- Run a container with the postgres image. The attached volume is the folder with your dump.
+
+```bash
+docker run -it --name postgresql-container -v ./initial_data/:/tmp/data/ -e POSTGRESQL_ROOT_USERNAME=POSTGRESQL_PASSWORD -d postgres bash
+```
+
+- Attach to the terminal to run the pg_dump command
+```bash
+docker exec -t -i postgresql-container bash
+```
+- Run the following command replacing the values with the ones of your Dependency. 
+To view them from the console you should enter the edition section of the VarGroup for the Dependency.
+
+```bash
+pg_dump -h POSTGRESQL_ADDRESS -U POSTGRESQL_USERNAME -W  < /tmp/data/dump.sql
+```
+</TabItem>
+<TabItem value="Using local machine" >
+
+:::note
+
+A prerequisite to this method is to have PostgreSQL installed on your local machine.
+
+:::
+
+- Simply run the following command replacing the values with the ones of your Dependency. 
+To view them from the console you should enter the edition section of the VarGroup for the Dependency.
+
+```bash
+pg_dump -h POSTGRESQL_ADDRESS -U POSTGRESQL_USERNAME -W < /tmp/data/dump.sql
+```
+
+</TabItem>
+</Tabs>
+
