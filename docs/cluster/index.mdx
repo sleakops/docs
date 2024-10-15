@@ -4,21 +4,129 @@ import { FiExternalLink } from "react-icons/fi";
 
 # Cluster
 
-A cluster is a group of interconnected computers or instances that work together as a single unit to perform specific tasks or run applications. In the context of [AWS Elastic Kubernetes Service <FiExternalLink/>](https://docs.aws.amazon.com/eks/) (EKS), a cluster consists of one or more EC2 instances (nodes) that form the foundation for running containerized applications using Kubernetes orchestration.
+On SleakOps, to deploy and run your applications effectively, Kubernetes clusters are essential.
 
-When creating a cluster the configuration options offer you the flexibility and control needed to create an EKS cluster that aligns precisely with your requirements. 
-In the following sections, we will dive deeper into node provisioning, high-availability, and cluster shutdown features, providing you with valuable insights to manage your EKS cluster effectively. So, let's get started!
+A cluster is a group of interconnected computers or instances that work together as a single unit to perform specific tasks or run applications. 
 
-## Memory and CPU Limits
-During cluster creation, you have the power to define upper limits for memory and CPU resources. 
-By setting these limits, you ensure that your resources are utilized effectively, avoiding any over-commitment.
+In the context of [AWS Elastic Kubernetes Service](https://docs.aws.amazon.com/eks/)(EKS), a cluster consists of one or more EC2 instances (nodes) that form the foundation for running containerized applications using Kubernetes orchestration.
 
+For more information on Kubernetes clusters, see [the Kubernetes documentation](https://kubernetes.io/docs/concepts/overview/components/).
 
-## High-Availability for Reliability
-To guarantee constant and reliable availability of your critical systems and services, you can enable the "High-Availability" feature. 
-With HA enabled the EKS cluster is distributed across multiple Availability Zones (AZs), providing redundancy and fault tolerance. This way, even if one AZ experiences an issue, your cluster continues to function smoothly, ensuring uninterrupted operations.
+<details>
+<summary>
+**What are the benefits of having a cluster?**
+</summary>
+Clusters allow you to deploy multiple instances of the same application effortlessly, ensuring that if one instance fails, others can instantly take over. Additionally, clusters offer auto-scaling capabilities, automatically adjusting the number of worker nodes as traffic fluctuates, which ensures high availability and optimal performance. 
 
-## Cluster Shutdown
-Another essential option is the "Cluster Shutdown" feature. By enabling this option, you can choose a preferred time window for the cluster to be on. 
-This functionality allows you to optimize your resource utilization and minimize costs during idle periods, for instance, for a development cluster.
-If you are interested in learning more about how it works, check out this [section](/cluster/nightly_shutdown).
+They also provide an excellent way to isolate your production environment from your staging environment.
+</details>
+
+<details>
+<summary>
+**How SleakOps manage clusters?**
+</summary>
+SleakOps offers you the flexibility and control needed to create an EKS cluster that aligns precisely with your requirements. 
+
+To define how to create your infra, you can see: [Designing your Infra: Single Schema Vs. Multi Schema ](https://www.notion.so/Designing-your-Infra-Single-Schema-Vs-Multi-Schema-0d49c5ce3ef14642a3ea2ae65ea9a865?pvs=21)
+</details>
+
+<details>
+<summary>
+**What happens when a Cluster is created on SleakOps?**
+</summary>
+SleakOps creates a group of Node Pools that will allow you to run your applications using Kubernetes orchestration based on your needs. See [Node Pools](https://www.notion.so/Node-Pools-c69c5476289e442ea8c8342d939f66a6?pvs=21).
+</details>
+
+<details>
+<summary>
+**What is Karpenter?**
+</summary>
+In the process of creating your EKS cluster, node provisioning is seamlessly managed by advanced Karpenter technology. Karpenter automatically provisions nodes with just the required resources and scales the cluster based on application demands, removing concerns about deprovisioning. As your workload changes, Karpenter adjusts nodes and resources dynamically, optimizing performance and cost. See [Karpenter Web](https://karpenter.sh/)
+</details>
+
+<details>
+<summary>
+**How does SleakOps handle cluster updates and upgrades?**
+</summary>
+1. We notify users about new version coming in approximatively 1 month in advance. 
+2. Upgrade clusters for a group of selected customers.
+3. Upgrade all non-production flagged clusters.
+4. Upgrade all clusters.
+</details>
+
+{/* <details>
+<summary>
+**How do I control cluster’s expenses?** 
+</summary>
+SleakOps allows you to see all your clusters expenses in one place, classified by account, resources, dates. 
+
+Access *Clusters,* select one and click the button: $
+</details> */}
+
+{/* <details>
+<summary>
+#### How do I monitor my cluster?
+</summary>
+You can monitor your cluster’s activity by accessing Clusters, and clicking into the button: (button imange)
+</details> */}
+
+## Lets create your first Cluster on SleakOps
+
+:::warning
+Creating a cluster incurs costs on your AWS account, as the EKS service includes a fixed fee plus variable costs based on resource consumption.
+
+:::
+
+### 1. Select the account under the cluster’ll be created.
+
+For more information regarding accounts, see [Accounts](https://www.notion.so/Accounts-71abf1afe5564d4588719eada01222e9?pvs=21).
+
+On the left pane, you will see a selector with the account names, select the one you’ll use based on how you  decide to manage your clusters and [environments](https://www.notion.so/Environments-bcfa33cfe6384198aee5f4a91d189b42?pvs=21). 
+
+We suggest to move forward with a *Multiple Schema*  configuration, that aligns with the best practices. To follow this schema select the *development* account to create the cluster for your staging environments, and the *production* account for the production cluster. 
+
+<div style={{ display: 'flex', alignItems: 'flex-start' }}>
+  <img src="/img/provider/provideraccountselect.png" alt="provider-account-select" style={{ marginRight: '20px', maxWidth: '200px' }} />
+  <div>
+    <p>On the left pane, you will see a selector with the account names, select the one you’ll use based on how you  decide to manage your clusters and environments.</p>
+    <p>We suggest to move forward with a Multiple Schema  configuration, that aligns with the best practices. To follow this schema select the development account to create the cluster for your staging environments, and the production account for the production cluster.</p>
+    <p>Check @Designing your Infra: Single Schema Vs. Multi Schema  for more information.</p>
+  </div>
+</div>
+
+### 2. Navigate to create Cluster section
+
+Into the *Left Pane*, access *Clusters* option and then, at the top right corner, click on the *Create* button.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/cluster/clusters-dashboard.png"
+    alt="cluster-dashboard"
+  />
+</Zoom>
+
+### 3. Set up your Cluster
+
+With your *Account* selected, you will access the following form:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/cluster/clusters-create.png"
+    alt="cluster-create"
+  />
+</Zoom>
+
+Here the parameters that SleakOps allows you to customize during the creation:
+
+| **Setting** | **Description** |
+| --- | --- |
+| **Name** | Identify your cluster |
+| Description | Optional space to describe what is included into this cluster.  |
+| **Architecture Type** | Select the architecture type to be used during the creation for your instances: (64-Bit) ARM or (64-Bit) X86, based on your performance and compatibility needs. Then you'll be able of creating new instances using a different architecture.  |
+| Production | Suggested when the Production environment is into this Cluster. It enables the "High-Availability" (HA) feature to ensure constant and reliable availability of critical systems. With HA, the EKS cluster is distributed across multiple Availability Zones (AZs) for redundancy and fault tolerance, ensuring uninterrupted operations even if one AZ has an issue. |
+| **Max Memory**  | This sets the maximum memory the cluster can use as services scale. The autoscaler provisions instances based on demand, but this doesn't mean the cluster always uses the maximum memory; it just defines the upper limit for the autoscaler. |
+| **Max CPU** | This sets the maximum CPU the cluster can use as services scale. The autoscaler provisions instances based on demand, but this doesn't mean the cluster always uses the maximum CPU; it just defines the upper limit for the autoscaler. |
+
+Once you've completed the form, click on *Submit* in order to trigger the cluster creation into the selected account on AWS. 
+
+This process will create a Cluster with two node pools by default. See [Node Pools](https://www.notion.so/Node-Pools-c69c5476289e442ea8c8342d939f66a6?pvs=21).
