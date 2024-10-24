@@ -1,11 +1,158 @@
-# Web Services
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
 
-## Web Services
+# Service
 
-### Description
+A "Web Service" in SleakOps is a continuously running service that provides interfaces and endpoints for interactions with users, other services, and applications. Its primary function is to handle requests such as:
 
-A "Web Service" in SleakOps is a continuously running service that provides interfaces and endpoints for interactions with users, other services, and applications. Its primary function is to handle requests like serving web pages, processing API calls, and managing user authentication. It's designed to be always on, ensuring constant availability and responsiveness.
+- Serving web pages
+- Processing API calls
+- Managing user authentication
 
-### Usage
+Web Services are designed to be always active, ensuring constant availability and responsiveness to maintain seamless user experience and system functionality.
 
-To deploy a Web Service, you need to set up the server and define the endpoints that will handle specific types of requests. This service should be scalable to manage varying loads, ensuring smooth operation even during high traffic. It's crucial for a Web Service to have robust error handling and security measures to protect data and maintain service integrity.
+<details>
+<summary>
+**What is the difference between Public, Private, and Internal service schemas?**
+</summary>
+- **Public**: Accessible over the internet and is open to anyone.
+- **Private**: Restricted access, available only when connected to the VPN.
+- **Internal**: Only accessible within the same Kubernetes cluster and is used for internal communication between services. 
+</details>
+
+<details>
+<summary>
+**How do I set up auto-scaling for my Web Service?**
+</summary>
+To enable auto-scaling, you can set the **Autoscaling** option to enabled and define the **Memory Target** and **CPU Target**. These targets determine the resource usage thresholds that trigger auto-scaling. You must also specify the minimum and maximum number of replicas to be maintained when auto-scaling is enabled.
+</details>
+
+<details>
+<summary>
+**What are the default success codes for a Web Service, and can I change them?** 
+</summary>
+The default success code is 200, indicating the service is healthy. You can change this code based on your application’s requirements, as some services might return different success codes based on specific actions.
+</details>
+
+<details>
+<summary>
+**What happens if my health check fails repeatedly?**
+</summary>
+If the health check fails consecutively and reaches the Failure Threshold (default is 60), the service is marked as unhealthy, and Kubernetes might restart or terminate the service instance to attempt a recovery.
+</details>
+
+<details>
+<summary>
+**How can I configure memory and CPU settings for my Web Service?**
+</summary>
+You can configure the *CPU Min* and *CPU Max* values to set the minimum and maximum CPU resources each instance in your cluster can use. Similarly, you set **Memory Min** and **Memory Max** for memory allocation per instance.
+</details>
+
+<details>
+<summary>
+**What are some best practices when configuring a Web Service in SleakOps?**
+</summary>
+- Always set a **minimum of 2 replicas** to avoid downtime.
+- Ensure your **health check paths** and **success codes** are correctly configured to reflect the true health of your service.
+- Use **auto-scaling** where possible to optimize resources dynamically based on demand.
+- Review and set **memory** and **CPU usage** targets appropriately to prevent overloading your infrastructure.
+</details>
+
+<details>
+<summary>
+**What should I do if my service shows response times longer than 10 seconds?**
+</summary>
+Long response times may indicate issues such as resource constraints, application inefficiencies, or network problems. You should check your service logs, ensure your resources (CPU, memory) are adequately allocated, and review your application code for potential optimizations.
+</details>
+
+## **Lets add a Web Service for your Project**
+### 1. Navigate to create Web Service section
+Into the _Left Pane_, access _Executions_. Then select the _Web Services_ tab  and then, at the top right corner, click on the _Create_ button.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/executions/executions-list.png"
+    alt="executions-list"
+/>
+</Zoom>
+
+### 2. Select a Project and a Name for the web service
+Start with the basic information, complete these attributes and click Next to continue.
+
+| **Attribute** | **Description** |
+| --- | --- |
+| **Name** | Identify your web service. |
+| **Project** | Select between the existent projects.  |
+| **Command** | The command that runs the service. |
+| **Port** | The port number where the service runs. Default: `8000` |
+
+Once those attributes are completed, click the _Next_ button to move forward. 
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/executions/webservice/webservice-create-p1.png"
+    alt="webservice-create-p1"
+/>
+</Zoom>
+
+### 3. Define the connection
+Select how will be your connection and click on _Next_. 
+
+| **Attribute** | **Description** |
+| --- | --- |
+| **Service Schema** | Defines the accessibility of the service: public, private, or internal. |
+| **URL** | The URL assigned to the service based on the environment and project settings. Format: `name.myenv.sleakops.com`.  |
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/executions/webservice/webservice-create-p2.png"
+    alt="webservice-create-p2"
+/>
+</Zoom>
+
+### 4. Specify your service settings
+You’ll see the following for to specify the conditions.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/executions/webservice/webservice-create-p3.png"
+    alt="webservice-create-p3"
+/>
+</Zoom>
+
+| **Attribute** | **Description** |
+| --- | --- |
+| **Path** | The path where Kubernetes checks if the web service is operational. Default: `/` |
+| **Success Code** | The HTTP success code indicating the service’s health. Default: `200`.  |
+| **Initial Delay Seconds** | Number of seconds after startup before health checks begin.  Default: `10`.  |
+| **Timeout Seconds** | Number of seconds after startup before health checks begin.  Default: `1`.  |
+| **Period Seconds** | Interval (in seconds) between each health check probe. Default: `5`.  |
+| **Success Threshold** | Minimum number of consecutive successes required for the probe to be considered successful after it has failed. Default: `1`.  |
+| **Failure Threshold** | Number of consecutive failures before the probe is considered to have failed. Default: `60`.  |
+
+Once those attributes are completed, click the Next button to move to the next step. 
+
+### 5. Finish the set up
+This step outlines the key attributes for configuring the resources of a Web Service in SleakOps, allowing for flexible management of CPU, memory, and scaling behaviors.
+
+| **Attribute** | **Description** |
+| --- | --- |
+| **CPU Min** | The minimum amount of CPU resources allocated for each instance in the cluster. This ensures that each instance always has this amount of CPU available. |
+| **CPU Max** | The maximum CPU resources that each instance in the cluster can use. This cap helps prevent any single instance from consuming too much CPU.  |
+| **Memory Min** | The minimum amount of memory allocated for each instance in the cluster. This guarantees that the instance has enough memory to operate efficiently.  |
+| **Memory Max** | The maximum amount of memory each instance in the cluster can utilize. It limits the memory usage to prevent any single instance from overconsuming resources.  |
+| **Autoscaling** | Toggle to enable or disable auto-scaling. When enabled, it allows the service to adjust the number of replicas based on demand and resource usage.  |
+| **CPU Target** | The CPU usage percentage target that initiates auto-scaling. If usage exceeds this target, additional replicas may be deployed to balance the load.  |
+| **Memory Target** | The memory usage percentage target that triggers auto-scaling adjustments. When instances exceed this target, the system scales up to accommodate demand. |
+| **Replicas Min** | The minimum number of replicas to maintain when auto-scaling is active. A minimum of 2 replicas ensures high availability and prevents downtime.|
+| **Replicas Max** | The maximum number of replicas that can be deployed when auto-scaling is enabled. It sets an upper limit on the number of instances to avoid over-provisioning.  |
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/executions/webservice/webservice-create-p4.png"
+    alt="webservice-create-p4"
+/>
+</Zoom>
+
+Submit to create and Deploy your web service.
