@@ -1,27 +1,90 @@
-# Variable Group
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
 
-In Sleakops a variable group or var group is a set of key-value pairs as in a dictionary that provides configuration for services in a given project and environment.
+# VariableGroups
 
-## Create a var group
+A **Vargroup** in SleakOps is a resource that securely stores sensitive information (like database credentials) within your EKS cluster. It ensures that credentials and environment-specific variables are securely managed and easily accessible by your applications.
 
-To create a var group you need to define a project, an environment, an identification name for the group and optionally a service.
-You may provide as many key-value pairs as needed as long as the keys aren't duplicated.
-The console gives you the choice to enter them in separate fields or as plain text much like dotenv files.
-When you save the var group, Sleakops creates a Kubernetes secret inside the namespace.
-Once created you may only edit the entries inside the var group.
+<details>
+<summary>
+**Can I edit a VariableGroup created by SleakOps?**
+</summary>
+Yes, you can access and manage the Variable Group for your MySQL instance from the SleakOps console. You can modify values such as usernames, passwords, or any other environment-specific credentials.
+</details>
 
-The optional service field indicates the scope of the var group. 
-If a service is not selected the resulting var group is _global_ and is available for all the [namespace](/environment.mdx#infraestructura-creada-con-un-entorno).
-Otherwise, the var group is local to the selected service.
-The interaction between var groups inside the namespace is described in the [next section](/vargroup#preference-between-var-groups).
+<details>
+<summary>
+**How are Vargroups used by my applications?**
+</summary>
+Vargroups are securely injected into your application's environment when it is deployed. Your applications can access these credentials and other variables without exposing sensitive information in the code.
+</details>
 
-### Preference between var groups
+<details>
+<summary>
+**How does SleakOps ensure the security of Vargroups?**
+</summary>
+SleakOps securely stores vargroups as Kubernetes secrets inside your EKS cluster. Access is controlled via Kubernetes Service Accounts, ensuring that only authorized components can access the sensitive information.
+</details>
 
-As previously mentioned, var groups end up being secrets inside the namespace.
-This design allows Sleakops users to add identical keys with different values for several var groups.
-This behavior is intended and needed to provide different configurations for services.
-When there is a conflict between the values of identical keys, the local values prevail (if any) or in the case of two global entries, the most recent one is kept.
+<details>
+<summary>
+**Can I delete a Variable Group?**
+</summary>
+Yes, they can be deleted or updated as needed. However, be cautious when deleting them, as it may disrupt your application. 
+</details>
 
-## Cloud resources
+<details>
+<summary>
+**What is the difference between a Global and a Service-Scoped Vargroup?**
+</summary>
+- **Global**: Available to all services within the namespace. It is created without selecting a specific service. To create them select “global” 
+- **Service-Scoped Variable Group**: Only applies to the selected service within the project and environment. It overrides global var group values if they have the same key. 
+</details>
 
-The creation of var groups only adds secrets to the environment cluster and has no significant costs for the Sleakops users.
+<details>
+<summary>
+**What happens if there are duplicate keys in different Vargroups?**
+</summary>
+If duplicate keys exist across different var groups:
+- If the key exists in both a global and a service-scoped var group, the service-scoped value takes precedence. 
+- If two global vargroups have the same key, the most recently created one will be used. 
+</details>
+
+### 1. Navigate to create Vargroup section
+Into the _Left Pane_, access _Vargroups_ option under _Projects_ and then, at the top right corner, click on the _Create_ button.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/vargroup/vargroup-list.png"
+    alt="vargroup-list"
+/>
+</Zoom>
+
+### 2. Select a Project and complete the needed attributes
+Complete the following attributes to create a new vargroup:
+
+| **Attribute** | **Description** |
+| --- | --- |
+| **Project** | The specific application or workload within SleakOps. Determines the scope of the variable group. |
+| **Service** | A microservice or component within the project. If selected, the vargroup is limited to it; otherwise, by selecting global it'll be accessible into the namespace. |
+| **Name** | A unique identifier for the var group, used to differentiate it within the project. Should be descriptive of the group's purpose. |
+| **Deploy** | Enable this option if you want SleakOps to automatically publish and deploy your service into the project. |
+
+:::info
+If you choose to add the argument using the text option: Each argument should be added on a new line, separated by an equal sign (`=`), with no extra spaces. 
+
+ARGUMENT_NAME = VALUE  
+ARGUMENT_TWO = VALUE  
+ARGUMENT_ONE = VALUE  
+:::
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/vargroup/vargroup-create.png"
+    alt="vargroup-create"
+/>
+</Zoom>
+
+Submit to create and Deploy your vargroup.
+

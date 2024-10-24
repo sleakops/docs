@@ -1,25 +1,151 @@
+---
+sidebar_label: Project
+sidebar_position: 6
+---
+
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
 
 # Project
 
-In Sleakops a project represents a codebase and it is managed by a git repository. Once you have a [cluster ](cluster/index.mdx) and an [environment ](environment.mdx) has been created, you can create projects for your company. Create as many projects as repositories your application has.
-To differentiate we call it ProjectEnv and in the cluster it acts as a Namespace.
+A Project in SleakOps represents a codebase managed by a Git repository, it also defines the so-called Namespace. It's the core entity that connects your repository to the SleakOps environment, enabling deployment, management, and scaling of your application in the AWS infrastructure.
 
-## Create ProjectEnvs
+It is the combination of: Repository, Branch and Dockerfile Path. By adding the environment you have a ProjectEnv (or Kubernetes Namespace).
 
-To create a project you need to give Sleakops authorization to access repositories from an external git provider account where the sources of your project are hosted.
-Sleakops integrates these third-party git applications:
+<details>
+<summary>
+**What is a ProjectEnv or Namespace?**
+</summary>
+A ProjectEnv is the combination of a project and an environment. It acts as a Kubernetes Namespace in the cluster and contains all the services and resources related to the project within that environment.
+</details>
 
-- Github
-- GitLab. If your GitLab is self-hosted, please follow these [instructions](project/gitlab.mdx).
-- Bitbucket
+<details>
+<summary>
+**How do I create a ProjectEnv in SleakOps?**
+</summary>
+The Project and the ProjectEnv will be created at the same time. You need to connect your Git account (e.g., GitHub, GitLab, or Bitbucket) to SleakOps, select a repository, choose a branch, and specify the location of the Dockerfile. Once these steps are completed, a ProjectEnv is created, and the first image build is triggered. Follow the steps bellow.
+</details>
 
-Completing this first step now you are allowed to create a Project, you have to select which of the repositories you want to use, the branch this ProjectEnv will use and the location of the Dockerfile in your repository. Optionally you can also set Kubernetes volumes if you need them, more info on [More on ProjectEnv ](project/more_on_project.mdx).
+<details>
+<summary>
+**What happens when I create a ProjectEnv?**
+</summary>
+When a ProjectEnv is created, the following resources are set up:
+- **AWS Elastic Container Registry (ECR)** to store container images and Helm charts.
+- A **Kubernetes Namespace** to manage services in isolation.
+- A **Service Account** to handle permissions and secure connections with AWS resources.
+- A **Dockerfile analysis** to verify its correctness and build a container image using Kaniko
+</details>
 
-:::info Docker Args
+<details>
+<summary>
+**How do I add the Dockerfile Args?**
+</summary>
+If any build-time **Docker Args** (arguments) are required, SleakOps will prompt you to enter them before running the initial build. These arguments can be modified for future builds.
+</details>    
 
-If your Dockerfile requires Docker Args you will have to set them after the ProjectEnv creation. You can do this in the ProjectEnv list.
+<details>
+<summary>
+**What is the purpose of the Dockerfile in my project?**
+</summary>
+The **Dockerfile** defines how your application is built into a container image. During ProjectEnv creation, SleakOps analyzes the Dockerfile to ensure it's correctly configured, and then builds the image using **Kaniko**.
+</details>    
 
+<details>
+<summary>
+**Where are the Docker images stored?**
+</summary>
+Docker images are stored in the **AWS ECR** (Elastic Container Registry) associated with your project. The images are named after the ProjectEnv, which combines the environment name and project name.
+</details>    
+
+<details>
+<summary>
+**What is the role of the Service Account?**
+</summary>
+The **Service Account** manages permissions for resources inside the Kubernetes cluster. It allows services deployed in the ProjectEnv to securely interact with AWS resources like S3, RDS, or any other service your application may require.
+</details> 
+    
+<details>
+<summary>
+**Can I update the repository, branch, or Dockerfile path after creating a Project?**
+</summary>
+Just the *Branch* and the *Dockerfile Path* can be updated. If you need to work with a different *Environment,* *Repository or Name*, you will need to create a new record.
+</details> 
+    
+<details>
+<summary>
+**How does SleakOps handle the initial image build?**
+</summary>
+SleakOps automates the first image build as part of the ProjectEnv creation process. This initial build ensures faster deployment by utilizing the existing infrastructure. Afterward, future image builds are triggered when services are published in deployments or manually via the **Build Form**.
+</details> 
+    
+<details>
+<summary>
+**How do I control project’s expenses?**
+</summary>
+SleakOps allows you to see all your project expenses in one place, classified by account, resources, dates. 
+
+Access *Projects,* select one and click the button: 
+</details> 
+
+<details>
+<summary>
+**How do I monitor my project?**
+</summary>
+You can monitor your project by accessing *Projects,* selecting one **and clicking into the button: (button image)
+</details> 
+
+<details>
+<summary>
+**How do I create a Kubernetes Volume?**
+</summary>
+When editing a Project, you can enable and define **Kubernetes Volumes** by specifying the mount path and storage capacity. SleakOps uses the **AWS EFS CSI Driver** to manage these volumes as **EFS** file systems in the EKS cluster.
+</details> 
+
+<details>
+<summary>
+ **🚩 How do I manage future builds and deployments?**
+</summary>
+Future builds and deployments can be managed manually via the SleakOps interface or automated using the **SleakOps CLI**.
+</details> 
+
+### Lets create your first Project on SleakOps
+
+:::warning
+You must have your Git Repository connected. See [Connect your Git Account](/project/connect_to_git)
 :::
+
+### 1. Navigate to Create Project section
+Into the Left Pane, access _Projects_ option and then, at the top right corner, click on the _Create_ button.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/project/project-list.png"
+    alt="project-list"
+/>
+</Zoom>
+
+
+### 2. Set up your Project
+You will access the following form:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/project/project-create.png"
+    alt="project-create"
+/>
+</Zoom>
+
+Here the parameters that SleakOps allows you to customize during the creation:
+
+| **Setting** | **Description** |
+| --- | --- |
+| **Name** | Identify your Project. |
+| **Environment** | The environment represents a specific stage or setup within your infrastructure where your project will be deployed (e.g., Development, Staging, Production). You are associating your project’s code with a particular environment in your Kubernetes cluster.  |
+| **Repository** | The repository is the Git repository that holds the codebase for your project. SleakOps will access this repository to manage code updates, builds, and deployments. Ensure that you have connected your Git provider (e.g., GitHub, GitLab, Bitbucket) and that the selected repository contains all necessary files for your project.  |
+| **Nodepool** | Is the resource in charge of provision the server where your services will run. More info [here](/cluster/nodepools/index). |
+| **Branch** | The branch represents a specific version or line of development within the repository. This allows you to deploy a particular version of your code (e.g., main, develop, or a feature-specific branch). The branch you select will determine the code that gets built and deployed within the associated environment.  |
+| **Dockerfile Path** | The Dockerfile is a critical component used to build your project into a container. The Dockerfile Path field requires the relative file path to your Dockerfile within the repository (e.g., /Dockerfile, /src/Dockerfile, or /app/Dockerfile). This file contains the instructions needed to create the container image, which SleakOps will build and later use for deployments.  |
+
+Once you’ve completed the form, click on Submit in order to trigger the Dockerfile validation and then the build.

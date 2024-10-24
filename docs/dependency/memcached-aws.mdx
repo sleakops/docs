@@ -1,0 +1,103 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# AWS Memcached
+
+SleakOps integrates Amazon ElastiCache with Memcached, a fully managed, in-memory caching service. This integration allows you to cache frequently accessed data, improving application performance by reducing the load on your databases. With SleakOps, managing and deploying Memcached clusters becomes effortless, providing seamless scalability and optimized performance for your applications.
+
+**Key Features of Memcached:**
+- **Simplicity**: Operates as a key-value store without supporting advanced data structures.
+- **In-memory Caching**: All data is stored in memory for ultra-fast access.
+- **No Data Persistence**: Data is volatile and will be lost if the node fails or is restarted. 
+- **Horizontal Scalability**: Easily scale by adding more nodes to your Memcached cluster.
+- **Cost-Effective against Redis**: More affordable than Redis due to the lack of features like persistence and replication.
+- **Performance**: Excellent for high-speed, distributed caching in read-heavy applications.
+
+:::info
+For more information on Memcached and its capabilities, you can refer to the official [AWS Redis documentation. <FiExternalLink/>](https://aws.amazon.com/elasticache/memcached/).
+:::
+
+<details>
+<summary>
+**What are the key use cases for Memcached?**
+</summary>
+Memcached is ideal for caching frequently accessed database queries, storing temporary user session data, and caching API responses to reduce database load.
+</details>
+
+<details>
+<summary>
+**When should I use Memcached?**
+</summary>
+Memcached is ideal for:
+- **Simple Caching Needs**: If you need a basic, high-speed cache for frequently accessed data.
+- **Non-Persistent Data**: When you don’t need data to be persisted and can tolerate data loss upon node failure or restart.
+- **Horizontal Scalability**: For applications that benefit from adding multiple caching nodes to distribute load efficiently.
+- **Cost-Sensitive Applications**: Memcached is more cost-effective than Redis because it lacks advanced features like persistence and replication.
+</details>
+
+<details>
+<summary>
+**Why should I choose Memcached over Redis?**
+</summary>
+Memcached is a simpler and more cost-effective caching solution if you don't need data persistence, replication, or advanced data types. It's suitable for applications that prioritize fast, distributed caching.
+</details>
+
+<details>
+<summary>
+**How does Memcached scale in SleakOps?**
+</summary>
+Memcached scales horizontally by adding more nodes to your cluster, allowing you to distribute the caching load across multiple nodes.
+</details>
+
+<details>
+<summary>
+**Does Memcached offer data persistence?**
+</summary>
+No, Memcached does not support data persistence. All cached data is stored in memory and will be lost if the node is restarted or fails.
+</details>
+
+<details>
+<summary>
+**What happens to the cached data if a node fails?**
+</summary>
+Cached data in Memcached is volatile, meaning it will be lost if a node fails or is restarted. For critical applications, Redis (which supports data persistence) might be a better choice.
+</details>
+
+## Set up your AWS Memcached
+### 1. Add AWS Memcached as a Dependency
+To integrate Memcached with SleakOps:
+1. In the SleakOps console, go to the "Dependencies" section
+2. Choose "AWS Redis" from the list of available dependency types. 
+For more detail see [Dependencies: Integrating Databases, Caching, and Messaging Services](/dependency/index).
+
+### 2. Set up your Memcached database.
+
+When adding  Memcached  as a dependency in SleakOps, you need to configure several key attributes:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/memcached/memcached-create-p1.png"
+    alt="memcached-create-p1"
+/>
+</Zoom>
+
+| **Attribute** | **Description** |
+| --- | --- | 
+| **Node Type** | Instance class that determines the performance and memory capacity of the Redis instance. Examples: `cache.t3.micro`, `cache.m5.large`, `cache.r6g.large`  |
+| **Nodes Quantity** | Defines the number of Memcached nodes for horizontal scaling. Adding more nodes increases scalability. Example: 1 or more  |
+| **Port** | The communication port used by Redis to interact with your application. Default: `11121` (can be customized) |
+
+### 3. Customize your variable names for your Memcached.
+
+As explained, when a dependency is created, SleakOps generates a vargroup to hold all the needed attributes. 
+In this step you can change the name of the attributes in case it is needed. 
+SleakOps completes the values automatically. 
+After this step, your dependency is created.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/memcached/memcached-create-outputs.png"
+    alt="memcached-create-outputs"
+/>
+</Zoom>
