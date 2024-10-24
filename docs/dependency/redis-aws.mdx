@@ -1,0 +1,80 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# AWS Redis
+
+SleakOps facilitates the integration of Amazon ElastiCache with Redis, a fully managed, in-memory data store. This service allows you to cache frequently accessed data, enhancing application performance and reducing the load on your primary databases. By using Redis through SleakOps, your applications can experience faster response times, improved scalability, and reduced latency.
+
+:::info
+For more information on Redis and its capabilities, you can refer to the official [AWS Redis documentation. <FiExternalLink/>](https://aws.amazon.com/elasticache/redis/).
+:::
+
+<details>
+<summary>
+**What features make Redis a good choice for my application?**
+</summary>
+Redis offers several advanced features that make it suitable for a wide range of applications:
+- **Data Persistence**: Redis can save data to disk, ensuring that information is not lost in the event of a restart. 
+- **Advanced Data Structures**: Redis supports more complex data structures than simple key-value stores, such as lists, sets, hashes, sorted sets, and more. 
+- **High Availability**: Through replication and automatic failover, Redis ensures that your application remains operational even if a node fails.
+- **Scalability**: Redis can be scaled both vertically (with larger instances) and horizontally (using sharding and clusters).
+- **Pub/Sub Messaging**: Redis offers native support for publish/subscribe messaging patterns, useful for building real-time applications.
+</details>
+
+<details>
+<summary>
+**What are the common use cases for Redis?**
+</summary>
+Redis is versatile and can be used in a variety of scenarios, including:
+- **Session Management**: Redis is commonly used for storing user session data due to its low-latency data access and persistence features.
+- **Caching**: Redis is ideal for caching frequently accessed data, reducing load on primary databases and improving response times.
+- **Real-Time Analytics**: Redis's fast in-memory processing capabilities make it perfect for real-time analytics, leaderboards, and counters.
+- **Message Queues**: With Redis’s pub/sub functionality, you can use it for messaging systems and event streaming.
+- **Job Queues**: Redis is used for managing background job queues in large-scale applications.
+</details>
+
+<details>
+<summary>
+**How does Redis differ from Memcached?**
+</summary>
+Redis is more feature-rich than Memcached. Redis supports a variety of data structures like lists, sets, and hashes, while Memcached is limited to simple key-value pairs. Redis also supports data persistence and replication, making it suitable for applications where durability and high availability are critical. However, Memcached is typically more lightweight and faster for basic caching scenarios.
+</details>
+
+## Set up your AWS Redis
+### 1. Add AWS Redis as a Dependency
+To integrate Redis with SleakOps:
+1. In the SleakOps console, go to the "Dependencies" section
+2. Choose "AWS Redis" from the list of available dependency types. 
+For more detail see [Dependencies: Integrating Databases, Caching, and Messaging Services](/dependency/index).
+
+### 2. Set up your Redis database.
+You will access the following form:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/redis/redis-create-p1.png"
+    alt="redis-create-p1"
+/>
+</Zoom>
+
+Here the parameters that SleakOps allows you to customize during the creation:
+
+| **Attribute** | **Description** |
+| --- | --- | 
+| **Node Type** | Instance class that determines the performance and memory capacity of the Redis instance. Examples: `cache.t3.micro`, `cache.m5.large`, `cache.r6g.large`  |
+| **Port** | The communication port used by Redis to interact with your application. Default: `6379` (can be customized) |
+
+### 3. Customize your variable names for your Redis.
+
+As explained, when a dependency is created, SleakOps generates a vargroup to hold all the needed attributes. 
+In this step you can change the name of the attributes in case it is needed. 
+SleakOps completes the values automatically. 
+After this step, your dependency is created.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/redis/redis-create-outputs.png"
+    alt="redis-create-outputs"
+/>
+</Zoom>

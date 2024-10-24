@@ -1,36 +1,135 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
 
 # AWS S3 Bucket
 
-With Sleakops, you can effortlessly integrate Amazon Simple Storage Service (S3) into your application. 
-This highly durable and secure object storage service provides a scalable solution for storing and retrieving any amount of data, enabling you to build powerful applications with ease.
+SleakOps integrates seamlessly with Amazon Simple Storage Service (S3), a highly durable and secure object storage service. Amazon S3 provides a scalable solution for storing and retrieving any amount of data, making it an ideal choice for backup storage, asset management, and data archiving within your applications. By leveraging SleakOps for S3 integration, you can easily manage your S3 buckets and access the stored data directly from your EKS (Elastic Kubernetes Service) environment.
 
+<details>
+<summary>
+**When should I use Amazon S3?**
+</summary>
+You should use Amazon S3 when you need:
+- Scalable storage for files, media, backups, or static assets.
+- Highly durable and available storage for critical data.
+- Data archiving solutions or disaster recovery.
+- A cost-effective solution for storing large amounts of unstructured data.
+</details>
 
-You can read more about those benefits in [AWS S3 docs <FiExternalLink/>](https://aws.amazon.com/s3/).
+<details>
+<summary>
+**How do I create a S3 dump?**
+</summary>
+To create a backup of your S3 bucket data, follow these steps:
+  1. **Ensure Admin Access**: Verify that you have admin access to the AWS account where the S3 bucket is located.
+  2. **Install AWS CLI**: Ensure AWS CLI is installed on your local machine. For installation instructions, refer to the [official AWS CLI documentation <FiExternalLink/>](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
+  3. **Configure AWS CLI**: Ensure that your Access and Secret keys are configured in the default profile. If they are under a different profile, use the `--profile PROFILE_NAME` option with the commands.
+  4. **Run Backup Commands**: ```sh
+  aws sts assume-role --role-arn arn:aws:iam::ACCOUNT_ID:role/SleakopsAdminRole
+  aws s3 sync s3://BUCKET_NAME /path/to/local/directory```
+  Replace ACCOUNT_ID, BUCKET_NAME, and /path/to/local/directory with your specific details.
+</details>
 
+<details>
+<summary>
+**Does SleakOps create Variable Groups for S3 dependencies?**
+</summary>
+Yes, when you configure an S3 bucket in SleakOps, it will automatically create a Variable Group. This securely stores the access keys and other sensitive information needed to manage and interact with your S3 bucket.
+</details>
 
-## How to create a backup for an s3 bucket
+<details>
+<summary>
+**What is an S3 Access Control List (ACL)?**
+</summary>
+An S3 Access Control List (ACL) defines the permissions for who can access your S3 bucket and its contents. It controls the level of access granted to users, groups, or predefined AWS entities.  
+You can choose an ACL that defines who can access the bucket and what level of permission they have. The available options are:  
+- `private`: Only the bucket owner has full access. (Default)
+- `public-read`: Anyone can read the objects in the bucket.
+- `public-read-write`: Anyone can read and write to the bucket.
+- `aws-exec-read`: Grants read access to AWS services like CloudFront.
+- `authenticated-read`: Grants read access to authenticated AWS users.
+- `log-delivery-write`: Grants write access to the bucket for logging purposes.
+For further details, you can refer to [AWS S3 ACL documentation <FiExternalLink/>](https://docs.aws.amazon.com/AmazonS3/latest/userguide/acl-overview.html).
+</details>
 
-:::caution
-For this to work you should have admin access to the account where the bucket is.
-:::
+<details>
+<summary>
+**What is Amazon CloudFront?**
+</summary>
+Amazon CloudFront is a Content Delivery Network (CDN) that speeds up the delivery of your static and dynamic content (like HTML, CSS, images, and videos) by caching it at edge locations closer to your users around the world.
+</details>
 
-:::note
+<details>
+<summary>
+**Can I use a custom domain name with CloudFront?**
+</summary>
+Yes, SleakOps allows you to set a custom alias (subdomain) for your CloudFront distribution. For example, you could use `cdn.mydomain.com` as the URL for your CloudFront distribution instead of the default CloudFront URL.
+</details>
 
-Prerequisites:
-
-- AWS CLI installed on your local machine. 
-For instructions on how to install it, see the [official docs<FiExternalLink/>](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
-- Access and secret keys for your IAM user.
-For instructions on how to get them, see the [official docs<FiExternalLink/>](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html#Using_CreateAccessKey)
-- Access and secret keys in the default profile for AWS CLI. If you have them with another name append ```--profile PROFILE_NAME``` to the assume-role command
-- The account id and bucket name. Both are available through Sleakops console
-:::
-
-To create an s3 backup run the following commands:
-
-
-```bash
-aws sts assume-role --role-arn arn:aws:iam::ACCOUNT_ID:role/SleakopsAdminRole
-aws s3 sync s3://BUCKET_NAME /path/to/local/directory
+<details>
+<summary>
+**What is a Custom Header in CloudFront?**
+</summary>
+Custom Headers allow you to include additional information in every request that CloudFront makes to your S3 bucket. This feature provides more control over how your S3 content is accessed and delivered by attaching specific metadata to the requests.  
+SleakOps allows you to define custom headers for CloudFront, which will be included in all requests sent to your S3 bucket. This is useful for adding security measures, managing permissions, or tracking requests.  
 ```
+custom_headers:  
+  - key: "X-Custom-Header"  
+    value: "MyCustomValue"
+```  
+</details>
+
+## Set up your S3 Bucket
+### 1. Add S3 Bucket as a Dependency
+To integrate S3 Bucket with SleakOps:
+1. In the SleakOps console, go to the "Dependencies" section 
+2. Choose "S3 Bucket" from the list of available dependency types. 
+For more detail see [Dependencies: Integrating Databases, Caching, and Messaging Services](/dependency/index).
+
+### 2. Set up your S3 Bucket.
+When adding an S3 bucket as a dependency in SleakOps, you will be required to configure the following attributes:
+
+| **Attribute** | **Description** |
+| --- | --- |
+| **S3 Access Control List (ACL)** | Specifies the level of access for the S3 bucket and its contents. Options:  `private`, `public-read`, `public-read-write`, `aws-exec-read`, `authenticated-read`, `log-delivery-write` |
+| **Enable CloudFront** | Allows you to enable Amazon CloudFront, a CDN for delivering S3 bucket content globally. |
+| **Alias** | The alias for the S3 bucket or CloudFront distribution (e.g., `cdn.mydomain.com`). |
+| **Price Class** | Defines the set of global CloudFront edge locations used to serve content. Options: `Use all edge locations (best performance)`, `Use North America`, `Europe`, `Asia`, `Middle East`, and `Africa`, `Use only North America and Europe`.  Check [AWS Price Class <FiExternalLink/>](https://aws.amazon.com/cloudfront/pricing/). |
+| **Custom Headers** | Custom headers that CloudFront includes in all requests sent to the S3 bucket. - Key: The header key, such as `X-Custom-Header`. - Value: The value you wish to assign to the header, like `MyCustomValue`. |
+| **Override** | Specify whether CloudFront should override existing headers in requests from the origin. |
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/s3/s3-create-p1.png"
+    alt="s3-create-p1"
+/>
+</Zoom>
+
+
+After that basic data, if you activated the Cloudfront, you will be able of customize its headers.  
+To do that: 
+  1. Into the form, look for the field _CloudFront custom headers_ and click on + _Add Item_.
+  2. Complete _Key and Value_
+You can add as many as you need. 
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/s3/s3-create-cloudfront.png"
+    alt="s3-create-cloudfront"
+/>
+</Zoom>
+
+### 3. Customize your variable names for your S3.
+
+As explained, when a dependency is created, SleakOps generates a vargroup to hold all the needed attributes.  
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/s3/s3-create-outputs.png"
+    alt="s3-create-outputs"
+/>
+</Zoom>
+
+In this step you can change the name of the attributes in case it is needed but SleakOps completes the values automatically.  
+After this step, your dependency is created.
