@@ -2,15 +2,15 @@ import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
 
-# AWS PosgreSQL
+# AWS MySQL
 
-SleakOps offers seamless integration with Amazon RDS for PostgreSQL, a fully managed relational database service. PostgreSQL is known for its advanced features, scalability, and robust performance, making it a preferred choice for complex applications and data-intensive operations. By integrating PostgreSQL through SleakOps, you can efficiently manage your database deployments and leverage the power of AWS’s managed database service.
+SleakOps facilitates the integration of MySQL databases through Amazon RDS (Relational Database Service). Amazon RDS for MySQL is a fully managed service that simplifies database setup, operation, and scaling. By leveraging SleakOps for this integration, you can efficiently manage MySQL databases within your EKS (Elastic Kubernetes Service) environment, ensuring robust, scalable, and reliable data storage solutions for your applications.
 
 <details>
 <summary>
 **How does SleakOps manage MySQL credentials?**
 </summary>
-When you create a MySQL dependency in SleakOps, it automatically generates a Vargroup for your database. This Variable Group securely stores the MySQL credentials and other important configuration details, such as the database endpoint and user access information. You’ll be able of manage them from  [Vargroups](/vargroups/index) section.
+When you create a MySQL dependency in SleakOps, it automatically generates a Vargroup for your database. This Variable Group securely stores the MySQL credentials and other important configuration details, such as the database endpoint and user access information. You’ll be able of manage them from  [Vargroups](/project/vargroup/index.mdx) section.
 </details>
 
 <details>
@@ -22,75 +22,75 @@ Multi-AZ (Availability Zone) deployment ensures high availability and failover s
 
 <details>
 <summary>
-**Can I change the PostgreSQL version after the database is deployed?**
+**Can I change the MySQL version after the database is deployed?**
 </summary>
-No, the database engine version cannot be changed after deployment. You would need to create a new PostgreSQL instance with the desired version and migrate your data. Or change it manually into the AWS Console.
+No, the database engine version cannot be changed after deployment. You would need to create a new MySQL instance with the desired version and migrate your data. Or change it manually into the AWS Console.
 </details>
 
 <details>
 <summary>
-**What happens if I need more storage for my PostgreSQL database?**
+**What happens if I need more storage for my MySQL database?**
 </summary>
-You can adjust the storage size when configuring your database. If you need more storage after deployment, SleakOps allows you to scale the storage size without downtime.
+You can adjust the storage size when configuring your database. If you need more storage after deployment, you can scale modifying the settings in AWS as at the moment SleakOps does not allow it. 
 </details>
 
 <details>
 <summary>
-**How do I create a PostgreSQL database dump?** 
+**How do I create a MySQL database dump?** 
 </summary>
-To create a dump of your PostgreSQL database:
-  1. **Run the `pg_dump` Command**:  
+To create a dump of your MySQL database, use the following command:  
 ```
 sh
-pg_dump -h POSTGRESQL_ADDRESS -U POSTGRESQL_USERNAME -W > dump.sql
+mysqldump -h MYSQL_ADDRESS -u MYSQL_USERNAME -p MYSQL_PASSWORD > dump.sql
 ```
-Replace `POSTGRESQL_ADDRESS`, `POSTGRESQL_USERNAME`, and `dump.sql` with the appropriate values.
-  2. Consult Documentation: For more information on how to create a dump, refer to the official [PostgreSQL documentation.](https://www.postgresql.org/docs/current/app-pgdump.html).
+Replace `MYSQL_ADDRESS`, `MYSQL_USERNAME`, and `MYSQL_PASSWORD` with the appropriate values.
+For additional information on creating a MySQL dump, refer to the [official MySQL documentation](https://dev.mysql.com/doc/refman/8.0/en/mysqldump.html).
+Another option is creating it directly from the AWS Console and then import it. See [Restoring to a DB instance](https://docs.aws.amazon.com/es_es/AmazonRDS/latest/UserGuide/USER_RestoreFromSnapshot.html).
 </details>
 
 <details>
 <summary>
 **How do I import an existent dump using docker?**
 </summary>
-To import a database dump into your PostgreSQL RDS instance:  
+For more details: [MySQL Dump Documentation](https://docs.aws.amazon.com/es_es/AmazonRDS/latest/UserGuide/USER_RestoreFromSnapshot.html)  
+To import a database dump into your MySQL RDS instance:  
   1. **Connect to the VPN**: Ensure you are connected to the VPN of the AWS account where the RDS instance is located.
   2. **Run Docker Container** (Recommended): 
     - Install Docker on your local machine if not already installed.  
-    - Run a PostgreSQL Docker container with the following command:
+    - Run a MySQL Docker container with the following command:
     ```
     sh
-    docker run -it --name postgresql-container -v ./initial_data/:/tmp/data/ -e POSTGRESQL_ROOT_PASSWORD=POSTGRESQL_PASSWORD -d postgres bash
+    docker run -it --name mysql-container -v ./initial_data/:/tmp/data/ -e MYSQL_ROOT_PASSWORD=MYSQL_PASSWORD -d mysql bash
     ```
     - Attach to the container’s terminal:
     ```
     sh
-    docker exec -t -i postgresql-container bash
+    docker exec -t -i mysql-container bash
     ```
     - Import the dump file:
     ```
-    pg_dump -h POSTGRESQL_ADDRESS -U POSTGRESQL_USERNAME -W  < /tmp/data/dump.sql
+    sh
+    mysql -h MYSQL_ADDRESS -u MYSQL_USERNAME -p < /tmp/data/dump.sql
     ```
-    Replace `POSTGRESQL_ADDRESS`, `POSTGRESQL_USERNAME`, and `dump.sql` with your specific details.
+    Replace `MYSQL_ADDRESS`, `MYSQL_USERNAME`, and `MYSQL_PASSWORD` with your RDS instance details.
 </details>
 
 <details>
 <summary>
 **How do I import an existent dump to my local machine ?**
 </summary>
-Alternatively, you can use a PostgreSQL client installed on your local machine to import the dump.
+Alternatively, you can use a MySQL client installed on your local machine to import the dump.
 ```
-sh
-psql -h POSTGRESQL_ADDRESS -U POSTGRESQL_USERNAME -W -f /tmp/data/dump.sql
+mysql -h MYSQL_ADDRESS -u MYSQL_USERNAME -p MYSQL_PASSWORD < /tmp/data/dump.sql
 ```  
 </details>
 
 <details>
 <summary>
-**What should I do if I encounter connection issues with my PostgreSQL database?**
+**What should I do if I encounter connection issues with my MySQL database?**
 </summary>
-Check the following:
 - Ensure the database endpoint, username, and password are correct.
-- Verify that your firewall rules allow access.
+- Verify that your security groups and firewall rules allow access.
 - Ensure the database is running and has enough resources (CPU, memory).
 Otherwise, contact us. 
 </details>
@@ -128,23 +128,23 @@ At the moment, the only way is to delete the dependency.
 </details>
 
 :::info
-AWS documentation: [Amazon RDS MySQL Documentation](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_PostgreSQL.html)
+AWS documentation: [Amazon RDS MySQL Documentation](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_MySQL.html)
 :::
 
-## Set up your PostgreSQL
-### 1. Add PostgreSQL as a Dependency
+## Set up your MySQL
+### 1. Add MySQL as a Dependency
 To integrate MySQL with SleakOps:
 1. In the SleakOps console, go to the "Dependencies" section
-2. Choose "PostgreSQL" from the list of available dependency types. 
-For more detail see [Dependencies: Integrating Databases, Caching, and Messaging Services](/dependency/index).
+2. Choose "MySQL" from the list of available dependency types. 
+For more detail see [Dependencies: Integrating Databases, Caching, and Messaging Services](/project/dependency/index.mdx).
 
-### 2. Set up your PostgreSQL database.
+### 2. Set up your MySQL.
 You will access the following form:
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
-    src="/img/dependency/postgres/postgres-create-p1.png"
-    alt="postgres-create-p1"
+    src="/img/dependency/mysql/mysql-create-p1.png"
+    alt="mysql-create-p1"
 />
 </Zoom>
 
@@ -152,7 +152,7 @@ Here the parameters that SleakOps allows you to customize during the creation:
 
 | **Attribute** | **Description** |
 | --- | --- |
-| **Database Engine Version** | Select the specific version of the MySQPostgreSQLL database engine you wish to use. This ensures compatibility with your application requirements. Example: `PostgreSQL 14.9`, `PostgreSQL 16.5` |
+| **Database Engine Version** | Select the specific version of the MySQL database engine you wish to use. This ensures compatibility with your application requirements. Example: `MySQL 8.0.2`, `MySQL 5.7.1` |
 | **Database Instance Class** | Define the instance class that specifies the hardware configuration for your MySQL database. This controls CPU, memory, and network performance.  Example: `db.m6g.large`, `db.t3.medium`. See [AWS detail](https://aws.amazon.com/es/rds/instance-types/). |
 | **Database Storage** | Specify the amount of storage allocated for the database. Example: 100 GB, 500 GB. |
 | **Username** | Provide the master username for the MySQL database. This is the main user with administrative privileges. Example: admin, root. |
@@ -185,7 +185,7 @@ After this step, your dependency is created.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
-    src="/img/dependency/postgres/postgres-create-outputs.png"
-    alt="postgres-create-outputs"
+    src="/img/dependency/mysql/mysql-create-outputs.png"
+    alt="mysql-create-outputs"
 />
 </Zoom>
