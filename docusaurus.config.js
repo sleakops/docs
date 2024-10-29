@@ -32,12 +32,12 @@ const config = {
       en: {
         htmlLang: 'en',
         label: 'English',
-        path: '/'
+        // path: '/'
       },
       es: {
         htmlLang: 'es',
         label: 'Español',
-        path: 'es',
+        // path: 'es',
       },
     }
   },
@@ -74,6 +74,7 @@ const config = {
           routeBasePath: "/",
           sidebarCollapsible: true,
           sidebarCollapsed: true,
+          // path: "docs", // Path to data on filesystem, relative to site dir.
           // editLocalizedFiles: true,
           // editUrl: ({locale, docPath}) => {
           //   if (locale === 'es') {
@@ -105,7 +106,7 @@ const config = {
       },
     ],
   ],
-
+  // plugins: ['content-docs', ],
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
