@@ -1,0 +1,38 @@
+import Zoom from 'react-medium-image-zoom';
+import 'react-medium-image-zoom/dist/styles.css';
+
+# EFS (Elastic File System)
+
+In SleakOps, AWS EFS (Elastic File System) is currently used only for the volumes of ProjectEnvs. EFS provides a scalable and elastic file system that can be mounted on multiple EC2 instances, allowing pods in a Kubernetes cluster to share the same file system.
+
+## What is EFS?
+
+[AWS EFS](https://aws.amazon.com/efs/) is a cloud file storage service from AWS that provides shared and scalable storage for applications and services. It is ideal for workloads that require concurrent access to a common file system.
+
+## Using EFS in SleakOps
+
+In the context of SleakOps, EFS is used to manage the volumes of ProjectEnvs. Each ProjectEnv can have one or more defined volumes, and these volumes are implemented as EFS file systems in the EKS cluster.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img src="/img/project/efs-usage.png" alt="EFS Usage" style={{ height: '250px', width: 'auto' }}/>
+</Zoom>
+
+## Configuring Volumes with EFS
+
+To configure volumes using EFS, follow the instructions in the [Volumes documentation](/project/volumes).
+
+<details>
+<summary>
+**Benefits of using EFS**
+</summary>
+- **Scalability**: EFS automatically scales as files are added or removed.
+- **High availability**: EFS is designed to be highly available and durable.
+- **Concurrent access**: Multiple EC2 instances can mount the same EFS file system simultaneously.
+</details>
+
+<details>
+<summary>
+**EFS Retain Policy**
+</summary>
+In SleakOps, we have a retain policy that prevents the deletion of an EFS in AWS when a volume is deleted in SleakOps. This ensures that your data remains intact even if the associated volume is removed from the cluster.
+</details>
