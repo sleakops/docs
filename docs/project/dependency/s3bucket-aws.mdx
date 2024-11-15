@@ -26,9 +26,12 @@ To create a backup of your S3 bucket data, follow these steps:
   2. **Install AWS CLI**: Ensure AWS CLI is installed on your local machine. For installation instructions, refer to the [official AWS CLI documentation <FiExternalLink/>](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
   3. **Configure AWS CLI**: Ensure that your Access and Secret keys are configured in the default profile. If they are under a different profile, use the `--profile PROFILE_NAME` option with the commands.
   4. **Run Backup Commands**: ```sh
-  aws sts assume-role --role-arn arn:aws:iam::ACCOUNT_ID:role/SleakopsAdminRole
+  aws sts assume-role --role-arn arn:aws:iam::ACCOUNT_ID:role/SleakopsAdminRole --output json
+  export AWS_ACCESS_KEY_ID="..."
+  export AWS_SECRET_ACCESS_KEY="..."
+  export AWS_SESSION_TOKEN="..."
 
-  aws s3 sync s3://BUCKET_NAME /path/to/local/directory```
+  aws s3 sync s3://BUCKET_NAME /path/to/local/directory --delete --exclude "*.tmp"```
   
   Replace ACCOUNT_ID, BUCKET_NAME, and /path/to/local/directory with your specific details.
 </details>
