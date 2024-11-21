@@ -2,79 +2,79 @@ import Zoom from "react-medium-image-zoom";
 
 # Node Pools 
 
-A node pool is essentially a collection of nodes within a Kubernetes cluster that have similar configurations, such as the same machine type, operating system, and instance size.
+Un Node Pool es esencialmente una colección de nodos dentro de un clúster de Kubernetes que tienen configuraciones similares, como el mismo tipo de máquina, sistema operativo y tamaño de instancia.
 
-All nodes in a node pool are configured identically, making it easier to manage and maintain consistency across your cluster. This is especially useful when scaling the cluster, as additional nodes added to the pool will have the same specifications.
+Todos los nodos en un Node Pool están configurados de manera idéntica, lo que facilita la gestión y el mantenimiento de la consistencia en todo tu clúster. Esto es especialmente útil al escalar el clúster, ya que los nodos adicionales añadidos al pool tendrán las mismas especificaciones.
 
-When a Cluster is created on SleakOps, a set of node pools are created, based on the architecture type you’ve selected  during the cluster selection.
+Cuando se crea un clúster en SleakOps, se genera un conjunto de Node Pools basado en el tipo de arquitectura que seleccionaste durante la configuración del clúster.
 
-- **sleakops-build-arm64 & sleakops-build-amd64:** A default ones to run properly your builds. They can’t be edited or deleted.
-- **sleakops-core:** Ensures the scalability of the critical components and cluster addons.
-- **ondemand-arm/amd:** Ready for you to use.
-- **spot-arm/amd:** Ready for you to use.
+- **sleakops-build-arm64 & sleakops-build-amd64:** Node Pools predeterminados para ejecutar correctamente tus builds. No se pueden editar ni eliminar.
+- **sleakops-core:** Garantiza la escalabilidad de los componentes críticos y los complementos del clúster.
+- **ondemand-arm/amd:** Listos para que los uses.
+- **spot-arm/amd:** Listos para que los uses.
 
 :::warning
-Do not delete manually the following node pools: sleakops-build-arm64, sleakops-build-amd64, sleakops-core. 
+No elimines manualmente los siguientes Node Pools: sleakops-build-arm64, sleakops-build-amd64, sleakops-core.
 :::
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
-    src="/img/cluster/nodepool-example-schema.png"
-    alt="nodepool-example-schema"
+    src="/es/img/cluster/nodepool-example-schema.png"
+    alt="esquema-ejemplo-nodepool"
   />
 </Zoom>
 
 <details>
 <summary>
-**What are the different kind of node pools?**
+**¿Cuáles son los diferentes tipos de Node Pools?**
 </summary>
-- **On-Demand:**  are instances in a Kubernetes cluster that run with a fixed pricing model, providing reliable access to compute resources without the risk of interruption. Can be used:
-    - **Critical Workloads:** Applications that require consistent uptime, such as databases, financial systems, or other critical services.
-    - **Long-Running Tasks:** Tasks that cannot be interrupted without significant consequence.
-- **Spot:** are instances that take advantage of spare capacity in a cloud provider’s data center. They are available at a significant discount compared to On-Demand instances, but they come with the risk of being terminated if the provider needs the capacity back. Ideal for:
-    - **Stateless Applications:** Suitable for workloads that can tolerate interruptions, such as batch processing jobs, testing environments, and distributed computing.
-    - **Cost-Sensitive Workloads:** Ideal for tasks where cost savings are a priority over availability.
+- **On-Demand:** Son instancias en un clúster de Kubernetes que operan con un modelo de precios fijo, proporcionando acceso confiable a recursos de cómputo sin riesgo de interrupciones. Se pueden usar para:
+    - **Tareas Críticas:** Aplicaciones que requieren tiempo de actividad constante, como bases de datos, sistemas financieros u otros servicios críticos.
+    - **Tareas de Larga Duración:** Tareas que no pueden interrumpirse sin consecuencias significativas.
+- **Spot:** Son instancias que aprovechan la capacidad sobrante en los centros de datos del proveedor de la nube. Están disponibles con un descuento significativo en comparación con las instancias On-Demand, pero conllevan el riesgo de ser terminadas si el proveedor necesita la capacidad de nuevo. Son ideales para:
+    - **Aplicaciones Sin Estado:** Adecuadas para cargas de trabajo que pueden tolerar interrupciones, como trabajos de procesamiento por lotes, entornos de prueba y computación distribuida.
+    - **Cargas de Trabajo Sensibles al Costo:** Ideales para tareas donde los ahorros en costos son más importantes que la disponibilidad.
 </details>
 
 <details>
 <summary>
-**How many Node Pools can I have?**
+**¿Cuántos Node Pools puedo tener?**
 </summary>
-SleakOps base plan, allows you to have three extra node pool besides the build ones. If you need more, contact us.
+El plan base de SleakOps te permite tener tres Node Pools adicionales, además de los Node Pools de build. Si necesitas más, contáctanos.
 </details>
 
 <details>
 <summary>
-**Can I convert a spot node pool into an on demand and viceversa?**
+**¿Puedo convertir un Node Pool Spot en uno On-Demand y viceversa?**
 </summary>
-You can't directly convert a Spot node pool into an On-Demand node pool or vice versa, but you can achieve the desired outcome through a series of steps in SleakOps. Here’s how you can transition between node pools types:
+No puedes convertir directamente un Node Pool Spot en uno On-Demand o viceversa, pero puedes lograr el resultado deseado siguiendo una serie de pasos en SleakOps. Así es como puedes hacer la transición entre tipos de Node Pools:
 
-1. Create a Node Pool of the new desired type. 
-2. Updade your executions and projects to run into the new Node Pool. 
-3. Delete the old node pool if it is not longer needed.
+1. Crea un Node Pool del nuevo tipo deseado. 
+2. Actualiza tus ejecuciones y proyectos para que se ejecuten en el nuevo Node Pool. 
+3. Elimina el Node Pool anterior si ya no es necesario.
 </details>
 
 <details>
 <summary>
-**Can I convert a ARM node pool into an X86 and viceversa?**
+**¿Puedo convertir un Node Pool ARM en uno X86 y viceversa?**
 </summary>
-You can't change the architect type of a node pool, but you can achieve the desired outcome through a series of steps in SleakOps. Here’s how you can transition between node pools architectures:
+No puedes cambiar el tipo de arquitectura de un Node Pool, pero puedes lograr el resultado deseado siguiendo una serie de pasos en SleakOps. Así es como puedes hacer la transición entre arquitecturas de Node Pools:
 
-1. Create a Node Pool of the new desired architecture. 
-2. Updade your executions and projects to run into the new Node Pool. 
-3. Delete the old node pool if it is not longer needed.
+1. Crea un Node Pool de la nueva arquitectura deseada. 
+2. Actualiza tus ejecuciones y proyectos para que se ejecuten en el nuevo Node Pool. 
+3. Elimina el Node Pool anterior si ya no es necesario.
 </details>
 
 <details>
 <summary>
-**How do I create a Node Pool?**
+**¿Cómo creo un Node Pool?**
 </summary>
-Follow [Creating a Node Pool](/cluster/nodepools/creating-nodepool) 
+Sigue la guía [Creando un Node Pool](/cluster/nodepools/creating-nodepool).
 </details>
 
 <details>
 <summary>
-**How do I manage my  a Node Pool?**
+**¿Cómo gestiono un Node Pool?**
 </summary>
-Follow [Managing a Node Pool](/cluster/nodepools/managing-nodepool) 
+Sigue la guía [Gestionando un Node Pool](/cluster/nodepools/managing-nodepool).
 </details>
