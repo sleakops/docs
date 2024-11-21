@@ -6,9 +6,11 @@ import { FiExternalLink } from "react-icons/fi";
 
 SleakOps integrates seamlessly with Amazon Simple Storage Service (S3), a highly durable and secure object storage service. Amazon S3 provides a scalable solution for storing and retrieving any amount of data, making it an ideal choice for backup storage, asset management, and data archiving within your applications. By leveraging SleakOps for S3 integration, you can easily manage your S3 buckets and access the stored data directly from your EKS (Elastic Kubernetes Service) environment.
 
+## FAQs 
+
 <details>
 <summary>
-**When should I use Amazon S3?**
+### When should I use Amazon S3?
 </summary>
 You should use Amazon S3 when you need:
 - Scalable storage for files, media, backups, or static assets.
@@ -19,7 +21,7 @@ You should use Amazon S3 when you need:
 
 <details>
 <summary>
-**How do I create a S3 dump?**
+### How do I create a S3 dump?
 </summary>
 To create a backup of your S3 bucket data, follow these steps:
   1. **Ensure Admin Access**: Verify that you have admin access to the AWS account where the S3 bucket is located.
@@ -27,20 +29,22 @@ To create a backup of your S3 bucket data, follow these steps:
   3. **Configure AWS CLI**: Ensure that your Access and Secret keys are configured in the default profile. If they are under a different profile, use the `--profile PROFILE_NAME` option with the commands.
   4. **Run Backup Commands**: ```sh
   aws sts assume-role --role-arn arn:aws:iam::ACCOUNT_ID:role/SleakopsAdminRole
+
   aws s3 sync s3://BUCKET_NAME /path/to/local/directory```
+  
   Replace ACCOUNT_ID, BUCKET_NAME, and /path/to/local/directory with your specific details.
 </details>
 
 <details>
 <summary>
-**Does SleakOps create Variable Groups for S3 dependencies?**
+### Does SleakOps create Variable Groups for S3 dependencies?
 </summary>
 Yes, when you configure an S3 bucket in SleakOps, it will automatically create a Variable Group. This securely stores the access keys and other sensitive information needed to manage and interact with your S3 bucket.
 </details>
 
 <details>
 <summary>
-**What is an S3 Access Control List (ACL)?**
+### What is an S3 Access Control List (ACL)?
 </summary>
 An S3 Access Control List (ACL) defines the permissions for who can access your S3 bucket and its contents. It controls the level of access granted to users, groups, or predefined AWS entities.  
 You can choose an ACL that defines who can access the bucket and what level of permission they have. The available options are:  
@@ -55,21 +59,21 @@ For further details, you can refer to [AWS S3 ACL documentation <FiExternalLink/
 
 <details>
 <summary>
-**What is Amazon CloudFront?**
+### What is Amazon CloudFront?
 </summary>
 Amazon CloudFront is a Content Delivery Network (CDN) that speeds up the delivery of your static and dynamic content (like HTML, CSS, images, and videos) by caching it at edge locations closer to your users around the world.
 </details>
 
 <details>
 <summary>
-**Can I use a custom domain name with CloudFront?**
+### Can I use a custom domain name with CloudFront?
 </summary>
 Yes, SleakOps allows you to set a custom alias (subdomain) for your CloudFront distribution. For example, you could use `cdn.mydomain.com` as the URL for your CloudFront distribution instead of the default CloudFront URL.
 </details>
 
 <details>
 <summary>
-**What is a Custom Header in CloudFront?**
+### What is a Custom Header in CloudFront?
 </summary>
 Custom Headers allow you to include additional information in every request that CloudFront makes to your S3 bucket. This feature provides more control over how your S3 content is accessed and delivered by attaching specific metadata to the requests.  
 SleakOps allows you to define custom headers for CloudFront, which will be included in all requests sent to your S3 bucket. This is useful for adding security measures, managing permissions, or tracking requests.  
