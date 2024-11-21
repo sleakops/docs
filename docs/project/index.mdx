@@ -11,27 +11,30 @@ import { FiExternalLink } from "react-icons/fi";
 
 A Project in SleakOps represents a codebase managed by a Git repository, it also defines the so-called Namespace. It's the core entity that connects your repository to the SleakOps environment, enabling deployment, management, and scaling of your application in the AWS infrastructure.
 
-It is the combination of: Repository, Branch and Dockerfile Path. By adding the environment you have a ProjectEnv (or Kubernetes Namespace).
+It is the combination of: Repository, Branch and Dockerfile Path. By adding the environment you have a Project (or Kubernetes Namespace).
+
+
+## FAQs 
 
 <details>
 <summary>
-**What is a ProjectEnv or Namespace?**
+### What is a Project or Namespace?
 </summary>
-A ProjectEnv is the combination of a project and an environment. It acts as a Kubernetes Namespace in the cluster and contains all the services and resources related to the project within that environment.
+A Project is the combination of a repository and an environment. It acts as a Kubernetes Namespace in the cluster and contains all the services and resources related to the project within that environment.
 </details>
 
 <details>
 <summary>
-**How do I create a ProjectEnv in SleakOps?**
+### How do I create a Project in SleakOps?
 </summary>
-The Project and the ProjectEnv will be created at the same time. You need to connect your Git account (e.g., GitHub, GitLab, or Bitbucket) to SleakOps, select a repository, choose a branch, and specify the location of the Dockerfile. Once these steps are completed, a ProjectEnv is created, and the first image build is triggered. Follow the steps bellow.
+The Project and the Project will be created at the same time. You need to connect your Git account (e.g., GitHub, GitLab, or Bitbucket) to SleakOps, select a repository, choose a branch, and specify the location of the Dockerfile. Once these steps are completed, a ProjectEnv is created, and the first image build is triggered. Follow the steps below.
 </details>
 
 <details>
 <summary>
-**What happens when I create a ProjectEnv?**
+### What happens when I create a Project?
 </summary>
-When a ProjectEnv is created, the following resources are set up:
+When a Project is created, the following resources are set up:
 - **AWS Elastic Container Registry (ECR)** to store container images and Helm charts.
 - A **Kubernetes Namespace** to manage services in isolation.
 - A **Service Account** to handle permissions and secure connections with AWS resources.
@@ -40,49 +43,49 @@ When a ProjectEnv is created, the following resources are set up:
 
 <details>
 <summary>
-**How do I add the Dockerfile Args?**
+### How do I add the Dockerfile Args?
 </summary>
 If any build-time **Docker Args** (arguments) are required, SleakOps will prompt you to enter them before running the initial build. These arguments can be modified for future builds.
 </details>    
 
 <details>
 <summary>
-**What is the purpose of the Dockerfile in my project?**
+### What is the purpose of the Dockerfile in my project?
 </summary>
-The **Dockerfile** defines how your application is built into a container image. During ProjectEnv creation, SleakOps analyzes the Dockerfile to ensure it's correctly configured, and then builds the image using **Kaniko**.
+The **Dockerfile** defines how your application is built into a container image. During Project creation, SleakOps analyzes the Dockerfile to ensure it's correctly configured, and then builds the image using **Kaniko**.
 </details>    
 
 <details>
 <summary>
-**Where are the Docker images stored?**
+### Where are the Docker images stored?
 </summary>
-Docker images are stored in the **AWS ECR** (Elastic Container Registry) associated with your project. The images are named after the ProjectEnv, which combines the environment name and project name.
+Docker images are stored in the **AWS ECR** (Elastic Container Registry) associated with your project. The images are named after the Project, which combines the environment name and project name.
 </details>    
 
 <details>
 <summary>
-**What is the role of the Service Account?**
+### What is the role of the Service Account?
 </summary>
-The **Service Account** manages permissions for resources inside the Kubernetes cluster. It allows services deployed in the ProjectEnv to securely interact with AWS resources like S3, RDS, or any other service your application may require.
+The **Service Account** manages permissions for resources inside the Kubernetes cluster. It allows services deployed in the Project to securely interact with AWS resources like S3, RDS, or any other service your application may require.
 </details> 
     
 <details>
 <summary>
-**Can I update the repository, branch, or Dockerfile path after creating a Project?**
+### Can I update the repository, branch, or Dockerfile path after creating a Project?
 </summary>
 Just the *Branch* and the *Dockerfile Path* can be updated. If you need to work with a different *Environment,* *Repository or Name*, you will need to create a new record.
 </details> 
     
 <details>
 <summary>
-**How does SleakOps handle the initial image build?**
+### How does SleakOps handle the initial image build?
 </summary>
-SleakOps automates the first image build as part of the ProjectEnv creation process. This initial build ensures faster deployment by utilizing the existing infrastructure. Afterward, future image builds are triggered when services are published in deployments or manually via the **Build Form**.
+SleakOps automates the first image build as part of the Project creation process. This initial build ensures faster deployment by utilizing the existing infrastructure. Afterward, future image builds are triggered when services are published in deployments or manually via the **Build Form**.
 </details> 
     
 <details>
 <summary>
-**How do I control project’s expenses?**
+### How do I control project’s expenses?
 </summary>
 SleakOps allows you to see all your project expenses in one place, classified by account, resources, dates. 
 
@@ -91,26 +94,26 @@ Access *Projects,* select one and click the button:
 
 <details>
 <summary>
-**How do I monitor my project?**
+### How do I monitor my project?
 </summary>
 You can monitor your project by accessing *Projects,* selecting one **and clicking into the button: (button image)
 </details> 
 
 <details>
 <summary>
-**How do I create a Kubernetes Volume?**
+### How do I create a Kubernetes Volume?
 </summary>
 When editing a Project, you can enable and define **Kubernetes Volumes** by specifying the mount path and storage capacity. SleakOps uses the **AWS EFS CSI Driver** to manage these volumes as **EFS** file systems in the EKS cluster.
 </details> 
 
 <details>
 <summary>
- **🚩 How do I manage future builds and deployments?**
+### 🚩 How do I manage future builds and deployments?
 </summary>
 Future builds and deployments can be managed manually via the SleakOps interface or automated using the **SleakOps CLI**.
 </details> 
 
-### Lets create your first Project on SleakOps
+## Lets create your first Project on SleakOps
 
 :::warning
 You must have your Git Repository connected. See [Connect your Git Account](/connect_to_git)
