@@ -19,9 +19,11 @@ Introduction
   />
 </Zoom>
 
+## FAQs 
+
 <details>
 <summary>
-  **Which dashboards allow me to read logs?**
+### Which dashboards allow me to read logs?
 </summary>
 At this moment, Sleakops provide two dashboard to consult the logs that were recollected by Loki.
 - Log Explorer: It's a simple dashboard that allows you to filter by Namespace, Pod, Container and Stream where you can choose between 'stdout' and 'stderr'. It also allows you to search expressions through the 'Search Query' field above.
@@ -31,7 +33,7 @@ At this moment, Sleakops provide two dashboard to consult the logs that were rec
 
 <details>
 <summary>
- **Which is the best way to use Loki?**
+### Which is the best way to use Loki?
 </summary>
 Minimizing the time-range that is being queried is the best way for fast and error-free logs revision as this parameter is the one with the most influence in the weight of the response. We recommend to first check for a big picture of when the problem occured and then check in Loki for logs in a more specific time-range as, generally, logs quantities could be really high. 
 Bear in mind that Loki contains small processing units for reading, writing and as a controller (backend) so big queries might be slow if not having enough read replicas or processing capacity on them. This is modifiable through Sleakops but will also increase costs. 
@@ -39,7 +41,7 @@ Bear in mind that Loki contains small processing units for reading, writing and 
 
 <details>
 <summary>
- **How can I modify the processing capacity of Loki?**
+### How can I modify the processing capacity of Loki?
 </summary>
 SleakOps allows you to modify the processing capacity of the deployed Loki through the configuration of the Addon. One way of increasing its capacity is by modifying the quantity of replicas deployed. 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
@@ -52,14 +54,14 @@ SleakOps allows you to modify the processing capacity of the deployed Loki throu
 
 <details>
 <summary>
- How does Loki capture and store logs?
+### How does Loki capture and store logs?
 </summary>
 Loki collects logs from each Node of the cluster and therefore, from every container that it's running on it. In order to achieve this, SleakOps uses Promtail that is the default log Collector for Loki, for that reason, every Node of the cluster will have a Promtail instance deployed on it that is in charge of scrapping and pushing them to the Loki write instance that after a certain period of time pushes it to the S3 for long-term storage.
 </details>
 
 <details>
 <summary>
-  How is the log collection process?
+### How is the log collection process?
 </summary>
 The log collector, Promtail, collects and streams to Loki all the logs output through 'stdout' or 'stderr' from each running container in the cluster
 </details>

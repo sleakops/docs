@@ -6,37 +6,39 @@ import { FiExternalLink } from "react-icons/fi";
 
 A **Vargroup** in SleakOps is a resource that securely stores sensitive information (like database credentials) within your EKS cluster. It ensures that credentials and environment-specific variables are securely managed and easily accessible by your applications.
 
+## FAQs 
+
 <details>
 <summary>
-**Can I edit a VariableGroup created by SleakOps?**
+### Can I edit a VariableGroup created by SleakOps?
 </summary>
 Yes, you can access and manage the Variable Group for your MySQL instance from the SleakOps console. You can modify values such as usernames, passwords, or any other environment-specific credentials.
 </details>
 
 <details>
 <summary>
-**How are Vargroups used by my applications?**
+### How are Vargroups used by my applications?
 </summary>
 Vargroups are securely injected into your application's environment when it is deployed. Your applications can access these credentials and other variables without exposing sensitive information in the code.
 </details>
 
 <details>
 <summary>
-**How does SleakOps ensure the security of Vargroups?**
+### How does SleakOps ensure the security of Vargroups?
 </summary>
 SleakOps securely stores vargroups as Kubernetes secrets inside your EKS cluster. Access is controlled via Kubernetes Service Accounts, ensuring that only authorized components can access the sensitive information.
 </details>
 
 <details>
 <summary>
-**Can I delete a Variable Group?**
+### Can I delete a Variable Group?
 </summary>
 Yes, they can be deleted or updated as needed. However, be cautious when deleting them, as it may disrupt your application. 
 </details>
 
 <details>
 <summary>
-**What is the difference between a Global and a Service-Scoped Vargroup?**
+### What is the difference between a Global and a Service-Scoped Vargroup?
 </summary>
 - **Global**: Available to all services within the namespace. It is created without selecting a specific service. To create them select “global” 
 - **Service-Scoped Variable Group**: Only applies to the selected service within the project and environment. It overrides global var group values if they have the same key. 
@@ -44,12 +46,14 @@ Yes, they can be deleted or updated as needed. However, be cautious when deletin
 
 <details>
 <summary>
-**What happens if there are duplicate keys in different Vargroups?**
+### What happens if there are duplicate keys in different Vargroups?
 </summary>
 If duplicate keys exist across different var groups:
 - If the key exists in both a global and a service-scoped var group, the service-scoped value takes precedence. 
 - If two global vargroups have the same key, the most recently created one will be used. 
 </details>
+
+## Create a VarGroup
 
 ### 1. Navigate to create Vargroup section
 Into the _Left Pane_, access _Vargroups_ option under _Projects_ and then, at the top right corner, click on the _Create_ button.

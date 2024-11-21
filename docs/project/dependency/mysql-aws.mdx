@@ -6,37 +6,40 @@ import { FiExternalLink } from "react-icons/fi";
 
 SleakOps facilitates the integration of MySQL databases through Amazon RDS (Relational Database Service). Amazon RDS for MySQL is a fully managed service that simplifies database setup, operation, and scaling. By leveraging SleakOps for this integration, you can efficiently manage MySQL databases within your EKS (Elastic Kubernetes Service) environment, ensuring robust, scalable, and reliable data storage solutions for your applications.
 
+
+## FAQs 
+
 <details>
 <summary>
-**How does SleakOps manage MySQL credentials?**
+### How does SleakOps manage MySQL credentials?
 </summary>
 When you create a MySQL dependency in SleakOps, it automatically generates a Vargroup for your database. This Variable Group securely stores the MySQL credentials and other important configuration details, such as the database endpoint and user access information. You’ll be able of manage them from  [Vargroups](/project/vargroup/index.mdx) section.
 </details>
 
 <details>
 <summary>
-**What is Multi-AZ deployment and should I enable it?**
+### What is Multi-AZ deployment and should I enable it?
 </summary>
 Multi-AZ (Availability Zone) deployment ensures high availability and failover support by replicating your database in another availability zone. It’s recommended for production environments to prevent downtime. Keep in mind that it increases costs.
 </details>
 
 <details>
 <summary>
-**Can I change the MySQL version after the database is deployed?**
+### Can I change the MySQL version after the database is deployed?
 </summary>
 No, the database engine version cannot be changed after deployment. You would need to create a new MySQL instance with the desired version and migrate your data. Or change it manually into the AWS Console.
 </details>
 
 <details>
 <summary>
-**What happens if I need more storage for my MySQL database?**
+### What happens if I need more storage for my MySQL database?
 </summary>
 You can adjust the storage size when configuring your database. If you need more storage after deployment, you can scale modifying the settings in AWS as at the moment SleakOps does not allow it. 
 </details>
 
 <details>
 <summary>
-**How do I create a MySQL database dump?** 
+### How do I create a MySQL database dump?
 </summary>
 To create a dump of your MySQL database, use the following command:  
 ```
@@ -50,7 +53,7 @@ Another option is creating it directly from the AWS Console and then import it. 
 
 <details>
 <summary>
-**How do I import an existent dump using docker?**
+### How do I import an existent dump using docker?
 </summary>
 For more details: [MySQL Dump Documentation](https://docs.aws.amazon.com/es_es/AmazonRDS/latest/UserGuide/USER_RestoreFromSnapshot.html)  
 To import a database dump into your MySQL RDS instance:  
@@ -77,7 +80,7 @@ To import a database dump into your MySQL RDS instance:
 
 <details>
 <summary>
-**How do I import an existent dump to my local machine ?**
+### How do I import an existent dump to my local machine ?
 </summary>
 Alternatively, you can use a MySQL client installed on your local machine to import the dump.
 ```
@@ -87,7 +90,7 @@ mysql -h MYSQL_ADDRESS -u MYSQL_USERNAME -p MYSQL_PASSWORD < /tmp/data/dump.sql
 
 <details>
 <summary>
-**What should I do if I encounter connection issues with my MySQL database?**
+### What should I do if I encounter connection issues with my MySQL database?
 </summary>
 - Ensure the database endpoint, username, and password are correct.
 - Verify that your security groups and firewall rules allow access.
@@ -97,7 +100,7 @@ Otherwise, contact us.
 
 <details>
 <summary>
-**What is an RDS Read Replica?**
+### What is an RDS Read Replica?
 </summary>
 An RDS Read Replica is a read-only copy of your primary database instance in Amazon RDS. It helps distribute read-heavy workloads and improves the performance and scalability of your database by offloading read operations from the primary database.  
 RDS Read Replicas are ideal when you need to:  
@@ -112,7 +115,7 @@ Keep in mind that Read replicas have a delay performing updates.
 
 <details>
 <summary>
-**How do I configure a Read Replica in SleakOps?**
+### How do I configure a Read Replica in SleakOps?
 </summary>
 In SleakOps, when creating a read replica for your RDS database, you will need to provide the following information:
 - **Name** of the replica
@@ -122,7 +125,7 @@ In SleakOps, when creating a read replica for your RDS database, you will need t
 
 <details>
 <summary>
-**Can I delete a replica?** 
+### Can I delete a replica? 
 </summary>
 At the moment, the only way is to delete the dependency. 
 </details>
