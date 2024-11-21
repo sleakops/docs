@@ -9,102 +9,96 @@ import { FiExternalLink } from "react-icons/fi";
 
 # Delegate Domains
 
-One critical aspect of working with SleakOps is ensuring proper domain delegation. Domain delegation is essential for seamless integration and functionality, as it determines how your domains and subdomains are managed and how they interact with your AWS environment.
-Depending on your specific needs, there are several scenarios for domain delegation with SleakOps:
+Un aspecto crítico al trabajar con SleakOps es garantizar una delegación adecuada de dominios. La delegación de dominios es esencial para una integración y funcionalidad sin problemas, ya que determina cómo se gestionan tus dominios y subdominios y cómo interactúan con tu entorno en AWS. Dependiendo de tus necesidades específicas, hay varios escenarios de delegación de dominios con SleakOps:
 
-#### 1. Navigate to the providers section
+#### 1. Delegar el dominio principal
 
-This is the simplest option, where the NS record of the main domain is pointed to your AWS Hosted Zone. All subdomains will be handled automatically, ensuring effortless management.
+Esta es la opción más sencilla, donde el registro NS del dominio principal se apunta a tu Hosted Zone de AWS. Todos los subdominios se gestionarán automáticamente, asegurando una administración sin esfuerzo.
 
-#### 2. Delegating Only Subdomains
+#### 2. Delegar solo subdominios
 
-If you prefer to keep your principal domain managed by your current DNS provider—perhaps because it hosts core services like email—this option allows you to delegate only the necessary subdomains. You'll need to set the NS records for each subdomain you wish to delegate.
+Si prefieres que tu dominio principal sea gestionado por tu proveedor DNS actual (por ejemplo, porque aloja servicios principales como el correo electrónico), esta opción te permite delegar solo los subdominios necesarios. Deberás configurar los registros NS para cada subdominio que desees delegar.
 
-#### 2. No Delegation of Main Domain or Subdomains
+#### 3. Sin delegación del dominio principal ni de los subdominios
 
-If you prefer to keep your principal domain managed by your current DNS provider—perhaps because it hosts core services like email—this option allows you to delegate only the necessary subdomains. You'll need to set the NS records for each subdomain you wish to delegate.
+En este caso, mantienes el control total sobre tu dominio y subdominios sin delegarlos a AWS. Para garantizar el funcionamiento correcto de SleakOps, debes:
 
-#### 3. No Delegation of Main Domain or Subdomains
+- Agregar un registro CNAME para validar el certificado SSL.
+- Agregar un registro CNAME adicional para cada servicio web que gestiones.
 
-In this case, you maintain full control over your domain and subdomains, without delegating them to AWS. To ensure SleakOps functions correctly, you must:
+#### 4. Usar un dominio diferente o múltiples dominios para el mismo servicio
 
-- Add a CNAME record to validate the SSL Certificate.. 
-- Add an additional CNAME record for each web service you manage.
+Si deseas usar un dominio diferente al principal o tener múltiples dominios apuntando al mismo servicio, necesitarás crear un ALIAS:
 
-#### 4. Using a Different Domain or Multiple Domains for the Same Service
+- Si el ALIAS pertenece a un dominio gestionado por SleakOps, se gestionará automáticamente.
+- Si no, deberás crear manualmente:
+  - Un registro CNAME para validar el certificado SSL.
+  - Un registro adicional para cada ALIAS.
 
-If you want to use a domain other than the principal one or have multiple domains pointing to the same service, you'll need to create an ALIAS:
+Al comprender y aplicar la estrategia de delegación de dominios adecuada para tu Environment, puedes garantizar que SleakOps se integre sin problemas con tu infraestructura de AWS, proporcionando un rendimiento y seguridad óptimos.
 
-- If the ALIAS belongs to a domain managed by SleakOps, it will be handled automatically.
-- If not, you'll need to manually create:
-  - A CNAME record to validate the SSL Certificate.'
-  - An additional record for each ALIAS.
+## Configura tus dominios
 
-By understanding and applying the appropriate domain delegation strategy for your environment, you can ensure that SleakOps integrates smoothly with your AWS infrastructure, providing optimal performance and security.
-
-## Set up your domains
-
-### 1. Access to the domain or subdomain information 
-SleakOps provides a detailed information regarding domains, subdomains and alias. That looks like: 
+### 1. Accede a la información del dominio o subdominio
+SleakOps proporciona información detallada sobre dominios, subdominios y alias. Se ve así:
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
-    src="/img/domain/domain-drawer-ns.png"
+    src="/es/img/domain/domain-drawer-ns.png"
     alt="domain-drawer-ns"
 />
 </Zoom>
 
-To access it, there are are different ways, based on what you need to do:
+Para acceder a ella, hay diferentes maneras según lo que necesites hacer:
 
-#### If you want to delegate your main domain
-  a. Access the Dashboard and look for the domain widget.
-  b. Click on the desired domain to display the detail. 
+#### Si deseas delegar tu dominio principal
+  a. Accede al Dashboard y busca el widget del dominio.  
+  b. Haz clic en el dominio deseado para mostrar el detalle.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
-    src="/img/domain/domain-info-dashboard.png"
+    src="/es/img/domain/domain-info-dashboard.png"
     alt="domain-info-dashboard"
 />
 </Zoom>
 
-#### To delegate an environment’s subdomain
-  a. Access the Environment’s list and select an Environment. 
-  b. Click on the Cloud icon to display the domain detail.
+#### Para delegar el subdominio de un Environment
+  a. Accede a la lista de Environments y selecciona un Environment.  
+  b. Haz clic en el ícono de la nube para mostrar el detalle del dominio.
 
-
-#### Create an Alias for a web service execution and delegate it 
-  a. Access the Execution’s list and then, the Web services section.
-  b. Select and Execution and click on the Three Dots button.
-  c. Choose the Detail option
-  d. Create the Alias if it doesn’t exist by clicking the Associate new Domain and completing the form.
-  e. Click on the Alias domain to display the detail.
+#### Crear un Alias para la ejecución de un servicio web y delegarlo
+  a. Accede a la lista de ejecuciones y luego a la sección Web Services.  
+  b. Selecciona una ejecución y haz clic en el botón de tres puntos.  
+  c. Elige la opción Detalle.  
+  d. Crea el Alias si no existe haciendo clic en Asociar Nuevo Dominio y completa el formulario.  
+  e. Haz clic en el dominio del Alias para mostrar el detalle.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
-    src="/img/domain/domain-info-execution-list.png"
+    src="/es/img/domain/domain-info-execution-list.png"
     alt="domain-info-execution-list"
 />
 </Zoom>
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
-    src="/img/domain/domain-info-execution-drawer.png"
+    src="/es/img/domain/domain-info-execution-drawer.png"
     alt="domain-info-execution-drawer"
 />
 </Zoom>
 
-### 2. Update Name Servers with Domain Registrar
-- Log in to the account where your domain is registered (e.g., GoDaddy, Namecheap, etc.).
-- Locate the DNS settings for your domain.
-- Replace the existing records with the ones provided.
+### 2. Actualiza los Name Servers con el registrador del dominio
+- Inicia sesión en la cuenta donde está registrado tu dominio (por ejemplo, GoDaddy, Namecheap, etc.).  
+- Localiza las configuraciones DNS de tu dominio.  
+- Reemplaza los registros existentes con los proporcionados.
 
-### 3. Update Name Servers with Domain Registrar
-- It may take some time for the DNS changes to propagate globally (usually within a few hours).
-- SleakOps periodically checks it but, if you want to manually verify it, you can click the yellow button _Check Delegation_  to trigger the process. 
+### 3. Verifica la delegación
+- Los cambios de DNS pueden tardar algún tiempo en propagarse globalmente (usualmente dentro de unas horas).  
+- SleakOps verifica periódicamente, pero si deseas hacerlo manualmente, puedes hacer clic en el botón amarillo _Check Delegation_ para activar el proceso.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
-    src="/img/domain/domain-info-check-delegation-and-certificate.png"
+    src="/es/img/domain/domain-info-check-delegation-and-certificate.png"
     alt="domain-info-check-delegation-and-certificate"
 />
 </Zoom>
