@@ -3,36 +3,36 @@ import 'react-medium-image-zoom/dist/styles.css';
 
 # Deployment
 
-A Deployment in Sleakops signifies the installation of a new version of your application. This involves three primary components, together forming a Helm Release:
-- [Releases](/project/deployment/release.mdx): These are versioned combinations of your [Services](/project/service) including WebServices, Workers, CronJobs, and Hooks.
-- Build Image: Represented by a [Build](/project/build).
-- Configuration Values: These comprise resources like [Volumes](/project/volumes.mdx) and [VariableGroups](/project/vargroup).
+Un **Deployment** en SleakOps significa la instalación de una nueva versión de tu aplicación. Esto involucra tres componentes principales, que conforman un Helm Release:
+- [Releases](/project/deployment/release.mdx): Son combinaciones versionadas de tus [Services](/project/service) incluyendo WebServices, Workers, CronJobs y Hooks.
+- Build Image: Representado por un [Build](/project/build).
+- Configuration Values: Estos comprenden recursos como [Volumes](/project/volumes.mdx) y [VariableGroups](/project/vargroup).
 
 :::info
 
-When there's an update to any of these resources, Sleakops will notify you about a Deployment via the unpublished banner shown [below](#unpublished-banner).
+Cuando haya una actualización de cualquiera de estos recursos, SleakOps te notificará acerca de un Deployment a través del banner de no publicado mostrado [abajo](#unpublished-banner).
 
 :::
 
-## Deploying your ProjectEnv
+## Desplegando tu ProjectEnv
 
-Upon creating a Deployment, we fetch the image corresponding to the Build to be deployed. Before this, we execute the Helm Release in the appropriate cluster namespace. This Helm release includes necessary Kubernetes services, ingresses, workers, and other services.
+Al crear un Deployment, obtenemos la imagen correspondiente al Build que se va a desplegar. Antes de esto, ejecutamos el Helm Release en el namespace del clúster adecuado. Este release de Helm incluye los servicios de Kubernetes necesarios, ingresses, workers y otros servicios.
 
-Various methods exist to generate a Deployment. These are outlined below. Note that we force certain Deployments. For details, refer to [More on Deployment](/project/deployment/more_on_deployment.mdx#forced-deployments).
+Existen varios métodos para generar un Deployment. Estos se describen a continuación. Ten en cuenta que forzamos ciertos Deployments. Para más detalles, consulta [Más sobre Deployment](/project/deployment/more_on_deployment.mdx#forced-deployments).
 
-- [Service](/project/service/index.mdx): Provides a switcher allowing you to decide whether to run a new Deployment.
-- [VariableGroup](/project/vargroup): Operates similarly to Services but doesn't create a new Release. Instead, it only updates the [values](https://helm.sh/docs/chart_best_practices/values/) of the Deployment.
-- [Dependency](/project/dependency): Triggers a Deployment automatically. Delve deeper into this at [More on Deployment](/project/deployment/more_on_deployment.mdx).
+- [Service](/project/service/index.mdx): Proporciona un conmutador que te permite decidir si ejecutar un nuevo Deployment.
+- [VariableGroup](/project/vargroup): Funciona de manera similar a los Services, pero no crea un nuevo Release. En su lugar, solo actualiza los [valores](https://helm.sh/docs/chart_best_practices/values/) del Deployment.
+- [Dependency](/project/dependency): Desencadena un Deployment automáticamente. Profundiza más sobre esto en [Más sobre Deployment](/project/deployment/more_on_deployment.mdx).
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img src="/img/deployment/DEPLOY-deploy-switcher.png" alt="DEPLOY-deploy-switcher" style={{ height: '125px', width: 'auto' }}/>
 </Zoom>
 
-### Manual Deployment
+### Deployment Manual
 
-If you skip deploying your changes immediately, or if your modification doesn't enforces a deployment, you have three methods to execute a Deployment:
+Si no realizas el deployment de tus cambios inmediatamente, o si tu modificación no fuerza un deployment, tienes tres métodos para ejecutar un Deployment:
 
-- [Build section](/project/build): Utilizing the Deploy button, you can determine which Build to deploy.
+- [Build section](/project/build): Usando el botón Deploy, puedes determinar qué Build desplegar.
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img src="/img/deployment/DEPLOY-build-button.png" alt="DEPLOY-build-button" style={{ height: '250px', width: 'auto' }}/>
 </Zoom>
@@ -41,9 +41,9 @@ If you skip deploying your changes immediately, or if your modification doesn't 
 #### Unpublished banner
 
 <a id="unpublished-banner"></a>
-- Unpublished Changes Banner: This banner is shown when there's content pending that was not yet deployed on the cluster. Through this banner, you have the choice to deploy only the VariableGroups or if you want to deploy everything, including the Services in the 'draft' state.
+- **Unpublished Changes Banner**: Este banner se muestra cuando hay contenido pendiente que aún no se ha desplegado en el clúster. A través de este banner, puedes elegir desplegar solo los VariableGroups o si deseas desplegar todo, incluidos los Services en estado 'borrador'.
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img src="/img/deployment/DEPLOY-deploy-changes-banner.png" alt="DEPLOY-deploy-changes-banner" style={{ height: '350px', width: 'auto' }}/>
 </Zoom>
 
-- Via the [CLI ](/cli).
+- A través del [CLI ](/cli).

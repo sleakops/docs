@@ -4,71 +4,71 @@ import { FiExternalLink } from "react-icons/fi";
 
 # Web Service
 
-A "Web Service" in SleakOps is a continuously running service that provides interfaces and endpoints for interactions with users, other services, and applications. Its primary function is to handle requests such as:
+Un "Web Service" en SleakOps es un servicio en ejecución continua que proporciona interfaces y end points para la interacción con usuarios, otros servicios y aplicaciones. Su función principal es gestionar solicitudes como:
 
-- Serving web pages
-- Processing API calls
-- Managing user authentication
+- Servir páginas web
+- Procesar llamadas API
+- Gestionar la autenticación de usuarios
 
-Web Services are designed to be always active, ensuring constant availability and responsiveness to maintain seamless user experience and system functionality.
+Los Servicios Web están diseñados para estar siempre activos, asegurando disponibilidad constante y capacidad de respuesta para mantener una experiencia de usuario y funcionalidad del sistema sin interrupciones.
 
 <details>
 <summary>
-**What is the difference between Public, Private, and Internal service schemas?**
+**¿Cuál es la diferencia entre los esquemas de servicio Público, Privado e Interno?**
 </summary>
-- **Public**: Accessible over the internet and is open to anyone.
-- **Private**: Restricted access, available only when connected to the VPN.
-- **Internal**: Only accessible within the same Kubernetes cluster and is used for internal communication between services. 
+- **Público**: Accesible a través de Internet y abierto a cualquier persona.
+- **Privado**: Acceso restringido, disponible solo cuando se está conectado a la VPN.
+- **Interno**: Solo accesible dentro del mismo clúster de Kubernetes y se utiliza para la comunicación interna entre servicios.
 </details>
 
 <details>
 <summary>
-**How do I set up auto-scaling for my Web Service?**
+**¿Cómo configuro el auto-escalado para mi Web Service?**
 </summary>
-To enable auto-scaling, you can set the **Autoscaling** option to enabled and define the **Memory Target** and **CPU Target**. These targets determine the resource usage thresholds that trigger auto-scaling. You must also specify the minimum and maximum number of replicas to be maintained when auto-scaling is enabled.
+Para habilitar el auto-escalado, puedes activar la opción **Autoscaling** y definir el **Memory Target** y el **CPU Target**. Estos objetivos determinan los umbrales de uso de recursos que desencadenan el auto-escalado. También debes especificar el número mínimo y máximo de réplicas que se deben mantener cuando el auto-escalado está habilitado.
 </details>
 
 <details>
 <summary>
-**What are the default success codes for a Web Service, and can I change them?** 
+**¿Cuáles son los códigos de éxito predeterminados para un Web Service y puedo cambiarlos?**
 </summary>
-The default success code is 200, indicating the service is healthy. You can change this code based on your application’s requirements, as some services might return different success codes based on specific actions.
+El código de éxito predeterminado es el 200, que indica que el servicio está sano. Puedes cambiar este código según los requisitos de tu aplicación, ya que algunos servicios pueden devolver diferentes códigos de éxito dependiendo de las acciones específicas.
 </details>
 
 <details>
 <summary>
-**What happens if my health check fails repeatedly?**
+**¿Qué pasa si mi verificación de salud falla repetidamente?**
 </summary>
-If the health check fails consecutively and reaches the Failure Threshold (default is 60), the service is marked as unhealthy, and Kubernetes might restart or terminate the service instance to attempt a recovery.
+Si la verificación de salud falla de manera consecutiva y alcanza el umbral de fallos (el valor predeterminado es 60), el servicio se marcará como no saludable, y Kubernetes podría reiniciar o terminar la instancia del servicio para intentar una recuperación.
 </details>
 
 <details>
 <summary>
-**How can I configure memory and CPU settings for my Web Service?**
+**¿Cómo puedo configurar la memoria y los ajustes de CPU para mi Web Service?**
 </summary>
-You can configure the *CPU Min* and *CPU Max* values to set the minimum and maximum CPU resources each instance in your cluster can use. Similarly, you set **Memory Min** and **Memory Max** for memory allocation per instance.
+Puedes configurar los valores *CPU Min* y *CPU Max* para establecer los recursos mínimos y máximos de CPU que cada instancia en tu clúster puede usar. De manera similar, puedes establecer **Memory Min** y **Memory Max** para la asignación de memoria por instancia.
 </details>
 
 <details>
 <summary>
-**What are some best practices when configuring a Web Service in SleakOps?**
+**¿Cuáles son algunas buenas prácticas al configurar un Web Service en SleakOps?**
 </summary>
-- Always set a **minimum of 2 replicas** to avoid downtime.
-- Ensure your **health check paths** and **success codes** are correctly configured to reflect the true health of your service.
-- Use **auto-scaling** where possible to optimize resources dynamically based on demand.
-- Review and set **memory** and **CPU usage** targets appropriately to prevent overloading your infrastructure.
+- Siempre establece **un mínimo de 2 réplicas** para evitar el tiempo de inactividad.
+- Asegúrate de que las **rutas de verificación de salud** y los **códigos de éxito** estén configurados correctamente para reflejar la verdadera salud de tu servicio.
+- Usa **auto-escalado** siempre que sea posible para optimizar los recursos dinámicamente según la demanda.
+- Revisa y ajusta adecuadamente los objetivos de **memoria** y **uso de CPU** para evitar sobrecargar tu infraestructura.
 </details>
 
 <details>
 <summary>
-**What should I do if my service shows response times longer than 10 seconds?**
+**¿Qué debo hacer si mi servicio muestra tiempos de respuesta superiores a los 10 segundos?**
 </summary>
-Long response times may indicate issues such as resource constraints, application inefficiencies, or network problems. You should check your service logs, ensure your resources (CPU, memory) are adequately allocated, and review your application code for potential optimizations.
+Los tiempos de respuesta largos pueden indicar problemas como limitaciones de recursos, ineficiencias en la aplicación o problemas de red. Deberías revisar los registros de tu servicio, asegurarte de que los recursos (CPU, memoria) estén asignados adecuadamente y revisar el código de la aplicación para posibles optimizaciones.
 </details>
 
-## **Lets add a Web Service for your Project**
-### 1. Navigate to create Web Service section
-Into the _Left Pane_, access _Executions_. Then select the _Web Services_ tab  and then, at the top right corner, click on the _Create_ button.
+## **Añadir un Web Service para tu Proyecto**
+### 1. Navegar a la sección de crear un Web Service
+En el _Panel izquierdo_, accede a _Ejecutaciones_. Luego selecciona la pestaña _Servicios Web_ y, en la esquina superior derecha, haz clic en el botón _Crear_.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
@@ -77,17 +77,17 @@ Into the _Left Pane_, access _Executions_. Then select the _Web Services_ tab  a
 />
 </Zoom>
 
-### 2. Select a Project and a Name for the web service
-Start with the basic information, complete these attributes and click Next to continue.
+### 2. Selecciona un Proyecto y un Nombre para el Web Service
+Comienza con la información básica, completa estos atributos y haz clic en Siguiente para continuar.
 
-| **Attribute** | **Description** |
+| **Atributo** | **Descripción** |
 | --- | --- |
-| **Name** | Identify your web service. |
-| **Project** | Select between the existent projects.  |
-| **Command** | The command that runs the service. |
-| **Port** | The port number where the service runs. Default: `8000` |
+| **Nombre** | Identifica tu Web Service. |
+| **Proyecto** | Selecciona entre los proyectos existentes. |
+| **Comando** | El comando que ejecuta el servicio. |
+| **Puerto** | El número de puerto donde se ejecuta el servicio. Predeterminado: `8000` |
 
-Once those attributes are completed, click the _Next_ button to move forward. 
+Una vez completados estos atributos, haz clic en el botón _Siguiente_ para continuar.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
@@ -96,13 +96,13 @@ Once those attributes are completed, click the _Next_ button to move forward.
 />
 </Zoom>
 
-### 3. Define the connection
-Select how will be your connection and click on _Next_. 
+### 3. Define la conexión
+Selecciona cómo será tu conexión y haz clic en _Siguiente_.
 
-| **Attribute** | **Description** |
+| **Atributo** | **Descripción** |
 | --- | --- |
-| **Service Schema** | Defines the accessibility of the service: public, private, or internal. |
-| **URL** | The URL assigned to the service based on the environment and project settings. Format: `name.myenv.sleakops.com`.  |
+| **Esquema de Servicio** | Define la accesibilidad del servicio: público, privado o interno. |
+| **URL** | La URL asignada al servicio según el entorno y la configuración del proyecto. Formato: `name.myenv.sleakops.com`. |
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
@@ -111,8 +111,8 @@ Select how will be your connection and click on _Next_.
 />
 </Zoom>
 
-### 4. Specify your service settings
-You’ll see the following for to specify the conditions.
+### 4. Especifica los ajustes de tu servicio
+Verás los siguientes atributos para especificar las condiciones.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
@@ -121,32 +121,32 @@ You’ll see the following for to specify the conditions.
 />
 </Zoom>
 
-| **Attribute** | **Description** |
+| **Atributo** | **Descripción** |
 | --- | --- |
-| **Path** | The path where Kubernetes checks if the web service is operational. Default: `/` |
-| **Success Code** | The HTTP success code indicating the service’s health. Default: `200`.  |
-| **Initial Delay Seconds** | Number of seconds after startup before health checks begin.  Default: `10`.  |
-| **Timeout Seconds** | Number of seconds after startup before health checks begin.  Default: `1`.  |
-| **Period Seconds** | Interval (in seconds) between each health check probe. Default: `5`.  |
-| **Success Threshold** | Minimum number of consecutive successes required for the probe to be considered successful after it has failed. Default: `1`.  |
-| **Failure Threshold** | Number of consecutive failures before the probe is considered to have failed. Default: `60`.  |
+| **Ruta** | La ruta donde Kubernetes verifica si el Web Service está operativo. Predeterminado: `/` |
+| **Código de Éxito** | El código HTTP de éxito que indica la salud del servicio. Predeterminado: `200`. |
+| **Retraso Inicial en Segundos** | Número de segundos después del inicio antes de que comiencen las verificaciones de salud. Predeterminado: `10`. |
+| **Segundos de Tiempo de Espera** | Número de segundos después del inicio antes de que comiencen las verificaciones de salud. Predeterminado: `1`. |
+| **Segundos entre cada Verificación** | Intervalo (en segundos) entre cada prueba de verificación de salud. Predeterminado: `5`. |
+| **Umbral de Éxitos** | Número mínimo de éxitos consecutivos requeridos para que la prueba se considere exitosa después de fallar. Predeterminado: `1`. |
+| **Umbral de Fallos** | Número de fallos consecutivos antes de que la prueba se considere fallida. Predeterminado: `60`. |
 
-Once those attributes are completed, click the Next button to move to the next step. 
+Una vez completados estos atributos, haz clic en el botón Siguiente para continuar con el siguiente paso.
 
-### 5. Finish the set up
-This step outlines the key attributes for configuring the resources of a Web Service in SleakOps, allowing for flexible management of CPU, memory, and scaling behaviors.
+### 5. Finalizar la configuración
+Este paso describe los atributos clave para configurar los recursos de un Servicio Web en SleakOps, permitiendo una gestión flexible de CPU, memoria y comportamientos de escalado.
 
-| **Attribute** | **Description** |
+| **Atributo** | **Descripción** |
 | --- | --- |
-| **CPU Min** | The minimum amount of CPU resources allocated for each instance in the cluster. This ensures that each instance always has this amount of CPU available. |
-| **CPU Max** | The maximum CPU resources that each instance in the cluster can use. This cap helps prevent any single instance from consuming too much CPU.  |
-| **Memory Min** | The minimum amount of memory allocated for each instance in the cluster. This guarantees that the instance has enough memory to operate efficiently.  |
-| **Memory Max** | The maximum amount of memory each instance in the cluster can utilize. It limits the memory usage to prevent any single instance from overconsuming resources.  |
-| **Autoscaling** | Toggle to enable or disable auto-scaling. When enabled, it allows the service to adjust the number of replicas based on demand and resource usage.  |
-| **CPU Target** | The CPU usage percentage target that initiates auto-scaling. If usage exceeds this target, additional replicas may be deployed to balance the load.  |
-| **Memory Target** | The memory usage percentage target that triggers auto-scaling adjustments. When instances exceed this target, the system scales up to accommodate demand. |
-| **Replicas Min** | The minimum number of replicas to maintain when auto-scaling is active. A minimum of 2 replicas ensures high availability and prevents downtime.|
-| **Replicas Max** | The maximum number of replicas that can be deployed when auto-scaling is enabled. It sets an upper limit on the number of instances to avoid over-provisioning.  |
+| **CPU Min** | La cantidad mínima de recursos de CPU asignados para cada instancia en el clúster. Esto garantiza que cada instancia siempre tenga esta cantidad de CPU disponible. |
+| **CPU Max** | La cantidad máxima de recursos de CPU que cada instancia en el clúster puede utilizar. Este límite ayuda a prevenir que una instancia consuma demasiada CPU. |
+| **Memory Min** | La cantidad mínima de memoria asignada para cada instancia en el clúster. Esto garantiza que la instancia tenga suficiente memoria para operar eficientemente. |
+| **Memory Max** | La cantidad máxima de memoria que cada instancia en el clúster puede utilizar. Limita el uso de memoria para evitar que una sola instancia consuma recursos en exceso. |
+| **Autoscaling** | Activar o desactivar el auto-escalado. Cuando está habilitado, permite que el servicio ajuste el número de réplicas según la demanda y el uso de recursos. |
+| **CPU Target** | El porcentaje de uso de CPU que desencadena el auto-escalado. Si el uso supera este objetivo, se pueden desplegar réplicas adicionales para equilibrar la carga. |
+| **Memory Target** | El porcentaje de uso de memoria que activa el ajuste de auto-escalado. Cuando las instancias superan este objetivo, el sistema escala hacia arriba para acomodar la demanda. |
+| **Replicas Min** | El número mínimo de réplicas que deben mantenerse cuando el auto-escalado está activo. Un mínimo de 2 réplicas garantiza alta disponibilidad y previene tiempos de inactividad. |
+| **Replicas Max** | El número máximo de réplicas que se pueden desplegar cuando el auto-escalado está habilitado. Establece un límite superior en el número de instancias para evitar la sobreasignación de recursos. |
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
@@ -155,4 +155,4 @@ This step outlines the key attributes for configuring the resources of a Web Ser
 />
 </Zoom>
 
-Submit to create and Deploy your web service.
+Envía para crear y desplegar tu web service.

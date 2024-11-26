@@ -4,42 +4,42 @@ import { FiExternalLink } from "react-icons/fi";
 
 # AWS OpenSearch
 
-SleakOps integrates with Amazon OpenSearch (formerly known as Amazon Elasticsearch Service), a powerful search and analytics engine designed to help you search, analyze, and visualize data in real time. By leveraging OpenSearch in SleakOps, you can quickly deploy, manage, and scale your search infrastructure, gaining valuable insights from your data.
+SleakOps se integra con Amazon OpenSearch (anteriormente conocido como Amazon Elasticsearch Service), un potente motor de búsqueda y análisis diseñado para ayudarte a buscar, analizar y visualizar datos en tiempo real. Al utilizar OpenSearch en SleakOps, puedes implementar, gestionar y escalar rápidamente tu infraestructura de búsqueda, obteniendo valiosos conocimientos de tus datos.
 
 :::info
-For more information on OpenSearch and its capabilities, you can refer to the [Amazon OpenSearch Service Documentation <FiExternalLink/>](https://docs.aws.amazon.com/opensearch-service/).
+Para más información sobre OpenSearch y sus capacidades, puedes consultar la [Documentación de Amazon OpenSearch Service <FiExternalLink/>](https://docs.aws.amazon.com/opensearch-service/).
 :::
 
 <details>
 <summary>
-**What are the use cases for OpenSearch?**
+**¿Cuáles son los casos de uso de OpenSearch?**
 </summary>
-OpenSearch is commonly used for full-text search, real-time analytics, monitoring and observability, and log analysis. It is also ideal for powering search functionalities on websites and applications.
+OpenSearch se utiliza comúnmente para búsquedas de texto completo, análisis en tiempo real, monitoreo y observabilidad, y análisis de registros. También es ideal para potenciar funcionalidades de búsqueda en sitios web y aplicaciones.
 </details>
 
 <details>
 <summary>
-**What does "Dedicated Master Enabled" mean?**
+**¿Qué significa "Dedicated Master Enabled"?**
 </summary>
-When enabled, SleakOps sets up dedicated master nodes that help with managing the OpenSearch domain. They provide enhanced stability by separating management tasks from data nodes. This is highly recommended for production workloads.
+Cuando está habilitado, SleakOps configura nodos maestros dedicados que ayudan a gestionar el dominio de OpenSearch. Proporcionan mayor estabilidad al separar las tareas de gestión de los nodos de datos. Esto es altamente recomendado para cargas de trabajo en producción.
 </details>
 
 <details>
 <summary>
-**What is the recommended configuration for master nodes in production?**
+**¿Cuál es la configuración recomendada para nodos maestros en producción?**
 </summary>
-For production environments, SleakOps recommends using 3 dedicated master nodes to improve the stability and performance of your OpenSearch cluster.
+Para entornos de producción, SleakOps recomienda usar 3 nodos maestros dedicados para mejorar la estabilidad y el rendimiento de tu clúster de OpenSearch.
 </details>
 
-## Set up your OpenSearch
-### 1. Add AWS OpenSearch as a Dependency
-To integrate OpenSearch with SleakOps:
-1. In the SleakOps console, go to the "Dependencies" section
-2. Choose "SQS" from the list of available dependency types. 
-For more detail see [Dependencies: Integrating Databases, Caching, and Messaging Services](/project/dependency/index.mdx).
+## Configura tu OpenSearch
+### 1. Agrega AWS OpenSearch como una Dependencia
+Para integrar OpenSearch con SleakOps:
+1. En la consola de SleakOps, ve a la sección "Dependencias".
+2. Elige "SQS" de la lista de tipos de dependencias disponibles.
+Para más detalles, consulta [Dependencias: Integrando Bases de Datos, Caché y Servicios de Mensajería](/project/dependency/index.mdx).
 
-### 2. Set up your OpenSearch.
-When adding OpenSearch as a dependency in SleakOps, you need to configure several key attributes:
+### 2. Configura tu OpenSearch.
+Al agregar OpenSearch como una dependencia en SleakOps, necesitas configurar varios atributos clave:
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
@@ -48,23 +48,23 @@ When adding OpenSearch as a dependency in SleakOps, you need to configure severa
 />
 </Zoom>
 
-| **Attribute** | **Description** |
+| **Atributo** | **Descripción** |
 | --- | --- | 
-| **FIFO Queue** | Specifies the type of SQS queue. Where `Standard Queue` (for most use cases) or `FIFO Queue` (if message ordering is required)` |
-| **FIFO Deduplication** | Only for FIFO Queues, in order to avoid duplicates. |
-| **Message Retention Period** | Specifies the amount of time a message will be retained in the queue if it hasn't been consumed. | 1 minute to 14 days (Default: 4 days) |
-| **Maximum Message Size** | The maximum size of a message that can be sent to the SQS queue. | Up to 256 KB (Default: 256 KB) |
-| **Delivery Delay in Seconds** | The delay between the message being sent to SQS and it being visible in the queue. No delay by default. | 0 to 15 minutes (Default: 0 seconds) |
-| **Receive Message Wait Time** | Determines how long a `ReceiveMessage` call waits if no messages are available in the queue. | 0 to 20 seconds (Default: 0 seconds) |
-| **Visibility Timeout** | The duration that a message remains invisible after a receiving component reads it from the queue. | From 0 to 12 hours (Default: 30 seconds) |
-| **Dead-Letter Queue (DLQ)** | Add a queue where messages that fail to be processed multiple times are sent for additional analysis. | Configure DLQ with max receive count |
+| **Cola FIFO** | Especifica el tipo de cola SQS: `Standard Queue` (para la mayoría de los casos) o `FIFO Queue` (si se requiere orden de mensajes). |
+| **Desduplicación FIFO** | Solo para Colas FIFO, para evitar duplicados. |
+| **Periodo de Retención de Mensajes** | Especifica la cantidad de tiempo que un mensaje será retenido en la cola si no ha sido consumido. | De 1 minuto a 14 días (Por defecto: 4 días). |
+| **Tamaño Máximo de Mensaje** | El tamaño máximo de un mensaje que puede ser enviado a la cola SQS. | Hasta 256 KB (Por defecto: 256 KB). |
+| **Retraso en la Entrega en Segundos** | El retraso entre el envío de un mensaje a SQS y su visibilidad en la cola. Sin retraso por defecto. | De 0 a 15 minutos (Por defecto: 0 segundos). |
+| **Tiempo de Espera para Recibir Mensajes** | Determina cuánto tiempo esperará una llamada `ReceiveMessage` si no hay mensajes disponibles en la cola. | De 0 a 20 segundos (Por defecto: 0 segundos). |
+| **Timeout de Visibilidad** | La duración durante la cual un mensaje permanece invisible después de que un componente lo lea desde la cola. | De 0 a 12 horas (Por defecto: 30 segundos). |
+| **Cola de Mensajes Fallidos (DLQ)** | Agrega una cola donde los mensajes que fallan en ser procesados múltiples veces son enviados para análisis adicional. | Configura DLQ con un conteo máximo de intentos. |
 
-### 3. Customize your variable names for your SQS.
+### 3. Personaliza los nombres de tus variables para tu SQS.
 
-As explained, when a dependency is created, SleakOps generates a vargroup to hold all the needed attributes. 
-In this step you can change the name of the attributes in case it is needed. 
-SleakOps completes the values automatically. 
-After this step, your dependency is created.
+Como se explicó, cuando se crea una dependencia, SleakOps genera un grupo de variables (vargroup) para contener todos los atributos necesarios.  
+En este paso, puedes cambiar el nombre de los atributos si es necesario.  
+SleakOps completa automáticamente los valores.  
+Después de este paso, tu dependencia está creada.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img

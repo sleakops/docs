@@ -1,48 +1,48 @@
 import { FiExternalLink, FiCornerRightDown } from "react-icons/fi";
 
-# Service
+# Servicio
 
-In Sleakops a service is an entity of an application, as in a microservices architecture.
+En SleakOps, un servicio es una entidad de una aplicación, como en una arquitectura de microservicios.
 
-## Create a Service
+## Crear un Servicio
 
-To create a service you provide the following basic information:
+Para crear un servicio, debes proporcionar la siguiente información básica:
 
-- Project and Environment for the service to be deployed.
-- A 'name' to identify the service.
-- A 'command' (or CMD of Dockerfile) that will be applied to the service execution. If no command is provided, the default Docker command will be used. 
-- Service TYPE which are described [below <FiCornerRightDown/>](#service-types).
-- Resource set which is also described [below <FiCornerRightDown/>](#resource-set)
+- Proyecto y Entorno en el que se desplegará el servicio.
+- Un 'nombre' para identificar el servicio.
+- Un 'comando' (o CMD del Dockerfile) que se aplicará para la ejecución del servicio. Si no se proporciona un comando, se usará el comando predeterminado de Docker.
+- El TIPO de Servicio, que se describe [más abajo <FiCornerRightDown/>](#tipos-de-servicio).
+- El conjunto de recursos, que también se describe [más abajo <FiCornerRightDown/>](#conjunto-de-recursos).
 
-### Service Types
+### Tipos de Servicio
 
-Depending on the Service type chosen you will need to fill in different fields, besides that, the Command will always be applied so there is where comes the importance of that field which is normally the line you use to make the service work. The actual possible service types are:
-- Worker: Requires nothing else, just be sure that the defined CMD activates the worker.
-- Cron Job: You need to define the 'Cron' or the frequency of a Job execution, which is basically, set how often the Job occurs.
-- Hook: An 'event' is required to be set, when this event happens the Hook triggers the CMD.
-- Web Service: A Web Service requires an 'url' that will work as its endpoint. SleakOps generate this url based on the name of the service and external-dns will use the hierarchy of where it has been created. As an example, the URL will be: `{service_name}.{environment_name}.{provider_domain_name}`.
+Dependiendo del tipo de servicio elegido, necesitarás completar diferentes campos. Además, el Comando siempre se aplicará, por lo que ahí es donde radica la importancia de ese campo, que normalmente es la línea que usas para hacer funcionar el servicio. Los tipos de servicio posibles son:
+- **Worker**: No requiere nada más, solo asegúrate de que el CMD definido active el trabajador.
+- **Cron Job**: Debes definir el 'Cron' o la frecuencia de ejecución de un Job, que básicamente establece con qué frecuencia ocurre el Job.
+- **Hook**: Se requiere establecer un 'evento', cuando este evento ocurra, el Hook ejecutará el CMD.
+- **Web Service**: Un Web Service requiere una 'url' que funcione como su punto de acceso. SleakOps genera esta URL en base al nombre del servicio y external-dns usará la jerarquía de donde se haya creado. Como ejemplo, la URL será: `{nombre_servicio}.{nombre_entorno}.{dominio_proveedor}`.
 
-## Create a Job
+## Crear un Job
 
-A Job uses the same fields that the Service, the difference radicates in that a Job can be created and executed at any moment, by the other side, while you create a Service as a structural need of your Deployment a Job is something that you create to be executed at the moment.
+Un Job utiliza los mismos campos que el Servicio, la diferencia radica en que un Job puede ser creado y ejecutado en cualquier momento. Por otro lado, mientras que un Servicio se crea como una necesidad estructural de tu Despliegue, un Job es algo que creas para ejecutarlo en el momento.
 
-### Resource Set
+### Conjunto de Recursos
 
-You'll also need to set the resource set needed for this service to run.
+También necesitarás configurar el conjunto de recursos necesario para que este servicio funcione.
 
-| Name             | Description                                                                                                                                                                 |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| CPU Min          | Min CPU requested in milicores. More information [here <FiExternalLink/>](https://kubernetes.io/concepts/configuration/manage-resources-containers/#meaning-of-cpu)    |
-| CPU Max          | Max CPU requested in milicores. More information [here <FiExternalLink/>](https://kubernetes.io/concepts/configuration/manage-resources-containers/#meaning-of-cpu)    |
-| Memory Min       | Min memory requested in MegaBytes. More information [here <FiExternalLink/>](https://kubernetes.io/concepts/configuration/manage-resources-containers/#meaning-of-cpu) |
-| Memory Max       | Max memory requested in MegaBytes. More information [here <FiExternalLink/>](https://kubernetes.io/concepts/configuration/manage-resources-containers/#meaning-of-cpu) |
-| Autoscaling      | Enables Horizontal Pod Austocaling as described [here <FiExternalLink/>](https://kubernetes.io/tasks/run-application/horizontal-pod-autoscale/).                       |
-| CPU Target       | Only when autoscaling is enabled. Average CPU utilization that triggers the scaling.                                                                                        |
-| Memory Target    | Only when autoscaling is enabled. Average memory utilization that triggers the scaling.                                                                                     |
-| Replica Min      | Only when autoscaling is enabled. Min amount of replicas to be achieved.                                                                                                    |
-| Replica Max      | Only when autoscaling is enabled. Max amount of replicas to be achieved.                                                                                                    |
-| Replicas Desired | Only when autoscaling is enabled. The number of replicas that the service initially has.                                                                                    |
+| Nombre           | Descripción                                                                                                                                                                    |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **CPU Mínima**   | CPU mínima solicitada en milicores. Más información [aquí <FiExternalLink/>](https://kubernetes.io/concepts/configuration/manage-resources-containers/#meaning-of-cpu)    |
+| **CPU Máxima**   | CPU máxima solicitada en milicores. Más información [aquí <FiExternalLink/>](https://kubernetes.io/concepts/configuration/manage-resources-containers/#meaning-of-cpu)    |
+| **Memoria Mínima** | Memoria mínima solicitada en MegaBytes. Más información [aquí <FiExternalLink/>](https://kubernetes.io/concepts/configuration/manage-resources-containers/#meaning-of-cpu) |
+| **Memoria Máxima** | Memoria máxima solicitada en MegaBytes. Más información [aquí <FiExternalLink/>](https://kubernetes.io/concepts/configuration/manage-resources-containers/#meaning-of-cpu) |
+| **Escalado Automático** | Habilita el Escalado Horizontal de Pods como se describe [aquí <FiExternalLink/>](https://kubernetes.io/tasks/run-application/horizontal-pod-autoscale/).                      |
+| **Objetivo CPU**  | Solo cuando el escalado automático está habilitado. Utilización promedio de CPU que activa el escalado.                                                                        |
+| **Objetivo Memoria** | Solo cuando el escalado automático está habilitado. Utilización promedio de memoria que activa el escalado.                                                                  |
+| **Réplicas Mínimas** | Solo cuando el escalado automático está habilitado. Cantidad mínima de réplicas a lograr.                                                                                     |
+| **Réplicas Máximas** | Solo cuando el escalado automático está habilitado. Cantidad máxima de réplicas a lograr.                                                                                     |
+| **Réplicas Deseadas** | Solo cuando el escalado automático está habilitado. La cantidad de réplicas que el servicio tendrá inicialmente.                                                             |
 
-### Cloud resources
+### Recursos en la Nube
 
-Sleakops doesn't generate any resources in your provider when you create a service but you should take into account that the resource set you've defined come from the nodes of the Cluster, so these resources like RAM and Cores are consumed from the EC2 instance.
+SleakOps no genera recursos en tu proveedor cuando creas un servicio, pero debes tener en cuenta que el conjunto de recursos que has definido proviene de los nodos del Clúster, por lo que estos recursos, como RAM y núcleos, se consumen de la instancia EC2.

@@ -4,51 +4,51 @@ import { FiExternalLink } from "react-icons/fi";
 
 # AWS SQS
 
-SleakOps integrates Amazon Simple Queue Service (SQS) into your application's architecture. Amazon SQS is a fully managed message queuing service that allows you to decouple application components, ensuring smooth and efficient message processing. By leveraging SQS, you can enhance the scalability and reliability of your applications, handling large volumes of messages asynchronously.  
-This section provides an overview of how to configure SQS within SleakOps and details the attributes needed for successful integration.
+SleakOps integra Amazon Simple Queue Service (SQS) en la arquitectura de tu aplicación. Amazon SQS es un servicio de colas de mensajes totalmente gestionado que te permite desacoplar los componentes de tu aplicación, asegurando un procesamiento eficiente y fluido de los mensajes. Al aprovechar SQS, puedes mejorar la escalabilidad y confiabilidad de tus aplicaciones, manejando grandes volúmenes de mensajes de manera asincrónica.  
+Esta sección proporciona una visión general de cómo configurar SQS dentro de SleakOps y los atributos necesarios para una integración exitosa.
 
 :::info
-For further details on SQS and its benefits, you can refer to the [Amazon SQS Developer Guide <FiExternalLink/>](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/welcome.html).
+Para más detalles sobre SQS y sus beneficios, puedes consultar la [Guía para desarrolladores de Amazon SQS <FiExternalLink/>](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/welcome.html).
 :::
 
 <details>
 <summary>
-**What is the difference between a Standard Queue and a FIFO Queue?**
+**¿Cuál es la diferencia entre una Cola Estándar y una Cola FIFO?**
 </summary>
-1. A **Standard Queue** supports high throughput with at-least-once message delivery. Message ordering is not guaranteed but it's ideal for scenarios where message order isn't critical.
-2. A **FIFO Queue** ensures message ordering and exactly-once delivery. It's suitable for applications where message order is crucial.
+1. Una **Cola Estándar** soporta un alto rendimiento con entrega de mensajes al menos una vez. El orden de los mensajes no está garantizado, pero es ideal para escenarios en los que el orden de los mensajes no es crítico.
+2. Una **Cola FIFO** asegura el orden de los mensajes y entrega exacta una vez. Es adecuada para aplicaciones donde el orden de los mensajes es crucial.
 </details>
 
 <details>
 <summary>
-**What is Multi-AZ deployment and should I enable it?**
+**¿Qué es la implementación Multi-AZ y debo habilitarla?**
 </summary>
-Multi-AZ (Availability Zone) deployment ensures high availability and failover support by replicating your database in another availability zone. It’s recommended for production environments to prevent downtime. Keep in mind that it increases costs.
+La implementación Multi-AZ (Zona de Disponibilidad) asegura alta disponibilidad y soporte de conmutación por error replicando tu base de datos en otra zona de disponibilidad. Se recomienda para entornos de producción para evitar el tiempo de inactividad. Ten en cuenta que aumenta los costos.
 </details>
 
 <details>
 <summary>
-**What is a Dead-Letter Queue (DLQ), and when should I use it?**
+**¿Qué es una Cola de Muertos (DLQ) y cuándo debo usarla?**
 </summary>
-A **DLQ** is a secondary queue where messages that can't be processed successfully after a certain number of attempts are sent. You should configure a DLQ to help with error handling and to prevent message loss. See [AWS SQS DLQ <FiExternalLink/>](https://aws.amazon.com/es/what-is/dead-letter-queue/).
+Una **DLQ** es una cola secundaria donde los mensajes que no se pueden procesar exitosamente después de varios intentos se envían. Debes configurar una DLQ para ayudar con el manejo de errores y prevenir la pérdida de mensajes. Consulta [AWS SQS DLQ <FiExternalLink/>](https://aws.amazon.com/es/what-is/dead-letter-queue/).
 </details>
 
 <details>
 <summary>
-**What is Deduplication in a FIFO Queue?**
+**¿Qué es la Deduplificación en una Cola FIFO?**
 </summary>
-In an SQS FIFO Queue, deduplication ensures that duplicate messages are automatically removed, preserving strict message ordering.
+En una Cola FIFO de SQS, la deduplificación asegura que los mensajes duplicados se eliminen automáticamente, manteniendo el estricto orden de los mensajes.
 </details>
 
-## Set up your SQS
-### 1. Add SQS as a Dependency
-To integrate SQS with SleakOps:
-1. In the SleakOps console, go to the "Dependencies" section
-2. Choose "SQS" from the list of available dependency types. 
-For more detail see [Dependencies: Integrating Databases, Caching, and Messaging Services](/project/dependency/index.mdx).
+## Configura tu SQS
+### 1. Agregar SQS como Dependencia
+Para integrar SQS con SleakOps:
+1. En la consola de SleakOps, ve a la sección "Dependencias".
+2. Elige "SQS" de la lista de tipos de dependencias disponibles. 
+Para más detalles consulta [Dependencias: Integrando Bases de Datos, Caching y Servicios de Mensajería](/project/dependency/index.mdx).
 
-### 2. Set up your SQS database.
-You will access the following form:
+### 2. Configura tu base de datos SQS.
+Accederás al siguiente formulario:
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
@@ -57,31 +57,31 @@ You will access the following form:
 />
 </Zoom>
 
-Here the parameters that SleakOps allows you to customize during the creation:
+Aquí están los parámetros que SleakOps te permite personalizar durante la creación:
 
-| **Attribute** | **Description** |
+| **Atributo** | **Descripción** |
 | --- | --- | 
-| **Domain Name** | The unique identifier for your OpenSearch cluster. |
-| **Engine Version** | Specifies the version of OpenSearch that will be used. |
-| **Nodes Per Availability Zone** | The number of OpenSearch data nodes you want to run in each availability zone. |
-| **EBS Storage Size Per Node** | Defines the storage size in GiB for each node. The minimum is 10 GiB, and the maximum is 2048 GiB. Range: 10 to 2048 GiB |
-| **Instance Type** | Selects the instance type for the data nodes of OpenSearch. Example: r6g.large.search |
-| **Number of Availability Zones** | The number of OpenSearch data nodes you want to run in each availability zone.|
-| **Dedicated Master Enabled** | Enables dedicated master nodes, improving domain stability. Recommended for production environments. |
+| **Nombre de Dominio** | El identificador único para tu clúster de OpenSearch. |
+| **Versión del Motor** | Especifica la versión de OpenSearch que se utilizará. |
+| **Nodos por Zona de Disponibilidad** | El número de nodos de datos de OpenSearch que deseas ejecutar en cada zona de disponibilidad. |
+| **Tamaño de Almacenamiento EBS por Nodo** | Define el tamaño de almacenamiento en GiB para cada nodo. El mínimo es 10 GiB y el máximo es 2048 GiB. Rango: 10 a 2048 GiB. |
+| **Tipo de Instancia** | Selecciona el tipo de instancia para los nodos de datos de OpenSearch. Ejemplo: r6g.large.search |
+| **Número de Zonas de Disponibilidad** | El número de nodos de datos de OpenSearch que deseas ejecutar en cada zona de disponibilidad. |
+| **Master Dedicado Habilitado** | Habilita nodos maestros dedicados, mejorando la estabilidad del dominio. Se recomienda para entornos de producción. |
 
-By activating the **Dedicated Master Enabled** feature, you need to complete also: 
+Al activar la opción **Master Dedicado Habilitado**, también debes completar lo siguiente:
 
-| **Attribute** | **Description** |
+| **Atributo** | **Descripción** |
 | --- | --- | 
-| **Dedicated Master Type** | Specifies the instance type for the master nodes, used to manage the cluster. Example: r6g.large.search |
-| **Dedicated Master Count** | Number of dedicated master nodes. It is recommended to have 3 for production. |
+| **Tipo de Master Dedicado** | Especifica el tipo de instancia para los nodos maestros, usados para gestionar el clúster. Ejemplo: r6g.large.search |
+| **Cantidad de Masters Dedicados** | Número de nodos maestros dedicados. Se recomienda tener 3 para producción. |
 
-### 3. Customize your variable names for your SQS.
+### 3. Personaliza los nombres de tus variables para SQS.
 
-As explained, when a dependency is created, SleakOps generates a vargroup to hold all the needed attributes. 
-In this step you can change the name of the attributes in case it is needed. 
-SleakOps completes the values automatically. 
-After this step, your dependency is created.
+Como se explicó, cuando se crea una dependencia, SleakOps genera un grupo de variables para almacenar todos los atributos necesarios. 
+En este paso, puedes cambiar el nombre de los atributos si es necesario. 
+SleakOps completa los valores automáticamente. 
+Después de este paso, tu dependencia estará creada.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img

@@ -4,75 +4,75 @@ import { FiExternalLink } from "react-icons/fi";
 
 # AWS S3 Bucket
 
-SleakOps integrates seamlessly with Amazon Simple Storage Service (S3), a highly durable and secure object storage service. Amazon S3 provides a scalable solution for storing and retrieving any amount of data, making it an ideal choice for backup storage, asset management, and data archiving within your applications. By leveraging SleakOps for S3 integration, you can easily manage your S3 buckets and access the stored data directly from your EKS (Elastic Kubernetes Service) environment.
+SleakOps se integra perfectamente con Amazon Simple Storage Service (S3), un servicio de almacenamiento de objetos altamente duradero y seguro. Amazon S3 proporciona una solución escalable para almacenar y recuperar cualquier cantidad de datos, lo que lo convierte en una opción ideal para almacenamiento de copias de seguridad, gestión de activos y archivo de datos dentro de tus aplicaciones. Al aprovechar SleakOps para la integración con S3, puedes gestionar fácilmente tus cubos S3 y acceder a los datos almacenados directamente desde tu entorno EKS (Elastic Kubernetes Service).
 
 <details>
 <summary>
-**When should I use Amazon S3?**
+**¿Cuándo debería usar Amazon S3?**
 </summary>
-You should use Amazon S3 when you need:
-- Scalable storage for files, media, backups, or static assets.
-- Highly durable and available storage for critical data.
-- Data archiving solutions or disaster recovery.
-- A cost-effective solution for storing large amounts of unstructured data.
+Deberías usar Amazon S3 cuando necesites:
+- Almacenamiento escalable para archivos, medios, copias de seguridad o activos estáticos.
+- Almacenamiento altamente duradero y disponible para datos críticos.
+- Soluciones de archivo de datos o recuperación ante desastres.
+- Una solución rentable para almacenar grandes cantidades de datos no estructurados.
 </details>
 
 <details>
 <summary>
-**How do I create a S3 dump?**
+**¿Cómo creo un volcado de S3?**
 </summary>
-To create a backup of your S3 bucket data, follow these steps:
-  1. **Ensure Admin Access**: Verify that you have admin access to the AWS account where the S3 bucket is located.
-  2. **Install AWS CLI**: Ensure AWS CLI is installed on your local machine. For installation instructions, refer to the [official AWS CLI documentation <FiExternalLink/>](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
-  3. **Configure AWS CLI**: Ensure that your Access and Secret keys are configured in the default profile. If they are under a different profile, use the `--profile PROFILE_NAME` option with the commands.
-  4. **Run Backup Commands**: ```sh
+Para crear una copia de seguridad de los datos de tu cubo S3, sigue estos pasos:
+  1. **Asegúrate de tener acceso de administrador**: Verifica que tienes acceso de administrador a la cuenta de AWS donde se encuentra el cubo S3.
+  2. **Instala AWS CLI**: Asegúrate de que AWS CLI esté instalado en tu máquina local. Para instrucciones de instalación, consulta la [documentación oficial de AWS CLI <FiExternalLink/>](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
+  3. **Configura AWS CLI**: Asegúrate de que tus claves de acceso y secretas estén configuradas en el perfil predeterminado. Si están bajo un perfil diferente, utiliza la opción `--profile PROFILE_NAME` con los comandos.
+  4. **Ejecuta los comandos de copia de seguridad**: ```sh
   aws sts assume-role --role-arn arn:aws:iam::ACCOUNT_ID:role/SleakopsAdminRole
   aws s3 sync s3://BUCKET_NAME /path/to/local/directory```
-  Replace ACCOUNT_ID, BUCKET_NAME, and /path/to/local/directory with your specific details.
+  Sustituye ACCOUNT_ID, BUCKET_NAME y /path/to/local/directory con tus detalles específicos.
 </details>
 
 <details>
 <summary>
-**Does SleakOps create Variable Groups for S3 dependencies?**
+**¿SleakOps crea Grupos de Variables para las dependencias de S3?**
 </summary>
-Yes, when you configure an S3 bucket in SleakOps, it will automatically create a Variable Group. This securely stores the access keys and other sensitive information needed to manage and interact with your S3 bucket.
+Sí, cuando configuras un cubo S3 en SleakOps, automáticamente creará un Grupo de Variables. Esto almacena de forma segura las claves de acceso y otra información sensible necesaria para gestionar e interactuar con tu cubo S3.
 </details>
 
 <details>
 <summary>
-**What is an S3 Access Control List (ACL)?**
+**¿Qué es una Lista de Control de Acceso (ACL) de S3?**
 </summary>
-An S3 Access Control List (ACL) defines the permissions for who can access your S3 bucket and its contents. It controls the level of access granted to users, groups, or predefined AWS entities.  
-You can choose an ACL that defines who can access the bucket and what level of permission they have. The available options are:  
-- `private`: Only the bucket owner has full access. (Default)
-- `public-read`: Anyone can read the objects in the bucket.
-- `public-read-write`: Anyone can read and write to the bucket.
-- `aws-exec-read`: Grants read access to AWS services like CloudFront.
-- `authenticated-read`: Grants read access to authenticated AWS users.
-- `log-delivery-write`: Grants write access to the bucket for logging purposes.
-For further details, you can refer to [AWS S3 ACL documentation <FiExternalLink/>](https://docs.aws.amazon.com/AmazonS3/latest/userguide/acl-overview.html).
+Una Lista de Control de Acceso (ACL) de S3 define los permisos sobre quién puede acceder a tu cubo S3 y su contenido. Controla el nivel de acceso que se concede a usuarios, grupos o entidades de AWS predefinidas.  
+Puedes elegir un ACL que defina quién puede acceder al cubo y qué nivel de permiso tienen. Las opciones disponibles son:  
+- `private`: Solo el propietario del cubo tiene acceso completo. (Por defecto)
+- `public-read`: Cualquier persona puede leer los objetos en el cubo.
+- `public-read-write`: Cualquier persona puede leer y escribir en el cubo.
+- `aws-exec-read`: Otorga acceso de lectura a los servicios de AWS como CloudFront.
+- `authenticated-read`: Otorga acceso de lectura a usuarios autenticados de AWS.
+- `log-delivery-write`: Otorga acceso de escritura al cubo para fines de registro.
+Para más detalles, consulta la [documentación de S3 ACL de AWS <FiExternalLink/>](https://docs.aws.amazon.com/AmazonS3/latest/userguide/acl-overview.html).
 </details>
 
 <details>
 <summary>
-**What is Amazon CloudFront?**
+**¿Qué es Amazon CloudFront?**
 </summary>
-Amazon CloudFront is a Content Delivery Network (CDN) that speeds up the delivery of your static and dynamic content (like HTML, CSS, images, and videos) by caching it at edge locations closer to your users around the world.
+Amazon CloudFront es una Red de Distribución de Contenido (CDN) que acelera la entrega de tu contenido estático y dinámico (como HTML, CSS, imágenes y videos) al almacenarlo en ubicaciones cercanas a tus usuarios alrededor del mundo.
 </details>
 
 <details>
 <summary>
-**Can I use a custom domain name with CloudFront?**
+**¿Puedo usar un dominio personalizado con CloudFront?**
 </summary>
-Yes, SleakOps allows you to set a custom alias (subdomain) for your CloudFront distribution. For example, you could use `cdn.mydomain.com` as the URL for your CloudFront distribution instead of the default CloudFront URL.
+Sí, SleakOps te permite establecer un alias personalizado (subdominio) para tu distribución de CloudFront. Por ejemplo, podrías usar `cdn.mydomain.com` como la URL de tu distribución de CloudFront en lugar de la URL predeterminada de CloudFront.
 </details>
 
 <details>
 <summary>
-**What is a Custom Header in CloudFront?**
+**¿Qué es un encabezado personalizado en CloudFront?**
 </summary>
-Custom Headers allow you to include additional information in every request that CloudFront makes to your S3 bucket. This feature provides more control over how your S3 content is accessed and delivered by attaching specific metadata to the requests.  
-SleakOps allows you to define custom headers for CloudFront, which will be included in all requests sent to your S3 bucket. This is useful for adding security measures, managing permissions, or tracking requests.  
+Los Encabezados Personalizados te permiten incluir información adicional en cada solicitud que CloudFront realiza a tu cubo S3. Esta característica te brinda un mayor control sobre cómo se accede y entrega tu contenido de S3 al adjuntar metadatos específicos a las solicitudes.  
+SleakOps te permite definir encabezados personalizados para CloudFront, que serán incluidos en todas las solicitudes enviadas a tu cubo S3. Esto es útil para agregar medidas de seguridad, gestionar permisos o realizar un seguimiento de las solicitudes.  
 ```
 custom_headers:  
   - key: "X-Custom-Header"  
@@ -80,24 +80,24 @@ custom_headers:
 ```  
 </details>
 
-## Set up your S3 Bucket
-### 1. Add S3 Bucket as a Dependency
-To integrate S3 Bucket with SleakOps:
-1. In the SleakOps console, go to the "Dependencies" section 
-2. Choose "S3 Bucket" from the list of available dependency types. 
-For more detail see [Dependencies: Integrating Databases, Caching, and Messaging Services](/project/dependency/index.mdx).
+## Configura tu cubo S3
+### 1. Agregar S3 Bucket como Dependencia
+Para integrar S3 Bucket con SleakOps:
+1. En la consola de SleakOps, ve a la sección "Dependencias"
+2. Elige "S3 Bucket" de la lista de tipos de dependencias disponibles. 
+Para más detalles, consulta [Dependencias: Integración de Bases de Datos, Caching y Servicios de Mensajería](/project/dependency/index.mdx).
 
-### 2. Set up your S3 Bucket.
-When adding an S3 bucket as a dependency in SleakOps, you will be required to configure the following attributes:
+### 2. Configura tu cubo S3.
+Al agregar un cubo S3 como dependencia en SleakOps, deberás configurar los siguientes atributos:
 
-| **Attribute** | **Description** |
+| **Atributo** | **Descripción** |
 | --- | --- |
-| **S3 Access Control List (ACL)** | Specifies the level of access for the S3 bucket and its contents. Options:  `private`, `public-read`, `public-read-write`, `aws-exec-read`, `authenticated-read`, `log-delivery-write` |
-| **Enable CloudFront** | Allows you to enable Amazon CloudFront, a CDN for delivering S3 bucket content globally. |
-| **Alias** | The alias for the S3 bucket or CloudFront distribution (e.g., `cdn.mydomain.com`). |
-| **Price Class** | Defines the set of global CloudFront edge locations used to serve content. Options: `Use all edge locations (best performance)`, `Use North America`, `Europe`, `Asia`, `Middle East`, and `Africa`, `Use only North America and Europe`.  Check [AWS Price Class <FiExternalLink/>](https://aws.amazon.com/cloudfront/pricing/). |
-| **Custom Headers** | Custom headers that CloudFront includes in all requests sent to the S3 bucket. - Key: The header key, such as `X-Custom-Header`. - Value: The value you wish to assign to the header, like `MyCustomValue`. |
-| **Override** | Specify whether CloudFront should override existing headers in requests from the origin. |
+| **Lista de Control de Acceso (ACL) de S3** | Especifica el nivel de acceso para el cubo S3 y su contenido. Opciones: `private`, `public-read`, `public-read-write`, `aws-exec-read`, `authenticated-read`, `log-delivery-write` |
+| **Habilitar CloudFront** | Permite habilitar Amazon CloudFront, una CDN para entregar el contenido del cubo S3 a nivel global. |
+| **Alias** | El alias para el cubo S3 o la distribución de CloudFront (por ejemplo, `cdn.mydomain.com`). |
+| **Clase de Precio** | Define el conjunto de ubicaciones de borde globales de CloudFront utilizadas para servir contenido. Opciones: `Usar todas las ubicaciones de borde (mejor rendimiento)`, `Usar solo América del Norte`, `Europa`, `Asia`, `Medio Oriente` y `África`, `Usar solo América del Norte y Europa`. Revisa [Clase de Precios de AWS <FiExternalLink/>](https://aws.amazon.com/cloudfront/pricing/). |
+| **Encabezados Personalizados** | Encabezados personalizados que CloudFront incluirá en todas las solicitudes enviadas al cubo S3. - Clave: La clave del encabezado, como `X-Custom-Header`. - Valor: El valor que deseas asignar al encabezado, como `MyCustomValue`. |
+| **Sobrescribir** | Especifica si CloudFront debe sobrescribir los encabezados existentes en las solicitudes del origen. |
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
@@ -107,11 +107,11 @@ When adding an S3 bucket as a dependency in SleakOps, you will be required to co
 </Zoom>
 
 
-After that basic data, if you activated the Cloudfront, you will be able of customize its headers.  
-To do that: 
-  1. Into the form, look for the field _CloudFront custom headers_ and click on + _Add Item_.
-  2. Complete _Key and Value_
-You can add as many as you need. 
+Después de esos datos básicos, si activaste CloudFront, podrás personalizar sus encabezados.  
+Para hacerlo:
+  1. En el formulario, busca el campo _Encabezados personalizados de CloudFront_ y haz clic en + _Agregar ítem_.
+  2. Completa _Clave y Valor_.
+Puedes agregar tantos como necesites.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
@@ -120,9 +120,9 @@ You can add as many as you need.
 />
 </Zoom>
 
-### 3. Customize your variable names for your S3.
+### 3. Personaliza los nombres de tus variables para tu S3.
 
-As explained, when a dependency is created, SleakOps generates a vargroup to hold all the needed attributes.  
+Como se explicó, cuando se crea una dependencia, SleakOps genera un vargroup para contener todos los atributos necesarios.  
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
@@ -131,5 +131,5 @@ As explained, when a dependency is created, SleakOps generates a vargroup to hol
 />
 </Zoom>
 
-In this step you can change the name of the attributes in case it is needed but SleakOps completes the values automatically.  
-After this step, your dependency is created.
+En este paso, puedes cambiar el nombre de los atributos si es necesario, pero SleakOps completará los valores automáticamente.  
+Después de este paso, tu dependencia estará creada.

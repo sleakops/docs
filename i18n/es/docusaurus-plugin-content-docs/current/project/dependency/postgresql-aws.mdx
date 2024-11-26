@@ -4,80 +4,80 @@ import { FiExternalLink } from "react-icons/fi";
 
 # AWS PosgreSQL
 
-SleakOps offers seamless integration with Amazon RDS for PostgreSQL, a fully managed relational database service. PostgreSQL is known for its advanced features, scalability, and robust performance, making it a preferred choice for complex applications and data-intensive operations. By integrating PostgreSQL through SleakOps, you can efficiently manage your database deployments and leverage the power of AWS’s managed database service.
+SleakOps ofrece una integración fluida con Amazon RDS para PostgreSQL, un servicio de base de datos relacional completamente administrado. PostgreSQL es conocido por sus características avanzadas, escalabilidad y rendimiento robusto, lo que lo convierte en una opción preferida para aplicaciones complejas y operaciones intensivas en datos. Al integrar PostgreSQL a través de SleakOps, puedes gestionar eficientemente tus implementaciones de bases de datos y aprovechar el poder del servicio administrado de AWS.
 
 <details>
 <summary>
-**How does SleakOps manage MySQL credentials?**
+**¿Cómo gestiona SleakOps las credenciales de MySQL?**
 </summary>
-When you create a MySQL dependency in SleakOps, it automatically generates a Vargroup for your database. This Variable Group securely stores the MySQL credentials and other important configuration details, such as the database endpoint and user access information. You’ll be able of manage them from  [Vargroups](/project/vargroup/index.mdx) section.
+Cuando creas una dependencia de MySQL en SleakOps, este genera automáticamente un Vargroup para tu base de datos. Este Grupo de Variables almacena de forma segura las credenciales de MySQL y otros detalles importantes de configuración, como el endpoint de la base de datos y la información de acceso de usuarios. Podrás gestionarlos desde la sección [Vargroups](/project/vargroup/index.mdx).
 </details>
 
 <details>
 <summary>
-**What is Multi-AZ deployment and should I enable it?**
+**¿Qué es una implementación Multi-AZ y debería habilitarla?**
 </summary>
-Multi-AZ (Availability Zone) deployment ensures high availability and failover support by replicating your database in another availability zone. It’s recommended for production environments to prevent downtime. Keep in mind that it increases costs.
+La implementación Multi-AZ (Zona de Disponibilidad) garantiza alta disponibilidad y soporte de conmutación por error al replicar tu base de datos en otra zona de disponibilidad. Se recomienda para entornos de producción para evitar tiempos de inactividad. Ten en cuenta que incrementa los costos.
 </details>
 
 <details>
 <summary>
-**Can I change the PostgreSQL version after the database is deployed?**
+**¿Puedo cambiar la versión de PostgreSQL después de que la base de datos esté implementada?**
 </summary>
-No, the database engine version cannot be changed after deployment. You would need to create a new PostgreSQL instance with the desired version and migrate your data. Or change it manually into the AWS Console.
+No, la versión del motor de base de datos no puede cambiarse después de la implementación. Necesitarías crear una nueva instancia de PostgreSQL con la versión deseada y migrar tus datos. O bien cambiarla manualmente en la consola de AWS.
 </details>
 
 <details>
 <summary>
-**What happens if I need more storage for my PostgreSQL database?**
+**¿Qué sucede si necesito más almacenamiento para mi base de datos PostgreSQL?**
 </summary>
-You can adjust the storage size when configuring your database. If you need more storage after deployment, SleakOps allows you to scale the storage size without downtime.
+Puedes ajustar el tamaño de almacenamiento al configurar tu base de datos. Si necesitas más almacenamiento después de la implementación, SleakOps te permite escalar el tamaño de almacenamiento sin tiempos de inactividad.
 </details>
 
 <details>
 <summary>
-**How do I create a PostgreSQL database dump?** 
+**¿Cómo puedo crear un volcado (dump) de mi base de datos PostgreSQL?** 
 </summary>
-To create a dump of your PostgreSQL database:
-  1. **Run the `pg_dump` Command**:  
+Para crear un volcado de tu base de datos PostgreSQL:
+  1. **Ejecuta el comando `pg_dump`**:  
 ```
 sh
 pg_dump -h POSTGRESQL_ADDRESS -U POSTGRESQL_USERNAME -W > dump.sql
 ```
-Replace `POSTGRESQL_ADDRESS`, `POSTGRESQL_USERNAME`, and `dump.sql` with the appropriate values.
-  2. Consult Documentation: For more information on how to create a dump, refer to the official [PostgreSQL documentation.](https://www.postgresql.org/docs/current/app-pgdump.html).
+Reemplaza `POSTGRESQL_ADDRESS`, `POSTGRESQL_USERNAME` y `dump.sql` con los valores correspondientes.
+  2. Consulta la documentación: Para más información, consulta la [documentación oficial de PostgreSQL](https://www.postgresql.org/docs/current/app-pgdump.html).
 </details>
 
 <details>
 <summary>
-**How do I import an existent dump using docker?**
+**¿Cómo importo un volcado existente usando Docker?**
 </summary>
-To import a database dump into your PostgreSQL RDS instance:  
-  1. **Connect to the VPN**: Ensure you are connected to the VPN of the AWS account where the RDS instance is located.
-  2. **Run Docker Container** (Recommended): 
-    - Install Docker on your local machine if not already installed.  
-    - Run a PostgreSQL Docker container with the following command:
+Para importar un dump de base de datos en tu instancia de PostgreSQL RDS:  
+  1. **Conéctate a la VPN**: Asegúrate de estar conectado a la VPN de la cuenta AWS donde está ubicada la instancia RDS.
+  2. **Ejecuta un contenedor Docker** (Recomendado): 
+    - Instala Docker en tu máquina local si aún no lo tienes.  
+    - Ejecuta un contenedor Docker de PostgreSQL con el siguiente comando:
     ```
     sh
     docker run -it --name postgresql-container -v ./initial_data/:/tmp/data/ -e POSTGRESQL_ROOT_PASSWORD=POSTGRESQL_PASSWORD -d postgres bash
     ```
-    - Attach to the container’s terminal:
+    - Conéctate al terminal del contenedor:
     ```
     sh
     docker exec -t -i postgresql-container bash
     ```
-    - Import the dump file:
+    - Importa el archivo de volcado:
     ```
-    pg_dump -h POSTGRESQL_ADDRESS -U POSTGRESQL_USERNAME -W  < /tmp/data/dump.sql
+    pg_dump -h POSTGRESQL_ADDRESS -U POSTGRESQL_USERNAME -W < /tmp/data/dump.sql
     ```
-    Replace `POSTGRESQL_ADDRESS`, `POSTGRESQL_USERNAME`, and `dump.sql` with your specific details.
+    Reemplaza `POSTGRESQL_ADDRESS`, `POSTGRESQL_USERNAME` y `dump.sql` con tus detalles específicos.
 </details>
 
 <details>
 <summary>
-**How do I import an existent dump to my local machine ?**
+**¿Cómo importo un dump existente a mi máquina local?**
 </summary>
-Alternatively, you can use a PostgreSQL client installed on your local machine to import the dump.
+Alternativamente, puedes usar un cliente de PostgreSQL instalado en tu máquina local para importar el dump.
 ```
 sh
 psql -h POSTGRESQL_ADDRESS -U POSTGRESQL_USERNAME -W -f /tmp/data/dump.sql
@@ -86,60 +86,60 @@ psql -h POSTGRESQL_ADDRESS -U POSTGRESQL_USERNAME -W -f /tmp/data/dump.sql
 
 <details>
 <summary>
-**What should I do if I encounter connection issues with my PostgreSQL database?**
+**¿Qué debo hacer si encuentro problemas de conexión con mi base de datos PostgreSQL?**
 </summary>
-Check the following:
-- Ensure the database endpoint, username, and password are correct.
-- Verify that your firewall rules allow access.
-- Ensure the database is running and has enough resources (CPU, memory).
-Otherwise, contact us. 
+Verifica lo siguiente:
+- Asegúrate de que el endpoint de la base de datos, el nombre de usuario y la contraseña sean correctos.
+- Verifica que las reglas de tu firewall permitan el acceso.
+- Asegúrate de que la base de datos esté funcionando y tenga suficientes recursos (CPU, memoria).
+De lo contrario, contáctanos. 
 </details>
 
 <details>
 <summary>
-**What is an RDS Read Replica?**
+**¿Qué es una réplica de lectura de RDS?**
 </summary>
-An RDS Read Replica is a read-only copy of your primary database instance in Amazon RDS. It helps distribute read-heavy workloads and improves the performance and scalability of your database by offloading read operations from the primary database.  
-RDS Read Replicas are ideal when you need to:  
-- Offload read-heavy operations from your primary instance.
-- Scale your read operations as your application grows.
-- Distribute database reads across multiple geographic locations.
-- Have a backup solution that can quickly be promoted to a primary instance in case of failure.
+Una réplica de lectura de RDS es una copia de solo lectura de tu instancia principal de base de datos en Amazon RDS. Ayuda a distribuir las cargas de trabajo de lectura intensivas y mejora el rendimiento y la escalabilidad de tu base de datos al descargar las operaciones de lectura de la base de datos principal.  
+Las réplicas de lectura de RDS son ideales cuando necesitas:  
+- Descargar operaciones de lectura intensivas de tu instancia principal.
+- Escalar las operaciones de lectura a medida que tu aplicación crece.
+- Distribuir las lecturas de la base de datos en múltiples ubicaciones geográficas.
+- Tener una solución de respaldo que pueda ser promovida rápidamente a una instancia principal en caso de falla.
 :::info
-Keep in mind that Read replicas have a delay performing updates.
+Ten en cuenta que las réplicas de lectura tienen un retraso al realizar actualizaciones.
 :::
 </details>
 
 <details>
 <summary>
-**How do I configure a Read Replica in SleakOps?**
+**¿Cómo configuro una réplica de lectura en SleakOps?**
 </summary>
-In SleakOps, when creating a read replica for your RDS database, you will need to provide the following information:
-- **Name** of the replica
-- **Replica Instance Class**, which determines the instance type for the replica.
-- **Replica Publicly Accessible**, to decide if the replica should have a public IP or be accessible only within your private network.
+En SleakOps, cuando creas una réplica de lectura para tu base de datos RDS, necesitarás proporcionar la siguiente información:
+- **Nombre** de la réplica
+- **Clase de Instancia de la réplica**, que determina el tipo de instancia para la réplica.
+- **Accesibilidad Pública de la réplica**, para decidir si la réplica debe tener una IP pública o ser accesible solo dentro de tu red privada.
 </details>
 
 <details>
 <summary>
-**Can I delete a replica?** 
+**¿Puedo eliminar una réplica?** 
 </summary>
-At the moment, the only way is to delete the dependency. 
+Por el momento, la única forma es eliminar la dependencia. 
 </details>
 
 :::info
-AWS documentation: [Amazon RDS MySQL Documentation](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_PostgreSQL.html)
+Documentación de AWS: [Documentación de Amazon RDS PostgreSQL](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_PostgreSQL.html)
 :::
 
-## Set up your PostgreSQL
-### 1. Add PostgreSQL as a Dependency
-To integrate MySQL with SleakOps:
-1. In the SleakOps console, go to the "Dependencies" section
-2. Choose "PostgreSQL" from the list of available dependency types. 
-For more detail see [Dependencies: Integrating Databases, Caching, and Messaging Services](/project/dependency/index.mdx).
+## Configura tu PostgreSQL
+### 1. Agregar PostgreSQL como una dependencia
+Para integrar PostgreSQL con SleakOps:
+1. En la consola de SleakOps, ve a la sección "Dependencies".
+2. Elige "PostgreSQL" de la lista de tipos de dependencia disponibles.  
+Para más detalles, consulta [Dependencies: Integración de Bases de Datos, Caching y Servicios de Mensajería](/project/dependency/index.mdx).
 
-### 2. Set up your PostgreSQL database.
-You will access the following form:
+### 2. Configura tu base de datos PostgreSQL.
+Accederás al siguiente formulario:
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
@@ -148,40 +148,40 @@ You will access the following form:
 />
 </Zoom>
 
-Here the parameters that SleakOps allows you to customize during the creation:
+Estos son los parámetros que SleakOps te permite personalizar durante la creación:
 
-| **Attribute** | **Description** |
+| **Atributo** | **Descripción** |
 | --- | --- |
-| **Database Engine Version** | Select the specific version of the MySQPostgreSQLL database engine you wish to use. This ensures compatibility with your application requirements. Example: `PostgreSQL 14.9`, `PostgreSQL 16.5` |
-| **Database Instance Class** | Define the instance class that specifies the hardware configuration for your MySQL database. This controls CPU, memory, and network performance.  Example: `db.m6g.large`, `db.t3.medium`. See [AWS detail](https://aws.amazon.com/es/rds/instance-types/). |
-| **Database Storage** | Specify the amount of storage allocated for the database. Example: 100 GB, 500 GB. |
-| **Username** | Provide the master username for the MySQL database. This is the main user with administrative privileges. Example: admin, root. |
-| **Password** | Password for the master user to access the database. |
-| **Multi-Availability Zone** | Enable or disable Multi-AZ deployment. This ensures high availability and failover support by replicating the database across multiple availability zones. Recommended for production environments. |
-| **Automated Backup** | Configure automated backups for the MySQL database. This ensures data protection by enabling daily snapshots and transaction log backups.  Set up the _Backup Retention Period_ and the _Backup Window_. Recommended for production environments. |
-| **Backup Retention Period** | Set the number of days to retain automated backups. |
-| **Backup Window** | Period of time while the backup will be done.  |
+| **Versión del Motor de Base de Datos** | Selecciona la versión específica del motor de base de datos PostgreSQL que deseas usar. Esto asegura la compatibilidad con los requisitos de tu aplicación. Ejemplo: `PostgreSQL 14.9`, `PostgreSQL 16.5`. |
+| **Clase de Instancia de Base de Datos** | Define la clase de instancia que especifica la configuración de hardware para tu base de datos PostgreSQL. Esto controla el rendimiento de CPU, memoria y red. Ejemplo: `db.m6g.large`, `db.t3.medium`. Consulta [detalles de AWS](https://aws.amazon.com/es/rds/instance-types/). |
+| **Almacenamiento de Base de Datos** | Especifica la cantidad de almacenamiento asignado para la base de datos. Ejemplo: 100 GB, 500 GB. |
+| **Nombre de Usuario** | Proporciona el nombre de usuario principal para la base de datos PostgreSQL. Este es el usuario principal con privilegios administrativos. Ejemplo: admin, root. |
+| **Contraseña** | Contraseña para el usuario principal para acceder a la base de datos. |
+| **Zona de Disponibilidad Múltiple (Multi-AZ)** | Habilita o deshabilita la implementación Multi-AZ. Esto asegura alta disponibilidad y soporte de conmutación por error al replicar la base de datos en múltiples zonas de disponibilidad. Se recomienda para entornos de producción. |
+| **Respaldo Automático** | Configura respaldos automáticos para la base de datos PostgreSQL. Esto asegura la protección de datos al habilitar instantáneas diarias y respaldos de registros de transacciones. Configura el _Periodo de Retención de Respaldo_ y la _Ventana de Respaldo_. Se recomienda para entornos de producción. |
+| **Periodo de Retención de Respaldo** | Establece el número de días para retener los respaldos automáticos. |
+| **Ventana de Respaldo** | Período de tiempo durante el cual se realizarán los respaldos. |
 
 :::warning
-SleakOps allow the creation of replicas only during the creation of the dependency.
+SleakOps permite la creación de réplicas solo durante la creación de la dependencia.
 :::
 
-After that basic data, you need to decide if a replica will be created. To do that: 
-1. Into the form, look for the section **Definition of RDS Read Replicas** and click on + _Add Item_.
-2. Complete the following data: 
+Después de estos datos básicos, necesitarás decidir si se creará una réplica. Para hacerlo:
+1. En el formulario, busca la sección **Definición de Réplicas de Lectura de RDS** y haz clic en + _Añadir Elemento_.
+2. Completa los siguientes datos: 
 
-| **Setting** | **Description** |
+| **Configuración** | **Descripción** |
 | --- | --- |
-| **Name** | A name for the replica |
-| **Replica Instance Class** | Define the instance class that specifies the hardware configuration for your MySQL database. This controls CPU, memory, and network performance.  Example: `db.m6g.large`, `db.t3.medium`. |
-| **Replica Publicly Accessible** | Decide if the replica should have a public IP or be accessible only within your private network. |
+| **Nombre** | Un nombre para la réplica |
+| **Clase de Instancia de la réplica** | Define la clase de instancia que especifica la configuración de hardware para la réplica. Esto controla el rendimiento de CPU, memoria y red. Ejemplo: `db.m6g.large`, `db.t3.medium`. |
+| **Accesibilidad Pública de la réplica** | Decide si la réplica debe tener una IP pública o ser accesible solo dentro de tu red privada. |
 
-### 3. Customize your variable’s name for your MySQL data base.
+### 3. Personaliza el nombre de tus variables para tu base de datos PostgreSQL.
 
-As explained, when a dependency is created, SleakOps generates a vargroup to hold all the needed attributes. 
-In this step you can change the name of the attributes in case it is needed. 
-SleakOps completes the values automatically. 
-After this step, your dependency is created.
+Como se explicó, cuando se crea una dependencia, SleakOps genera un vargroup para almacenar todos los atributos necesarios.  
+En este paso, puedes cambiar el nombre de los atributos si es necesario.  
+SleakOps completa los valores automáticamente.  
+Después de este paso, tu dependencia se crea.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img

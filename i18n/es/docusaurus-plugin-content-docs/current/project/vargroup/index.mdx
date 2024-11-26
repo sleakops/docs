@@ -4,55 +4,55 @@ import { FiExternalLink } from "react-icons/fi";
 
 # VariableGroups
 
-A **Vargroup** in SleakOps is a resource that securely stores sensitive information (like database credentials) within your EKS cluster. It ensures that credentials and environment-specific variables are securely managed and easily accessible by your applications.
+Un **Vargroup** en SleakOps es un recurso que almacena de forma segura información sensible (como credenciales de bases de datos) dentro de tu clúster EKS. Asegura que las credenciales y las variables específicas del entorno se gestionen de manera segura y sean fácilmente accesibles por tus aplicaciones.
 
 <details>
 <summary>
-**Can I edit a VariableGroup created by SleakOps?**
+**¿Puedo editar un VariableGroup creado por SleakOps?**
 </summary>
-Yes, you can access and manage the Variable Group for your MySQL instance from the SleakOps console. You can modify values such as usernames, passwords, or any other environment-specific credentials.
+Sí, puedes acceder y gestionar el VariableGroup para tu instancia MySQL desde la consola de SleakOps. Puedes modificar valores como nombres de usuario, contraseñas u otras credenciales específicas del entorno.
 </details>
 
 <details>
 <summary>
-**How are Vargroups used by my applications?**
+**¿Cómo usan mis aplicaciones los Vargroups?**
 </summary>
-Vargroups are securely injected into your application's environment when it is deployed. Your applications can access these credentials and other variables without exposing sensitive information in the code.
+Los Vargroups se inyectan de forma segura en el entorno de tu aplicación cuando se despliega. Tus aplicaciones pueden acceder a estas credenciales y otras variables sin exponer información sensible en el código.
 </details>
 
 <details>
 <summary>
-**How does SleakOps ensure the security of Vargroups?**
+**¿Cómo asegura SleakOps la seguridad de los Vargroups?**
 </summary>
-SleakOps securely stores vargroups as Kubernetes secrets inside your EKS cluster. Access is controlled via Kubernetes Service Accounts, ensuring that only authorized components can access the sensitive information.
+SleakOps almacena de forma segura los Vargroups como secretos de Kubernetes dentro de tu clúster EKS. El acceso se controla a través de Cuentas de Servicio de Kubernetes, asegurando que solo los componentes autorizados puedan acceder a la información sensible.
 </details>
 
 <details>
 <summary>
-**Can I delete a Variable Group?**
+**¿Puedo eliminar un Variable Group?**
 </summary>
-Yes, they can be deleted or updated as needed. However, be cautious when deleting them, as it may disrupt your application. 
+Sí, los Vargroups se pueden eliminar o actualizar según sea necesario. Sin embargo, ten cuidado al eliminarlos, ya que puede interrumpir tu aplicación.
 </details>
 
 <details>
 <summary>
-**What is the difference between a Global and a Service-Scoped Vargroup?**
+**¿Cuál es la diferencia entre un Vargroup Global y uno con Ámbito de Servicio?**
 </summary>
-- **Global**: Available to all services within the namespace. It is created without selecting a specific service. To create them select “global” 
-- **Service-Scoped Variable Group**: Only applies to the selected service within the project and environment. It overrides global var group values if they have the same key. 
+- **Global**: Disponible para todos los servicios dentro del namespace. Se crea sin seleccionar un servicio específico. Para crearlos selecciona "global".
+- **Variable Group con Ámbito de Servicio**: Solo aplica al servicio seleccionado dentro del proyecto y el entorno. Sobrescribe los valores del Vargroup global si tienen la misma clave.
 </details>
 
 <details>
 <summary>
-**What happens if there are duplicate keys in different Vargroups?**
+**¿Qué ocurre si hay claves duplicadas en diferentes Vargroups?**
 </summary>
-If duplicate keys exist across different var groups:
-- If the key exists in both a global and a service-scoped var group, the service-scoped value takes precedence. 
-- If two global vargroups have the same key, the most recently created one will be used. 
+Si existen claves duplicadas en diferentes Vargroups:
+- Si la clave existe tanto en un Vargroup global como en uno con Ámbito de Servicio, el valor del Vargroup con Ámbito de Servicio tiene prioridad.
+- Si dos Vargroups globales tienen la misma clave, se usará el más recientemente creado.
 </details>
 
-### 1. Navigate to create Vargroup section
-Into the _Left Pane_, access _Vargroups_ option under _Projects_ and then, at the top right corner, click on the _Create_ button.
+### 1. Navega a la sección para crear un Vargroup
+En el _Panel izquierdo_, accede a la opción _Vargroups_ bajo _Proyectos_ y luego, en la esquina superior derecha, haz clic en el botón _Crear_.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
@@ -61,22 +61,22 @@ Into the _Left Pane_, access _Vargroups_ option under _Projects_ and then, at th
 />
 </Zoom>
 
-### 2. Select a Project and complete the needed attributes
-Complete the following attributes to create a new vargroup:
+### 2. Selecciona un Proyecto y completa los atributos necesarios
+Completa los siguientes atributos para crear un nuevo Vargroup:
 
-| **Attribute** | **Description** |
+| **Atributo** | **Descripción** |
 | --- | --- |
-| **Project** | The specific application or workload within SleakOps. Determines the scope of the variable group. |
-| **Service** | A microservice or component within the project. If selected, the vargroup is limited to it; otherwise, by selecting global it'll be accessible into the namespace. |
-| **Name** | A unique identifier for the var group, used to differentiate it within the project. Should be descriptive of the group's purpose. |
-| **Deploy** | Enable this option if you want SleakOps to automatically publish and deploy your service into the project. |
+| **Proyecto** | La aplicación o carga de trabajo específica dentro de SleakOps. Determina el alcance del grupo de variables. |
+| **Servicio** | Un microservicio o componente dentro del proyecto. Si se selecciona, el Vargroup está limitado a él; si no, al seleccionar global estará accesible dentro del namespace. |
+| **Nombre** | Un identificador único para el Vargroup, utilizado para diferenciarlo dentro del proyecto. Debe ser descriptivo del propósito del grupo. |
+| **Desplegar** | Habilita esta opción si deseas que SleakOps publique y despliegue automáticamente tu servicio en el proyecto. |
 
 :::info
-If you choose to add the argument using the text option: Each argument should be added on a new line, separated by an equal sign (`=`), with no extra spaces. 
+Si eliges agregar el argumento usando la opción de texto: Cada argumento debe agregarse en una nueva línea, separada por un signo de igual (`=`), sin espacios adicionales. 
 
-ARGUMENT_NAME = VALUE  
-ARGUMENT_TWO = VALUE  
-ARGUMENT_ONE = VALUE  
+NOMBRE_ARGUMENTO = VALOR  
+ARGUMENTO_DOS = VALOR  
+ARGUMENTO_UNO = VALOR  
 :::
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
@@ -86,5 +86,4 @@ ARGUMENT_ONE = VALUE
 />
 </Zoom>
 
-Submit to create and Deploy your vargroup.
-
+Envía para crear y desplegar tu Vargroup.
