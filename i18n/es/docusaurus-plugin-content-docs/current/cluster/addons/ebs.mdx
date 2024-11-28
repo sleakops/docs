@@ -2,49 +2,49 @@ import { FiExternalLink } from "react-icons/fi";
 
 # EBS (Elastic Block Store)
 
-In SleakOps, AWS EBS (Elastic Block Store) is used to provide persistent block storage for EC2 instances. EBS volumes are especially useful for applications that require low-latency access to data and high performance.
+En SleakOps, AWS EBS (Elastic Block Store) se utiliza para proporcionar almacenamiento en bloque persistente para instancias EC2. Los volúmenes EBS son especialmente útiles para aplicaciones que requieren acceso de baja latencia a datos y alto rendimiento.
 
 ## FAQs 
 
 <details>
 <summary>
-  ### What is AWS EBS?
+  ### ¿Qué es AWS EBS?
 </summary>
-[AWS EBS <FiExternalLink/>](https://aws.amazon.com/ebs/) is a block storage service from AWS designed to provide persistent storage for EC2 instances. EBS volumes are automatically replicated within their Availability Zone, offering high availability and durability, and protecting against hardware failures.
+[AWS EBS <FiExternalLink/>](https://aws.amazon.com/ebs/) es un servicio de almacenamiento en bloque de AWS diseñado para proporcionar almacenamiento persistente para instancias EC2. Los volúmenes EBS se replican automáticamente dentro de su Zona de Disponibilidad, ofreciendo alta disponibilidad y durabilidad, y protegiendo contra fallos de hardware.
 </details>
 
 <details>
 <summary>
-  ### How is EBS used in SleakOps?
+  ### ¿Cómo se utiliza EBS en SleakOps?
 </summary>
-In SleakOps, EBS is used to deliver persistent storage for applications running on EC2 instances. Each EBS volume can be attached to a single EC2 instance at a time, although multiple volumes can be attached to one instance. Within Kubernetes, EBS is used for persistent volumes, ensuring data consistency across pod restarts and rescheduling. SleakOps manages and configures EBS automatically to suit your application needs.
+En SleakOps, EBS se utiliza para proporcionar almacenamiento persistente a aplicaciones que se ejecutan en instancias EC2. Cada volumen EBS puede estar conectado a una sola instancia EC2 a la vez, aunque se pueden conectar múltiples volúmenes a una sola instancia. Dentro de Kubernetes, EBS se utiliza para volúmenes persistentes, garantizando la consistencia de los datos a través de reinicios de pods y reprogramaciones. SleakOps gestiona y configura EBS automáticamente para adaptarse a las necesidades de tus aplicaciones.
 
 </details>
 
 <details>
 <summary>
-  ### What are the benefits of using EBS?
+  ### ¿Cuáles son los beneficios de usar EBS?
 </summary>
-EBS provides several key benefits for high-performance applications:
-- **High performance**: EBS offers consistent and low-latency performance, ideal for applications requiring quick data access.
-- **Durability**: EBS volumes are replicated within their Availability Zone to ensure high durability.
-- **Scalability**: Volumes can be easily resized to accommodate growing application demands.
+EBS ofrece varios beneficios clave para aplicaciones de alto rendimiento:
+- **Alto rendimiento**: EBS proporciona un rendimiento consistente y de baja latencia, ideal para aplicaciones que requieren acceso rápido a los datos.
+- **Durabilidad**: Los volúmenes EBS se replican dentro de su Zona de Disponibilidad para garantizar alta durabilidad.
+- **Escalabilidad**: Los volúmenes pueden redimensionarse fácilmente para satisfacer las crecientes demandas de las aplicaciones.
 </details>
 
 <details>
 <summary>
-  ### How do I configure volumes with EBS in SleakOps?
+  ### ¿Cómo configuro volúmenes con EBS en SleakOps?
 </summary>
-To set up and manage volumes using EBS within SleakOps, please refer to the [Volumes documentation](/project/volumes). This guide provides instructions on creating and managing EBS volumes to support your application’s storage requirements.
+Para configurar y gestionar volúmenes utilizando EBS dentro de SleakOps, consulta la [documentación de volúmenes](/project/volumes). Esta guía proporciona instrucciones sobre cómo crear y gestionar volúmenes EBS para satisfacer los requisitos de almacenamiento de tus aplicaciones.
 </details>
 
 <details>
 <summary>
-  ### How do I use ebs volumes on my own charts?
+  ### ¿Cómo utilizo volúmenes EBS en mis propios charts?
 </summary>
-To use EBS Volumes you must pass to the chart values the 'StorageClass' name 'default-sc'.
+Para usar volúmenes EBS, debes pasar al archivo de valores del chart el nombre de la 'StorageClass' como 'default-sc'.
 
-You can check your current StorageClasses 
+Puedes verificar tus StorageClasses actuales con:
 ```
 kubectl get storageclass --all-namespaces
 ```
@@ -52,7 +52,7 @@ kubectl get storageclass --all-namespaces
 
 <details>
 <summary>
-  ### When do I use EBS?
+  ### ¿Cuándo debo usar EBS?
 </summary>
-You should use EBS when I need a volume that will be mounted to only one pod, for example a database running in the Cluster without replicas.
+Debes usar EBS cuando necesites un volumen que solo se monte en un pod, por ejemplo, una base de datos que se ejecute en el clúster sin réplicas.
 </details>
