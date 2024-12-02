@@ -13,23 +13,25 @@ Un project en SleakOps representa una base de código gestionada por un reposito
 
 Es la combinación de: Repositorio, Rama y Ruta del Dockerfile. Al añadir el Environment tienes un ProjectEnv (o Namespace de Kubernetes).
 
+## Preguntas Frecuentes
+
 <details>
 <summary>
-**¿Qué es un ProjectEnv o Namespace?**
+### ¿Qué es un ProjectEnv o Namespace?
 </summary>
 Un ProjectEnv es la combinación de un project y un Environment. Actúa como un Namespace de Kubernetes en el clúster y contiene todos los servicios y recursos relacionados con el project dentro de ese Environment.
 </details>
 
 <details>
 <summary>
-**¿Cómo creo un ProjectEnv en SleakOps?**
+### ¿Cómo creo un ProjectEnv en SleakOps?
 </summary>
 El project y el ProjectEnv se crean al mismo tiempo. Debes conectar tu cuenta Git (por ejemplo, GitHub, GitLab o Bitbucket) a SleakOps, seleccionar un repositorio, elegir una rama y especificar la ubicación del Dockerfile. Una vez completados estos pasos, se crea un ProjectEnv y se dispara la primera construcción de imagen. Sigue los pasos a continuación.
 </details>
 
 <details>
 <summary>
-**¿Qué sucede cuando creo un ProjectEnv?**
+### ¿Qué sucede cuando creo un ProjectEnv?
 </summary>
 Cuando se crea un ProjectEnv, se configuran los siguientes recursos:
 - **AWS Elastic Container Registry (ECR)** para almacenar imágenes de contenedores y Helm charts.
@@ -40,49 +42,49 @@ Cuando se crea un ProjectEnv, se configuran los siguientes recursos:
 
 <details>
 <summary>
-**¿Cómo agrego Dockerfile Args?**
+### ¿Cómo agrego Dockerfile Args?
 </summary>
 Si se requieren **Docker Args** (argumentos) durante el tiempo de construcción, SleakOps te pedirá ingresarlos antes de ejecutar la construcción inicial. Estos argumentos pueden modificarse para construcciones futuras.
 </details>    
 
 <details>
 <summary>
-**¿Cuál es el propósito del Dockerfile en mi project?**
+### ¿Cuál es el propósito del Dockerfile en mi project?
 </summary>
 El **Dockerfile** define cómo tu aplicación se construye en una imagen de contenedor. Durante la creación del ProjectEnv, SleakOps analiza el Dockerfile para garantizar que esté correctamente configurado y luego construye la imagen usando **Kaniko**.
 </details>    
 
 <details>
 <summary>
-**¿Dónde se almacenan las imágenes Docker?**
+### ¿Dónde se almacenan las imágenes Docker?
 </summary>
 Las imágenes Docker se almacenan en el **AWS ECR** (Elastic Container Registry) asociado a tu project. Las imágenes se nombran según el ProjectEnv, que combina el nombre del Environment y el nombre del project.
 </details>    
 
 <details>
 <summary>
-**¿Cuál es el rol de la Service Account?**
+### ¿Cuál es el rol de la Service Account?
 </summary>
 La **Service Account** maneja los permisos para recursos dentro del clúster de Kubernetes. Permite que los servicios desplegados en el ProjectEnv interactúen de forma segura con recursos de AWS como S3, RDS o cualquier otro servicio que pueda requerir tu aplicación.
 </details> 
     
 <details>
 <summary>
-**¿Puedo actualizar el repositorio, la rama o la ruta del Dockerfile después de crear un project?**
+### ¿Puedo actualizar el repositorio, la rama o la ruta del Dockerfile después de crear un project?
 </summary>
 Solo se pueden actualizar la *Rama* y la *Ruta del Dockerfile*. Si necesitas trabajar con un *Environment*, *Repositorio o Nombre* diferentes, deberás crear un nuevo registro.
 </details> 
     
 <details>
 <summary>
-**¿Cómo maneja SleakOps la construcción inicial de la imagen?**
+### ¿Cómo maneja SleakOps la construcción inicial de la imagen?
 </summary>
 SleakOps automatiza la construcción inicial de la imagen como parte del proceso de creación del ProjectEnv. Esta construcción inicial asegura una implementación más rápida al utilizar la infraestructura existente. Posteriormente, las futuras construcciones de imágenes se activan cuando se publican servicios en despliegues o manualmente mediante el **Formulario de Construcción**.
 </details> 
     
 <details>
 <summary>
-**¿Cómo controlo los gastos del project?**
+### ¿Cómo controlo los gastos del project?
 </summary>
 SleakOps te permite ver todos los gastos de tu project en un solo lugar, clasificados por cuenta, recursos y fechas. 
 
@@ -91,26 +93,26 @@ Accede a *Projects*, selecciona uno y haz clic en el botón:
 
 <details>
 <summary>
-**¿Cómo monitoreo mi project?**
+### ¿Cómo monitoreo mi project?
 </summary>
 Puedes monitorear tu project accediendo a *Projects*, seleccionando uno **y haciendo clic en el botón: (imagen del botón)**
 </details> 
 
 <details>
 <summary>
-**¿Cómo creo un Kubernetes Volume?**
+### ¿Cómo creo un Kubernetes Volume?
 </summary>
 Al editar un project, puedes habilitar y definir **Kubernetes Volumes** especificando la ruta de montaje y la capacidad de almacenamiento. SleakOps utiliza el **AWS EFS CSI Driver** para gestionar estos volúmenes como sistemas de archivos **EFS** en el clúster EKS.
 </details> 
 
 <details>
 <summary>
- **🚩 ¿Cómo gestiono futuras construcciones y despliegues?**
+ ### 🚩 ¿Cómo gestiono futuras construcciones y despliegues?
 </summary>
 Las futuras construcciones y despliegues se pueden gestionar manualmente a través de la interfaz de SleakOps o automatizar utilizando el **SleakOps CLI**.
 </details> 
 
-### Creemos tu primer Project en SleakOps
+## Creemos tu primer Project en SleakOps
 
 :::warning
 Debes tener tu cuenta de Git Repository conectada. Consulta [Conecta tu cuenta Git](/connect_to_git)

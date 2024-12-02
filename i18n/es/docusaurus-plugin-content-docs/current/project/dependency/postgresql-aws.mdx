@@ -6,37 +6,39 @@ import { FiExternalLink } from "react-icons/fi";
 
 SleakOps ofrece una integración fluida con Amazon RDS para PostgreSQL, un servicio de base de datos relacional completamente administrado. PostgreSQL es conocido por sus características avanzadas, escalabilidad y rendimiento robusto, lo que lo convierte en una opción preferida para aplicaciones complejas y operaciones intensivas en datos. Al integrar PostgreSQL a través de SleakOps, puedes gestionar eficientemente tus implementaciones de bases de datos y aprovechar el poder del servicio administrado de AWS.
 
+## Preguntas Frecuentes
+
 <details>
 <summary>
-**¿Cómo gestiona SleakOps las credenciales de MySQL?**
+### ¿Cómo gestiona SleakOps las credenciales de MySQL?
 </summary>
 Cuando creas una dependencia de MySQL en SleakOps, este genera automáticamente un Vargroup para tu base de datos. Este Grupo de Variables almacena de forma segura las credenciales de MySQL y otros detalles importantes de configuración, como el endpoint de la base de datos y la información de acceso de usuarios. Podrás gestionarlos desde la sección [Vargroups](/project/vargroup/index.mdx).
 </details>
 
 <details>
 <summary>
-**¿Qué es una implementación Multi-AZ y debería habilitarla?**
+### ¿Qué es una implementación Multi-AZ y debería habilitarla?
 </summary>
 La implementación Multi-AZ (Zona de Disponibilidad) garantiza alta disponibilidad y soporte de conmutación por error al replicar tu base de datos en otra zona de disponibilidad. Se recomienda para entornos de producción para evitar tiempos de inactividad. Ten en cuenta que incrementa los costos.
 </details>
 
 <details>
 <summary>
-**¿Puedo cambiar la versión de PostgreSQL después de que la base de datos esté implementada?**
+### ¿Puedo cambiar la versión de PostgreSQL después de que la base de datos esté implementada?
 </summary>
 No, la versión del motor de base de datos no puede cambiarse después de la implementación. Necesitarías crear una nueva instancia de PostgreSQL con la versión deseada y migrar tus datos. O bien cambiarla manualmente en la consola de AWS.
 </details>
 
 <details>
 <summary>
-**¿Qué sucede si necesito más almacenamiento para mi base de datos PostgreSQL?**
+### ¿Qué sucede si necesito más almacenamiento para mi base de datos PostgreSQL?
 </summary>
 Puedes ajustar el tamaño de almacenamiento al configurar tu base de datos. Si necesitas más almacenamiento después de la implementación, SleakOps te permite escalar el tamaño de almacenamiento sin tiempos de inactividad.
 </details>
 
 <details>
 <summary>
-**¿Cómo puedo crear un volcado (dump) de mi base de datos PostgreSQL?** 
+### ¿Cómo puedo crear un volcado (dump) de mi base de datos PostgreSQL?
 </summary>
 Para crear un volcado de tu base de datos PostgreSQL:
   1. **Ejecuta el comando `pg_dump`**:  
@@ -50,7 +52,7 @@ Reemplaza `POSTGRESQL_ADDRESS`, `POSTGRESQL_USERNAME` y `dump.sql` con los valor
 
 <details>
 <summary>
-**¿Cómo importo un volcado existente usando Docker?**
+### ¿Cómo importo un volcado existente usando Docker?
 </summary>
 Para importar un dump de base de datos en tu instancia de PostgreSQL RDS:  
   1. **Conéctate a la VPN**: Asegúrate de estar conectado a la VPN de la cuenta AWS donde está ubicada la instancia RDS.
@@ -75,7 +77,7 @@ Para importar un dump de base de datos en tu instancia de PostgreSQL RDS:
 
 <details>
 <summary>
-**¿Cómo importo un dump existente a mi máquina local?**
+### ¿Cómo importo un dump existente a mi máquina local?
 </summary>
 Alternativamente, puedes usar un cliente de PostgreSQL instalado en tu máquina local para importar el dump.
 ```
@@ -86,7 +88,7 @@ psql -h POSTGRESQL_ADDRESS -U POSTGRESQL_USERNAME -W -f /tmp/data/dump.sql
 
 <details>
 <summary>
-**¿Qué debo hacer si encuentro problemas de conexión con mi base de datos PostgreSQL?**
+### ¿Qué debo hacer si encuentro problemas de conexión con mi base de datos PostgreSQL?
 </summary>
 Verifica lo siguiente:
 - Asegúrate de que el endpoint de la base de datos, el nombre de usuario y la contraseña sean correctos.
@@ -97,7 +99,7 @@ De lo contrario, contáctanos.
 
 <details>
 <summary>
-**¿Qué es una réplica de lectura de RDS?**
+### ¿Qué es una réplica de lectura de RDS?
 </summary>
 Una réplica de lectura de RDS es una copia de solo lectura de tu instancia principal de base de datos en Amazon RDS. Ayuda a distribuir las cargas de trabajo de lectura intensivas y mejora el rendimiento y la escalabilidad de tu base de datos al descargar las operaciones de lectura de la base de datos principal.  
 Las réplicas de lectura de RDS son ideales cuando necesitas:  
@@ -112,7 +114,7 @@ Ten en cuenta que las réplicas de lectura tienen un retraso al realizar actuali
 
 <details>
 <summary>
-**¿Cómo configuro una réplica de lectura en SleakOps?**
+### ¿Cómo configuro una réplica de lectura en SleakOps?
 </summary>
 En SleakOps, cuando creas una réplica de lectura para tu base de datos RDS, necesitarás proporcionar la siguiente información:
 - **Nombre** de la réplica
@@ -122,7 +124,7 @@ En SleakOps, cuando creas una réplica de lectura para tu base de datos RDS, nec
 
 <details>
 <summary>
-**¿Puedo eliminar una réplica?** 
+### ¿Puedo eliminar una réplica?
 </summary>
 Por el momento, la única forma es eliminar la dependencia. 
 </details>
