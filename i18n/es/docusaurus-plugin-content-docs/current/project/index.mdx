@@ -1,0 +1,153 @@
+---
+sidebar_label: Projecto
+pagination_next: project/dependency/index
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+
+
+# Projecto
+
+Un projecto en SleakOps representa una base de código gestionada por un repositorio Git. También define el llamado Namespace. Es la entidad central que conecta tu repositorio con el entorno de SleakOps, habilitando la implementación, gestión y escalado de tu aplicación en la infraestructura de AWS.
+
+Es la combinación de: Repositorio, Rama y Ruta del Dockerfile. Al añadir el Entorno tienes un ProjectEnv (o Namespace de Kubernetes).
+
+## Preguntas Frecuentes
+
+<details>
+<summary>
+### ¿Qué es un ProjectEnv o Namespace?
+</summary>
+Un ProjectEnv es la combinación de un projecto y un Entorno. Actúa como un Namespace de Kubernetes en el clúster y contiene todos los servicios y recursos relacionados con el projecto dentro de ese Entorno.
+</details>
+
+<details>
+<summary>
+### ¿Cómo creo un ProjectEnv en SleakOps?
+</summary>
+El projecto y el ProjectEnv se crean al mismo tiempo. Debes conectar tu cuenta Git (por ejemplo, GitHub, GitLab o Bitbucket) a SleakOps, seleccionar un repositorio, elegir una rama y especificar la ubicación del Dockerfile. Una vez completados estos pasos, se crea un ProjectEnv y se dispara la primera construcción de imagen. Sigue los pasos a continuación.
+</details>
+
+<details>
+<summary>
+### ¿Qué sucede cuando creo un ProjectEnv?
+</summary>
+Cuando se crea un ProjectEnv, se configuran los siguientes recursos:
+- **AWS Elastic Container Registry (ECR)** para almacenar imágenes de contenedores y Helm charts.
+- Un **Namespace de Kubernetes** para gestionar servicios de forma aislada.
+- Una **Service Account** para manejar permisos y conexiones seguras con recursos de AWS.
+- Un **análisis del Dockerfile** para verificar su corrección y construir una imagen de contenedor usando Kaniko.
+</details>
+
+<details>
+<summary>
+### ¿Cómo agrego Dockerfile Args?
+</summary>
+Si se requieren **Docker Args** (argumentos) durante el tiempo de construcción, SleakOps te pedirá ingresarlos antes de ejecutar la construcción inicial. Estos argumentos pueden modificarse para construcciones futuras.
+</details>    
+
+<details>
+<summary>
+### ¿Cuál es el propósito del Dockerfile en mi projecto?
+</summary>
+El **Dockerfile** define cómo tu aplicación se construye en una imagen de contenedor. Durante la creación del ProjectEnv, SleakOps analiza el Dockerfile para garantizar que esté correctamente configurado y luego construye la imagen usando **Kaniko**.
+</details>    
+
+<details>
+<summary>
+### ¿Dónde se almacenan las imágenes Docker?
+</summary>
+Las imágenes Docker se almacenan en el **AWS ECR** (Elastic Container Registry) asociado a tu projecto. Las imágenes se nombran según el ProjectEnv, que combina el nombre del Entorno y el nombre del projecto.
+</details>    
+
+<details>
+<summary>
+### ¿Cuál es el rol de la Service Account?
+</summary>
+La **Service Account** maneja los permisos para recursos dentro del clúster de Kubernetes. Permite que los servicios desplegados en el ProjectEnv interactúen de forma segura con recursos de AWS como S3, RDS o cualquier otro servicio que pueda requerir tu aplicación.
+</details> 
+    
+<details>
+<summary>
+### ¿Puedo actualizar el repositorio, la rama o la ruta del Dockerfile después de crear un projecto?
+</summary>
+Solo se pueden actualizar la *Rama* y la *Ruta del Dockerfile*. Si necesitas trabajar con un *Entorno*, *Repositorio o Nombre* diferentes, deberás crear un nuevo registro.
+</details> 
+    
+<details>
+<summary>
+### ¿Cómo maneja SleakOps la construcción inicial de la imagen?
+</summary>
+SleakOps automatiza la construcción inicial de la imagen como parte del proceso de creación del ProjectEnv. Esta construcción inicial asegura una implementación más rápida al utilizar la infraestructura existente. Posteriormente, las futuras construcciones de imágenes se activan cuando se publican servicios en despliegues o manualmente mediante el **Formulario de Construcción**.
+</details> 
+    
+<details>
+<summary>
+### ¿Cómo controlo los gastos del projecto?
+</summary>
+SleakOps te permite ver todos los gastos de tu projecto en un solo lugar, clasificados por cuenta, recursos y fechas. 
+
+Accede a *Projects*, selecciona uno y haz clic en el botón: 
+</details> 
+
+<details>
+<summary>
+### ¿Cómo monitoreo mi projecto?
+</summary>
+Puedes monitorear tu projecto accediendo a *Projects*, seleccionando uno **y haciendo clic en el botón: (imagen del botón)**
+</details> 
+
+<details>
+<summary>
+### ¿Cómo creo un Kubernetes Volume?
+</summary>
+Al editar un project, puedes habilitar y definir **Kubernetes Volumes** especificando la ruta de montaje y la capacidad de almacenamiento. SleakOps utiliza el **AWS EFS CSI Driver** para gestionar estos volúmenes como sistemas de archivos **EFS** en el clúster EKS.
+</details> 
+
+<details>
+<summary>
+ ### 🚩 ¿Cómo gestiono futuras construcciones y despliegues?
+</summary>
+Las futuras construcciones y despliegues se pueden gestionar manualmente a través de la interfaz de SleakOps o automatizar utilizando el **SleakOps CLI**.
+</details> 
+
+## Creemos tu primer Projecto en SleakOps
+
+:::warning
+Debes tener tu cuenta de Git Repository conectada. Consulta [Conecta tu cuenta Git](/connect_to_git)
+:::
+
+### 1. Navega a la sección Crear Projecto
+En el Panel Izquierdo, accede a la opción _Projects_ y luego, en la esquina superior derecha, haz clic en el botón _Crear_.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/project/project-list.png"
+    alt="project-list"
+/>
+</Zoom>
+
+
+### 2. Configura tu Projecto
+Accederás al siguiente formulario:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/project/project-create.png"
+    alt="project-create"
+/>
+</Zoom>
+
+Aquí están los parámetros que SleakOps te permite personalizar durante la creación:
+
+| **Configuración** | **Descripción** |
+| --- | --- |
+| **Nombre** | Identifica tu Project. |
+| **Environment** | El Entorno representa una etapa o configuración específica dentro de tu infraestructura donde se desplegará tu projecto (por ejemplo, Development, Staging, Production). Estás asociando el código de tu project con un Entorno particular en tu clúster de Kubernetes.  |
+| **Repositorio** | El repositorio es el repositorio Git que contiene el código base de tu projecto. SleakOps accederá a este repositorio para gestionar actualizaciones de código, construcciones y despliegues. Asegúrate de haber conectado tu proveedor de Git (por ejemplo, GitHub, GitLab, Bitbucket) y que el repositorio seleccionado contenga todos los archivos necesarios para tu project.  |
+| **Nodepool** | Es el recurso encargado de aprovisionar el servidor donde se ejecutarán tus servicios. Más información [aquí](/cluster/nodepools/index.mdx). |
+| **Rama** | La rama representa una versión específica o línea de desarrollo dentro del repositorio. Esto te permite desplegar una versión particular de tu código (por ejemplo, main, develop o una rama específica de características). La rama que selecciones determinará el código que se construirá y desplegará en el Entorno asociado.  |
+| **Ruta del Dockerfile** | El Dockerfile es un componente crítico utilizado para construir tu projecto en un contenedor. El campo de Ruta del Dockerfile requiere la ruta relativa al Dockerfile dentro del repositorio (por ejemplo, /Dockerfile, /src/Dockerfile o /app/Dockerfile). Este archivo contiene las instrucciones necesarias para crear la imagen del contenedor, que SleakOps construirá y utilizará posteriormente para los despliegues.  |
+
+Una vez que hayas completado el formulario, haz clic en *Enviar* para iniciar la validación del Dockerfile y luego la construcción.

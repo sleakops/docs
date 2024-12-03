@@ -1,0 +1,24 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Usuarios
+
+## Creación de usuarios
+
+Sleakops tiene tres campos fundamentales de permisos de usuario:
+**Role**: Define lo que el usuario puede hacer dentro de SleakOps, y está dividido en tres roles: 'Admin', 'Editor' y 'Read Only'.
+- **Viewer**: Usuario de solo lectura. En AWS IAM, utiliza el permiso [ReadOnlyAccess <FiExternalLink/>](https://docs.aws.amazon.com/aws-managed-policy/latest/reference/ReadOnlyAccess.html).
+- **Editor**: Tiene permisos de PowerUser, lo que le permite crear recursos de infraestructura en SleakOps y AWS, pero no gestionar usuarios. Debes seleccionar a qué cuentas tendrá acceso el usuario. En AWS IAM, utiliza el permiso [PowerUserAccess <FiExternalLink/>](https://docs.aws.amazon.com/aws-managed-policy/latest/reference/PowerUserAccess.html).
+- **Admin**: Igual que los Editores, pero con la adición de que pueden gestionar los permisos de otros usuarios y tienen acceso completo a todas las cuentas. En AWS IAM, utiliza el permiso [AdministratorAccess <FiExternalLink/>](https://docs.aws.amazon.com/aws-managed-policy/latest/reference/AdministratorAccess.html).
+
+**AWS Account Accesses**: Este campo muestra todas las cuentas, aquí seleccionas a qué cuentas el usuario (Editor o Read-only) tendrá acceso.
+**VPN Account Accesses**: Es similar al campo de accesos a cuentas de AWS, pero aquí defines si el usuario también será creado en el servidor VPN de la cuenta que le otorgues. Más información se puede consultar en la [documentación de VPN](/user/vpn.mdx).
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img src="/img/users/USER-creation-form.png" alt="USER-creation-form" />
+</Zoom>
+
+Para el acceso a las cuentas de AWS, SleakOps inicialmente establece una contraseña aleatoria y la envía al correo electrónico del usuario creado. El usuario puede iniciar sesión con esa contraseña, pero se le obligará a cambiarla en su primer inicio de sesión. Para el acceso a la plataforma SleakOps, utilizamos la contraseña configurada en el formulario de usuario.
+
+Después de la creación de este usuario, se creará un Usuario de AWS en la cuenta 'security', que es donde controlamos los accesos a todas las cuentas de AWS de SleakOps. También crearemos, dependiendo de la configuración, usuarios en los servidores VPN; consulta cómo usarlos en la correspondiente [documentación](/user/vpn.mdx) y en la sección de usuarios de SleakOps.

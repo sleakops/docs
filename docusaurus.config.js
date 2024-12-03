@@ -27,15 +27,17 @@ const config = {
   i18n: {
     defaultLocale: "en",
     locales: ["en", "es"],
+    path: 'i18n',
     localeConfigs: {
       en: {
         htmlLang: 'en',
         label: 'English',
+        // path: '/'
       },
       es: {
         htmlLang: 'es',
         label: 'Español',
-        path: 'es',
+        // path: 'es',
       },
     }
   },
@@ -50,7 +52,7 @@ const config = {
         hashed: true,
         // For Docs using Chinese, The `language` is recommended to set to:
         // ```
-        // language: ["en", "zh"],
+        language: ["en", "es"],
         // ```
       },
     ],
@@ -70,6 +72,9 @@ const config = {
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
           routeBasePath: "/",
+          sidebarCollapsible: true,
+          sidebarCollapsed: true,
+          // path: "docs", // Path to data on filesystem, relative to site dir.
           // editLocalizedFiles: true,
           // editUrl: ({locale, docPath}) => {
           //   if (locale === 'es') {
@@ -101,7 +106,7 @@ const config = {
       },
     ],
   ],
-
+  // plugins: ['content-docs', ],
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
@@ -124,10 +129,10 @@ const config = {
           //   label: 'docs',
           // },
           // {to: '/blog', label: 'Blog', position: 'left'},
-          // {
-          //   type: 'localeDropdown',
-          //   position: 'left',
-          // },
+          {
+            type: 'localeDropdown',
+            position: 'left',
+          },
           {
             href: "https://console.sleakops.com",
             label: "Console",

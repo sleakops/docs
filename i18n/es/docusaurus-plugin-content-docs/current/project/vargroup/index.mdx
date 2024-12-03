@@ -1,0 +1,93 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# VariableGroups
+
+Un **Vargroup** en SleakOps es un recurso que almacena de forma segura información sensible (como credenciales de bases de datos) dentro de tu clúster EKS. Asegura que las credenciales y las variables específicas del entorno se gestionen de manera segura y sean fácilmente accesibles por tus aplicaciones.
+
+## Preguntas Frecuentes
+
+<details>
+<summary>
+### ¿Puedo editar un VariableGroup creado por SleakOps?
+</summary>
+Sí, puedes acceder y gestionar el VariableGroup para tu instancia MySQL desde la consola de SleakOps. Puedes modificar valores como nombres de usuario, contraseñas u otras credenciales específicas del entorno.
+</details>
+
+<details>
+<summary>
+### ¿Cómo usan mis aplicaciones los Vargroups?
+</summary>
+Los Vargroups se inyectan de forma segura en el entorno de tu aplicación cuando se despliega. Tus aplicaciones pueden acceder a estas credenciales y otras variables sin exponer información sensible en el código.
+</details>
+
+<details>
+<summary>
+### ¿Cómo asegura SleakOps la seguridad de los Vargroups?
+</summary>
+SleakOps almacena de forma segura los Vargroups como secretos de Kubernetes dentro de tu clúster EKS. El acceso se controla a través de <i>Service Accounts</i> de Kubernetes, asegurando que solo los componentes autorizados puedan acceder a la información sensible.
+</details>
+
+<details>
+<summary>
+### ¿Puedo eliminar un Variable Group?
+</summary>
+Sí, los Vargroups se pueden eliminar o actualizar según sea necesario. Sin embargo, ten cuidado al eliminarlos, ya que puede interrumpir tu aplicación.
+</details>
+
+<details>
+<summary>
+ ### ¿Cuál es la diferencia entre un Vargroup Global y uno con Ámbito de Servicio?
+</summary>
+- **Global**: Disponible para todos los servicios dentro del namespace. Se crea sin seleccionar un servicio específico. Para crearlos selecciona "global".
+- **Variable Group con Ámbito de Servicio**: Solo aplica al servicio seleccionado dentro del proyecto y el entorno. Sobrescribe los valores del Vargroup global si tienen la misma clave.
+</details>
+
+<details>
+<summary>
+### ¿Qué ocurre si hay claves duplicadas en diferentes Vargroups?
+</summary>
+Si existen claves duplicadas en diferentes Vargroups:
+- Si la clave existe tanto en un Vargroup global como en uno con Ámbito de Servicio, el valor del Vargroup con Ámbito de Servicio tiene prioridad.
+- Si dos Vargroups globales tienen la misma clave, se usará el más recientemente creado.
+</details>
+
+## Crea un grupo de variables
+
+### 1. Navega a la sección para crear un Vargroup
+En el _Panel izquierdo_, accede a la opción _Vargroups_ bajo _Proyectos_ y luego, en la esquina superior derecha, haz clic en el botón _Crear_.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/vargroup/vargroup-list.png"
+    alt="vargroup-list"
+/>
+</Zoom>
+
+### 2. Selecciona un Proyecto y completa los atributos necesarios
+Completa los siguientes atributos para crear un nuevo Vargroup:
+
+| **Atributo** | **Descripción** |
+| --- | --- |
+| **Proyecto** | La aplicación o carga de trabajo específica dentro de SleakOps. Determina el alcance del grupo de variables. |
+| **Servicio** | Un microservicio o componente dentro del proyecto. Si se selecciona, el Vargroup está limitado a él; si no, al seleccionar global estará accesible dentro del namespace. |
+| **Nombre** | Un identificador único para el Vargroup, utilizado para diferenciarlo dentro del proyecto. Debe ser descriptivo del propósito del grupo. |
+| **Desplegar** | Habilita esta opción si deseas que SleakOps publique y despliegue automáticamente tu servicio en el proyecto. |
+
+:::info
+Si eliges agregar el argumento usando la opción de texto: Cada argumento debe agregarse en una nueva línea, separada por un signo de igual (`=`), sin espacios adicionales. 
+
+NOMBRE_ARGUMENTO=VALOR  
+ARGUMENTO_DOS=VALOR  
+ARGUMENTO_UNO=VALOR  
+:::
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/vargroup/vargroup-create.png"
+    alt="vargroup-create"
+/>
+</Zoom>
+
+Envía para crear y desplegar tu Vargroup.

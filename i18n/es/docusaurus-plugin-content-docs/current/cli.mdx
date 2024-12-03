@@ -1,0 +1,149 @@
+---
+sidebar_label: CLI de Sleakops
+sidebar_position: 8
+---
+
+import Zoom from "react-medium-image-zoom";
+import { FiExternalLink } from "react-icons/fi";
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# CLI
+
+
+## Optimiza tu CI/CD con la CLI de SleakOps
+La CLI de SleakOps es un paquete de Python diseñado para simplificar tus flujos de trabajo de CI/CD. 
+Con solo dos subcomandos sencillos, puedes crear compilaciones y desplegar tus aplicaciones con facilidad, garantizando un proceso de desarrollo fluido y eficiente. 
+Para comenzar, simplemente instala SleakOps usando pip:
+```
+pip install sleakops
+```
+
+### 1. Autenticación
+
+Para autenticarte con el SleakOps CLI, necesitas una API_KEY. Puedes obtener esta clave desde la [consola <FiExternalLink/>](https://console.sleakops.com/settings/apikey) haciendo clic en Generar API-Key. 
+Cada empresa puede tener solo una API_KEY activa a la vez. Si solicitas una nueva API_KEY, la antigua será revocada automáticamente. En la página se muestran las claves de la empresa y quién las generó.
+
+Una vez que tengas tu API_KEY, puedes usarla como argumento al ejecutar comandos de SleakOps o configurarla como una variable de entorno llamada SLEAKOPS_KEY.
+
+### 2. Crear un Build
+
+Para crear una compilación de tu aplicación, usa el siguiente comando:
+
+```
+sleakops build [options]
+```
+
+Este comando inicia el proceso de compilación, y SleakOps se encarga de compilar tu código, ejecutar pruebas y empaquetar la aplicación para su despliegue. Puedes especificar opciones adicionales para adaptar el proceso de compilación a tus necesidades específicas.
+
+Hay dos argumentos obligatorios: **project** y **branch**, que se utilizan para saber qué compilar. 
+Además, puedes añadir un **commit** para compilar un commit anterior, una **tag** para la imagen y el *proveedor* si necesitas especificarlo.
+
+Como se mencionó anteriormente, la clave puede ser un entrada aquí o una variable de entorno.
+
+También puedes indicar si quieres que el proceso **espere** a que la compilación termine o no.
+
+
+### 3. Realizar un Despliegue
+Una vez que tu compilación esté lista, puedes desplegar tu aplicación fácilmente usando el siguiente comando:
+```
+sleakops deploy [options]
+```
+SleakOps gestiona de manera transparente el proceso de despliegue, asegurando que tu aplicación esté en funcionamiento en poco tiempo. Puedes especificar opciones de despliegue para ajustar el proceso según tus requisitos.
+
+Aquí, **project** y **environment** son los argumentos obligatorios. El usuario puede añadir una **build** o **tag** de imagen para especificar una imagen. Aquí también están presentes las opciones de **wait** y **key**, su uso es el mismo que en el comando de compilación.
+
+## Ejemplos de CI/CD
+Con la CLI de SleakOps, puedes integrar tus tuberías de CI/CD, automatizar el proceso de compilación y despliegue, y concentrarte en entregar aplicaciones excepcionales sin la molestia de intervención manual. 
+Disfruta de una experiencia de desarrollo fluida con SleakOps y crea flujos de trabajo de CI/CD personalizados.
+
+
+<Tabs>
+<TabItem value="GitHub" > 
+<code>
+```
+name: Deploy
+
+on:
+  push:
+      branches:
+      - main
+jobs:
+  build:
+      runs-on: ubuntu-latest
+      steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install SleakOps CLI
+        run: pip install sleakops
+
+      - name: Run SleakOps build
+        env:
+          SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+        run: sleakops build -p core -b main -w
+  deploy:
+      needs: [build]
+      runs-on: ubuntu-latest
+      steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install SleakOps CLI
+        run: pip install sleakops
+
+      - name: Run SleakOps deploy
+        env:
+          SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+        run: sleakops deploy -p core -e main -w
+```
+</code>
+</TabItem>
+<TabItem value="GitLab"> 
+<code>
+```
+image: python:3.9
+
+stages:
+  - build
+  - deploy
+
+build:
+  stage: deploy
+  script:
+      - apt-get update -qy
+      - apt-get install -y python3-pip
+      - pip3 install sleakops
+      - sleakops build -p core -b main -w
+
+deploy:
+  stage: deploy
+  needs:
+    - build
+  script:
+      - apt-get update -qy
+      - apt-get install -y python3-pip
+      - pip3 install sleakops
+      - sleakops deploy -p core -e main -w
+```
+</code>
+</TabItem>
+<TabItem value="BitBucket">
+<code>
+```
+image: python:3.9
+
+pipelines:
+  default:
+    - step:
+      name: Deploy
+      script:
+      - apt-get update -qy
+      - apt-get install -y python3-pip
+      - pip3 install sleakops
+      - sleakops build -p core -b main -w
+      - sleakops deploy -p core -e main -w
+```
+</code>
+</TabItem>
+</Tabs >

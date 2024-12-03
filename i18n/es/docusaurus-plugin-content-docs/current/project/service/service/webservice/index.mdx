@@ -1,0 +1,160 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Web Service
+
+Un "Web Service" en SleakOps es un servicio en ejecución continua que proporciona interfaces y end points para la interacción con usuarios, otros servicios y aplicaciones. Su función principal es gestionar solicitudes como:
+
+- Servir páginas web
+- Procesar llamadas API
+- Gestionar la autenticación de usuarios
+
+Los Servicios Web están diseñados para estar siempre activos, asegurando disponibilidad constante y capacidad de respuesta para mantener una experiencia de usuario y funcionalidad del sistema sin interrupciones.
+
+## Preguntas Frecuentes
+
+<details>
+<summary>
+### ¿Cuál es la diferencia entre los esquemas de servicio Público, Privado e Interno?
+</summary>
+- **Público**: Accesible a través de Internet y abierto a cualquier persona.
+- **Privado**: Acceso restringido, disponible solo cuando se está conectado a la VPN.
+- **Interno**: Solo accesible dentro del mismo clúster de Kubernetes y se utiliza para la comunicación interna entre servicios.
+</details>
+
+<details>
+<summary>
+### ¿Cómo configuro el auto-escalado para mi Web Service?
+</summary>
+Para habilitar el auto-escalado, puedes activar la opción **Autoscaling** y definir el **Memory Target** y el **CPU Target**. Estos objetivos determinan los umbrales de uso de recursos que desencadenan el auto-escalado. También debes especificar el número mínimo y máximo de réplicas que se deben mantener cuando el auto-escalado está habilitado.
+</details>
+
+<details>
+<summary>
+### ¿Cuáles son los códigos de éxito predeterminados para un Web Service y puedo cambiarlos?
+</summary>
+El código de éxito predeterminado es el 200, que indica que el servicio está sano. Puedes cambiar este código según los requisitos de tu aplicación, ya que algunos servicios pueden devolver diferentes códigos de éxito dependiendo de las acciones específicas.
+</details>
+
+<details>
+<summary>
+### ¿Qué pasa si mi verificación de salud falla repetidamente?
+</summary>
+Si la verificación de salud falla de manera consecutiva y alcanza el umbral de fallos (el valor predeterminado es 60), el servicio se marcará como no saludable, y Kubernetes podría reiniciar o terminar la instancia del servicio para intentar una recuperación.
+</details>
+
+<details>
+<summary>
+### ¿Cómo puedo configurar la memoria y los ajustes de CPU para mi Web Service?
+</summary>
+Puedes configurar los valores *CPU Min* y *CPU Max* para establecer los recursos mínimos y máximos de CPU que cada instancia en tu clúster puede usar. De manera similar, puedes establecer **Memory Min** y **Memory Max** para la asignación de memoria por instancia.
+</details>
+
+<details>
+<summary>
+### ¿Cuáles son algunas buenas prácticas al configurar un Web Service en SleakOps?
+</summary>
+- Siempre establece **un mínimo de 2 réplicas** para evitar el tiempo de inactividad.
+- Asegúrate de que las **rutas de verificación de salud** y los **códigos de éxito** estén configurados correctamente para reflejar la verdadera salud de tu servicio.
+- Usa **auto-escalado** siempre que sea posible para optimizar los recursos dinámicamente según la demanda.
+- Revisa y ajusta adecuadamente los objetivos de **memoria** y **uso de CPU** para evitar sobrecargar tu infraestructura.
+</details>
+
+<details>
+<summary>
+### ¿Qué debo hacer si mi servicio muestra tiempos de respuesta superiores a los 10 segundos?
+</summary>
+Los tiempos de respuesta largos pueden indicar problemas como limitaciones de recursos, ineficiencias en la aplicación o problemas de red. Deberías revisar los registros de tu servicio, asegurarte de que los recursos (CPU, memoria) estén asignados adecuadamente y revisar el código de la aplicación para posibles optimizaciones.
+</details>
+
+## **Añadir un Web Service para tu Proyecto**
+### 1. Navegar a la sección de crear un Web Service
+En el _Panel izquierdo_, accede a _Ejecutaciones_. Luego selecciona la pestaña _Servicios Web_ y, en la esquina superior derecha, haz clic en el botón _Crear_.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/executions/executions-list.png"
+    alt="executions-list"
+/>
+</Zoom>
+
+### 2. Selecciona un Proyecto y un Nombre para el Web Service
+Comienza con la información básica, completa estos atributos y haz clic en Siguiente para continuar.
+
+| **Atributo** | **Descripción** |
+| --- | --- |
+| **Nombre** | Identifica tu Web Service. |
+| **Proyecto** | Selecciona entre los proyectos existentes. |
+| **Comando** | El comando que ejecuta el servicio. |
+| **Puerto** | El número de puerto donde se ejecuta el servicio. Predeterminado: `8000` |
+
+Una vez completados estos atributos, haz clic en el botón _Siguiente_ para continuar.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/executions/webservice/webservice-create-p1.png"
+    alt="webservice-create-p1"
+/>
+</Zoom>
+
+### 3. Define la conexión
+Selecciona cómo será tu conexión y haz clic en _Siguiente_.
+
+| **Atributo** | **Descripción** |
+| --- | --- |
+| **Esquema de Servicio** | Define la accesibilidad del servicio: público, privado o interno. |
+| **URL** | La URL asignada al servicio según el entorno y la configuración del proyecto. Formato: `name.myenv.sleakops.com`. |
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/executions/webservice/webservice-create-p2.png"
+    alt="webservice-create-p2"
+/>
+</Zoom>
+
+### 4. Especifica los ajustes de tu servicio
+Verás los siguientes atributos para especificar las condiciones.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/executions/webservice/webservice-create-p3.png"
+    alt="webservice-create-p3"
+/>
+</Zoom>
+
+| **Atributo** | **Descripción** |
+| --- | --- |
+| **Ruta** | La ruta donde Kubernetes verifica si el Web Service está operativo. Predeterminado: `/` |
+| **Código de Éxito** | El código HTTP de éxito que indica la salud del servicio. Predeterminado: `200`. |
+| **Retraso Inicial en Segundos** | Número de segundos después del inicio antes de que comiencen las verificaciones de salud. Predeterminado: `10`. |
+| **Segundos de Tiempo de Espera** | Número de segundos después del inicio antes de que comiencen las verificaciones de salud. Predeterminado: `1`. |
+| **Segundos entre cada Verificación** | Intervalo (en segundos) entre cada prueba de verificación de salud. Predeterminado: `5`. |
+| **Umbral de Éxitos** | Número mínimo de éxitos consecutivos requeridos para que la prueba se considere exitosa después de fallar. Predeterminado: `1`. |
+| **Umbral de Fallos** | Número de fallos consecutivos antes de que la prueba se considere fallida. Predeterminado: `60`. |
+
+Una vez completados estos atributos, haz clic en el botón Siguiente para continuar con el siguiente paso.
+
+### 5. Finalizar la configuración
+Este paso describe los atributos clave para configurar los recursos de un Servicio Web en SleakOps, permitiendo una gestión flexible de CPU, memoria y comportamientos de escalado.
+
+| **Atributo** | **Descripción** |
+| --- | --- |
+| **CPU Min** | La cantidad mínima de recursos de CPU asignados para cada instancia en el clúster. Esto garantiza que cada instancia siempre tenga esta cantidad de CPU disponible. |
+| **CPU Max** | La cantidad máxima de recursos de CPU que cada instancia en el clúster puede utilizar. Este límite ayuda a prevenir que una instancia consuma demasiada CPU. |
+| **Memory Min** | La cantidad mínima de memoria asignada para cada instancia en el clúster. Esto garantiza que la instancia tenga suficiente memoria para operar eficientemente. |
+| **Memory Max** | La cantidad máxima de memoria que cada instancia en el clúster puede utilizar. Limita el uso de memoria para evitar que una sola instancia consuma recursos en exceso. |
+| **Autoscaling** | Activar o desactivar el auto-escalado. Cuando está habilitado, permite que el servicio ajuste el número de réplicas según la demanda y el uso de recursos. |
+| **CPU Target** | El porcentaje de uso de CPU que desencadena el auto-escalado. Si el uso supera este objetivo, se pueden desplegar réplicas adicionales para equilibrar la carga. |
+| **Memory Target** | El porcentaje de uso de memoria que activa el ajuste de auto-escalado. Cuando las instancias superan este objetivo, el sistema escala hacia arriba para acomodar la demanda. |
+| **Replicas Min** | El número mínimo de réplicas que deben mantenerse cuando el auto-escalado está activo. Un mínimo de 2 réplicas garantiza alta disponibilidad y previene tiempos de inactividad. |
+| **Replicas Max** | El número máximo de réplicas que se pueden desplegar cuando el auto-escalado está habilitado. Establece un límite superior en el número de instancias para evitar la sobreasignación de recursos. |
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/executions/webservice/webservice-create-p4.png"
+    alt="webservice-create-p4"
+/>
+</Zoom>
+
+Envía para crear y desplegar tu web service.

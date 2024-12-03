@@ -1,0 +1,75 @@
+import Zoom from "react-medium-image-zoom";
+
+# Accede a tu Clúster
+
+Para acceder a tu clúster de Kubernetes, debes completar algunos pasos y generar un archivo Kubeconfig para conectarte a un IDE de Kubernetes.
+
+## Preguntas Frecuentes
+
+<details>
+<summary>
+### ¿Qué es Kubeconfig?
+</summary>
+Kubeconfig es un archivo de configuración utilizado por la herramienta de línea de comandos de Kubernetes *kubectl* para interactuar con los clústeres de Kubernetes. Contiene información sobre los clústeres, usuarios, contextos y namespaces que *kubectl* utiliza para comunicarse con uno o más clústeres de Kubernetes.
+</details>
+
+<details>
+<summary>
+### ¿Qué es un IDE?
+</summary>
+Un IDE para Kubernetes es un entorno de software que proporciona herramientas y funciones específicamente diseñadas para ayudar a los desarrolladores a crear, gestionar y desplegar aplicaciones en clústeres de Kubernetes. Integra comandos de Kubernetes, gestión de recursos y edición de YAML/Helm Charts en el flujo de trabajo de desarrollo.
+
+Lens es un IDE de código abierto para Kubernetes que ofrece una interfaz gráfica de usuario fácil de usar para gestionar, monitorear y solucionar problemas en múltiples clústeres en tiempo real.
+</details>
+
+### 1. Ve a la configuración de Acceso al Clúster
+
+Haz clic en *Clusters*, selecciona uno y accede a su configuración.
+
+Dirígete a la opción *Access Cluster*.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/cluster/cluster-settings-main-section.png"
+    alt="cluster-settings-main-section"
+  />
+</Zoom>
+
+### 2. Instala las siguientes Dependencias
+
+- **AWS CLI:** [Documentación de AWS](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+- **Kubectl:** [Documentación de Kubernetes](https://kubernetes.io/docs/tasks/tools/)
+- **Lens:** [Documentación de K8SLens](https://docs.k8slens.dev/getting-started/install-lens/)
+- **Cliente VPN de Pritunl:** [Página de Pritunl](https://pritunl.com/)
+
+### 3. Configura una VPN
+
+- Abre el **Cliente VPN de Pritunl**.
+- Genera una URI de VPN, cópiala y configúrala en el cliente.
+
+<img src="/img/cluster/pritunl-access-cluster.png" alt="pritunl-access-cluster" style={{ marginRight: '20px', maxHeight: '200px' }} />
+
+### 4. Genera tus Claves de AWS y crea el archivo kubeconfig
+
+- Inicia sesión en AWS con tu usuario.
+- Luego, dirígete al [Asistente de Claves de Acceso de AWS](https://us-east-1.console.aws.amazon.com/iam/home#/security_credentials/access-key-wizard) para generar las claves en AWS.
+- Pega las claves en el formulario y genera el archivo kubeconfig.
+- Copia el resultado.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/cluster/cluster-access-cluster.png"
+    alt="cluster-access-cluster"
+  />
+</Zoom>
+
+### 5. Agrégalo a Lens
+
+Abre Lens, localiza la opción 'Import Kubeconfig' e importa el archivo YAML obtenido de la sección Access Cluster.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/cluster/cluster-kubeconfig-yaml.png"
+    alt="cluster-kubeconfig-yaml"
+  />
+</Zoom>

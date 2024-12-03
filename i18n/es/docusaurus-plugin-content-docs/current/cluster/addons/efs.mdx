@@ -1,0 +1,66 @@
+import { FiExternalLink } from "react-icons/fi";
+
+# EFS (Elastic File System)
+
+En SleakOps, AWS EFS (Elastic File System) se utiliza principalmente para gestionar los volúmenes de los Proyectos. EFS ofrece un sistema de archivos escalable y elástico que puede montarse en múltiples instancias EC2, permitiendo que los pods de un clúster de Kubernetes compartan el mismo sistema de archivos de manera eficiente.
+
+## Preguntas Frecuentes
+
+<details>
+<summary>
+### ¿Qué es AWS EFS?
+</summary>
+[AWS EFS <FiExternalLink/>](https://aws.amazon.com/efs/) es un servicio de almacenamiento en la nube de AWS que proporciona almacenamiento compartido y escalable para aplicaciones y servicios. Es ideal para cargas de trabajo que requieren acceso concurrente a un sistema de archivos común entre diferentes servicios.
+</details>
+
+<details>
+<summary>
+### ¿Cómo se utiliza EFS en SleakOps?
+</summary>
+En SleakOps, EFS se utiliza para los volúmenes de los Proyectos. Cada Proyecto puede tener uno o más volúmenes, que se implementan como sistemas de archivos EFS dentro del clúster EKS, proporcionando almacenamiento compartido al que pueden acceder diferentes servicios y pods.
+
+</details>
+
+<details>
+<summary>
+### ¿Cuáles son los beneficios de usar EFS?
+</summary>
+EFS ofrece varias ventajas, convirtiéndolo en una opción poderosa para almacenamiento compartido en aplicaciones distribuidas:
+- **Escalabilidad**: Escala automáticamente a medida que se agregan o eliminan archivos.
+- **Alta disponibilidad**: Diseñado para ser altamente disponible y duradero, con datos replicados en múltiples zonas de disponibilidad.
+- **Acceso concurrente**: Varias instancias EC2 pueden montar el mismo sistema de archivos EFS simultáneamente, soportando cargas de trabajo que requieren acceso concurrente.
+</details>
+
+<details>
+<summary>
+### ¿Qué es la política de retención de EFS en SleakOps?
+</summary>
+SleakOps aplica una política de retención para los volúmenes EFS, lo que evita que se elimine un volumen EFS en AWS cuando se elimina un volumen de SleakOps. Esto garantiza la persistencia de los datos incluso si el volumen se desvincula del clúster.
+</details>
+
+<details>
+<summary>
+### ¿Cómo configuro volúmenes con EFS en SleakOps?
+</summary>
+Para configurar y gestionar volúmenes con EFS dentro de SleakOps, sigue las instrucciones en la [documentación de volúmenes](/project/volumes). Esta guía cubre la creación y gestión de volúmenes para tus Proyectos y la configuración de ajustes de EFS dentro de tu clúster.
+</details>
+
+
+<details>
+<summary>
+### ¿Cómo utilizo volúmenes EFS en mis propios charts?
+</summary>
+Para usar volúmenes EFS, debes pasar al archivo de valores del chart el nombre de la 'StorageClass' como 'efs-sc-delete' o 'efs-sc-retain', dependiendo de la [política de retención <FiExternalLink/>](https://kubernetes.io/docs/concepts/storage/storage-classes/) que necesites.
+
+Puedes verificar tus StorageClasses actuales con:
+```
+kubectl get storageclass --all-namespaces
+```
+</details>
+
+<details>
+<summary>
+### ¿Cuándo debo usar EFS?
+</summary>
+Debes usar EFS cuando necesites un volumen que sea montado en más de un pod, por ejemplo, una aplicación ejecutándose en el clúster con dos réplicas o más.
+</details>

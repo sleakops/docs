@@ -1,0 +1,58 @@
+import { FiExternalLink } from "react-icons/fi";
+
+# EBS (Elastic Block Store)
+
+En SleakOps, AWS EBS (Elastic Block Store) se utiliza para proporcionar almacenamiento en bloque persistente para instancias EC2. Los volúmenes EBS son especialmente útiles para aplicaciones que requieren acceso de baja latencia a datos y alto rendimiento.
+
+## Preguntas Frecuentes
+
+<details>
+<summary>
+  ### ¿Qué es AWS EBS?
+</summary>
+[AWS EBS <FiExternalLink/>](https://aws.amazon.com/ebs/) es un servicio de almacenamiento en bloque de AWS diseñado para proporcionar almacenamiento persistente para instancias EC2. Los volúmenes EBS se replican automáticamente dentro de su Zona de Disponibilidad, ofreciendo alta disponibilidad y durabilidad, y protegiendo contra fallos de hardware.
+</details>
+
+<details>
+<summary>
+  ### ¿Cómo se utiliza EBS en SleakOps?
+</summary>
+En SleakOps, EBS se utiliza para proporcionar almacenamiento persistente a aplicaciones que se ejecutan en instancias EC2. Cada volumen EBS puede estar conectado a una sola instancia EC2 a la vez, aunque se pueden conectar múltiples volúmenes a una sola instancia. Dentro de Kubernetes, EBS se utiliza para volúmenes persistentes, garantizando la consistencia de los datos a través de reinicios de pods y reprogramaciones. SleakOps gestiona y configura EBS automáticamente para adaptarse a las necesidades de tus aplicaciones.
+
+</details>
+
+<details>
+<summary>
+  ### ¿Cuáles son los beneficios de usar EBS?
+</summary>
+EBS ofrece varios beneficios clave para aplicaciones de alto rendimiento:
+- **Alto rendimiento**: EBS proporciona un rendimiento consistente y de baja latencia, ideal para aplicaciones que requieren acceso rápido a los datos.
+- **Durabilidad**: Los volúmenes EBS se replican dentro de su Zona de Disponibilidad para garantizar alta durabilidad.
+- **Escalabilidad**: Los volúmenes pueden redimensionarse fácilmente para satisfacer las crecientes demandas de las aplicaciones.
+</details>
+
+<details>
+<summary>
+  ### ¿Cómo configuro volúmenes con EBS en SleakOps?
+</summary>
+Para configurar y gestionar volúmenes utilizando EBS dentro de SleakOps, consulta la [documentación de volúmenes](/project/volumes). Esta guía proporciona instrucciones sobre cómo crear y gestionar volúmenes EBS para satisfacer los requisitos de almacenamiento de tus aplicaciones.
+</details>
+
+<details>
+<summary>
+  ### ¿Cómo utilizo volúmenes EBS en mis propios charts?
+</summary>
+Para usar volúmenes EBS, debes pasar al archivo de valores del chart el nombre de la 'StorageClass' como 'default-sc'.
+
+Puedes verificar tus StorageClasses actuales con:
+```
+kubectl get storageclass --all-namespaces
+```
+</details>
+
+<details>
+<summary>
+  ### ¿Cuándo debo usar EBS?
+</summary>
+Debes usar EBS cuando necesites un volumen que solo se monte en un pod, por ejemplo, una base de datos que se ejecute en el clúster sin réplicas.
+</details>
