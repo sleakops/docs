@@ -1,5 +1,5 @@
 ---
-sidebar_label: Prometheus. Monitoring System 
+sidebar_label: Prometheus
 pagination_back: cluster/addons
 pagination_next: cluster/addons/grafana
 ---
@@ -20,6 +20,13 @@ Uses EBS CSI Driver to manage an EBS volume in order to avoid the loss of metric
 <summary>
 ### Does Prometheus store metrics?
 </summary>
+Prometheus is not directly in charge of pushing metrics to S3, this is done by a related entity called Thanos.
+</details>
+
+<details>
+<summary>
+### How does SleakOps store Prometheus metrics?
+</summary>
 Prometheus has two related storage units:
 - It depends on the [EBS CSI Driver <FiExternalLink/>](/cluster/addons/ebs) Addon for short-term storage.
 - Uses S3 for long-term storage, this S3 is created in your Account in parallel with Prometheus.
@@ -27,14 +34,7 @@ Prometheus has two related storage units:
 
 <details>
 <summary>
-### How does SleakOps store Prometheus metrics?
-</summary>
-Prometheus is not directly in charge of pushing metrics to S3, this is done by a related entity called Thanos.
-</details>
-
-<details>
-<summary>
 ### Can I use Prometheus alone?
 </summary>
-It's main purpose is to collect metrics but it also includes a frontend that can be consumed portforwarding its Pod for make some specific queries to it's data or to watch some metrics, but it is far easier and comfortable to watch them with Grafana. 
+It's main purpose is to collect metrics but it also includes a frontend that can be consumed portforwarding its Pod to make some specific queries to its data or to watch some metrics, but it is far easier and comfortable to watch them with Grafana. 
 </details>
