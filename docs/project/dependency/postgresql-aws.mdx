@@ -10,9 +10,9 @@ SleakOps offers seamless integration with Amazon RDS for PostgreSQL, a fully man
 
 <details>
 <summary>
-### How does SleakOps manage MySQL credentials?
+### How does SleakOps manage PostgreSQL credentials?
 </summary>
-When you create a MySQL dependency in SleakOps, it automatically generates a Vargroup for your database. This Variable Group securely stores the MySQL credentials and other important configuration details, such as the database endpoint and user access information. You’ll be able of manage them from  [Vargroups](/project/vargroup/index.mdx) section.
+When you create a PostgreSQL dependency in SleakOps, it automatically generates a Vargroup for your database. This Variable Group securely stores the PostgreSQL credentials and other important configuration details, such as the database endpoint and user access information. You’ll be able of manage them from  [Vargroups](/project/vargroup/index.mdx) section.
 </details>
 
 <details>
@@ -130,12 +130,12 @@ At the moment, the only way is to delete the dependency.
 </details>
 
 :::info
-AWS documentation: [Amazon RDS MySQL Documentation](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_PostgreSQL.html)
+AWS documentation: [Amazon RDS PostgreSQL Documentation](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_PostgreSQL.html)
 :::
 
 ## Set up your PostgreSQL
 ### 1. Add PostgreSQL as a Dependency
-To integrate MySQL with SleakOps:
+To integrate PostgreSQL with SleakOps:
 1. In the SleakOps console, go to the "Dependencies" section
 2. Choose "PostgreSQL" from the list of available dependency types. 
 For more detail see [Dependencies: Integrating Databases, Caching, and Messaging Services](/project/dependency/index.mdx).
@@ -155,12 +155,12 @@ Here the parameters that SleakOps allows you to customize during the creation:
 | **Attribute** | **Description** |
 | --- | --- |
 | **Database Engine Version** | Select the specific version of the MySQPostgreSQLL database engine you wish to use. This ensures compatibility with your application requirements. Example: `PostgreSQL 14.9`, `PostgreSQL 16.5` |
-| **Database Instance Class** | Define the instance class that specifies the hardware configuration for your MySQL database. This controls CPU, memory, and network performance.  Example: `db.m6g.large`, `db.t3.medium`. See [AWS detail](https://aws.amazon.com/es/rds/instance-types/). |
+| **Database Instance Class** | Define the instance class that specifies the hardware configuration for your PostgreSQL database. This controls CPU, memory, and network performance.  Example: `db.m6g.large`, `db.t3.medium`. See [AWS detail](https://aws.amazon.com/es/rds/instance-types/). |
 | **Database Storage** | Specify the amount of storage allocated for the database. Example: 100 GB, 500 GB. |
-| **Username** | Provide the master username for the MySQL database. This is the main user with administrative privileges. Example: admin, root. |
+| **Username** | Provide the master username for the PostgreSQL database. This is the main user with administrative privileges. Example: admin, root. |
 | **Password** | Password for the master user to access the database. |
 | **Multi-Availability Zone** | Enable or disable Multi-AZ deployment. This ensures high availability and failover support by replicating the database across multiple availability zones. Recommended for production environments. |
-| **Automated Backup** | Configure automated backups for the MySQL database. This ensures data protection by enabling daily snapshots and transaction log backups.  Set up the _Backup Retention Period_ and the _Backup Window_. Recommended for production environments. |
+| **Automated Backup** | Configure automated backups for the PostgreSQL database. This ensures data protection by enabling daily snapshots and transaction log backups.  Set up the _Backup Retention Period_ and the _Backup Window_. Recommended for production environments. |
 | **Backup Retention Period** | Set the number of days to retain automated backups. |
 | **Backup Window** | Period of time while the backup will be done.  |
 
@@ -175,10 +175,10 @@ After that basic data, you need to decide if a replica will be created. To do th
 | **Setting** | **Description** |
 | --- | --- |
 | **Name** | A name for the replica |
-| **Replica Instance Class** | Define the instance class that specifies the hardware configuration for your MySQL database. This controls CPU, memory, and network performance.  Example: `db.m6g.large`, `db.t3.medium`. |
+| **Replica Instance Class** | Define the instance class that specifies the hardware configuration for your PostgreSQL database. This controls CPU, memory, and network performance.  Example: `db.m6g.large`, `db.t3.medium`. |
 | **Replica Publicly Accessible** | Decide if the replica should have a public IP or be accessible only within your private network. |
 
-### 3. Customize your variable’s name for your MySQL data base.
+### 3. Customize your variable’s name for your PostgreSQL data base.
 
 As explained, when a dependency is created, SleakOps generates a vargroup to hold all the needed attributes. 
 In this step you can change the name of the attributes in case it is needed. 
