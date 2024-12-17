@@ -63,20 +63,16 @@ Here the parameters that SleakOps allows you to customize during the creation:
 
 | **Attribute** | **Description** |
 | --- | --- | 
-| **Domain Name** | The unique identifier for your OpenSearch cluster. |
-| **Engine Version** | Specifies the version of OpenSearch that will be used. |
-| **Nodes Per Availability Zone** | The number of OpenSearch data nodes you want to run in each availability zone. |
-| **EBS Storage Size Per Node** | Defines the storage size in GiB for each node. The minimum is 10 GiB, and the maximum is 2048 GiB. Range: 10 to 2048 GiB |
-| **Instance Type** | Selects the instance type for the data nodes of OpenSearch. Example: r6g.large.search |
-| **Number of Availability Zones** | The number of OpenSearch data nodes you want to run in each availability zone.|
-| **Dedicated Master Enabled** | Enables dedicated master nodes, improving domain stability. Recommended for production environments. |
+| **Fifo Queue** | Select if the queue is standard or fifo. Read more on FAQs |
+| **Fifo Deduplication** | Select if deduplication is activated. Read more on FAQs|
+| **Message Delay Seconds** | Seconds of delivery delay to messages on queue.  |
+| **Message Max Size** | Bytes maximum limit per message |
+| **Message Retention Seconds** |Seconds that a message is retained by SQS |
+| **Receive WaitTime Seconds** | The time for which a ReceiveMessage call will wait for a message to arrive (long polling) before returning |
+| **Visibility Timeout Seconds** | Seconds that a message is retained by SQS |
+| **Dead Letter Queue** |  Select if dead letter queue is enabled. Read more on FAQs |
 
-By activating the **Dedicated Master Enabled** feature, you need to complete also: 
-
-| **Attribute** | **Description** |
-| --- | --- | 
-| **Dedicated Master Type** | Specifies the instance type for the master nodes, used to manage the cluster. Example: r6g.large.search |
-| **Dedicated Master Count** | Number of dedicated master nodes. It is recommended to have 3 for production. |
+By activating the **Dead Letter Queue** feature, you need to complete the same information for the second queue.
 
 ### 3. Customize your variable names for your SQS.
 
@@ -87,7 +83,7 @@ After this step, your dependency is created.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
-    src="/img/dependency/opensearch/opensearch-create-outputs.png"
-    alt="opensearch-create-outputs"
+    src="/img/dependency/sqs/sqs-create-outputs.png"
+    alt="sqs-create-outputs"
 />
 </Zoom>
