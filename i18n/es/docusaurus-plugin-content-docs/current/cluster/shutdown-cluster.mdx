@@ -1,19 +1,58 @@
-# Apagar Clúster
+# Apagado del Cluster
+
+Es la capacidad de apagar todos los recursos de tu cluster en un horario programado para evitar incurrir en costos durante ese período de tiempo.  
+Cuando esta función está activada, podrás encender o apagar tu cluster en cualquier momento, incluso fuera del horario programado que hayas configurado.
 
 :::warning
-Para apagar un clúster, asegúrate de que no haya dependencias actualizándose ni procesos de construcción o ejecución activos.
+Cuando tu cluster está APAGADO, no podrás ejecutar Builds, Deploys u otras acciones que requieran recursos del cluster para ejecutarse.
 :::
 
-Para apagar un clúster de forma permanente, simplemente haz clic en el botón *Detener* y confirma la acción.
+### ¿Cómo puedo activar esta funcionalidad?
+El Apagado del Cluster debe activarse manualmente en la configuración del cluster, a través de la tarjeta "Apagado Programado".
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/cluster/settings/cluster-settings-shutdown.png"
+    alt="cluster-settings-shutdown"
+/>
+</Zoom>
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/cluster/settings/shutdown-config.png"
+    alt="shutdown-config"
+/>
+</Zoom>
 
-Esta acción solo se puede realizar en clústeres que estén en estado *Activo*.
+Cuando configures el Apagado del Cluster, estarás creando dos cronjobs: uno para ENCENDER el cluster en el horario programado y otro para APAGARLO.  
+Los campos de configuración son los siguientes:
 
-<img src="/img/cluster/cluster-shutdown-active.png" alt="apagar-cluster-activo" style={{ marginRight: '20px', maxHeight: '200px' }} />
+| **Attribute** | **Description** |
+| --- | --- | 
+| **Days** | Los días en los que se ejecutarán los cronjobs de apagado. |
+| **Auto Downtime (Local Time)** | La hora a la que se ejecuta la acción de APAGADO. Se muestra en tu hora local. |
+| **Auto Uptime (Local Time)** | La hora a la que se ejecuta la acción de ENCENDIDO. Se muestra en tu hora local. |
 
-### Encender un clúster
+Debajo verás un cuadro que muestra las 'Generated Cron Expressions (UTC)', que despliega las expresiones cron de APAGADO y ENCENDIDO para estas dos acciones en horario UTC.
 
-Para encender un clúster, haz clic en el botón *Reproducir* y confirma la acción.
+:::warning
+El apagado requiere que no se estén actualizando Dependencies y que no haya procesos de build o ejecución activos.
+:::
 
-Esta acción está disponible para clústeres en estado *Apagado Programado* y *Apagado*.
+## ¿Cómo puedo apagar mi cluster en cualquier momento?
 
-<img src="/img/cluster/cluster-shutdown-inactive.png" alt="encender-cluster-inactivo" style={{ marginRight: '20px', maxHeight: '200px' }} />
+Para apagar un cluster, simplemente haz clic en el botón *Stop* y confirma la acción.
+
+Esta acción solo puede realizarse en clusters con estado *Activo*.
+
+<img src="/img/cluster/cluster-shutdown-active.png" alt="cluster-shutdown-active" style={{ marginRight: '20px', maxHeight: '200px' }} />
+
+### Encender el cluster
+
+Para encender un cluster, haz clic en el botón *Play* y confirma la acción.  
+
+Esta acción está disponible para clusters con estado *Apagado Programado* o *Apagado*.
+
+<img src="/img/cluster/cluster-shutdown-inactive.png" alt="cluster-shutdown-inactive" style={{ marginRight: '20px', maxHeight: '200px' }} />
+
+:::info
+Las acciones cron que encienden o apagan el cluster según el horario programado seguirán ejecutándose, incluso si lo has encendido o apagado manualmente.
+:::
