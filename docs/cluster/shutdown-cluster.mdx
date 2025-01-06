@@ -1,10 +1,45 @@
 # Shutdown Cluster
 
+It is the capacity to turn off all your cluster's resources at a specified scheduled time to avoid incurring costs during that time frame. 
+When this feature is activated you will be able to turn ON or OFF your cluster at any time, even outside the scheduled time you've configured.
+
+:::warning
+When your cluster is OFF, you will not be able to run any Build, Deploy or other actions that require its resources to run.
+:::
+
+### How can I activate this feature?
+Cluster Shutdown should be manually activated in Cluster Settings through the "Scheduled Shutdown" card.
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/cluster/settings/cluster-settings-shutdown.png"
+    alt="cluster-settings-shutdown"
+/>
+</Zoom>
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/cluster/settings/shutdown-config.png"
+    alt="shutdown-config"
+/>
+</Zoom>
+
+When you set the Cluster Shutdown, you're creating two cronjobs: one for turning ON the cluster at the scheduled time and another for turning it OFF.
+The configuration fields are the following:
+
+| **Attribute** | **Description** |
+| --- | --- | 
+| **Days** | The days that the Shutdown crons will run. |
+| **Auto Downtime (Local Time)** | The hour at which the OFF action runs. It is shown in your local time.|
+| **Auto Uptime (Local Time)** | The hour at which the ON action runs. It is shown in your local time. |
+
+Below you will see a box that shows 'Generated Cron Expressions (UTC)', which displays the OFF and ON cron expressions for these two actions in UTC time.
+
 :::warning
 Shutdown requires that no dependencies are being updated, and no build or execution processes are active.
 :::
 
-In order to permanently shutdown a cluster, just click on the *Stop* button and confirm the action. 
+## How can I shutdown my cluster at any time?
+
+In order to shutdown a cluster, just click on the *Stop* button and confirm the action. 
 
 This action can be performed just in *Active* clusters.
 
@@ -17,3 +52,7 @@ To turn on a cluster, click on the *Play* button and confirm the action.
 This action is available for clusters in *Scheduled Shutdown* and *Off* status
 
 <img src="/img/cluster/cluster-shutdown-inactive.png" alt="cluster-shutdown-inactive" style={{ marginRight: '20px', maxHeight: '200px' }} />
+
+:::info
+The cron actions that turn the cluster ON or OFF based on the scheduled time will still run even ff you have manually turned it ON or OFF.  
+:::
