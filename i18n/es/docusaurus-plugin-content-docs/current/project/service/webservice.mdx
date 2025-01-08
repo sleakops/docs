@@ -1,16 +1,15 @@
+---
+sidebar_position: 1
+---
+
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
 
 # Web Service
 
-Un "Web Service" en SleakOps es un servicio en ejecución continua que proporciona interfaces y end points para la interacción con usuarios, otros servicios y aplicaciones. Su función principal es gestionar solicitudes como:
+**Web Services** son servicios que se ejecutan de forma continua y se encargan de gestionar interacciones basadas en HTTP, como servir páginas web, procesar solicitudes de API o administrar la autenticación de usuarios. En Kubernetes, cada Web Service se ejecuta en uno o varios pods que permanecen activos para responder a solicitudes externas en todo momento.
 
-- Servir páginas web
-- Procesar llamadas API
-- Gestionar la autenticación de usuarios
-
-Los Servicios Web están diseñados para estar siempre activos, asegurando disponibilidad constante y capacidad de respuesta para mantener una experiencia de usuario y funcionalidad del sistema sin interrupciones.
 
 ## Preguntas Frecuentes
 
@@ -68,13 +67,78 @@ Puedes configurar los valores *CPU Min* y *CPU Max* para establecer los recursos
 Los tiempos de respuesta largos pueden indicar problemas como limitaciones de recursos, ineficiencias en la aplicación o problemas de red. Deberías revisar los registros de tu servicio, asegurarte de que los recursos (CPU, memoria) estén asignados adecuadamente y revisar el código de la aplicación para posibles optimizaciones.
 </details>
 
-## **Añadir un Web Service para tu Proyecto**
+<details>
+<summary>
+### Como puedo desplegar mi sitio web estatico?
+</summary>
+Por el momento, Sleakops no ofrece soporte nativo para sitios estáticos. Sin embargo, puedes desplegarlos utilizando el mismo flujo que para otros sitios, contenedorizándolos con un servidor web como Nginx. A continuación, se muestra un ejemplo sencillo de un Dockerfile y su correspondiente nginx.conf para servir tu contenido estático.
+
+```
+FROM node:13.11.0-alpine AS base
+
+WORKDIR /app
+
+FROM base AS build
+
+ARG BACKEND_URL
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+
+RUN npm install
+
+COPY . ./
+
+RUN npm run build
+
+FROM nginx:1.23.0-alpine AS production
+
+COPY --from=build /app/config/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/dist /usr/share/nginx/html
+
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+Un ejemplo de `config/nginx.conf`:
+
+```
+server {
+    listen 80;
+
+    location = /health {
+            access_log off;
+            add_header 'Content-Type' 'application/json';
+            return 200 '{"status":"OK"}';
+    }
+
+    location / {
+        root /usr/share/nginx/html;
+        index index.html index.htm;
+        try_files $uri $uri/ /index.html =404;
+
+        add_header Last-Modified $date_gmt;
+        add_header Cache-Control 'no-store, no-cache';
+        if_modified_since off;
+        expires off;
+        etag off;
+    }
+}
+```
+
+Utilizando este enfoque basado en Docker, puedes servir tu sitio estático con Nginx, todo dentro de un contenedor.
+
+</details>
+
+
+## Añadir un Web Service para tu Proyecto
 ### 1. Navegar a la sección de crear un Web Service
 En el _Panel izquierdo_, accede a _Ejecutaciones_. Luego selecciona la pestaña _Servicios Web_ y, en la esquina superior derecha, haz clic en el botón _Crear_.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
-    src="/img/executions/executions-list.png"
+    src="/img/executions/webservice/list.png"
     alt="executions-list"
 />
 </Zoom>

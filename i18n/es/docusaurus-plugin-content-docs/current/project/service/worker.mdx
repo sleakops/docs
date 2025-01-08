@@ -1,0 +1,83 @@
+---
+sidebar_position: 2
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Worker
+
+**Workers** son procesos en segundo plano que no responden directamente a solicitudes HTTP. En su lugar, se centran en tareas internas como el procesamiento de datos, la gestión de trabajos en cola o el envío de notificaciones por correo electrónico. De forma similar a los Web Services, los Workers también se ejecutan en pods de Kubernetes, pero normalmente funcionan a partir de eventos o según un horario establecido, en lugar de atender solicitudes de red entrantes. Por ejemplo, podrías tener un pod de Worker que escuche mensajes en una cola (por ejemplo, para generar informes) y procese estas tareas sin requerir interacción del usuario.
+
+
+## FAQs 
+
+<details>
+<summary>
+### ¿Cómo configuro el auto-escalado para mi Worker?
+</summary>
+Para habilitar el auto-escalado, puedes activar la opción **Autoscaling** y definir el **Memory Target** y el **CPU Target**. Estos objetivos determinan los umbrales de uso de recursos que desencadenan el auto-escalado. También debes especificar el número mínimo y máximo de réplicas que se deben mantener cuando el auto-escalado está habilitado.
+</details>
+
+<details>
+<summary>
+### ¿Cómo puedo configurar la memoria y los ajustes de CPU para mi Worker?
+</summary>
+Puedes configurar los valores *CPU Min* y *CPU Max* para establecer los recursos mínimos y máximos de CPU que cada instancia en tu clúster puede usar. De manera similar, puedes establecer **Memory Min** y **Memory Max** para la asignación de memoria por instancia.
+</details>
+
+
+
+## Añadir un Worker para tu Proyecto
+### 1. Navegar a la sección de crear un Worker
+En el _Panel izquierdo_, accede a _Ejecutaciones_. Luego selecciona la pestaña _Worker_ y, en la esquina superior derecha, haz clic en el botón _Crear_.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/executions/worker/list.png"
+    alt="worker-list"
+/>
+</Zoom>
+
+### 2. Selecciona un Proyecto y un Nombre para el Worker
+Comienza con la información básica, completa estos atributos y haz clic en Siguiente para continuar.
+
+| **Atributo** | **Descripción** |
+| --- | --- |
+| **Nombre** | Identifica tu Worker. |
+| **Proyecto** | Selecciona entre los proyectos existentes. |
+| **Comando** | El comando que ejecuta el servicio. |
+
+Una vez completados estos atributos, haz clic en el botón _Siguiente_ para continuar.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/executions/worker/create-1.png"
+    alt="worker-create-1"
+/>
+</Zoom>
+
+### 3. Finalizar la configuración
+Este paso describe los atributos clave para configurar los recursos de un Worker en SleakOps, permitiendo una gestión flexible de CPU, memoria y comportamientos de escalado.
+
+| **Atributo** | **Descripción** |
+| --- | --- |
+| **CPU Min** | La cantidad mínima de recursos de CPU asignados para cada instancia en el clúster. Esto garantiza que cada instancia siempre tenga esta cantidad de CPU disponible. |
+| **CPU Max** | La cantidad máxima de recursos de CPU que cada instancia en el clúster puede utilizar. Este límite ayuda a prevenir que una instancia consuma demasiada CPU. |
+| **Memory Min** | La cantidad mínima de memoria asignada para cada instancia en el clúster. Esto garantiza que la instancia tenga suficiente memoria para operar eficientemente. |
+| **Memory Max** | La cantidad máxima de memoria que cada instancia en el clúster puede utilizar. Limita el uso de memoria para evitar que una sola instancia consuma recursos en exceso. |
+| **Autoscaling** | Activar o desactivar el auto-escalado. Cuando está habilitado, permite que el servicio ajuste el número de réplicas según la demanda y el uso de recursos. |
+| **CPU Target** | El porcentaje de uso de CPU que desencadena el auto-escalado. Si el uso supera este objetivo, se pueden desplegar réplicas adicionales para equilibrar la carga. |
+| **Memory Target** | El porcentaje de uso de memoria que activa el ajuste de auto-escalado. Cuando las instancias superan este objetivo, el sistema escala hacia arriba para acomodar la demanda. |
+| **Replicas Min** | El número mínimo de réplicas que deben mantenerse cuando el auto-escalado está activo. Un mínimo de 2 réplicas garantiza alta disponibilidad y previene tiempos de inactividad. |
+| **Replicas Max** | El número máximo de réplicas que se pueden desplegar cuando el auto-escalado está habilitado. Establece un límite superior en el número de instancias para evitar la sobreasignación de recursos. |
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/executions/worker/create-2.png"
+    alt="worker-create-2"
+/>
+</Zoom>
+
+Submit to create and Deploy your worker.

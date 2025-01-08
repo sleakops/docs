@@ -1,48 +1,48 @@
 import { FiExternalLink, FiCornerRightDown } from "react-icons/fi";
 
-# Servicio
+# Executions
 
-En SleakOps, un servicio es una entidad de una aplicación, como en una arquitectura de microservicios.
+En SleakOps, una Ejecución es simplemente un trabajo definido por el usuario que se ejecuta dentro del clúster. Dependiendo de cómo y cuándo necesites ejecutar tu carga de trabajo, puedes elegir entre cinco tipos diferentes:
 
-## Crear un Servicio
 
-Para crear un servicio, debes proporcionar la siguiente información básica:
+| Name | Description |
+| ------ | ----------- |
+| [Web Service](/project/service/webservice) | Un servicio siempre activo que maneja solicitudes HTTP (por ejemplo, alojamiento de sitios web o APIs). |
+| [Worker](/project/service/worker) |	Un proceso en segundo plano para tareas internas (por ejemplo, colas de mensajes, procesamiento de datos). |
+| [Cronjob](/project/service/cronjob) |	Una tarea programada que se ejecuta periódicamente (por ejemplo, todos los días a las 3 a.m.). |
+| [Job](/project/service/job) |	Una tarea de una sola ejecución, ideal para operaciones puntuales o de mantenimiento. |
+| [Hook](/project/service/hook) | Una tarea que se activa cuando se produce un evento de despliegue (por ejemplo, para ejecutar migraciones de base de datos o recopilar estadísticas). |
 
-- Proyecto y Entorno en el que se desplegará el servicio.
-- Un 'nombre' para identificar el servicio.
-- Un 'comando' (o CMD del Dockerfile) que se aplicará para la ejecución del servicio. Si no se proporciona un comando, se usará el comando predeterminado de Docker.
-- El TIPO de Servicio, que se describe [más abajo <FiCornerRightDown/>](#tipos-de-servicio).
-- El conjunto de recursos, que también se describe [más abajo <FiCornerRightDown/>](#conjunto-de-recursos).
 
-### Tipos de Servicio
+## Which execution type I choose?
 
-Dependiendo del tipo de servicio elegido, necesitarás completar diferentes campos. Además, el Comando siempre se aplicará, por lo que ahí es donde radica la importancia de ese campo, que normalmente es la línea que usas para hacer funcionar el servicio. Los tipos de servicio posibles son:
-- **Worker**: No requiere nada más, solo asegúrate de que el CMD definido active el trabajador.
-- **Cron Job**: Debes definir el 'Cron' o la frecuencia de ejecución de un Job, que básicamente establece con qué frecuencia ocurre el Job.
-- **Hook**: Se requiere establecer un 'evento', cuando este evento ocurra, el Hook ejecutará el CMD.
-- **Web Service**: Un Web Service requiere una 'url' que funcione como su punto de acceso. SleakOps genera esta URL en base al nombre del servicio y external-dns usará la jerarquía de donde se haya creado. Como ejemplo, la URL será: `{nombre_servicio}.{nombre_entorno}.{dominio_proveedor}`.
+```mermaid
+flowchart TB
+    A("¿Tu carga de trabajo<br>necesita manejar solicitudes HTTP<br>(tráfico de usuarios o API)?")
+    B["Crea un<br><b>Web Service</b>"]
+    C("¿Necesitas un proceso<br>que se ejecute continuamente en segundo plano<br>esperando tareas/eventos?")
+    D["Crea un<br><b>Worker</b>"]
+    E("¿Necesitas que la tarea<br>se ejecute en un horario definido?")
+    F["Crea un<br><b>CronJob</b>"]
+    G("¿Necesitas que la tarea<br>se ejecute una sola vez?")
+    H["Crea un<br><b>Job</b>"]
+    I("¿Necesitas que la tarea<br>se ejecute en cada despliegue?")
+    J["Crea un<br><b>Hook</b>"]
 
-## Crear un Job
+    A -- "Sí" --> B
+    A -- "No" --> C
+    C -- "Sí" --> D
+    C -- "No" --> E
+    E -- "Sí" --> F
+    E -- "No" --> I
+    I -- "Sí" --> J
+    I -- "No" --> G
+    G -- "Sí" --> H
+```
 
-Un Job utiliza los mismos campos que el Servicio, la diferencia radica en que un Job puede ser creado y ejecutado en cualquier momento. Por otro lado, mientras que un Servicio se crea como una necesidad estructural de tu Despliegue, un Job es algo que creas para ejecutarlo en el momento.
 
-### Conjunto de Recursos
-
-También necesitarás configurar el conjunto de recursos necesario para que este servicio funcione.
-
-| Nombre           | Descripción                                                                                                                                                                    |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **CPU Mínima**   | CPU mínima solicitada en milicores. Más información [aquí <FiExternalLink/>](https://kubernetes.io/concepts/configuration/manage-resources-containers/#meaning-of-cpu)    |
-| **CPU Máxima**   | CPU máxima solicitada en milicores. Más información [aquí <FiExternalLink/>](https://kubernetes.io/concepts/configuration/manage-resources-containers/#meaning-of-cpu)    |
-| **Memoria Mínima** | Memoria mínima solicitada en MegaBytes. Más información [aquí <FiExternalLink/>](https://kubernetes.io/concepts/configuration/manage-resources-containers/#meaning-of-cpu) |
-| **Memoria Máxima** | Memoria máxima solicitada en MegaBytes. Más información [aquí <FiExternalLink/>](https://kubernetes.io/concepts/configuration/manage-resources-containers/#meaning-of-cpu) |
-| **Escalado Automático** | Habilita el Escalado Horizontal de Pods como se describe [aquí <FiExternalLink/>](https://kubernetes.io/tasks/run-application/horizontal-pod-autoscale/).                      |
-| **Objetivo CPU**  | Solo cuando el escalado automático está habilitado. Utilización promedio de CPU que activa el escalado.                                                                        |
-| **Objetivo Memoria** | Solo cuando el escalado automático está habilitado. Utilización promedio de memoria que activa el escalado.                                                                  |
-| **Réplicas Mínimas** | Solo cuando el escalado automático está habilitado. Cantidad mínima de réplicas a lograr.                                                                                     |
-| **Réplicas Máximas** | Solo cuando el escalado automático está habilitado. Cantidad máxima de réplicas a lograr.                                                                                     |
-| **Réplicas Deseadas** | Solo cuando el escalado automático está habilitado. La cantidad de réplicas que el servicio tendrá inicialmente.                                                             |
-
-### Recursos en la Nube
-
-SleakOps no genera recursos en tu proveedor cuando creas un servicio, pero debes tener en cuenta que el conjunto de recursos que has definido proviene de los nodos del Clúster, por lo que estos recursos, como RAM y núcleos, se consumen de la instancia EC2.
+- **Web Service:** Elige esta opción si necesitas que tu aplicación o servicio esté disponible 24/7 para responder solicitudes HTTP.
+- **Worker:** Úsalo para tareas de procesamiento en segundo plano, como colas de mensajes o procesos de datos, sin interacción HTTP directa.
+- **CronJob:** Ideal para tareas de mantenimiento o generación de reportes que deban ejecutarse periódicamente en momentos específicos.
+- **Job:** Adecuado para tareas puntuales o ejecutadas bajo demanda (por ejemplo, migraciones manuales de base de datos).
+- **Hook:** Perfecto si quieres automatizar ciertas acciones (como migraciones de base de datos o análisis) en cada despliegue.

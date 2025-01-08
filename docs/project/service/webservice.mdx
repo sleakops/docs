@@ -1,16 +1,16 @@
+---
+sidebar_position: 1
+---
+
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
 
 # Web Service
 
-A "Web Service" in SleakOps is a continuously running service that provides interfaces and endpoints for interactions with users, other services, and applications. Its primary function is to handle requests such as:
 
-- Serving web pages
-- Processing API calls
-- Managing user authentication
+**Web services** are continuously running services that handle HTTP-based interactions, such as serving web pages, processing API calls, or managing user authentication. In Kubernetes, each Web Service runs in one or more pods that stay active to respond to external requests at any time. 
 
-Web Services are designed to be always active, ensuring constant availability and responsiveness to maintain seamless user experience and system functionality.
 
 ## FAQs 
 
@@ -68,13 +68,76 @@ You can configure the *CPU Min* and *CPU Max* values to set the minimum and maxi
 Long response times may indicate issues such as resource constraints, application inefficiencies, or network problems. You should check your service logs, ensure your resources (CPU, memory) are adequately allocated, and review your application code for potential optimizations.
 </details>
 
+<details>
+<summary>
+### How can I deploy my static web service?
+</summary>
+At the moment, Sleakops doesn’t natively support static sites, but you can still deploy them using the same flow as other sites, by containerizing them with a web server like Nginx. Below is a simple example of a Dockerfile and the corresponding nginx.conf to serve your static content.
+
+```
+FROM node:13.11.0-alpine AS base
+
+WORKDIR /app
+
+FROM base AS build
+
+ARG BACKEND_URL
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+
+RUN npm install
+
+COPY . ./
+
+RUN npm run build
+
+FROM nginx:1.23.0-alpine AS production
+
+COPY --from=build /app/config/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/dist /usr/share/nginx/html
+
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+And here is a sample `config/nginx.conf`:
+
+```
+server {
+    listen 80;
+
+    location = /health {
+            access_log off;
+            add_header 'Content-Type' 'application/json';
+            return 200 '{"status":"OK"}';
+    }
+
+    location / {
+        root /usr/share/nginx/html;
+        index index.html index.htm;
+        try_files $uri $uri/ /index.html =404;
+
+        add_header Last-Modified $date_gmt;
+        add_header Cache-Control 'no-store, no-cache';
+        if_modified_since off;
+        expires off;
+        etag off;
+    }
+}
+```
+
+Using this Docker-based approach, you can serve your static site with Nginx, all within a container.
+</details>
+
 ## **Lets add a Web Service for your Project**
 ### 1. Navigate to create Web Service section
 Into the _Left Pane_, access _Executions_. Then select the _Web Services_ tab  and then, at the top right corner, click on the _Create_ button.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
-    src="/img/executions/executions-list.png"
+    src="/img/executions/webservice/list.png"
     alt="executions-list"
 />
 </Zoom>
