@@ -14,6 +14,10 @@ const config = {
   onBrokenMarkdownLinks: "warn",
   favicon: "img/favicon.ico",
 
+  markdown: {
+    mermaid: true,
+  },
+
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
   organizationName: "Craftech", // Usually your GitHub org/user name.
@@ -56,6 +60,7 @@ const config = {
         // ```
       },
     ],
+    '@docusaurus/theme-mermaid',
   ],
 
   presets: [
@@ -63,7 +68,7 @@ const config = {
       "classic",
       {
         // Debug defaults to true in dev, false in prod
-        debug: true,
+        debug: false,
         // Will be passed to @docusaurus/theme-classic.
         theme: {
           customCss: [require.resolve("./src/css/custom.css")],

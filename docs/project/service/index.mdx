@@ -1,48 +1,47 @@
 import { FiExternalLink, FiCornerRightDown } from "react-icons/fi";
 
-# Service
+# Executions
 
-In Sleakops a service is an entity of an application, as in a microservices architecture.
+In SleakOps, an Execution is simply a user-defined workload that runs within the cluster. Depending on how and when you need your workload to run, you can choose from five different types:
 
-## Create a Service
+| Name | Description |
+| ------ | ----------- |
+| [Web Service](/project/service/webservice) | An always-on service that handles HTTP requests (e.g., hosting websites, APIs). |
+| [Worker](/project/service/worker) |	A background process for internal tasks (e.g., message queues, data processing). |
+| [Cronjob](/project/service/cronjob) |	A scheduled job that runs periodically (e.g., daily at 3 a.m.). |
+| [Job](/project/service/job) |	A one-time task, ideal for ad-hoc or maintenance operations. |
+| [Hook](/project/service/hook) | A task triggered by deployment events (e.g., run database migrations or collect statistics). |
 
-To create a service you provide the following basic information:
 
-- Project and Environment for the service to be deployed.
-- A 'name' to identify the service.
-- A 'command' (or CMD of Dockerfile) that will be applied to the service execution. If no command is provided, the default Docker command will be used. 
-- Service TYPE which are described [below <FiCornerRightDown/>](#service-types).
-- Resource set which is also described [below <FiCornerRightDown/>](#resource-set)
+## Which execution type I choose?
 
-### Service Types
+```mermaid
+flowchart TB
+    A("Does your workload<br>need to handle HTTP requests<br>(user or API traffic)?")
+    B["Create a<br><b>Web Service</b>"]
+    C("Do you need a process<br>running continuously in the background<br>waiting for tasks/events?")
+    D["Create a<br><b>Worker</b>"]
+    E("Do you need a task<br>to run on a schedule?")
+    F["Create a<br><b>CronJob</b>"]
+    G("Do you need a task<br>to run just once?")
+    H["Create a<br><b>Job</b>"]
+    I("Do you need a task<br>to run on every deployment?")
+    J["Create a<br><b>Hook</b>"]
 
-Depending on the Service type chosen you will need to fill in different fields, besides that, the Command will always be applied so there is where comes the importance of that field which is normally the line you use to make the service work. The actual possible service types are:
-- Worker: Requires nothing else, just be sure that the defined CMD activates the worker.
-- Cron Job: You need to define the 'Cron' or the frequency of a Job execution, which is basically, set how often the Job occurs.
-- Hook: An 'event' is required to be set, when this event happens the Hook triggers the CMD.
-- Web Service: A Web Service requires an 'url' that will work as its endpoint. SleakOps generate this url based on the name of the service and external-dns will use the hierarchy of where it has been created. As an example, the URL will be: `{service_name}.{environment_name}.{provider_domain_name}`.
+    A -- "Yes" --> B
+    A -- "No" --> C
+    C -- "Yes" --> D
+    C -- "No" --> E
+    E -- "Yes" --> F
+    E -- "No" --> I
+    I -- "Yes" --> J
+    I -- "No" --> G
+    G -- "Yes" --> H
+```
 
-## Create a Job
 
-A Job uses the same fields that the Service, the difference radicates in that a Job can be created and executed at any moment, by the other side, while you create a Service as a structural need of your Deployment a Job is something that you create to be executed at the moment.
-
-### Resource Set
-
-You'll also need to set the resource set needed for this service to run.
-
-| Name             | Description                                                                                                                                                                 |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| CPU Min          | Min CPU requested in milicores. More information [here <FiExternalLink/>](https://kubernetes.io/concepts/configuration/manage-resources-containers/#meaning-of-cpu)    |
-| CPU Max          | Max CPU requested in milicores. More information [here <FiExternalLink/>](https://kubernetes.io/concepts/configuration/manage-resources-containers/#meaning-of-cpu)    |
-| Memory Min       | Min memory requested in MegaBytes. More information [here <FiExternalLink/>](https://kubernetes.io/concepts/configuration/manage-resources-containers/#meaning-of-cpu) |
-| Memory Max       | Max memory requested in MegaBytes. More information [here <FiExternalLink/>](https://kubernetes.io/concepts/configuration/manage-resources-containers/#meaning-of-cpu) |
-| Autoscaling      | Enables Horizontal Pod Austocaling as described [here <FiExternalLink/>](https://kubernetes.io/tasks/run-application/horizontal-pod-autoscale/).                       |
-| CPU Target       | Only when autoscaling is enabled. Average CPU utilization that triggers the scaling.                                                                                        |
-| Memory Target    | Only when autoscaling is enabled. Average memory utilization that triggers the scaling.                                                                                     |
-| Replica Min      | Only when autoscaling is enabled. Min amount of replicas to be achieved.                                                                                                    |
-| Replica Max      | Only when autoscaling is enabled. Max amount of replicas to be achieved.                                                                                                    |
-| Replicas Desired | Only when autoscaling is enabled. The number of replicas that the service initially has.                                                                                    |
-
-### Cloud resources
-
-Sleakops doesn't generate any resources in your provider when you create a service but you should take into account that the resource set you've defined come from the nodes of the Cluster, so these resources like RAM and Cores are consumed from the EC2 instance.
+- **Web Service:** Choose this if you need your application or service to be available 24/7 to respond to HTTP requests.
+- **Worker:** Use this for background processing tasks, such as message queues or data pipelines, with no direct HTTP interaction.
+- **CronJob:** Ideal for recurring maintenance or reporting tasks scheduled at specific times.
+- **Job:** Suitable for one-time or on-demand tasks (e.g., manual database migrations).
+- **Hook:** Perfect if you want to automate certain actions (like database migrations or analytics) on every deployment.

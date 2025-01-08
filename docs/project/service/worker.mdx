@@ -1,0 +1,84 @@
+---
+sidebar_position: 2
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Worker
+
+
+**Workers** are background processes that don’t directly respond to HTTP requests. Instead, they focus on internal tasks like data processing, handling queued jobs, or sending email notifications. Similar to Web Services, Workers also run in Kubernetes pods, but they typically operate on event triggers or schedules rather than incoming network requests. For instance, you could have a Worker pod that listens for messages in a queue (e.g., to generate reports) and processes these tasks without any user interaction.
+
+
+## FAQs 
+
+<details>
+<summary>
+### How do I set up auto-scaling for my Worker?
+</summary>
+To enable auto-scaling, you can set the **Autoscaling** option to enabled and define the **Memory Target** and **CPU Target**. These targets determine the resource usage thresholds that trigger auto-scaling. You must also specify the minimum and maximum number of replicas to be maintained when auto-scaling is enabled.
+</details>
+
+<details>
+<summary>
+### How can I configure memory and CPU settings for my Worker?
+</summary>
+You can configure the *CPU Min* and *CPU Max* values to set the minimum and maximum CPU resources each instance in your cluster can use. Similarly, you set **Memory Min** and **Memory Max** for memory allocation per instance.
+</details>
+
+
+
+## **Lets add a Worker for your Project**
+### 1. Navigate to create Worker section
+Into the _Left Pane_, access _Executions_. Then select the _Worker_ tab  and then, at the top right corner, click on the _Create_ button.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/executions/worker/list.png"
+    alt="worker-list"
+/>
+</Zoom>
+
+### 2. Select a Project and a Name for the worker
+Start with the basic information, complete these attributes and click Next to continue.
+
+| **Attribute** | **Description** |
+| --- | --- |
+| **Name** | Identify your worker. |
+| **Project** | Select between the existent projects.  |
+| **Command** | The command that runs the worker. |
+
+Once those attributes are completed, click the _Next_ button to move forward. 
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/executions/worker/create-1.png"
+    alt="worker-create-1"
+/>
+</Zoom>
+
+### 3. Finish the set up
+This step outlines the key attributes for configuring the resources of a Worker in SleakOps, allowing for flexible management of CPU, memory, and scaling behaviors.
+
+| **Attribute** | **Description** |
+| --- | --- |
+| **CPU Min** | The minimum amount of CPU resources allocated for each instance in the cluster. This ensures that each instance always has this amount of CPU available. |
+| **CPU Max** | The maximum CPU resources that each instance in the cluster can use. This cap helps prevent any single instance from consuming too much CPU.  |
+| **Memory Min** | The minimum amount of memory allocated for each instance in the cluster. This guarantees that the instance has enough memory to operate efficiently.  |
+| **Memory Max** | The maximum amount of memory each instance in the cluster can utilize. It limits the memory usage to prevent any single instance from overconsuming resources.  |
+| **Autoscaling** | Toggle to enable or disable auto-scaling. When enabled, it allows the service to adjust the number of replicas based on demand and resource usage.  |
+| **CPU Target** | The CPU usage percentage target that initiates auto-scaling. If usage exceeds this target, additional replicas may be deployed to balance the load.  |
+| **Memory Target** | The memory usage percentage target that triggers auto-scaling adjustments. When instances exceed this target, the system scales up to accommodate demand. |
+| **Replicas Min** | The minimum number of replicas to maintain when auto-scaling is active. A minimum of 2 replicas ensures high availability and prevents downtime.|
+| **Replicas Max** | The maximum number of replicas that can be deployed when auto-scaling is enabled. It sets an upper limit on the number of instances to avoid over-provisioning.  |
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/executions/worker/create-2.png"
+    alt="worker-create-2"
+/>
+</Zoom>
+
+Submit to create and Deploy your worker.
