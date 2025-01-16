@@ -1,71 +1,74 @@
+---
+sidebar_position: 3
+---
+
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
 
-# Hooks
+# Cronjobs
 
 
-**Hooks** are tasks triggered by specific events during a deployment. For example, you can use Hooks to automatically run a database migration or collect statistics whenever a new version of your application is deployed. These tasks also run in pods, making it straightforward to troubleshoot by examining the logs.
-
-If you want to learn more about hooks, [click here](https://helm.sh/docs/topics/charts_hooks/).
+**CronJobs** are scheduled tasks that run at regular intervals (e.g., daily at 3 a.m., weekly, or monthly). They automate repetitive tasks such as backups, log cleanup, or periodic updates. Like Jobs, they also run in pods, which makes it easy to view their logs.
 
 
 ## FAQs 
 
-
 <details>
 <summary>
-### How can I configure memory and CPU settings for my Hook?
+### How can I configure memory and CPU settings for my Cronjob?
 </summary>
 You can configure the *CPU Min* and *CPU Max* values to set the minimum and maximum CPU resources each instance in your cluster can use. Similarly, you set **Memory Min** and **Memory Max** for memory allocation per instance.
 </details>
 
 
-## **Lets add a Hook for your Project**
-### 1. Navigate to create Hook section
-Into the _Left Pane_, access _Executions_. Then select the _Hook_ tab  and then, at the top right corner, click on the _Create_ button.
+
+
+## **Lets add a Cronjob for your Project**
+### 1. Navigate to create Cronjob section
+Into the _Left Pane_, access _Workloads_. Then select the _Cronjob_ tab  and then, at the top right corner, click on the _Create_ button.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
-    src="/img/executions/hook/list.png"
-    alt="hook-list"
+    src="/img/workloads/cronjob/list.png"
+    alt="cronjob-list"
 />
 </Zoom>
 
-### 2. Select a Project and a Name for the hook
+### 2. Select a Project and a Name for the cronjob
 Start with the basic information, complete these attributes and click Next to continue.
 
 | **Attribute** | **Description** |
 | --- | --- |
-| **Name** | Identify your web service. |
+| **Name** | Identify your cronjob. |
 | **Project** | Select between the existent projects.  |
-| **Command** | The command that runs the service. |
+| **Command** | The command that runs the cronjob. |
 
 Once those attributes are completed, click the _Next_ button to move forward. 
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
-    src="/img/executions/hook/create-1.png"
-    alt="hook-create-1"
+    src="/img/workloads/cronjob/create-1.png"
+    alt="cronjob-create-1"
 />
 </Zoom>
 
-### 3. Define the deploy event
-Select when your hook will execute and click _Next_.
+### 3. Define the periodicity
+Select how will be your connection and click on _Next_. 
 
 | **Attribute** | **Description** |
 | --- | --- |
-| **Event** | Define when execute the hook. [Check available events](https://helm.sh/docs/topics/charts_hooks/#the-available-hooks)  |
+| **Crontab** | Cron expresion to determine the schedule to execute the cronjob  |
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
-    src="/img/executions/hook/create-2.png"
-    alt="hook-create-2"
+    src="/img/workloads/cronjob/create-2.png"
+    alt="cronjob-create-2"
 />
 </Zoom>
 
 ### 5. Finish the set up
-This step outlines the key attributes for configuring the resources of a Hook in SleakOps, allowing for flexible management of CPU, memory, and scaling behaviors.
+This step outlines the key attributes for configuring the resources of a Cronjob in SleakOps, allowing for flexible management of CPU, memory, and scaling behaviors.
 
 | **Attribute** | **Description** |
 | --- | --- |
@@ -76,9 +79,9 @@ This step outlines the key attributes for configuring the resources of a Hook in
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
-    src="/img/executions/hook/create-3.png"
-    alt="hook-create-3"
+    src="/img/workloads/cronjob/create-3.png"
+    alt="cronjob-create-3"
 />
 </Zoom>
 
-Submit to create and Deploy your hook.
+Submit to create and Deploy your cronjob.
