@@ -1,0 +1,505 @@
+fragment DocParts on Doc {
+  __typename
+  title
+  description
+  tags
+  body
+}
+
+fragment PostParts on Post {
+  __typename
+  title
+  authors {
+    __typename
+    name
+    title
+    url
+    image_url
+  }
+  date
+  tags
+  body
+}
+
+fragment HomepageParts on Homepage {
+  __typename
+  _warning
+  label
+  title
+  description
+  blocks {
+    __typename
+    ... on HomepageBlocksHero {
+      title
+      subtitle
+      document {
+        ... on Doc {
+          __typename
+          title
+          description
+          tags
+          body
+        }
+        ... on Document {
+          _sys {
+            filename
+            basename
+            hasReferences
+            breadcrumbs
+            path
+            relativePath
+            extension
+          }
+          id
+        }
+      }
+      documentLabel
+    }
+    ... on HomepageBlocksFeatures {
+      items {
+        __typename
+        title
+        description
+        image
+      }
+    }
+    ... on HomepageBlocksYouTubeEmbed {
+      title
+      url
+      caption
+    }
+  }
+}
+
+fragment PagesParts on Pages {
+  __typename
+  title
+  description
+  body
+}
+
+fragment SidebarParts on Sidebar {
+  __typename
+  _warning
+  label
+  items {
+    __typename
+    ... on SidebarItemsCategory {
+      title
+      link
+      docLink {
+        ... on Doc {
+          __typename
+          title
+          description
+          tags
+          body
+        }
+        ... on Document {
+          _sys {
+            filename
+            basename
+            hasReferences
+            breadcrumbs
+            path
+            relativePath
+            extension
+          }
+          id
+        }
+      }
+      items {
+        __typename
+        ... on SidebarItemsCategoryItemsCategory {
+          title
+          link
+          docLink {
+            ... on Doc {
+              __typename
+              title
+              description
+              tags
+              body
+            }
+            ... on Document {
+              _sys {
+                filename
+                basename
+                hasReferences
+                breadcrumbs
+                path
+                relativePath
+                extension
+              }
+              id
+            }
+          }
+          items {
+            __typename
+            ... on SidebarItemsCategoryItemsCategoryItemsCategory {
+              title
+              link
+              docLink {
+                ... on Doc {
+                  __typename
+                  title
+                  description
+                  tags
+                  body
+                }
+                ... on Document {
+                  _sys {
+                    filename
+                    basename
+                    hasReferences
+                    breadcrumbs
+                    path
+                    relativePath
+                    extension
+                  }
+                  id
+                }
+              }
+              items {
+                __typename
+                ... on SidebarItemsCategoryItemsCategoryItemsCategoryItemsDoc {
+                  document {
+                    ... on Doc {
+                      __typename
+                      title
+                      description
+                      tags
+                      body
+                    }
+                    ... on Document {
+                      _sys {
+                        filename
+                        basename
+                        hasReferences
+                        breadcrumbs
+                        path
+                        relativePath
+                        extension
+                      }
+                      id
+                    }
+                  }
+                  label
+                }
+                ... on SidebarItemsCategoryItemsCategoryItemsCategoryItemsLink {
+                  title
+                  href
+                }
+              }
+            }
+            ... on SidebarItemsCategoryItemsCategoryItemsDoc {
+              document {
+                ... on Doc {
+                  __typename
+                  title
+                  description
+                  tags
+                  body
+                }
+                ... on Document {
+                  _sys {
+                    filename
+                    basename
+                    hasReferences
+                    breadcrumbs
+                    path
+                    relativePath
+                    extension
+                  }
+                  id
+                }
+              }
+              label
+            }
+            ... on SidebarItemsCategoryItemsCategoryItemsLink {
+              title
+              href
+            }
+          }
+        }
+        ... on SidebarItemsCategoryItemsDoc {
+          document {
+            ... on Doc {
+              __typename
+              title
+              description
+              tags
+              body
+            }
+            ... on Document {
+              _sys {
+                filename
+                basename
+                hasReferences
+                breadcrumbs
+                path
+                relativePath
+                extension
+              }
+              id
+            }
+          }
+          label
+        }
+        ... on SidebarItemsCategoryItemsLink {
+          title
+          href
+        }
+      }
+    }
+    ... on SidebarItemsDoc {
+      document {
+        ... on Doc {
+          __typename
+          title
+          description
+          tags
+          body
+        }
+        ... on Document {
+          _sys {
+            filename
+            basename
+            hasReferences
+            breadcrumbs
+            path
+            relativePath
+            extension
+          }
+          id
+        }
+      }
+      label
+    }
+    ... on SidebarItemsLink {
+      title
+      href
+    }
+  }
+}
+
+fragment SettingsParts on Settings {
+  __typename
+  _warning
+  label
+  logo {
+    __typename
+    alt
+    src
+  }
+  title
+  tagline
+  url
+  navbar {
+    __typename
+    label
+    link
+    docLink {
+      ... on Doc {
+        __typename
+        title
+        description
+        tags
+        body
+      }
+      ... on Document {
+        _sys {
+          filename
+          basename
+          hasReferences
+          breadcrumbs
+          path
+          relativePath
+          extension
+        }
+        id
+      }
+    }
+    pageLink {
+      ... on Pages {
+        __typename
+        title
+        description
+        body
+      }
+      ... on Document {
+        _sys {
+          filename
+          basename
+          hasReferences
+          breadcrumbs
+          path
+          relativePath
+          extension
+        }
+        id
+      }
+    }
+    externalLink
+    position
+    items {
+      __typename
+      label
+      link
+      docLink {
+        ... on Doc {
+          __typename
+          title
+          description
+          tags
+          body
+        }
+        ... on Document {
+          _sys {
+            filename
+            basename
+            hasReferences
+            breadcrumbs
+            path
+            relativePath
+            extension
+          }
+          id
+        }
+      }
+      pageLink {
+        ... on Pages {
+          __typename
+          title
+          description
+          body
+        }
+        ... on Document {
+          _sys {
+            filename
+            basename
+            hasReferences
+            breadcrumbs
+            path
+            relativePath
+            extension
+          }
+          id
+        }
+      }
+      externalLink
+      position
+      items {
+        __typename
+        label
+        link
+        docLink {
+          ... on Doc {
+            __typename
+            title
+            description
+            tags
+            body
+          }
+          ... on Document {
+            _sys {
+              filename
+              basename
+              hasReferences
+              breadcrumbs
+              path
+              relativePath
+              extension
+            }
+            id
+          }
+        }
+        pageLink {
+          ... on Pages {
+            __typename
+            title
+            description
+            body
+          }
+          ... on Document {
+            _sys {
+              filename
+              basename
+              hasReferences
+              breadcrumbs
+              path
+              relativePath
+              extension
+            }
+            id
+          }
+        }
+        externalLink
+        position
+      }
+    }
+  }
+  footer {
+    __typename
+    style
+    links {
+      __typename
+      title
+      items {
+        __typename
+        ... on SettingsFooterLinksItemsInternal {
+          label
+          to {
+            ... on Doc {
+              __typename
+              title
+              description
+              tags
+              body
+            }
+            ... on Pages {
+              __typename
+              title
+              description
+              body
+            }
+            ... on Post {
+              __typename
+              title
+              authors {
+                __typename
+                name
+                title
+                url
+                image_url
+              }
+              date
+              tags
+              body
+            }
+            ... on Document {
+              _sys {
+                filename
+                basename
+                hasReferences
+                breadcrumbs
+                path
+                relativePath
+                extension
+              }
+              id
+            }
+          }
+        }
+        ... on SettingsFooterLinksItemsBlog {
+          label
+        }
+        ... on SettingsFooterLinksItemsExternal {
+          label
+          href
+        }
+      }
+    }
+    copyright
+  }
+}
