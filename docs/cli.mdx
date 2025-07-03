@@ -110,22 +110,26 @@ stages:
   - deploy
 
 build:
-  stage: deploy
+  stage: build
   script:
-      - apt-get update -qy
-      - apt-get install -y python3-pip
-      - pip3 install sleakops
-      - sleakops build -p core -b main -w
+    - apt-get update -qy
+    - apt-get install -y python3-pip
+    - pip3 install sleakops
+    - sleakops build -p core -b main -w
+  rules:
+    - if: '$CI_COMMIT_BRANCH == main'
 
 deploy:
   stage: deploy
   needs:
     - build
   script:
-      - apt-get update -qy
-      - apt-get install -y python3-pip
-      - pip3 install sleakops
-      - sleakops deploy -p core -e main -w
+    - apt-get update -qy
+    - apt-get install -y python3-pip
+    - pip3 install sleakops
+    - sleakops deploy -p core -e prod -w
+  rules:
+    - if: '$CI_COMMIT_BRANCH == main'
 ```
 </code>
 </TabItem>
@@ -135,15 +139,16 @@ deploy:
 image: python:3.9
 
 pipelines:
-  default:
-    - step:
-      name: Deploy
-      script:
-      - apt-get update -qy
-      - apt-get install -y python3-pip
-      - pip3 install sleakops
-      - sleakops build -p core -b main -w
-      - sleakops deploy -p core -e main -w
+  branches:
+    master:
+      - step:
+          name: Deploy
+          script:
+            - apt-get update -qy
+            - apt-get install -y python3-pip
+            - pip3 install sleakops
+            - sleakops build -p core -b main -w
+            - sleakops deploy -p core -e main -w
 ```
 </code>
 </TabItem>
