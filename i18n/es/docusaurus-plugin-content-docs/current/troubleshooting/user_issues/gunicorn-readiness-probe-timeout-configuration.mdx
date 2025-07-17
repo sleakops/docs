@@ -1,0 +1,205 @@
+---
+sidebar_position: 3
+title: "Configuración de Timeout de Gunicorn con Probes de Readiness de Kubernetes"
+description: "Cómo configurar los timeouts de Gunicorn sin causar fallos en las probes de readiness en SleakOps"
+date: "2025-01-15"
+category: "workload"
+tags: ["gunicorn", "timeout", "readiness-probe", "python", "healthcheck"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Configuración de Timeout de Gunicorn con Probes de Readiness de Kubernetes
+
+**Fecha:** 15 de enero de 2025  
+**Categoría:** Workload  
+**Etiquetas:** Gunicorn, Timeout, Readiness Probe, Python, Healthcheck
+
+## Descripción del Problema
+
+**Contexto:** Al configurar Gunicorn con un timeout personalizado en SleakOps, los pods no inician correctamente debido a fallos en las probes de readiness, aunque la aplicación funciona bien sin la configuración de timeout.
+
+**Síntomas Observados:**
+
+- Los pods aparecen como "No Listos" cuando se configura el timeout de Gunicorn
+- Los fallos en la probe de readiness impiden que los pods reciban tráfico
+- La aplicación funciona correctamente cuando se elimina el parámetro de timeout
+- Las solicitudes API tardan más de lo esperado (20-30 segundos)
+
+**Configuración Relevante:**
+
+- Comando Gunicorn con timeout: `gunicorn --bind 0.0.0.0:8000 --timeout 10 backend:app`
+- Framework: Python con servidor WSGI Gunicorn
+- Despliegue: Pods de Kubernetes en la plataforma SleakOps
+- Timeout deseado: 5-10 segundos para solicitudes API
+
+**Condiciones de Error:**
+
+- Los pods fallan las comprobaciones de readiness cuando se añade el parámetro `--timeout` a Gunicorn
+- El problema ocurre durante el inicio del pod y las comprobaciones de salud
+- El problema persiste hasta que se elimina la configuración de timeout
+
+## Solución Detallada
+
+<TroubleshootingItem id="understanding-conflict" summary="Entendiendo el conflicto entre Gunicorn y Kubernetes">
+
+El problema ocurre porque:
+
+1. **El timeout de Gunicorn** termina los procesos worker que tardan más del tiempo especificado
+2. **La probe de readiness de Kubernetes** espera respuestas consistentes del endpoint de salud
+3. Cuando Gunicorn termina workers por timeout, las comprobaciones de salud pueden fallar intermitentemente
+4. Las probes de readiness fallidas impiden que el pod sea marcado como "Listo"
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="readiness-probe-configuration" summary="Configurar los ajustes de la probe de readiness">
+
+En SleakOps, ajusta la configuración de la probe de readiness:
+
+1. Ve a la configuración de tu **Workload**
+2. Edita los ajustes de **Healthcheck**
+3. Haz clic en **Opciones Avanzadas**
+4. Configura los siguientes parámetros:
+
+```yaml
+readinessProbe:
+  httpGet:
+    path: /health # Tu endpoint de salud
+    port: 8000
+  initialDelaySeconds: 30 # Esperar antes de la primera comprobación
+  periodSeconds: 10 # Comprobar cada 10 segundos
+  timeoutSeconds: 5 # Timeout para cada comprobación
+  successThreshold: 1 # Éxitos consecutivos necesarios
+  failureThreshold: 5 # Fallos consecutivos antes de marcar como fallido
+```
+
+**Ajustes clave:**
+
+- Incrementa `failureThreshold` para permitir más tolerancia
+- Incrementa `timeoutSeconds` para igualar o superar el timeout de Gunicorn
+- Ajusta `periodSeconds` para reducir la frecuencia de comprobaciones
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="gunicorn-optimization" summary="Optimizar la configuración de Gunicorn">
+
+Para mejor compatibilidad con Kubernetes, usa esta configuración de Gunicorn:
+
+```bash
+# Comando recomendado para Gunicorn
+newrelic-admin run-program gunicorn \
+  --bind 0.0.0.0:8000 \
+  --limit-request-line 0 \
+  --max-requests 3000 \
+  --max-requests-jitter 200 \
+  --timeout 30 \
+  --keep-alive 5 \
+  --worker-class sync \
+  --workers 4 \
+  backend:app
+```
+
+**Parámetros importantes:**
+
+- `--timeout 30`: Establece un valor mayor que el tiempo esperado de la solicitud
+- `--keep-alive 5`: Mantiene conexiones para las comprobaciones de salud
+- `--workers 4`: Múltiples workers para redundancia
+- `--worker-class sync`: Usa workers sincronizados para comportamiento predecible
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="load-balancer-timeout" summary="Configurar timeout del balanceador de carga">
+
+Configura el timeout del balanceador de carga para manejar solicitudes largas:
+
+1. En tu configuración de **Ingress**
+2. Añade la siguiente anotación:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=60
+    alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=30
+spec:
+  # Tu configuración de ingress
+```
+
+**Jerarquía de timeouts:**
+
+1. Timeout de Gunicorn: 30 segundos (timeout de worker)
+2. Timeout del balanceador de carga: 60 segundos (timeout de conexión)
+3. Timeout de la probe de readiness: 5 segundos (timeout de comprobación de salud)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="debugging-steps" summary="Depuración y monitoreo">
+
+Para depurar problemas de timeout:
+
+1. **Revisar logs del pod:**
+
+   ```bash
+   kubectl logs -f deployment/your-app-name
+   ```
+
+2. **Monitorear la probe de readiness:**
+
+   ```bash
+   kubectl describe pod your-pod-name
+   ```
+
+3. **Probar el endpoint de salud directamente:**
+
+   ```bash
+   kubectl port-forward pod/your-pod-name 8000:8000
+   curl -v http://localhost:8000/health
+   ```
+
+4. **Deshabilitar temporalmente la probe de readiness:**
+   - Edita el deployment usando Lens o kubectl
+   - Elimina temporalmente la sección `readinessProbe`
+   - Prueba si la aplicación responde correctamente
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="performance-optimization" summary="Optimizar solicitudes lentas de la API">
+
+Para abordar la causa raíz de las solicitudes lentas:
+
+1. **Identificar endpoints lentos:**
+
+   - Usa herramientas APM (New Relic, como en tu configuración)
+   - Añade logging para medir duración de solicitudes
+   - Perfila consultas a la base de datos
+
+2. **Optimización de base de datos:**
+
+   ```python
+   # Añadir pool de conexiones
+   from sqlalchemy import create_engine
+   engine = create_engine(
+       'postgresql://...',
+       pool_size=10,
+       max_overflow=20,
+       pool_timeout=30
+   )
+   ```
+
+3. **Procesamiento asíncrono:**
+
+   - Mover tareas de larga duración a jobs en segundo plano
+   - Usar Celery o colas similares
+   - Retornar respuesta inmediata con ID de job
+
+4. **Caching:**
+   - Implementar caching con Redis para consultas frecuentes
+   - Usar cabeceras HTTP de cache
+   - Cachear cálculos costosos
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2025 basada en una consulta real de usuario._

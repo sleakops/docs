@@ -1,0 +1,184 @@
+---
+sidebar_position: 3
+title: "Environment Variables Not Working During Platform Migration"
+description: "Solution for environment variables not reaching applications during SleakOps maintenance migrations"
+date: "2024-04-24"
+category: "project"
+tags:
+  [
+    "environment-variables",
+    "secrets",
+    "migration",
+    "deployment",
+    "troubleshooting",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Environment Variables Not Working During Platform Migration
+
+**Date:** April 24, 2024  
+**Category:** Project  
+**Tags:** Environment Variables, Secrets, Migration, Deployment, Troubleshooting
+
+## Problem Description
+
+**Context:** During SleakOps platform maintenance migrations, environment variables and secrets may temporarily become unavailable to applications, causing deployment and runtime issues.
+
+**Observed Symptoms:**
+
+- Environment variables not being sent to applications after build/deploy
+- Variables showing as undefined or empty in application logs
+- Error when trying to edit variables in the SleakOps platform
+- Applications failing to connect to APIs or external services
+- Variables that were working before suddenly stop functioning
+
+**Relevant Configuration:**
+
+- Platform: SleakOps
+- Affected: Environment variables and secrets
+- Timing: During maintenance migrations
+- Impact: Applications cannot access configuration
+
+**Error Conditions:**
+
+- Occurs during platform maintenance windows
+- Variables become inaccessible after new builds/deploys
+- Edit functionality disabled temporarily
+- Applications may point to wrong environments (QA instead of production)
+
+## Detailed Solution
+
+<TroubleshootingItem id="understand-migration-impact" summary="Understanding migration impact on environment variables">
+
+During SleakOps maintenance migrations:
+
+1. **Secrets backup process**: The platform creates backups of secrets in your AWS account
+2. **Temporary edit disable**: Variable editing is disabled during migration
+3. **Existing secrets remain**: Variables still exist in the cluster but may not propagate to new deployments
+4. **Build/deploy impact**: New builds may not receive updated environment variables
+
+**Important**: Avoid triggering new builds/deploys during active migrations.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-workaround" summary="Immediate workaround strategies">
+
+If you need immediate functionality during migration:
+
+1. **Application-level configuration**: Temporarily hardcode critical values in your application
+2. **Environment switching**: Point development/staging to production APIs as temporary measure
+3. **Avoid new deployments**: Don't trigger builds/deploys until migration completes
+4. **Cache existing deployments**: Use currently running instances that have the variables
+
+```javascript
+// Example: Temporary hardcoded fallback
+const API_URL = process.env.API_URL || "https://api.production.example.com";
+const API_KEY = process.env.API_KEY || "fallback-key-for-emergency";
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verify-variables-post-migration" summary="Verifying variables after migration completion">
+
+Once migration is complete:
+
+1. **Check variable availability**: Verify all environment variables are accessible
+2. **Test in build process**: Trigger a test build to confirm variables are injected
+3. **Validate application startup**: Ensure applications receive all required configuration
+4. **Monitor logs**: Check application logs for any missing variables
+
+```bash
+# Example: Debug environment variables in your application
+console.log('Environment variables check:');
+console.log('API_URL:', process.env.API_URL);
+console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'MISSING');
+console.log('SECRET_KEY:', process.env.SECRET_KEY ? 'SET' : 'MISSING');
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="edit-functionality-restoration" summary="Restoring edit functionality">
+
+After migration completion:
+
+1. **Edit access restored**: Variable editing functionality will be re-enabled
+2. **Update if needed**: Make any necessary changes to environment variables
+3. **Deploy with new variables**: Trigger new deployment to apply any updates
+4. **Verify propagation**: Confirm variables reach all application instances
+
+**Steps to verify edit functionality**:
+
+1. Go to your project's environment variables section
+2. Try editing a non-critical variable
+3. Save changes and deploy
+4. Verify the change is reflected in your application
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-best-practices" summary="Best practices to minimize impact">
+
+To minimize impact during future migrations:
+
+1. **Monitor maintenance announcements**: Stay informed about planned migrations
+2. **Implement graceful fallbacks**: Design applications to handle missing variables
+3. **Use configuration management**: Implement proper config management patterns
+4. **Schedule deployments**: Avoid deployments during known maintenance windows
+5. **Test variable dependencies**: Regularly test what happens when variables are missing
+
+```javascript
+// Example: Robust configuration handling
+class Config {
+  constructor() {
+    this.apiUrl = this.getRequiredEnv("API_URL");
+    this.dbUrl = this.getRequiredEnv("DATABASE_URL");
+    this.secretKey = this.getRequiredEnv("SECRET_KEY");
+  }
+
+  getRequiredEnv(key) {
+    const value = process.env[key];
+    if (!value) {
+      console.error(`Missing required environment variable: ${key}`);
+      // Implement fallback or graceful degradation
+      return this.getFallbackValue(key);
+    }
+    return value;
+  }
+
+  getFallbackValue(key) {
+    // Implement appropriate fallback logic
+    const fallbacks = {
+      API_URL: "https://api.fallback.example.com",
+      // Add other fallbacks as needed
+    };
+    return fallbacks[key] || null;
+  }
+}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="communication-during-issues" summary="Communication and support during migrations">
+
+When experiencing variable issues during migrations:
+
+1. **Contact support immediately**: Report the issue with specific details
+2. **Provide context**: Include which variables are affected and when the issue started
+3. **Avoid multiple deployments**: Don't repeatedly try to deploy until issue is resolved
+4. **Document workarounds**: Keep track of any temporary fixes applied
+5. **Wait for confirmation**: Get confirmation that migration is complete before resuming normal operations
+
+**Information to include in support requests**:
+
+- Project name and environment affected
+- Specific variables that aren't working
+- When the issue was first noticed
+- Any error messages from the platform
+- Screenshots of variable configuration if helpful
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

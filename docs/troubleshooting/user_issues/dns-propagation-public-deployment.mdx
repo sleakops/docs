@@ -1,0 +1,202 @@
+---
+sidebar_position: 3
+title: "DNS Resolution Issues for Public Deployments"
+description: "Troubleshooting DNS propagation and resolution problems for public deployments in SleakOps"
+date: "2024-12-10"
+category: "project"
+tags: ["dns", "deployment", "public", "domain", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# DNS Resolution Issues for Public Deployments
+
+**Date:** December 10, 2024  
+**Category:** Project  
+**Tags:** DNS, Deployment, Public, Domain, Troubleshooting
+
+## Problem Description
+
+**Context:** User creates a public deployment in SleakOps but the assigned domain is not resolving properly, preventing access to the deployed application.
+
+**Observed Symptoms:**
+
+- Public deployment created successfully in SleakOps
+- Domain URL is generated (e.g., https://site.develop.velo.la)
+- DNS resolution fails when accessing the URL
+- Application is not accessible via the public domain
+
+**Relevant Configuration:**
+
+- Deployment type: Public deployment
+- Domain format: `https://[app].[environment].[domain].la`
+- DNS provider: Managed by SleakOps
+- SSL/TLS: HTTPS enabled
+
+**Error Conditions:**
+
+- DNS queries return no results or incorrect IP addresses
+- Browser shows "This site can't be reached" or similar errors
+- DNS propagation may still be in progress
+- Issue occurs immediately after deployment creation
+
+## Detailed Solution
+
+<TroubleshootingItem id="dns-propagation-wait" summary="Understanding DNS propagation delays">
+
+DNS changes can take time to propagate across the internet:
+
+- **Local DNS cache**: 5-15 minutes
+- **ISP DNS servers**: 30 minutes to 2 hours
+- **Global propagation**: Up to 24-48 hours (rare)
+- **Typical resolution time**: 15-30 minutes
+
+This is normal behavior and not a platform issue.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verify-dns-status" summary="How to check DNS propagation status">
+
+Use these tools to verify DNS propagation:
+
+**Online DNS checkers:**
+
+```bash
+# Check from multiple locations
+https://dnschecker.org/
+https://www.whatsmydns.net/
+```
+
+**Command line tools:**
+
+```bash
+# Check DNS resolution
+nslookup site.develop.velo.la
+
+# Check from different DNS servers
+nslookup site.develop.velo.la 8.8.8.8
+nslookup site.develop.velo.la 1.1.1.1
+```
+
+**Expected result:**
+
+```
+Name:    site.develop.velo.la
+Address: [IP_ADDRESS]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="flush-dns-cache" summary="Clear local DNS cache">
+
+If DNS has propagated but you still can't access the site:
+
+**Windows:**
+
+```cmd
+ipconfig /flushdns
+```
+
+**macOS:**
+
+```bash
+sudo dscacheutil -flushcache
+sudo killall -HUP mDNSResponder
+```
+
+**Linux:**
+
+```bash
+sudo systemctl restart systemd-resolved
+# or
+sudo service nscd restart
+```
+
+**Browser cache:**
+
+- Chrome: Settings → Privacy → Clear browsing data → Cached images and files
+- Firefox: Settings → Privacy & Security → Clear Data
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verify-deployment-status" summary="Verify deployment is running">
+
+Ensure your deployment is actually running:
+
+1. **Check deployment status in SleakOps dashboard:**
+
+   - Go to your project
+   - Verify deployment shows as "Running"
+   - Check for any error messages
+
+2. **Verify application logs:**
+
+   ```bash
+   # Check if application is starting correctly
+   kubectl logs -f deployment/[your-app-name]
+   ```
+
+3. **Check service configuration:**
+   - Ensure the service is exposed correctly
+   - Verify port configuration matches your application
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-access-methods" summary="Alternative ways to test while DNS propagates">
+
+While waiting for DNS propagation:
+
+**1. Use direct IP access:**
+
+```bash
+# Get the load balancer IP
+kubectl get services
+# Access via IP: http://[EXTERNAL-IP]
+```
+
+**2. Modify local hosts file:**
+
+```bash
+# Add to /etc/hosts (Linux/Mac) or C:\Windows\System32\drivers\etc\hosts (Windows)
+[EXTERNAL-IP] site.develop.velo.la
+```
+
+**3. Use kubectl port-forward:**
+
+```bash
+kubectl port-forward service/[service-name] 8080:80
+# Access via http://localhost:8080
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Additional troubleshooting steps">
+
+If DNS issues persist after 2 hours:
+
+**1. Check domain configuration:**
+
+- Verify the domain is correctly configured in SleakOps
+- Ensure no typos in the domain name
+- Check if custom domain settings are correct
+
+**2. Verify SSL certificate:**
+
+```bash
+# Check SSL certificate status
+openssl s_client -connect site.develop.velo.la:443 -servername site.develop.velo.la
+```
+
+**3. Contact support:**
+If the issue persists beyond normal propagation times, contact SleakOps support with:
+
+- Deployment name and project
+- Expected domain URL
+- DNS checker results
+- Error messages or screenshots
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 10, 2024 based on a real user query._

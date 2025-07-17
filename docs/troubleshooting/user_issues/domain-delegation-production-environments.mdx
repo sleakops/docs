@@ -1,0 +1,206 @@
+---
+sidebar_position: 3
+title: "Domain Delegation Issues in Production Environments"
+description: "Solution for domain delegation problems in production environments"
+date: "2024-12-20"
+category: "project"
+tags: ["domain", "dns", "delegation", "production", "environment"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Domain Delegation Issues in Production Environments
+
+**Date:** December 20, 2024  
+**Category:** Project  
+**Tags:** Domain, DNS, Delegation, Production, Environment
+
+## Problem Description
+
+**Context:** Users experience issues with domain delegation when configuring production environments in SleakOps, where main domains are not being properly delegated despite correct configuration.
+
+**Observed Symptoms:**
+
+- Main domains are not delegated in production environments
+- Domain delegation appears to be configured but doesn't take effect
+- DNS propagation may be delayed or incomplete
+- Standard DNS record management may not be sufficient for full domain delegation
+
+**Relevant Configuration:**
+
+- Environment type: Production
+- Domain type: Main/root domain (not subdomain)
+- DNS provider: Various domain registrars
+- Configuration method: Standard DNS record management
+
+**Error Conditions:**
+
+- Domain delegation fails despite correct DNS configuration
+- Issue occurs specifically with main domains in production
+- Problem may be related to domain registrar-specific delegation processes
+- DNS propagation delays can mask the actual issue
+
+## Detailed Solution
+
+<TroubleshootingItem id="dns-propagation-check" summary="Verify DNS propagation status">
+
+First, check if the issue is related to DNS propagation delays:
+
+1. Use online DNS propagation checkers:
+
+   - whatsmydns.net
+   - dnschecker.org
+   - dns-lookup.com
+
+2. Check from different locations and DNS servers
+3. DNS propagation can take up to 48 hours for full global propagation
+4. Use `dig` or `nslookup` commands to verify delegation:
+
+```bash
+# Check NS records for your domain
+dig NS yourdomain.com
+
+# Check from specific DNS servers
+dig @8.8.8.8 NS yourdomain.com
+dig @1.1.1.1 NS yourdomain.com
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="registrar-delegation" summary="Configure domain delegation at registrar level">
+
+Many domain registrars require domain delegation to be configured through a separate process:
+
+**For complete domain delegation:**
+
+1. **Log into your domain registrar's control panel**
+2. **Look for domain delegation options:**
+
+   - "Domain Delegation"
+   - "Change Name Servers"
+   - "DNS Management" → "Delegate Domain"
+   - "Advanced DNS Settings"
+
+3. **Common registrar-specific locations:**
+
+   - **GoDaddy**: Domain Settings → Name Servers → Change
+   - **Namecheap**: Domain List → Manage → Name Servers
+   - **Route53**: Hosted Zones → NS Record Set
+   - **Cloudflare**: DNS → Name Servers
+
+4. **Set the name servers provided by SleakOps**
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-nameservers" summary="Get SleakOps name servers for delegation">
+
+To delegate your domain to SleakOps:
+
+1. **In SleakOps Dashboard:**
+
+   - Go to your **Project Settings**
+   - Navigate to **Domains** section
+   - Find **Name Servers** information
+
+2. **Typical SleakOps name servers format:**
+
+   ```
+   ns1.sleakops.com
+   ns2.sleakops.com
+   ns3.sleakops.com
+   ns4.sleakops.com
+   ```
+
+3. **Copy these name servers exactly as shown**
+4. **Configure them in your domain registrar**
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Verify delegation is working">
+
+After configuring domain delegation:
+
+1. **Wait for propagation** (up to 48 hours)
+
+2. **Verify delegation with dig:**
+
+   ```bash
+   # Should return SleakOps name servers
+   dig NS yourdomain.com
+   ```
+
+3. **Check domain resolution:**
+
+   ```bash
+   # Should resolve to your SleakOps environment
+   dig A yourdomain.com
+   ```
+
+4. **Test in browser:**
+   - Visit your domain directly
+   - Verify SSL certificate is valid
+   - Check that it points to your SleakOps environment
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-issues" summary="Common delegation issues and solutions">
+
+**Issue 1: Mixed DNS Management**
+
+- Problem: Some DNS records managed at registrar, others at SleakOps
+- Solution: Ensure complete delegation - all DNS managed by SleakOps
+
+**Issue 2: Incorrect Name Server Format**
+
+- Problem: Name servers entered with trailing dots or incorrect format
+- Solution: Copy name servers exactly as provided by SleakOps
+
+**Issue 3: Partial Delegation**
+
+- Problem: Only some name servers configured
+- Solution: Configure all provided name servers (typically 2-4)
+
+**Issue 4: Registrar Caching**
+
+- Problem: Registrar caches old DNS settings
+- Solution: Contact registrar support to clear DNS cache
+
+**Issue 5: Domain Lock Status**
+
+- Problem: Domain is locked and prevents delegation changes
+- Solution: Unlock domain in registrar settings before changing name servers
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Advanced troubleshooting steps">
+
+If delegation still doesn't work:
+
+1. **Contact domain registrar support:**
+
+   - Explain you need to delegate the entire domain
+   - Provide SleakOps name servers
+   - Ask about domain-specific delegation procedures
+
+2. **Check domain status:**
+
+   ```bash
+   whois yourdomain.com | grep -i status
+   ```
+
+3. **Verify domain isn't expired or locked**
+
+4. **Check for DNSSEC conflicts:**
+
+   - Disable DNSSEC at registrar if enabled
+   - SleakOps will manage DNSSEC after delegation
+
+5. **Test with subdomain first:**
+   - Create a test subdomain (test.yourdomain.com)
+   - Verify SleakOps can manage subdomains correctly
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 20, 2024 based on a real user query._

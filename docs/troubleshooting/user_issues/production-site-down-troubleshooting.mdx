@@ -1,0 +1,239 @@
+---
+sidebar_position: 1
+title: "Production Site Down - Emergency Troubleshooting"
+description: "Emergency procedures for handling production site outages and deployment issues"
+date: "2025-01-27"
+category: "general"
+tags: ["production", "outage", "deployment", "emergency", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Production Site Down - Emergency Troubleshooting
+
+**Date:** January 27, 2025  
+**Category:** General  
+**Tags:** Production, Outage, Deployment, Emergency, Troubleshooting
+
+## Problem Description
+
+**Context:** Production site experiencing downtime requiring immediate attention and emergency deployment procedures through SleakOps platform.
+
+**Observed Symptoms:**
+
+- Complete site outage ("Se nos cayó el sitio")
+- Site under construction status
+- Urgent production environment issues
+- Need for emergency deployment coordination
+- Multiple team members required for resolution
+
+**Relevant Configuration:**
+
+- Environment: Production
+- Platform: SleakOps with Bitbucket integration
+- Deployment method: Bitbucket pipelines
+- Team coordination: Required for production changes
+
+**Error Conditions:**
+
+- Production site completely down
+- Emergency deployment needed
+- Multiple stakeholders involved in resolution
+- Time-sensitive restoration required
+
+## Detailed Solution
+
+<TroubleshootingItem id="immediate-assessment" summary="Immediate Site Assessment">
+
+When facing a production outage:
+
+1. **Verify the scope of the outage**:
+
+   - Check if it's a complete site failure or partial functionality
+   - Verify DNS resolution and basic connectivity
+   - Check monitoring dashboards for alerts
+
+2. **Gather initial information**:
+
+   - Recent deployments or changes
+   - Error logs from applications
+   - Infrastructure status (pods, services, ingress)
+
+3. **Establish communication**:
+   - Create emergency communication channel
+   - Notify all relevant stakeholders
+   - Document timeline of events
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="emergency-deployment" summary="Emergency Deployment Procedures">
+
+For emergency deployments in SleakOps:
+
+1. **Coordinate with team**:
+
+   ```bash
+   # Before any production deployment, ensure team coordination
+   # Use communication channels to announce deployment
+   ```
+
+2. **Deploy through SleakOps**:
+
+   - Access SleakOps dashboard
+   - Navigate to the affected project
+   - Select the production environment
+   - Choose "Deploy" with the last known good version
+
+3. **Alternative deployment via Bitbucket**:
+
+   ```yaml
+   # If deploying through Bitbucket pipelines
+   # Ensure the pipeline targets the correct environment
+   pipelines:
+     branches:
+       main:
+         - step:
+             name: Emergency Deploy to Production
+             script:
+               - echo "Emergency deployment initiated"
+               -  # Your deployment commands here
+   ```
+
+4. **Monitor deployment progress**:
+   - Watch deployment logs in real-time
+   - Monitor application health checks
+   - Verify service restoration
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="rollback-procedures" summary="Rollback Procedures">
+
+If the emergency deployment doesn't resolve the issue:
+
+1. **Immediate rollback**:
+
+   - In SleakOps: Use "Rollback" feature to previous stable version
+   - Document the rollback decision and timing
+
+2. **Verify rollback success**:
+
+   ```bash
+   # Check application status
+   kubectl get pods -n production
+   kubectl get services -n production
+
+   # Verify application health
+   curl -I https://your-production-site.com
+   ```
+
+3. **Post-rollback actions**:
+   - Confirm site functionality
+   - Notify stakeholders of temporary resolution
+   - Begin root cause analysis
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="team-coordination" summary="Team Coordination During Outages">
+
+Effective coordination during production incidents:
+
+1. **Establish incident commander**:
+
+   - Designate one person to coordinate efforts
+   - All deployment decisions go through this person
+   - Maintain clear communication channels
+
+2. **Role assignments**:
+
+   - **Incident Commander**: Overall coordination
+   - **Technical Lead**: Hands-on troubleshooting
+   - **Communications**: Stakeholder updates
+   - **Documentation**: Timeline and actions taken
+
+3. **Communication protocols**:
+
+   - Use video calls for real-time coordination
+   - Maintain written updates in shared channels
+   - Set regular update intervals (every 15-30 minutes)
+
+4. **Decision making**:
+   - Quick consensus on deployment actions
+   - Clear go/no-go decisions
+   - Document all major decisions with timestamps
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="post-incident" summary="Post-Incident Actions">
+
+After resolving the production outage:
+
+1. **Immediate verification**:
+
+   - Comprehensive functionality testing
+   - Performance monitoring for 1-2 hours
+   - User acceptance verification
+
+2. **Documentation**:
+
+   - Complete incident timeline
+   - Root cause analysis
+   - Actions taken and their outcomes
+   - Lessons learned
+
+3. **Follow-up improvements**:
+
+   - Review deployment procedures
+   - Enhance monitoring and alerting
+   - Update emergency response procedures
+   - Schedule post-mortem meeting
+
+4. **Stakeholder communication**:
+   - Send resolution notification
+   - Provide brief summary of cause and fix
+   - Share timeline for detailed post-mortem
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-measures" summary="Prevention and Preparedness">
+
+To minimize future production outages:
+
+1. **Deployment best practices**:
+
+   - Always use staging environment first
+   - Implement blue-green deployments
+   - Maintain rollback procedures
+   - Use feature flags for risky changes
+
+2. **Monitoring and alerting**:
+
+   ```yaml
+   # Example monitoring configuration
+   alerts:
+     - name: site-down
+       condition: http_status != 200
+       duration: 1m
+       severity: critical
+       notifications:
+         - slack
+         - email
+   ```
+
+3. **Emergency preparedness**:
+
+   - Maintain updated emergency contact list
+   - Regular disaster recovery drills
+   - Pre-defined communication channels
+   - Emergency deployment procedures documentation
+
+4. **Team readiness**:
+   - Cross-training on deployment procedures
+   - Access permissions for key team members
+   - Emergency escalation procedures
+   - Regular review of incident response plans
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 27, 2025 based on a real user query._

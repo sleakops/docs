@@ -1,0 +1,225 @@
+---
+sidebar_position: 3
+title: "Deployment Failure Due to Nodepool Memory Limits"
+description: "Solution for deployment failures caused by nodepool reaching memory capacity limits"
+date: "2024-03-13"
+category: "cluster"
+tags: ["deployment", "nodepool", "memory", "scaling", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Deployment Failure Due to Nodepool Memory Limits
+
+**Date:** March 13, 2024  
+**Category:** Cluster  
+**Tags:** Deployment, Nodepool, Memory, Scaling, Troubleshooting
+
+## Problem Description
+
+**Context:** User experiences deployment failures in QA environment where builds and deployments take over 50 minutes and eventually timeout, preventing successful application updates.
+
+**Observed Symptoms:**
+
+- Deployment builds taking more than 50 minutes
+- Deployment process stops/times out before completion
+- Migration pods cannot be scheduled
+- New application versions fail to deploy
+
+**Relevant Configuration:**
+
+- Environment: QA cluster
+- Application: Backend service
+- Deployment timeout: ~50 minutes
+- Nodepool: Limited memory capacity
+- Migration pods requiring additional resources
+
+**Error Conditions:**
+
+- Nodepool reaches memory limit when trying to add new nodes
+- Insufficient resources to schedule migration pods
+- Deployment pipeline timeout due to resource constraints
+- New pods cannot be created due to capacity limits
+
+## Detailed Solution
+
+<TroubleshootingItem id="root-cause-analysis" summary="Understanding the root cause">
+
+The deployment failure occurs because:
+
+1. **Nodepool Memory Limit**: The nodepool has reached its maximum memory allocation
+2. **Resource Scheduling**: Kubernetes cannot schedule new pods (like migration pods) due to insufficient resources
+3. **Deployment Dependencies**: The deployment process requires additional resources that aren't available
+4. **Capacity Planning**: The current nodepool configuration doesn't account for peak resource usage during deployments
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-solution" summary="Immediate fix: Increase nodepool memory">
+
+To resolve the immediate issue:
+
+1. **Access SleakOps Dashboard**
+2. Navigate to **Cluster Management** → **Nodepools**
+3. Select the affected nodepool
+4. **Increase Memory Allocation**:
+   - Go to **Configuration** tab
+   - Increase **Max Memory** limit
+   - Or increase **Max Nodes** if using node-based scaling
+5. **Apply Changes** and wait for new nodes to be provisioned
+
+```yaml
+# Example nodepool configuration
+nodepool_config:
+  min_nodes: 2
+  max_nodes: 8 # Increased from previous limit
+  instance_type: "t3.large" # Or upgrade instance type
+  max_memory_gb: 32 # Increased memory limit
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-resources" summary="Monitor resource usage">
+
+To prevent future issues, monitor your cluster resources:
+
+1. **Use SleakOps Nodepool Dashboard**:
+
+   - Check CPU/Memory utilization graphs
+   - Monitor trends during deployment times
+   - Set up alerts for high resource usage
+
+2. **Key Metrics to Watch**:
+
+   - Memory utilization > 80%
+   - CPU utilization > 70%
+   - Number of pending pods
+   - Node capacity vs. usage
+
+3. **Access Kubecost** (if installed):
+   - Ensure VPN connection is active
+   - Navigate to cost analysis dashboard
+   - Review resource allocation efficiency
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deployment-optimization" summary="Optimize deployment process">
+
+To improve deployment reliability:
+
+1. **Resource Requests and Limits**:
+
+```yaml
+# Set appropriate resource requests
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "1Gi"
+    cpu: "500m"
+```
+
+2. **Deployment Strategy**:
+
+```yaml
+# Use rolling updates with proper resource management
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+    maxSurge: 1
+```
+
+3. **Migration Job Configuration**:
+
+```yaml
+# Ensure migration jobs have appropriate resources
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migration-job
+spec:
+  template:
+    spec:
+      containers:
+        - name: migrate
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="capacity-planning" summary="Long-term capacity planning">
+
+For sustainable cluster management:
+
+1. **Calculate Peak Usage**:
+
+   - Normal operation resources
+   - Deployment-time additional resources
+   - Migration and maintenance job resources
+   - Buffer for unexpected spikes (20-30%)
+
+2. **Nodepool Sizing Strategy**:
+
+   - **Development/QA**: 2-4 nodes with auto-scaling
+   - **Production**: 3-6 nodes minimum with higher limits
+   - **Consider instance types**: Balance cost vs. performance
+
+3. **Auto-scaling Configuration**:
+
+```yaml
+autoscaling:
+  enabled: true
+  min_nodes: 2
+  max_nodes: 10
+  target_cpu_percent: 70
+  target_memory_percent: 80
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Troubleshooting deployment failures">
+
+When deployments fail:
+
+1. **Check Nodepool Status**:
+
+   ```bash
+   kubectl get nodes
+   kubectl describe nodes
+   ```
+
+2. **Check Pod Status**:
+
+   ```bash
+   kubectl get pods --all-namespaces
+   kubectl describe pod <failing-pod-name>
+   ```
+
+3. **Check Resource Usage**:
+
+   ```bash
+   kubectl top nodes
+   kubectl top pods --all-namespaces
+   ```
+
+4. **Check Events**:
+
+   ```bash
+   kubectl get events --sort-by=.metadata.creationTimestamp
+   ```
+
+5. **Common Error Messages**:
+   - `Insufficient memory`
+   - `Insufficient cpu`
+   - `0/X nodes are available`
+   - `FailedScheduling`
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on March 13, 2024 based on a real user query._

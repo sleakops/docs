@@ -1,0 +1,195 @@
+---
+sidebar_position: 3
+title: "Error de Configuración de la Ruta del Dockerfile en Proyectos"
+description: "Solución para problemas con la ruta del Dockerfile y excepciones al editar la configuración del proyecto"
+date: "2025-02-20"
+category: "proyecto"
+tags: ["dockerfile", "proyecto", "configuración", "ruta", "repositorio"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Error de Configuración de la Ruta del Dockerfile en Proyectos
+
+**Fecha:** 20 de febrero de 2025  
+**Categoría:** Proyecto  
+**Etiquetas:** Dockerfile, Proyecto, Configuración, Ruta, Repositorio
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios experimentan problemas al configurar o editar la ruta del Dockerfile en la configuración del proyecto SleakOps, lo que resulta en que la ruta se borre o se lancen excepciones.
+
+**Síntomas Observados:**
+
+- La ruta del Dockerfile se borra/elimina automáticamente al editar
+- Se lanza una excepción al intentar modificar la ruta del Dockerfile
+- La configuración no persiste después de guardar
+- La construcción del proyecto falla por falta de referencia al Dockerfile
+
+**Configuración Relevante:**
+
+- Formato de la ruta del Dockerfile: Ruta relativa desde la raíz del repositorio
+- Rama del repositorio: Debe coincidir con la rama donde existe el Dockerfile
+- Estructura de la ruta: Debe incluir la ruta completa incluyendo el nombre del archivo
+
+**Condiciones de Error:**
+
+- El error ocurre cuando no se encuentra el Dockerfile en el repositorio y rama especificados
+- La especificación de la ruta es incompleta o incorrecta
+- El Dockerfile no existe en la ubicación especificada
+
+## Solución Detallada
+
+<TroubleshootingItem id="dockerfile-path-format" summary="Formato Correcto de la Ruta del Dockerfile">
+
+La ruta del Dockerfile en SleakOps debe incluir la ruta completa desde la raíz del repositorio, incluyendo el nombre del archivo:
+
+**Formato correcto:**
+
+```
+./docker/base/Dockerfile
+./docker/Dockerfile
+./Dockerfile
+```
+
+**Formato incorrecto:**
+
+```
+./docker/base  # Falta el nombre del archivo
+docker/base    # Falta el prefijo ./
+base           # Ruta incompleta
+```
+
+**Ejemplo:**
+Si la estructura de tu repositorio es:
+
+```
+my-repo/
+├── docker/
+│   └── base/
+│       └── Dockerfile
+└── src/
+```
+
+La ruta correcta sería: `./docker/base/Dockerfile`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="repository-branch-verification" summary="Verificar Configuración del Repositorio y Rama">
+
+Asegúrate de que:
+
+1. **El repositorio esté correctamente vinculado** a tu proyecto
+2. **La especificación de la rama** coincida con donde existe tu Dockerfile
+3. **El Dockerfile exista** en la rama especificada
+
+**Pasos para verificar:**
+
+1. Ve a los **Ajustes del Proyecto**
+2. Verifica que el campo **Repositorio** apunte al repositorio correcto
+3. Comprueba que el campo **Rama** coincida con la rama de tu Dockerfile
+4. Confirma que el Dockerfile exista en la ruta especificada dentro de esa rama
+
+**Problemas comunes:**
+
+- El Dockerfile existe en la rama `main` pero el proyecto está configurado para `develop`
+- La URL del repositorio es incorrecta o está desactualizada
+- El Dockerfile fue movido o renombrado después de la configuración inicial
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Pasos para Solucionar Problemas">
+
+Si la ruta del Dockerfile sigue borrándose:
+
+1. **Verifica la existencia del archivo:**
+
+   ```bash
+   # Clona tu repositorio y verifica
+   git clone <tu-url-del-repositorio>
+   cd <tu-repositorio>
+   git checkout <tu-rama>
+   ls -la ./docker/base/Dockerfile  # Reemplaza con tu ruta
+   ```
+
+2. **Revisa los permisos del archivo:**
+
+   - Asegúrate de que el Dockerfile sea legible
+   - Verifica los permisos de acceso al repositorio
+
+3. **Actualiza la configuración paso a paso:**
+
+   - Primero, asegúrate de que el repositorio y la rama sean correctos
+   - Luego, añade la ruta completa del Dockerfile
+   - Guarda y verifica que la configuración persista
+
+4. **Prueba con una ruta sencilla:**
+   - Intenta colocar el Dockerfile en la raíz del repositorio: `./Dockerfile`
+   - Si esto funciona, muévete gradualmente a subdirectorios
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Mejores Prácticas para la Configuración del Dockerfile">
+
+**Prácticas recomendadas:**
+
+1. **Usa nombres consistentes:**
+
+   ```
+   ./Dockerfile              # Para un solo servicio
+   ./docker/app/Dockerfile   # Para aplicaciones multi-servicio
+   ./services/api/Dockerfile # Para microservicios
+   ```
+
+2. **Organiza por entorno:**
+
+   ```
+   ./docker/production/Dockerfile
+   ./docker/development/Dockerfile
+   ./docker/staging/Dockerfile
+   ```
+
+3. **Mantén los Dockerfiles en control de versiones:**
+
+   - Siempre haz commit de los cambios en Dockerfile
+   - Usa mensajes de commit significativos
+   - Etiqueta las versiones que incluyen cambios en Dockerfile
+
+4. **Prueba localmente antes de configurar en SleakOps:**
+   ```bash
+   docker build -f ./docker/base/Dockerfile .
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Soluciones Alternativas">
+
+Si el problema persiste:
+
+1. **Usa el Dockerfile en la raíz del repositorio:**
+
+   - Mueve tu Dockerfile a la raíz del repositorio
+   - Usa la ruta: `./Dockerfile`
+
+2. **Crea un enlace simbólico:**
+
+   ```bash
+   ln -s ./docker/base/Dockerfile ./Dockerfile
+   ```
+
+3. **Usa Docker Compose:**
+
+   - Configura un archivo docker-compose.yml en la raíz del repositorio
+   - Referencia el Dockerfile desde el archivo compose
+
+4. **Contacta al soporte con detalles:**
+   - URL del repositorio
+   - Nombre de la rama
+   - Ruta exacta del Dockerfile
+   - Capturas de pantalla del error
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 20 de febrero de 2025 basada en una consulta real de usuario._

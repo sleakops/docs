@@ -1,0 +1,117 @@
+---
+sidebar_position: 3
+title: "Project Stuck in Deleting State"
+description: "Solution for projects that remain in 'deleting' status after deletion"
+date: "2024-12-19"
+category: "project"
+tags: ["project", "deletion", "troubleshooting", "ui"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Project Stuck in Deleting State
+
+**Date:** December 19, 2024  
+**Category:** Project  
+**Tags:** Project, Deletion, Troubleshooting, UI
+
+## Problem Description
+
+**Context:** User attempts to delete a project through the SleakOps platform interface, but the project remains visible in the Projects view with a "deleting" status indefinitely.
+
+**Observed Symptoms:**
+
+- Project appears to be deleted successfully
+- Project still visible in the Projects list
+- Project status shows as "deleting" permanently
+- UI does not reflect the actual deletion completion
+
+**Relevant Configuration:**
+
+- Project name: Can affect any project
+- Platform: SleakOps web interface
+- Action: Project deletion through UI
+
+**Error Conditions:**
+
+- Occurs after initiating project deletion
+- Status remains "deleting" indefinitely
+- Project resources may be actually deleted but UI state persists
+- Refresh does not resolve the status
+
+## Detailed Solution
+
+<TroubleshootingItem id="understanding-issue" summary="Understanding the deletion process">
+
+When you delete a project in SleakOps, the system performs several cleanup operations:
+
+1. **Resource cleanup**: Deletes all associated cloud resources (clusters, storage, etc.)
+2. **Database cleanup**: Removes project records from the platform database
+3. **UI state update**: Updates the interface to reflect the deletion
+
+Sometimes the UI state update can lag behind the actual resource cleanup, causing the "deleting" status to persist.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-steps" summary="Immediate troubleshooting steps">
+
+If your project is stuck in "deleting" state:
+
+1. **Wait for completion**: Large projects may take 10-15 minutes to fully delete
+2. **Refresh the page**: Use Ctrl+F5 (or Cmd+Shift+R on Mac) for a hard refresh
+3. **Clear browser cache**: Clear your browser cache and cookies for the SleakOps domain
+4. **Check in incognito/private mode**: Open SleakOps in an incognito window to verify the status
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Verify actual deletion status">
+
+To confirm if your project is actually deleted:
+
+1. **Check cloud provider console**:
+
+   - AWS: Verify no resources remain in your account
+   - Azure: Check resource groups are deleted
+   - GCP: Confirm project resources are cleaned up
+
+2. **Attempt to create a new project** with the same name:
+
+   - If successful, the old project was actually deleted
+   - If it fails due to name conflict, the project may still exist
+
+3. **Contact support** if the issue persists after 30 minutes
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-tips" summary="Prevention and best practices">
+
+To avoid this issue in the future:
+
+1. **Ensure stable connection**: Maintain a stable internet connection during deletion
+2. **Don't close the browser**: Keep the browser tab open until deletion completes
+3. **Delete during off-peak hours**: Perform deletions when system load is lower
+4. **Monitor resource cleanup**: Check your cloud provider console to confirm cleanup
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="when-to-contact-support" summary="When to contact support">
+
+Contact SleakOps support if:
+
+- Project remains in "deleting" state for more than 30 minutes
+- Cloud resources are not being cleaned up
+- You cannot create a new project with the same name
+- The project reappears after seeming to be deleted
+
+Provide this information when contacting support:
+
+- Project name
+- Time when deletion was initiated
+- Screenshots of the current status
+- Any error messages received
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

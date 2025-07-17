@@ -1,0 +1,63 @@
+---
+sidebar_position: 3
+title: "Archivos de Configuración Específicos para Entornos"
+description: "Cómo gestionar archivos de configuración que cambian entre entornos (prod/dev/qa)"
+date: "2024-01-15"
+category: "proyecto"
+tags: ["configuración", "entorno", "archivos", "despliegue"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Archivos de Configuración Específicos para Entornos
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Configuración, Entorno, Archivos, Despliegue
+
+## Descripción del Problema
+
+**Contexto:** El usuario necesita desplegar archivos de configuración que varían entre diferentes entornos (producción, desarrollo, QA) en la plataforma SleakOps.
+
+**Síntomas Observados:**
+
+- Necesidad de subir diferentes archivos de configuración por entorno
+- Las variables de entorno están disponibles pero son insuficientes para configuraciones basadas en archivos
+- Incertidumbre sobre cómo manejar las variaciones de archivos entre entornos
+- Los archivos de configuración contienen ajustes específicos para cada entorno
+
+**Configuración Relevante:**
+
+- Múltiples entornos: prod, dev, qa
+- Configuración almacenada en archivos (no solo variables de entorno)
+- Variables de entorno ya disponibles
+- El contenido del archivo cambia según el destino del despliegue
+
+**Condiciones de Error:**
+
+- Imposibilidad de desplegar diferentes archivos de configuración por entorno
+- Archivos de configuración contienen valores codificados para entornos específicos
+- Necesidad de contenido dinámico en archivos según el contexto de despliegue
+
+## Solución Detallada
+
+<TroubleshootingItem id="configmap-approach" summary="Uso de ConfigMaps para Archivos Específicos por Entorno">
+
+El enfoque recomendado es usar ConfigMaps de Kubernetes con configuraciones específicas para cada entorno:
+
+1. **Crear ConfigMaps separados** para cada entorno
+2. **Usar variables de entorno** para referenciar el ConfigMap correcto
+3. **Montar los ConfigMaps como archivos** en tus contenedores
+
+```yaml
+# config-dev.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config-dev
+data:
+  config.json: |
+    {
+      "database_url": "dev-db.example.com""
+}
+```

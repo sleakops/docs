@@ -1,0 +1,181 @@
+---
+sidebar_position: 3
+title: "Error Inmutable en el Selector de Despliegue de Helm"
+description: "Solución para el error de campo inmutable en el selector de despliegue de Kubernetes durante actualizaciones con Helm"
+date: "2024-12-19"
+category: "workload"
+tags: ["helm", "despliegue", "kubernetes", "selector", "actualización"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Error Inmutable en el Selector de Despliegue de Helm
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** Helm, Despliegue, Kubernetes, Selector, Actualización
+
+## Descripción del Problema
+
+**Contexto:** El usuario encuentra un fallo en el despliegue al intentar desplegar un proyecto a través de la plataforma SleakOps usando charts de Helm.
+
+**Síntomas observados:**
+
+- El despliegue falla con error "UPGRADE FAILED"
+- El mensaje de error indica "campo es inmutable" para spec.selector
+- No se puede parchear el despliegue debido a cambios en las etiquetas del selector
+- El proceso de actualización con Helm queda bloqueado
+
+**Configuración relevante:**
+
+- Plataforma: SleakOps con clúster Kubernetes
+- Herramienta de despliegue: Helm
+- Tipo de error: `spec.selector: Valor inválido` con `campo es inmutable`
+- Recurso afectado: Despliegue de Kubernetes
+
+**Condiciones del error:**
+
+- Ocurre durante el proceso de actualización con Helm
+- Sucede cuando las etiquetas del selector del despliegue han sido modificadas
+- Impide el despliegue exitoso de aplicaciones actualizadas
+- Típicamente ocurre tras cambios manuales o conflictos
+
+## Solución Detallada
+
+<TroubleshootingItem id="root-cause-analysis" summary="Entendiendo la causa raíz">
+
+El error ocurre porque el campo `spec.selector` del Despliegue de Kubernetes es inmutable después de su creación. Esto significa:
+
+1. **Las etiquetas del selector no pueden cambiarse** una vez creado el Despliegue
+2. **Helm intenta actualizar** el selector durante la actualización
+3. **Kubernetes rechaza** el cambio debido a las reglas de inmutabilidad
+4. **Modificaciones manuales** o conflictos pueden desencadenar este problema
+
+El mensaje de error muestra que Helm está intentando parchear un despliegue con etiquetas de selector diferentes a las existentes.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-solution" summary="Eliminar y recrear el despliegue">
+
+La solución más rápida es eliminar el despliegue existente y dejar que SleakOps lo recree:
+
+**Usando Lens (IDE de Kubernetes):**
+
+1. Abre Lens y conéctate a tu clúster
+2. Navega a **Cargas de trabajo** → **Despliegues**
+3. Busca el despliegue problemático (ejemplo: `velo-crawler-scheduler-produce-production-crawler-scheduler`)
+4. Haz clic derecho y selecciona **Eliminar**
+5. Confirma la eliminación
+
+**Usando kubectl:**
+
+```bash
+kubectl delete deployment velo-crawler-scheduler-produce-production-crawler-scheduler -n <namespace>
+```
+
+**Después de la eliminación:**
+
+- Inicia un nuevo despliegue desde el panel de SleakOps
+- O haz push de código para activar la pipeline CI/CD
+- El despliegue se recreará con los selectores correctos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-measures" summary="Prevención de futuras ocurrencias">
+
+Para evitar este problema en el futuro:
+
+**1. Evita modificaciones manuales:**
+
+- No edites manualmente despliegues a través de Lens o kubectl
+- Usa siempre el panel de SleakOps o CI/CD para los cambios
+
+**2. Maneja correctamente los conflictos:**
+
+- Cuando ocurran conflictos en los charts de Helm, asegúrate que las etiquetas del selector permanezcan consistentes
+- Revisa los cambios en las plantillas de despliegue antes de hacer merge
+
+**3. Usa buenas prácticas con Helm:**
+
+```yaml
+# En tu plantilla Helm, asegura etiquetado consistente
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: { { include "chart.fullname" . } }
+  labels: { { - include "chart.labels" . | nindent 4 } }
+spec:
+  selector:
+    matchLabels: { { - include "chart.selectorLabels" . | nindent 6 } }
+  template:
+    metadata:
+      labels: { { - include "chart.selectorLabels" . | nindent 8 } }
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Enfoques alternativos si no se puede eliminar">
+
+Si no puedes eliminar el despliegue inmediatamente:
+
+**1. Escalar a cero réplicas:**
+
+```bash
+kubectl scale deployment <nombre-despliegue> --replicas=0 -n <namespace>
+```
+
+**2. Usar desinstalación y reinstalación con Helm:**
+
+```bash
+# Desinstalar la release
+helm uninstall <nombre-release> -n <namespace>
+
+# Reinstalar desde SleakOps
+# Iniciar nuevo despliegue a través de la plataforma
+```
+
+**3. Corrección manual del selector (avanzado):**
+Si necesitas preservar el despliegue, puedes:
+
+- Exportar el YAML actual del despliegue
+- Eliminar el despliegue
+- Modificar el YAML para que coincida con los selectores esperados
+- Aplicar la versión corregida
+- Luego continuar con el despliegue normal desde SleakOps
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Verificación de la solución">
+
+Después de aplicar la solución:
+
+**1. Verificar el estado del despliegue:**
+
+```bash
+kubectl get deployments -n <namespace>
+kubectl describe deployment <nombre-despliegue> -n <namespace>
+```
+
+**2. Verificar que los pods estén corriendo:**
+
+```bash
+kubectl get pods -n <namespace> -l app.kubernetes.io/instance=<nombre-instancia>
+```
+
+**3. Revisar logs de la aplicación:**
+
+```bash
+kubectl logs -l app.kubernetes.io/instance=<nombre-instancia> -n <namespace>
+```
+
+**4. Probar funcionalidad de la aplicación:**
+
+- Verificar que la aplicación responda correctamente
+- Comprobar endpoints de salud
+- Confirmar comportamiento esperado
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de usuario._

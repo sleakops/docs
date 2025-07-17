@@ -1,0 +1,237 @@
+---
+sidebar_position: 3
+title: "MySQL and Redis Connection Timeout Issues"
+description: "Troubleshooting connection timeouts to MySQL and Redis dependencies in production environments"
+date: "2024-01-15"
+category: "dependency"
+tags:
+  ["mysql", "redis", "timeout", "connection", "troubleshooting", "networking"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# MySQL and Redis Connection Timeout Issues
+
+**Date:** January 15, 2024  
+**Category:** Dependency  
+**Tags:** MySQL, Redis, Timeout, Connection, Troubleshooting, Networking
+
+## Problem Description
+
+**Context:** Production API service experiencing simultaneous connection timeouts to both MySQL database and Redis cache, while other services in the same environment work correctly and external connections (VPN) succeed.
+
+**Observed Symptoms:**
+
+- MySQL connection timeout: `Error: connect ETIMEDOUT`
+- Redis connection timeout: `ConnectionTimeoutError: Connection timeout`
+- Only affects specific production API service
+- Other services can connect to the same dependencies successfully
+- External connections via VPN work normally
+- Database and Redis services are running and accessible
+
+**Relevant Configuration:**
+
+- Environment: Production API service
+- Affected dependencies: MySQL database and Redis cache
+- Connection method: Internal cluster networking
+- Secrets and credentials: Present and loaded correctly
+- External access: Working via VPN
+
+**Error Conditions:**
+
+- Errors occur simultaneously for both MySQL and Redis
+- Problem isolated to one specific service/pod
+- Intermittent behavior - works sometimes, fails others
+- No recent configuration changes made
+
+## Detailed Solution
+
+<TroubleshootingItem id="initial-diagnosis" summary="Initial problem diagnosis">
+
+When a single service loses connectivity to multiple dependencies while others work fine, this typically indicates:
+
+1. **Pod networking issues**: The specific pod may have network connectivity problems
+2. **Resource constraints**: Memory/CPU limits causing connection pool exhaustion
+3. **DNS resolution problems**: Service discovery issues within the cluster
+4. **Security group/firewall changes**: Network policies blocking specific pod traffic
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-troubleshooting" summary="Immediate troubleshooting steps">
+
+**Step 1: Restart the affected service**
+
+1. In SleakOps dashboard, go to your project
+2. Find the affected API service
+3. Click **Restart** to recreate the pods
+4. Monitor logs for connection recovery
+
+**Step 2: Check pod resource usage**
+
+```bash
+# Check pod resource consumption
+kubectl top pods -n your-namespace
+
+# Check pod events for resource issues
+kubectl describe pod your-api-pod -n your-namespace
+```
+
+**Step 3: Verify network connectivity from pod**
+
+```bash
+# Test connectivity from inside the pod
+kubectl exec -it your-api-pod -n your-namespace -- sh
+
+# Test MySQL connection
+telnet mysql-service 3306
+
+# Test Redis connection
+telnet redis-service 6379
+
+# Check DNS resolution
+nslookup mysql-service
+nslookup redis-service
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="connection-pool-issues" summary="Connection pool configuration">
+
+Connection timeouts often occur due to exhausted connection pools:
+
+**MySQL Connection Pool Settings:**
+
+```javascript
+// Recommended MySQL connection configuration
+const mysql = require("mysql2/promise");
+
+const pool = mysql.createPool({
+  host: process.env.MYSQL_HOST,
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DATABASE,
+  connectionLimit: 10,
+  acquireTimeout: 60000,
+  timeout: 60000,
+  reconnect: true,
+});
+```
+
+**Redis Connection Settings:**
+
+```javascript
+// Recommended Redis connection configuration
+const redis = require("redis");
+
+const client = redis.createClient({
+  host: process.env.REDIS_HOST,
+  port: process.env.REDIS_PORT,
+  connectTimeout: 60000,
+  lazyConnect: true,
+  retryDelayOnFailover: 100,
+  maxRetriesPerRequest: 3,
+});
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="resource-limits" summary="Check and adjust resource limits">
+
+Insufficient resources can cause connection issues:
+
+**In SleakOps:**
+
+1. Go to your **API service configuration**
+2. Check **Resource Limits**:
+   - Memory: Increase if close to limit
+   - CPU: Ensure adequate allocation
+
+**Recommended minimums for API services:**
+
+```yaml
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "1Gi"
+    cpu: "500m"
+```
+
+**Monitor resource usage:**
+
+```bash
+# Check current resource usage
+kubectl top pod your-api-pod -n your-namespace
+
+# Check resource events
+kubectl get events -n your-namespace --sort-by='.lastTimestamp'
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="network-policies" summary="Verify network policies and security">
+
+Check if network policies are blocking connections:
+
+**Verify network policies:**
+
+```bash
+# List network policies
+kubectl get networkpolicies -n your-namespace
+
+# Check specific policy details
+kubectl describe networkpolicy policy-name -n your-namespace
+```
+
+**Test service connectivity:**
+
+```bash
+# Test from another pod in the same namespace
+kubectl run test-pod --image=busybox --rm -it --restart=Never -- sh
+
+# Inside the test pod:
+telnet mysql-service.your-namespace.svc.cluster.local 3306
+telnet redis-service.your-namespace.svc.cluster.local 6379
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-solution" summary="Set up monitoring and alerting">
+
+To prevent future issues, implement monitoring:
+
+**Connection monitoring:**
+
+```javascript
+// Add connection health checks
+const healthCheck = async () => {
+  try {
+    // Test MySQL
+    await pool.execute("SELECT 1");
+
+    // Test Redis
+    await redis.ping();
+
+    console.log("Dependencies healthy");
+  } catch (error) {
+    console.error("Dependency health check failed:", error);
+  }
+};
+
+// Run health check every 30 seconds
+setInterval(healthCheck, 30000);
+```
+
+**Add to your application:**
+
+1. Implement connection retry logic
+2. Add circuit breaker patterns
+3. Monitor connection pool metrics
+4. Set up alerts for connection failures
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

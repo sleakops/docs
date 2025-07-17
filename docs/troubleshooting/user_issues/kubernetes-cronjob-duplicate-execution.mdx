@@ -1,0 +1,227 @@
+---
+sidebar_position: 3
+title: "Kubernetes CronJob Duplicate Execution Issue"
+description: "Solution for CronJobs running multiple times due to failed pods and retry configuration"
+date: "2025-01-03"
+category: "workload"
+tags: ["cronjob", "kubernetes", "retry", "backofflimit", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Kubernetes CronJob Duplicate Execution Issue
+
+**Date:** January 3, 2025  
+**Category:** Workload  
+**Tags:** CronJob, Kubernetes, Retry, BackOffLimit, Troubleshooting
+
+## Problem Description
+
+**Context:** CronJobs in Kubernetes cluster are executing multiple times instead of running once at their scheduled time. This issue appears to affect specific CronJobs that have been manually executed through Lens or have experienced failures.
+
+**Observed Symptoms:**
+
+- CronJobs execute twice instead of once
+- Two pods are created for each CronJob execution
+- The first pod appears to fail, triggering a second execution
+- No visible errors in the logs of the failed pods
+- Issue persists across deployments and releases
+- Problem affects specific CronJobs that were previously executed manually
+
+**Relevant Configuration:**
+
+- Default Kubernetes CronJob retry behavior: BackOffLimit = 1
+- CronJobs affected after manual execution via Lens
+- Jobs show failed status despite no apparent errors
+
+**Error Conditions:**
+
+- Occurs consistently for affected CronJobs
+- Happens regardless of the actual job success/failure
+- Persists after new releases are deployed
+- Affects production scheduled jobs
+
+## Detailed Solution
+
+<TroubleshootingItem id="root-cause-analysis" summary="Understanding the root cause">
+
+The duplicate execution issue is caused by Kubernetes' default retry mechanism for failed Jobs:
+
+1. **Default BackOffLimit**: Kubernetes CronJobs have a default `backoffLimit` of 1, meaning they will retry once if they fail
+2. **Job Failure Detection**: Even if your application code runs successfully, the Job might be marked as failed due to:
+
+   - Exit code issues
+   - Resource constraints
+   - Timeout configurations
+   - Signal handling problems
+
+3. **Retry Behavior**: When a Job fails, Kubernetes automatically creates a new pod to retry the execution
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-fix" summary="Quick fix: Disable retries">
+
+To immediately stop the duplicate executions, set the `backoffLimit` to 0:
+
+**Using Lens (GUI method):**
+
+1. Open Lens and connect to your cluster
+2. Navigate to **Workloads** → **CronJobs** in the sidebar
+3. Find your affected CronJob and click on it
+4. Click **Edit** or go to the YAML view
+5. Locate the `backoffLimit` field (usually set to 1)
+6. Change it to `0`:
+
+```yaml
+spec:
+  jobTemplate:
+    spec:
+      backoffLimit: 0 # Changed from 1 to 0
+      template:
+        spec:
+          # ... rest of your job spec
+```
+
+7. Save the changes
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="permanent-solution" summary="Permanent solution: Fix job exit codes">
+
+While disabling retries fixes the symptom, the proper solution is to ensure your jobs complete successfully:
+
+**1. Check your application exit codes:**
+
+```bash
+# In your job container, ensure proper exit
+exit 0  # Success
+# or
+exit 1  # Failure (will trigger retry if backoffLimit > 0)
+```
+
+**2. Review job logs for hidden errors:**
+
+```bash
+kubectl logs <job-pod-name> --previous
+```
+
+**3. Common issues that cause "silent" failures:**
+
+- Database connection timeouts
+- Missing environment variables
+- Permission issues
+- Memory/CPU limits exceeded
+- Improper signal handling
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-configuration" summary="Configuring in SleakOps platform">
+
+In SleakOps, you can configure the retry behavior:
+
+**Current workaround:**
+Use Lens as described above until SleakOps adds native support for BackOffLimit configuration.
+
+**Future configuration (when available):**
+The SleakOps team is working on adding this configuration option directly in the platform interface.
+
+**Best practices for SleakOps CronJobs:**
+
+```yaml
+# Recommended CronJob configuration
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: your-cronjob
+spec:
+  schedule: "0 5 * * *" # Daily at 5 AM
+  jobTemplate:
+    spec:
+      backoffLimit: 0 # No retries
+      activeDeadlineSeconds: 300 # 5 minute timeout
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: your-job
+              image: your-image
+              command: ["/bin/sh"]
+              args: ["-c", "your-command && exit 0"]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-prevention" summary="Monitoring and prevention">
+
+**Monitor your CronJobs:**
+
+1. **Check job status regularly:**
+
+```bash
+kubectl get cronjobs
+kubectl get jobs
+```
+
+2. **Set up alerts for failed jobs:**
+
+```yaml
+# Example Prometheus alert
+- alert: CronJobFailed
+  expr: kube_job_status_failed > 0
+  for: 0m
+  labels:
+    severity: warning
+  annotations:
+    summary: "CronJob {{ $labels.job_name }} failed"
+```
+
+**Prevention strategies:**
+
+- Always test CronJobs in development first
+- Use proper exit codes in your scripts
+- Implement proper error handling
+- Set reasonable resource limits
+- Use health checks when possible
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Troubleshooting duplicate executions">
+
+If you're still experiencing duplicate executions:
+
+**1. Verify the BackOffLimit setting:**
+
+```bash
+kubectl get cronjob <cronjob-name> -o yaml | grep backoffLimit
+```
+
+**2. Check recent job history:**
+
+```bash
+kubectl get jobs --sort-by=.metadata.creationTimestamp
+```
+
+**3. Examine failed job details:**
+
+```bash
+kubectl describe job <job-name>
+```
+
+**4. Review pod events:**
+
+```bash
+kubectl get events --sort-by=.metadata.creationTimestamp
+```
+
+**5. Check for resource constraints:**
+
+```bash
+kubectl top pods
+kubectl describe nodes
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 3, 2025 based on a real user query._

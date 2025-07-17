@@ -1,0 +1,76 @@
+---
+sidebar_position: 15
+title: "Database Migration Environment Variables Configuration"
+description: "Solution for database migration issues with environment variables in SleakOps"
+date: "2024-12-11"
+category: "project"
+tags: ["database", "migration", "environment-variables", "dotnet", "postgres"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Database Migration Environment Variables Configuration
+
+**Date:** December 11, 2024  
+**Category:** Project  
+**Tags:** Database, Migration, Environment Variables, .NET, PostgreSQL
+
+## Problem Description
+
+**Context:** User encounters multiple issues when running .NET Entity Framework database migrations in SleakOps, specifically with PostgreSQL database connections and environment variable configurations.
+
+**Observed Symptoms:**
+
+- Database migration command fails due to incorrect project path
+- Database connection errors due to missing password authentication
+- Migration hooks fail to find required environment variables like `CORS_ALLOWED_ORIGINS`
+- Environment variables not accessible to migration processes
+
+**Relevant Configuration:**
+
+- Framework: .NET Entity Framework
+- Database: PostgreSQL
+- Environment: SleakOps platform
+- Variable Groups: Backend project environment variables
+- Migration command: `dotnet ef database update`
+
+**Error Conditions:**
+
+- Incorrect project path in migration command
+- Mismatched environment variable names (`POSTGRES_PASS` vs `POSTGRES_PASSWORD`)
+- Variable Groups scoped to specific services instead of global scope
+- Migration hooks unable to access required environment variables
+
+## Detailed Solution
+
+<TroubleshootingItem id="correct-migration-command" summary="Fix the database migration command path">
+
+The correct command syntax for running Entity Framework migrations is:
+
+```bash
+dotnet ef database update --project ../Netdo.Firev.WebApi/Netdo.Firev.WebApi.csproj
+```
+
+**Common mistakes:**
+
+- Typos in the project path
+- Missing or incorrect relative path references
+- Wrong project file extension or name
+
+**Verification steps:**
+
+1. Verify the project file exists at the specified path
+2. Check that the path is relative to your current working directory
+3. Ensure the `.csproj` file name matches exactly
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="environment-variable-naming" summary="Standardize environment variable names">
+
+Environment variable naming must match exactly between your application configuration and Variable Groups:
+
+**Problem:** Application expects `POSTGRES_PASSWORD` but Variable Group contains `POSTGRES_PASS`
+
+**Solution:**
+
+1. Check your application's configuration files (appsettings.json

@@ -1,0 +1,241 @@
+---
+sidebar_position: 3
+title: "Error 502 y Registros de Pod No Cargan"
+description: "Solución de problemas de errores 502 cuando no se pueden acceder a los registros de pods a través de la plataforma"
+date: "2025-01-27"
+category: "workload"
+tags:
+  ["error-502", "registros-pod", "solucion-de-problemas", "despliegue", "redes"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Error 502 y Registros de Pod No Cargan
+
+**Fecha:** 27 de enero de 2025  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** Error 502, Registros de Pod, Solución de problemas, Despliegue, Redes
+
+## Descripción del Problema
+
+**Contexto:** El usuario experimenta un error 502 al acceder a su aplicación desplegada en SleakOps, combinado con la imposibilidad de ver los registros de pod a través de la interfaz de la plataforma.
+
+**Síntomas observados:**
+
+- Error 502 Bad Gateway al acceder a la URL de la aplicación
+- El botón de registros de pod en la interfaz de SleakOps no abre ni carga los registros
+- El reenvío de puertos mediante Lens muestra pantalla en blanco con errores de red
+- El contenedor Docker funciona correctamente al probarlo localmente
+- El rollback a una compilación anterior funcional no resuelve el problema
+- Los registros de otros proyectos y despliegues son accesibles
+
+**Configuración relevante:**
+
+- Entorno: Desarrollo
+- Aplicación: Aplicación basada en monorepositorio
+- Plataforma: Despliegue Kubernetes en SleakOps
+- Pruebas locales: El contenedor Docker funciona correctamente
+- Estado previo: La aplicación funcionaba con compilaciones anteriores
+
+**Condiciones del error:**
+
+- El error ocurre al acceder a la URL de la aplicación
+- Los registros de pod son específicamente inaccesibles para este despliegue
+- El reenvío de puertos falla con errores de red
+- El problema persiste tras intentos de rollback
+- El problema está aislado a pods/despliegue específicos
+
+## Solución Detallada
+
+<TroubleshootingItem id="initial-diagnosis" summary="Comprendiendo errores 502 con registros inaccesibles">
+
+Cuando encuentras un error 502 combinado con registros de pod inaccesibles, esto típicamente indica:
+
+1. **Problemas en el arranque del pod**: El pod puede estar fallando al iniciar correctamente o cayendo durante la inicialización
+2. **Restricciones de recursos**: Memoria o CPU insuficientes causando terminación del pod
+3. **Fallos en chequeos de salud**: Las sondas de readiness o liveness fallan
+4. **Problemas de conectividad de red**: Problemas con la comunicación servicio-pod
+5. **Problemas con el runtime del contenedor**: Problemas específicos del entorno Kubernetes frente a Docker local
+
+El hecho de que los registros sean inaccesibles sugiere que los pods pueden estar en un ciclo de reinicio o en estado de fallo.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="kubectl-diagnosis" summary="Uso de kubectl para inspección directa de pods">
+
+Cuando la interfaz de SleakOps no puede mostrar registros, usa kubectl directamente:
+
+```bash
+# Obtener estado y eventos de pods
+kubectl get pods -n <tu-namespace>
+kubectl describe pod <nombre-pod> -n <tu-namespace>
+
+# Obtener registros de pods caídos o reiniciándose
+kubectl logs <nombre-pod> -n <tu-namespace> --previous
+
+# Obtener registros en tiempo real
+kubectl logs -f <nombre-pod> -n <tu-namespace>
+
+# Revisar eventos del namespace
+kubectl get events -n <tu-namespace> --sort-by='.lastTimestamp'
+```
+
+Busca:
+
+- Cantidad de reinicios del pod
+- Códigos de salida en la descripción del pod
+- Eventos recientes mostrando errores
+- Mensajes de límite de recursos excedido
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="resource-investigation" summary="Verificando restricciones de recursos">
+
+Los problemas de recursos son comunes cuando Docker local funciona pero el despliegue en Kubernetes falla:
+
+```bash
+# Revisar uso de recursos
+kubectl top pods -n <tu-namespace>
+
+# Revisar límites de recursos en el despliegue
+kubectl get deployment <nombre-despliegue> -n <tu-namespace> -o yaml | grep -A 10 resources
+
+# Revisar recursos del nodo
+kubectl describe nodes
+```
+
+**Soluciones comunes:**
+
+1. **Incrementar límites de memoria**:
+
+```yaml
+resources:
+  limits:
+    memory: "1Gi" # Aumentar desde el valor por defecto
+    cpu: "500m"
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+```
+
+2. **Buscar fugas de memoria** en tu aplicación
+3. **Optimizar el arranque del contenedor** para reducir picos de recursos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="health-check-config" summary="Configurando correctamente los chequeos de salud">
+
+Chequear salud incorrectamente puede causar errores 502:
+
+```yaml
+# Ejemplo de configuración correcta de chequeos de salud
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+```
+
+**Consideraciones clave:**
+
+- Asegurar que los endpoints de chequeo de salud existan en tu aplicación
+- Configurar `initialDelaySeconds` adecuado para el tiempo de arranque de la app
+- Usar endpoints diferentes para liveness y readiness si es posible
+- Considerar deshabilitar temporalmente los chequeos para depuración
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="environment-differences" summary="Abordando diferencias entre entornos Docker y Kubernetes">
+
+Cuando Docker funciona localmente pero Kubernetes falla, revisa:
+
+**1. Variables de entorno:**
+
+```bash
+# Comparar variables de entorno
+kubectl exec <nombre-pod> -n <tu-namespace> -- env
+```
+
+**2. Permisos en el sistema de archivos:**
+
+- Kubernetes corre con contextos de usuario diferentes
+- Verifica si tu app escribe en directorios específicos
+- Asegura permisos adecuados en el Dockerfile
+
+**3. Configuración de red:**
+
+- La red en Kubernetes difiere de Docker
+- Verifica que tu app se enlace a `0.0.0.0` y no a `localhost`
+- Confirma que las configuraciones de puertos coinciden con las definiciones de servicio
+
+**4. Dependencias y servicios externos:**
+
+- Las conexiones a bases de datos pueden variar
+- Endpoints de APIs externas podrían ser inaccesibles
+- Diferencias en resolución DNS
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-specific-debugging" summary="Pasos de depuración específicos para la plataforma SleakOps">
+
+Para problemas específicos de SleakOps:
+
+**1. Revisar registros de compilación:**
+
+- Analiza el proceso de compilación en el panel de SleakOps
+- Busca advertencias o errores durante la creación de la imagen
+- Verifica que todos los pasos de compilación se completaron exitosamente
+
+**2. Configuración del despliegue:**
+
+- Verifica si la configuración del despliegue cambió
+- Confirma que las variables de entorno estén correctamente definidas
+- Asegura que secretos y configmaps sean accesibles
+
+**3. Configuración del servicio:**
+
+- Verifica que el servicio enrute correctamente a los pods
+- Revisa configuración de ingress si aplica
+- Asegura que el balanceador de carga esté saludable
+
+**4. Recursos de la plataforma:**
+
+- Comprueba que el clúster tenga recursos suficientes
+- Verifica que no haya problemas a nivel plataforma
+- Contacta soporte de SleakOps si la interfaz de la plataforma no responde
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="emergency-recovery" summary="Pasos de recuperación de emergencia">
+
+Si el problema es urgente y requiere resolución inmediata:
+
+**1. Forzar reinicio del pod:**
+
+```bash
+kubectl delete pod <nombre-pod> -n <tu-namespace>
+```
+
+**2. Escalar hacia abajo y luego hacia arriba:**
+
+```bash
+kubectl scale deployment <nombre-despliegue> --replicas=0 -n <tu-namespace>
+kubectl scale deployment <nombre-despliegue> --replicas=1 -n <tu-namespace>
+```
+
+**3. Incremento temporal de recursos:**
+
+- Aumentar temporalmente límites de recursos
+- Reducir escala de otros servicios no críticos

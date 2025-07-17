@@ -1,0 +1,210 @@
+---
+sidebar_position: 3
+title: "EKS Spot Instances Unavailable During Nodegroup Creation"
+description: "Solution for EKS nodegroup failures due to unavailable Spot instances"
+date: "2024-01-15"
+category: "cluster"
+tags: ["eks", "spot-instances", "nodegroup", "aws", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# EKS Spot Instances Unavailable During Nodegroup Creation
+
+**Date:** January 15, 2024  
+**Category:** Cluster  
+**Tags:** EKS, Spot Instances, Nodegroup, AWS, Troubleshooting
+
+## Problem Description
+
+**Context:** User experiences issues with EKS cluster nodegroup creation when using Spot instances, particularly after automatic cluster start/stop operations during weekends.
+
+**Observed Symptoms:**
+
+- Nodegroup fails to launch due to unavailable Spot instances
+- Cluster automatic start/stop functionality causes node provisioning issues
+- Critical add-ons nodes (criticaladdonsonly) fail to start
+- Cluster becomes partially unavailable affecting staging environment
+
+**Relevant Configuration:**
+
+- Platform: AWS EKS
+- Instance type: Spot instances
+- Environment: Staging (STG)
+- Feature: Automatic cluster start/stop for weekends
+- Region: us-east-1
+
+**Error Conditions:**
+
+- Error occurs during automatic cluster restart after weekend shutdown
+- Spot instances of required type are not available in the region
+- Manual cluster restart partially resolves the issue but some nodes remain unavailable
+- Problem appears to be recurring
+
+## Detailed Solution
+
+<TroubleshootingItem id="spot-availability-diagnosis" summary="Understanding Spot Instance Availability Issues">
+
+Spot instances in AWS have variable availability based on:
+
+1. **Current demand**: High demand reduces availability
+2. **Instance type**: Some types are more scarce than others
+3. **Availability zone**: Different zones have different capacity
+4. **Time of day/week**: Demand patterns affect availability
+
+When AWS doesn't have enough Spot capacity, nodegroup creation fails with capacity errors.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-resolution" summary="Immediate Resolution Steps">
+
+To resolve the current issue:
+
+1. **Check Spot instance availability**:
+
+   - Go to AWS Console → EC2 → Spot Requests
+   - Check current Spot prices and availability
+
+2. **Modify nodegroup configuration**:
+
+   ```yaml
+   # Add multiple instance types for better availability
+   instance_types:
+     - "m5.large"
+     - "m5a.large"
+     - "m4.large"
+     - "c5.large"
+   ```
+
+3. **Use mixed instance policy**:
+   - Combine On-Demand and Spot instances
+   - Set a percentage split (e.g., 20% On-Demand, 80% Spot)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="nodegroup-configuration" summary="Optimal Nodegroup Configuration for Spot Instances">
+
+Configure your nodegroup with these best practices:
+
+```yaml
+# Recommended configuration
+nodegroup_config:
+  instance_types:
+    - "m5.large"
+    - "m5a.large"
+    - "m4.large"
+    - "c5.large"
+    - "c4.large"
+  capacity_type: "SPOT"
+  scaling_config:
+    min_size: 1
+    max_size: 10
+    desired_size: 3
+  update_config:
+    max_unavailable_percentage: 25
+  # Diversify across multiple AZs
+  subnets:
+    - "subnet-xxx" # us-east-1a
+    - "subnet-yyy" # us-east-1b
+    - "subnet-zzz" # us-east-1c
+```
+
+**Key recommendations**:
+
+- Use 4-5 different instance types
+- Spread across multiple availability zones
+- Consider similar performance characteristics
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="critical-addons-solution" summary="Ensuring Critical Add-ons Availability">
+
+For critical system components that must always be available:
+
+1. **Create a dedicated On-Demand nodegroup**:
+
+   ```yaml
+   critical_nodegroup:
+     capacity_type: "ON_DEMAND"
+     instance_types: ["t3.medium"]
+     scaling_config:
+       min_size: 2
+       max_size: 3
+       desired_size: 2
+     taints:
+       - key: "CriticalAddonsOnly"
+         value: "true"
+         effect: "NoSchedule"
+   ```
+
+2. **Use node selectors for critical workloads**:
+   ```yaml
+   # In your critical workload manifests
+   nodeSelector:
+     node.kubernetes.io/instance-type: "t3.medium"
+   tolerations:
+     - key: "CriticalAddonsOnly"
+       operator: "Equal"
+       value: "true"
+       effect: "NoSchedule"
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="auto-start-stop-recommendations" summary="Auto Start/Stop Configuration Recommendations">
+
+To prevent issues with automatic cluster start/stop:
+
+1. **Implement graceful startup sequence**:
+
+   - Start critical nodegroups first
+   - Wait for system pods to be ready
+   - Then start application nodegroups
+
+2. **Configure startup health checks**:
+
+   ```bash
+   # Add to startup script
+   kubectl wait --for=condition=Ready nodes --all --timeout=300s
+   kubectl wait --for=condition=Ready pods -n kube-system --all --timeout=300s
+   ```
+
+3. **Consider disabling auto start/stop temporarily**:
+
+   - Until Spot availability improves
+   - Or until mixed instance configuration is implemented
+
+4. **Set up monitoring alerts**:
+   - Alert when nodegroups fail to start
+   - Monitor Spot instance interruption rates
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-strategies" summary="Alternative Strategies">
+
+If Spot instance issues persist:
+
+1. **Hybrid approach**:
+
+   - Use On-Demand for system components
+   - Use Spot for application workloads
+
+2. **Multi-region deployment**:
+
+   - Consider spreading workloads across regions
+   - Use regions with better Spot availability
+
+3. **Reserved instances**:
+
+   - For predictable workloads
+   - Better cost control than On-Demand
+
+4. **Fargate for critical workloads**:
+   - No instance management required
+   - Higher cost but better reliability
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

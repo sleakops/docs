@@ -1,0 +1,200 @@
+---
+sidebar_position: 3
+title: "Error de Límite de Cuota de vCPU en AWS con Karpenter"
+description: "Solución para el error VcpuLimitExceeded al usar instancias GPU en clústeres EKS"
+date: "2024-04-24"
+category: "cluster"
+tags: ["aws", "karpenter", "cuota", "gpu", "instancias", "eks"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Error de Límite de Cuota de vCPU en AWS con Karpenter
+
+**Fecha:** 24 de abril de 2024  
+**Categoría:** Clúster  
+**Etiquetas:** AWS, Karpenter, Cuota, GPU, Instancias, EKS
+
+## Descripción del Problema
+
+**Contexto:** El usuario intenta configurar un nodepool con instancias GPU (g4ad.xlarge) para cargas de trabajo de computación de alto rendimiento, pero encuentra limitaciones en la cuota de vCPU cuando Karpenter intenta aprovisionar las instancias.
+
+**Síntomas observados:**
+
+- Karpenter falla al lanzar NodeClaim con error "VcpuLimitExceeded"
+- Mensaje de error: "Ha solicitado más capacidad de vCPU de la que su límite actual de vCPU de 0 permite"
+- No se pueden aprovisionar instancias GPU (g4ad.xlarge)
+- Las instancias estándar (c7a.large, c7a.xlarge) funcionan correctamente
+- La configuración del nodepool parece correcta pero no se crean nodos
+
+**Configuración relevante:**
+
+- Tipos de instancia: g4ad.xlarge (instancias GPU)
+- Aprovisionamiento de NodeClaim con Karpenter
+- Cuota del Servicio AWS inicialmente establecida en 0 para familias de instancias GPU
+- Configuración del selector del nodepool usando node.kubernetes.io/instance-type
+
+**Condiciones de error:**
+
+- El error ocurre durante el aprovisionamiento de nodos con Karpenter
+- Específico para tipos de instancia GPU (familia g4ad)
+- La cuota del Servicio AWS bloquea la creación de instancias
+- Las instancias estándar de cómputo funcionan sin problemas
+
+## Solución Detallada
+
+<TroubleshootingItem id="quota-understanding" summary="Entendiendo las Cuotas de Servicio vCPU de AWS">
+
+AWS implementa Cuotas de Servicio para controlar el uso de recursos entre diferentes familias de instancias. Las instancias GPU tienen cuotas separadas de las instancias estándar de cómputo:
+
+- **Instancias estándar** (t3, c5, m5, etc.): Usualmente tienen cuotas por defecto
+- **Instancias GPU** (g4, p3, p4, etc.): A menudo comienzan con cuota 0 por seguridad
+- **Instancias especializadas**: Pueden requerir solicitudes explícitas de cuota
+
+El error "VcpuLimitExceeded" indica que su cuenta no tiene suficiente cuota para el tipo de instancia solicitado.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="quota-request" summary="Cómo solicitar aumento de cuota de vCPU">
+
+Para solicitar un aumento de cuota para instancias GPU:
+
+1. **Acceda a la Consola de Cuotas de Servicio de AWS**:
+
+   - Vaya a [Consola de Cuotas de Servicio de AWS](https://us-east-1.console.aws.amazon.com/servicequotas/home/services/ec2/quotas/L-FD8E9B9A)
+   - Navegue a **Amazon Elastic Compute Cloud (Amazon EC2)**
+
+2. **Encuentre la cuota correcta**:
+
+   - Busque "Running On-Demand G and VT instances"
+   - Esta cuota cubre las instancias g4ad.xlarge
+
+3. **Solicite el aumento**:
+
+   - Haga clic en "Request quota increase"
+   - Comience con un número conservador (por ejemplo, 32-64 vCPUs)
+   - Proporcione justificación comercial
+
+4. **Para instancias NVIDIA**, hay una cuota separada:
+   - "Running On-Demand P instances"
+   - Requerida para familias de instancias p3, p4
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="quota-calculation" summary="Calcular vCPUs requeridas">
+
+Calcule las vCPUs necesarias según sus requerimientos de instancia:
+
+```yaml
+# Cálculo ejemplo para g4ad.xlarge
+Instancia: g4ad.xlarge
+vCPUs por instancia: 4
+Instancias deseadas: 10
+Total de vCPUs necesarias: 40
+# Solicitar cuota: 64 vCPUs (con margen)
+```
+
+**Conteos comunes de vCPU para instancias GPU**:
+
+- g4ad.xlarge: 4 vCPUs
+- g4ad.2xlarge: 8 vCPUs
+- g4ad.4xlarge: 16 vCPUs
+- g4dn.xlarge: 4 vCPUs
+- p3.2xlarge: 8 vCPUs
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="nodepool-configuration" summary="Configuración correcta del nodepool para instancias GPU">
+
+Asegúrese de que su nodepool esté configurado correctamente para instancias GPU:
+
+```yaml
+# Ejemplo de configuración de nodepool
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
+metadata:
+  name: gpu-nodepool
+spec:
+  template:
+    spec:
+      requirements:
+        - key: node.kubernetes.io/instance-type
+          operator: In
+          values:
+            - g4ad.xlarge
+            - g4ad.2xlarge
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values:
+            - on-demand # Las instancias GPU funcionan mejor con on-demand
+      nodeClassRef:
+        apiVersion: karpenter.k8s.aws/v1beta1
+        kind: EC2NodeClass
+        name: gpu-nodeclass
+```
+
+**Consideraciones importantes**:
+
+- Use tipo de capacidad `on-demand` para instancias GPU
+- Asegure que la AMI soporte drivers GPU
+- Configure taints/tolerations apropiados para cargas GPU
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Solución de problemas y monitoreo">
+
+**Monitoree el uso de cuota**:
+
+```bash
+# Verificar uso actual de cuota
+aws service-quotas get-service-quota \
+  --service-code ec2 \
+  --quota-code L-FD8E9B9A
+
+# Monitorear logs de Karpenter
+kubectl logs -n karpenter -l app.kubernetes.io/name=karpenter
+```
+
+**Problemas comunes y soluciones**:
+
+1. **Cuota aprobada pero sigue fallando**:
+
+   - Espere 15-30 minutos para que la cuota se propague
+   - Intente diferentes zonas de disponibilidad
+
+2. **Instancia no disponible**:
+
+   - Verifique disponibilidad de instancias en su región
+   - Considere tipos de instancia alternativos
+
+3. **Compatibilidad de AMI**:
+   - Asegure que la AMI soporte drivers GPU
+   - Use AMI optimizada para EKS con soporte GPU
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Mejores prácticas para instancias GPU">
+
+**Gestión de cuotas**:
+
+- Solicite cuotas proactivamente antes del despliegue
+- Comience con números conservadores y aumente según sea necesario
+- Monitoree el uso para evitar límites inesperados
+
+**Optimización de costos**:
+
+- Use instancias Spot para cargas GPU no críticas
+- Implemente políticas adecuadas de escalado de nodos
+- Considere tipos de instancia mixtos en nodepools
+
+**Gestión de configuración**:
+
+- Use Infraestructura como Código (Terraform) para solicitudes de cuota
+- Documente requerimientos de cuota en guías de despliegue
+- Configure monitoreo para la utilización de cuotas
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

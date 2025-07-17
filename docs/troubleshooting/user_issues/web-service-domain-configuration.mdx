@@ -1,0 +1,147 @@
+---
+sidebar_position: 3
+title: "Web Service Domain Configuration Issue"
+description: "How to fix incorrect domain configuration in web services"
+date: "2024-03-10"
+category: "workload"
+tags: ["web-service", "domain", "configuration", "staging"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Web Service Domain Configuration Issue
+
+**Date:** March 10, 2024  
+**Category:** Workload  
+**Tags:** Web Service, Domain, Configuration, Staging
+
+## Problem Description
+
+**Context:** When configuring a web service in SleakOps, the domain configuration resulted in an incorrect nested subdomain structure instead of the intended clean subdomain.
+
+**Observed Symptoms:**
+
+- Domain appears as `supra.staging.supra.social` (nested structure)
+- Expected domain should be `staging.supra.social` (clean subdomain)
+- Domain configuration created a "frankenstein" structure
+- Web service is accessible but with wrong URL
+
+**Relevant Configuration:**
+
+- Current domain: `supra.staging.supra.social`
+- Desired domain: `staging.supra.social`
+- Service type: Web service
+- Environment: Staging
+
+**Error Conditions:**
+
+- Incorrect domain configuration during web service setup
+- Domain nesting issue creating redundant subdomain
+- Need to reconfigure existing web service domain
+
+## Detailed Solution
+
+<TroubleshootingItem id="edit-web-service" summary="How to edit web service domain configuration">
+
+To fix the domain configuration in your web service:
+
+1. **Navigate to your project** in the SleakOps dashboard
+2. **Go to Workloads** section
+3. **Find your web service** in the list
+4. **Click on the web service** to open its configuration
+5. **Click Edit** or the configuration icon
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="domain-configuration" summary="Configure the correct domain">
+
+In the web service configuration:
+
+1. **Locate the Domain Configuration section**
+2. **Clear the current domain field** if it shows the incorrect domain
+3. **Enter the correct domain**: `staging.supra.social`
+4. **Save the configuration**
+
+```yaml
+# Example configuration
+domain: staging.supra.social
+# NOT: supra.staging.supra.social
+```
+
+**Important:** Make sure you enter only the desired subdomain without duplicating the base domain.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="domain-propagation" summary="Wait for domain propagation">
+
+After updating the domain configuration:
+
+1. **Wait 5-10 minutes** for the changes to propagate
+2. **Check the deployment status** in the workload dashboard
+3. **Verify the new domain** is working correctly
+4. **Test access** to `staging.supra.social`
+
+If the old domain is still cached, you may need to:
+
+- Clear your browser cache
+- Wait for DNS propagation (up to 24 hours in some cases)
+- Use incognito/private browsing mode to test
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Troubleshooting domain issues">
+
+If you still experience issues after the configuration change:
+
+**Check DNS Configuration:**
+
+```bash
+# Test DNS resolution
+nslookup staging.supra.social
+
+# Check if the domain points to the correct IP
+dig staging.supra.social
+```
+
+**Verify SSL Certificate:**
+
+- The SSL certificate should automatically update for the new domain
+- If you see SSL warnings, wait a few more minutes for certificate provisioning
+
+**Common Issues:**
+
+- **Domain not resolving**: Check if DNS records are properly configured
+- **SSL certificate errors**: Wait for automatic certificate provisioning
+- **Old domain still working**: This is normal during transition period
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention" summary="How to avoid domain configuration issues">
+
+To prevent similar issues in the future:
+
+**Best Practices:**
+
+1. **Plan your domain structure** before creating the web service
+2. **Use clear naming conventions**: `[environment].[app].[domain]`
+3. **Double-check domain entries** before saving configuration
+4. **Test domain configuration** in a development environment first
+
+**Domain Structure Examples:**
+
+```
+# Good examples
+staging.myapp.com
+api.myapp.com
+dev.myapp.com
+
+# Avoid nested duplications
+# Bad: myapp.staging.myapp.com
+# Bad: api.myapp.api.myapp.com
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on March 10, 2024 based on a real user query._

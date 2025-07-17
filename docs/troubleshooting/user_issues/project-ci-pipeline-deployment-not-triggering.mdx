@@ -1,0 +1,227 @@
+---
+sidebar_position: 15
+title: "CI Pipeline Not Triggering on Branch Push"
+description: "Solution for deployments not executing when pushing to configured branch"
+date: "2024-03-18"
+category: "project"
+tags: ["ci", "pipeline", "deployment", "github", "staging"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# CI Pipeline Not Triggering on Branch Push
+
+**Date:** March 18, 2024  
+**Category:** Project  
+**Tags:** CI, Pipeline, Deployment, GitHub, Staging
+
+## Problem Description
+
+**Context:** User has configured a project with a specific branch (staging) for deployments, but when pushing code to that branch, the CI/CD pipeline is not executing and deployments are not being triggered.
+
+**Observed Symptoms:**
+
+- Push to staging branch does not trigger deployments
+- No visible pipeline execution in GitHub Actions
+- Project appears to be correctly configured with the desired branch
+- Expected automated deployment process is not working
+
+**Relevant Configuration:**
+
+- Target branch: `staging`
+- Platform: GitHub with GitHub Actions
+- CI/CD files location: `.github/workflows/`
+- Project settings configured in SleakOps
+
+**Error Conditions:**
+
+- Pipeline fails to trigger after push to staging branch
+- No error messages visible initially
+- Deployment automation not working as expected
+
+## Detailed Solution
+
+<TroubleshootingItem id="verify-branch-configuration" summary="Verify project branch configuration">
+
+First, ensure your project is configured with the correct branch:
+
+1. Go to your **SleakOps Project Dashboard**
+2. Navigate to **Project Settings**
+3. Check **Pipeline Settings** section
+4. Verify that the **Target Branch** is set to `staging`
+5. Save changes if any modifications were made
+
+The configuration should match the branch you're pushing to.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="check-ci-file-structure" summary="Review CI/CD file structure">
+
+Verify your GitHub Actions workflow files are properly structured:
+
+1. Check that files exist in `.github/workflows/` directory
+2. Ensure workflow files have `.yml` or `.yaml` extension
+3. Verify the workflow is triggered on the correct branch
+
+Example workflow configuration:
+
+```yaml
+name: SleakOps Deployment
+
+on:
+  push:
+    branches:
+      - staging # Make sure this matches your configured branch
+  pull_request:
+    branches:
+      - staging
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to SleakOps
+        uses: sleakops/deploy-action@v1
+        with:
+          api-key: ${{ secrets.SLEAKOPS_API_KEY }}
+          project-id: ${{ secrets.SLEAKOPS_PROJECT_ID }}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="example-workflow-file" summary="Complete example workflow file">
+
+Here's a complete example workflow file that you can use as-is for SleakOps:
+
+```yaml
+# .github/workflows/sleakops-deploy.yml
+name: SleakOps CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - staging
+      - main
+  pull_request:
+    branches:
+      - staging
+      - main
+
+env:
+  SLEAKOPS_API_URL: https://api.sleakops.com
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build application
+        run: npm run build
+
+      - name: Deploy to SleakOps
+        uses: sleakops/deploy-action@v1
+        with:
+          api-key: ${{ secrets.SLEAKOPS_API_KEY }}
+          project-id: ${{ secrets.SLEAKOPS_PROJECT_ID }}
+          environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+Save this file as `.github/workflows/sleakops-deploy.yml` in your repository.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verify-github-actions" summary="Check GitHub Actions execution">
+
+After merging a PR to staging, verify the action execution:
+
+1. Go to your **GitHub repository**
+2. Click on the **Actions** tab
+3. Look for workflow runs after your recent push/merge
+4. Click on any failed runs to see detailed error logs
+5. Check the **Jobs** section for specific step failures
+
+Common issues to look for:
+
+- Missing secrets (SLEAKOPS_API_KEY, SLEAKOPS_PROJECT_ID)
+- Incorrect branch names in workflow triggers
+- Syntax errors in YAML files
+- Permission issues with GitHub tokens
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Additional troubleshooting steps">
+
+If the pipeline still doesn't trigger:
+
+1. **Check repository permissions:**
+
+   - Ensure GitHub Actions are enabled for your repository
+   - Verify workflow permissions in repository settings
+
+2. **Validate YAML syntax:**
+
+   ```bash
+   # Use a YAML validator or GitHub's built-in checker
+   yamllint .github/workflows/sleakops-deploy.yml
+   ```
+
+3. **Test with a simple workflow:**
+
+   ```yaml
+   name: Test Workflow
+   on:
+     push:
+       branches: [staging]
+   jobs:
+     test:
+       runs-on: ubuntu-latest
+       steps:
+         - run: echo "Pipeline triggered successfully"
+   ```
+
+4. **Check SleakOps integration:**
+   - Verify API keys are correctly set in GitHub Secrets
+   - Ensure project ID matches your SleakOps project
+   - Check SleakOps dashboard for any integration issues
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="secrets-configuration" summary="Configure required secrets">
+
+Ensure the following secrets are configured in your GitHub repository:
+
+1. Go to **Repository Settings** → **Secrets and variables** → **Actions**
+2. Add the following repository secrets:
+
+| Secret Name           | Description             | Where to find                            |
+| --------------------- | ----------------------- | ---------------------------------------- |
+| `SLEAKOPS_API_KEY`    | Your SleakOps API key   | SleakOps Dashboard → Settings → API Keys |
+| `SLEAKOPS_PROJECT_ID` | Your project identifier | SleakOps Project → Settings → General    |
+
+3. Verify secrets are accessible in your workflow by checking the Actions logs
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on March 18, 2024 based on a real user query._

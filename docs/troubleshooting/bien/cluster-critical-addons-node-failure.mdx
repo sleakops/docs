@@ -1,0 +1,182 @@
+---
+sidebar_position: 3
+title: "Critical Addons Node Failure in Production"
+description: "Solution for CriticalAddonsOnly node failures causing production downtime"
+date: "2024-01-15"
+category: "cluster"
+tags:
+  ["eks", "critical-addons", "high-availability", "production", "autoscaling"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Critical Addons Node Failure in Production
+
+**Date:** January 15, 2024  
+**Category:** Cluster  
+**Tags:** EKS, Critical Addons, High Availability, Production, AutoScaling
+
+## Problem Description
+
+**Context:** Production EKS cluster experiences downtime due to missing CriticalAddonsOnly node, causing system failures and service unavailability.
+
+**Observed Symptoms:**
+
+- Production systems are down
+- CriticalAddonsOnly node is missing from the cluster
+- Critical Kubernetes addons cannot be scheduled
+- Service disruption affecting end users
+
+**Relevant Configuration:**
+
+- Environment: Production EKS cluster
+- Node type: CriticalAddonsOnly dedicated node
+- Current cost: ~$10/month
+- High availability cost: ~$50/month
+
+**Error Conditions:**
+
+- Single point of failure in critical addons scheduling
+- No backup nodes available for critical system components
+- AutoScaling group lacks instance type diversity
+
+## Detailed Solution
+
+<TroubleshootingItem id="immediate-fix" summary="Immediate Fix: Add Instance Types to AutoScaling Group">
+
+For immediate resolution without additional costs:
+
+1. **Access AWS Console**
+
+   - Navigate to EC2 → Auto Scaling Groups
+   - Find your cluster's CriticalAddons AutoScaling Group
+
+2. **Edit Launch Template**
+
+   ```bash
+   # Example instance types to add
+   - t3.medium
+   - t3.large
+   - m5.large
+   - m5.xlarge
+   ```
+
+3. **Update AutoScaling Group**
+
+   - Go to "Instance Types" section
+   - Add multiple compatible instance types
+   - This provides fallback options when primary type is unavailable
+
+4. **Trigger Node Replacement**
+   ```bash
+   # Force new node creation
+   kubectl drain <failed-node> --ignore-daemonsets --delete-emptydir-data
+   kubectl delete node <failed-node>
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="high-availability-setup" summary="Recommended: Enable High Availability">
+
+For production environments, implement high availability:
+
+1. **Enable HA in SleakOps Dashboard**
+
+   - Go to Cluster Settings
+   - Navigate to "Critical Addons" section
+   - Enable "High Availability" option
+   - Cost increase: ~$10 → $50/month
+
+2. **Benefits of HA Setup**
+
+   - Multiple CriticalAddons nodes across AZs
+   - Automatic failover capabilities
+   - Zero downtime for critical components
+   - Production-grade reliability
+
+3. **Configuration Example**
+   ```yaml
+   critical_addons:
+     high_availability: true
+     min_nodes: 2
+     max_nodes: 3
+     instance_types: ["t3.medium", "t3.large", "m5.large"]
+     availability_zones: ["us-east-1a", "us-east-1b", "us-east-1c"]
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-measures" summary="Prevention and Best Practices">
+
+**For Production Clusters:**
+
+1. **Always Enable High Availability**
+
+   - Critical for production workloads
+   - Prevents single points of failure
+   - Minimal cost increase for maximum reliability
+
+2. **Instance Type Diversity**
+
+   ```yaml
+   # Good practice: multiple instance types
+   instance_types:
+     - "t3.medium" # Primary choice
+     - "t3.large" # Fallback option
+     - "m5.large" # Alternative family
+     - "m5.xlarge" # Larger fallback
+   ```
+
+3. **Multi-AZ Distribution**
+
+   - Spread nodes across availability zones
+   - Protects against zone-level failures
+   - Ensures addon availability during outages
+
+4. **Monitoring Setup**
+
+   ```bash
+   # Monitor critical addon pods
+   kubectl get pods -n kube-system -l k8s-app=critical-addon
+
+   # Check node readiness
+   kubectl get nodes -l node-role.kubernetes.io/critical-addons
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="maintenance-window" summary="Maintenance Window Considerations">
+
+**Timing for Changes:**
+
+- **During Business Hours**: Safe for HA configurations and instance type additions
+- **No Downtime Required**: These are minor modifications
+- **Real-time Monitoring**: Can be performed while monitoring systems
+
+**Steps for Safe Implementation:**
+
+1. **Pre-change Verification**
+
+   ```bash
+   # Check current cluster state
+   kubectl get nodes
+   kubectl get pods -n kube-system
+   ```
+
+2. **Implement Changes**
+
+   - Add instance types to AutoScaling Group
+   - Or enable High Availability through SleakOps
+
+3. **Post-change Validation**
+   ```bash
+   # Verify new configuration
+   kubectl get nodes -o wide
+   kubectl describe node <critical-addon-node>
+   ```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

@@ -1,0 +1,231 @@
+---
+sidebar_position: 3
+title: "Cluster Automatic Shutdown and Startup Issues"
+description: "Troubleshooting problems with automatic cluster shutdown/startup causing API failures"
+date: "2025-02-14"
+category: "cluster"
+tags: ["cluster", "automation", "shutdown", "startup", "step-functions", "aws"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Cluster Automatic Shutdown and Startup Issues
+
+**Date:** February 14, 2025  
+**Category:** Cluster  
+**Tags:** Cluster, Automation, Shutdown, Startup, Step Functions, AWS
+
+## Problem Description
+
+**Context:** SleakOps clusters configured with automatic shutdown/startup schedules may experience issues where the cluster fails to start properly, causing API failures and application downtime.
+
+**Observed Symptoms:**
+
+- Applications showing connection errors or timeouts
+- API endpoints returning error responses
+- Backend services failing to respond to health checks
+- All applications in the cluster appearing as unavailable
+- Issues occurring after scheduled cluster shutdown periods
+
+**Relevant Configuration:**
+
+- Cluster type: Development/staging environments
+- Automatic shutdown: Configured for nighttime hours
+- Automatic startup: Configured for business hours
+- AWS Step Functions: Used for cluster lifecycle management
+- Region: us-east-1 (typically)
+
+**Error Conditions:**
+
+- Errors appear in the morning after automatic startup
+- Cluster appears to be running but applications are not accessible
+- Step Function execution may have failed or completed with errors
+- Manual intervention required to restore service
+
+## Detailed Solution
+
+<TroubleshootingItem id="immediate-fix" summary="Immediate solution: Manual cluster startup">
+
+If you're experiencing this issue right now, you can resolve it by manually triggering the cluster startup:
+
+1. **Access AWS Console** in your development account
+2. **Navigate to Step Functions** service
+3. **Find the cluster startup Step Function** (usually named with pattern: `*-up-sfn-*`)
+4. **Execute the Step Function** manually
+5. **Wait for completion** (typically 5-10 minutes)
+6. **Verify applications** are accessible again
+
+**Direct link format:**
+
+```
+https://us-east-1.console.aws.amazon.com/states/home?region=us-east-1#/statemachines/view/[YOUR_STEP_FUNCTION_ARN]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="root-cause" summary="Understanding the root cause">
+
+This issue typically occurs due to:
+
+1. **Step Function execution failures**: The automatic startup process encounters errors
+2. **Timing issues**: Dependencies between services during startup
+3. **Resource constraints**: Insufficient resources during cluster initialization
+4. **Network connectivity**: Temporary network issues during startup
+5. **Configuration drift**: Changes in cluster configuration affecting automation
+
+**Common failure points:**
+
+- Node group scaling issues
+- Pod scheduling problems
+- Service discovery delays
+- Load balancer health check failures
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-prevention" summary="Monitoring and prevention strategies">
+
+To prevent this issue from recurring:
+
+**1. Monitor Step Function executions:**
+
+```bash
+# Check recent executions
+aws stepfunctions list-executions --state-machine-arn [YOUR_ARN] --max-items 10
+```
+
+**2. Set up CloudWatch alarms:**
+
+- Step Function execution failures
+- Cluster startup duration exceeding thresholds
+- Application health check failures
+
+**3. Implement retry mechanisms:**
+
+- Configure Step Functions with retry logic
+- Add exponential backoff for failed steps
+- Include manual approval steps for critical failures
+
+**4. Health check improvements:**
+
+- Extend health check timeout periods
+- Add dependency checks between services
+- Implement graceful startup sequences
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Detailed troubleshooting steps">
+
+**Step 1: Check Step Function status**
+
+```bash
+# Get execution details
+aws stepfunctions describe-execution --execution-arn [EXECUTION_ARN]
+```
+
+**Step 2: Verify cluster status**
+
+```bash
+# Check cluster status
+kubectl get nodes
+kubectl get pods --all-namespaces
+```
+
+**Step 3: Check application logs**
+
+```bash
+# Check pod logs for errors
+kubectl logs -f deployment/[YOUR_APP] -n [NAMESPACE]
+```
+
+**Step 4: Verify service connectivity**
+
+```bash
+# Test internal service connectivity
+kubectl exec -it [POD_NAME] -- curl http://[SERVICE_NAME]:8080/health
+```
+
+**Step 5: Check ingress and load balancer**
+
+```bash
+# Verify ingress status
+kubectl get ingress
+kubectl describe ingress [INGRESS_NAME]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="configuration-best-practices" summary="Configuration best practices">
+
+**Startup sequence optimization:**
+
+1. **Staggered startup**: Don't start all services simultaneously
+2. **Dependency ordering**: Start databases before applications
+3. **Health check delays**: Allow sufficient time for services to initialize
+4. **Resource reservations**: Ensure adequate CPU/memory during startup
+
+**Step Function configuration:**
+
+```json
+{
+  "Comment": "Cluster startup with retry logic",
+  "StartAt": "StartCluster",
+  "States": {
+    "StartCluster": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:eks:updateCluster",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 30,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Next": "WaitForCluster"
+    }
+  }
+}
+```
+
+**Monitoring configuration:**
+
+- Set up alerts for failed executions
+- Monitor cluster resource utilization
+- Track application startup times
+- Log all automation events
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Alternative solutions">
+
+If the automatic shutdown/startup continues to cause issues:
+
+**Option 1: Adjust shutdown/startup times**
+
+- Extend startup time before business hours
+- Add buffer time for complete initialization
+- Stagger shutdown of different services
+
+**Option 2: Implement health checks**
+
+- Add comprehensive health checks before marking cluster as ready
+- Include application-level health verification
+- Implement automatic rollback on health check failures
+
+**Option 3: Use cluster autoscaling**
+
+- Configure cluster autoscaler for automatic scaling
+- Use node auto-provisioning for cost optimization
+- Implement pod disruption budgets
+
+**Option 4: Consider always-on for critical environments**
+
+- Keep production-like environments always running
+- Use cost optimization through right-sizing instead of shutdown
+- Implement resource quotas and limits
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on February 14, 2025 based on a real user query._

@@ -1,0 +1,148 @@
+---
+sidebar_position: 15
+title: "Gestión de Trabajos y Visualización de Registros"
+description: "Cómo gestionar la ejecución de trabajos, limpiar el historial de trabajos y ver registros de trabajos completados"
+date: "2025-02-04"
+category: "workload"
+tags: ["trabajos", "registros", "limpieza", "gestión", "ejecución"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Gestión de Trabajos y Visualización de Registros
+
+**Fecha:** 4 de febrero de 2025  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** Trabajos, Registros, Limpieza, Gestión, Ejecución
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios necesitan gestionar la ejecución de trabajos en SleakOps, incluyendo la limpieza de ejecuciones antiguas y la visualización de registros tanto para trabajos exitosos como fallidos.
+
+**Síntomas observados:**
+
+- El historial de ejecuciones de trabajos se acumula con el tiempo sin opción de limpieza
+- Los registros son visibles para trabajos fallidos pero no para los exitosos
+- Los usuarios no pueden eliminar manualmente ejecuciones antiguas desde la interfaz
+- El historial de trabajos se vuelve desordenado con ejecuciones antiguas que ya no son relevantes
+
+**Configuración relevante:**
+
+- Plataforma: Interfaz de gestión de trabajos de SleakOps
+- Tipos de trabajos: Todos los tipos (programados, manuales, etc.)
+- Visibilidad de registros: Actualmente limitada a ejecuciones fallidas
+
+**Condiciones de error:**
+
+- No existe un mecanismo integrado de limpieza para el historial de trabajos
+- Visualización inconsistente de registros entre trabajos exitosos y fallidos
+- La limpieza manual requiere intervención del equipo de soporte
+
+## Solución Detallada
+
+<TroubleshootingItem id="current-limitations" summary="Limitaciones actuales en la gestión de trabajos">
+
+Actualmente, SleakOps presenta las siguientes limitaciones en la gestión de trabajos:
+
+1. **Sin limpieza autoservicio**: Los usuarios no pueden eliminar ejecuciones antiguas a través de la interfaz
+2. **Acceso limitado a registros**: Los registros se muestran automáticamente para trabajos fallidos pero no para los exitosos
+3. **Intervención manual requerida**: La limpieza requiere contactar al soporte para la eliminación manual
+
+Estas son limitaciones conocidas que se están abordando en futuras actualizaciones de la plataforma.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-cleanup-process" summary="Cómo solicitar la limpieza manual de trabajos">
+
+Para limpiar ejecuciones antiguas de trabajos:
+
+1. **Contactar Soporte**: Enviar un correo electrónico a support@sleakops.com
+2. **Especificar trabajos a eliminar**: Proporcionar detalles sobre qué ejecuciones de trabajos desea eliminar
+3. **Incluir contexto del proyecto**: Mencionar el nombre de su proyecto y los nombres de los trabajos
+4. **Esperar confirmación**: El equipo de soporte eliminará manualmente las ejecuciones especificadas
+
+**Plantilla de correo:**
+
+```
+Asunto: Solicitud de limpieza de ejecuciones de trabajos
+
+Hola equipo de SleakOps,
+
+Quisiera solicitar la limpieza de ejecuciones antiguas de los siguientes trabajos:
+- Proyecto: [Nombre de su proyecto]
+- Trabajos: [Nombres específicos de trabajos o "todas las ejecuciones antiguas"]
+- Rango de tiempo: [Opcional: ejecuciones con más de X días]
+
+¡Gracias!
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="viewing-successful-job-logs" summary="Cómo ver registros de trabajos exitosos">
+
+Actualmente, los registros de trabajos exitosos no se muestran automáticamente en la interfaz. Para acceder a ellos:
+
+1. **Volver a ejecutar el trabajo**: Ejecute el mismo trabajo con la configuración idéntica
+2. **Monitorear durante la ejecución**: Observe los registros mientras el trabajo se está ejecutando
+3. **Contactar soporte**: Solicite acceso específico a los registros de trabajos exitosos ya completados
+
+**Solución alternativa para retención de registros:**
+
+- Considere agregar registro a sistemas externos dentro de sus scripts de trabajo
+- Use archivos de salida de trabajo que persistan más allá de la ejecución
+- Implemente mecanismos personalizados de registro en el código de sus trabajos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="job-re-execution" summary="Reejecución de trabajos con la misma configuración">
+
+Para volver a ejecutar un trabajo con la misma configuración:
+
+1. **Navegue a la sección de Trabajos** en su proyecto SleakOps
+2. **Encuentre el trabajo** que desea reejecutar
+3. **Haga clic en el nombre del trabajo** para ver detalles
+4. **Use el botón "Ejecutar de nuevo" o "Ejecutar"** (si está disponible)
+5. **Verifique que la configuración** coincida con su ejecución previa
+6. **Monitoree los registros** durante la ejecución para capturar la salida
+
+Si la opción de reejecución no está disponible en la interfaz, puede que necesite:
+
+- Recrear manualmente la configuración del trabajo
+- Usar los mismos parámetros y ajustes que la ejecución anterior
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Mejores prácticas para la gestión de trabajos">
+
+**Para una mejor gestión de trabajos:**
+
+1. **Limpieza regular**: Solicite limpieza mensual o trimestral
+2. **Nombres significativos para trabajos**: Use nombres descriptivos para identificar fácilmente los trabajos
+3. **Registro externo**: Implemente registro en sistemas externos para retención a largo plazo
+4. **Documentación**: Mantenga un registro externo de configuraciones importantes de trabajos
+
+**Para la gestión de registros:**
+
+1. **Captura durante la ejecución**: Monitoree los trabajos mientras se ejecutan para ver la salida
+2. **Exporte registros importantes**: Guarde información crítica de registros externamente
+3. **Use salidas de trabajos**: Diseñe trabajos para que escriban resultados importantes en archivos
+4. **Implemente notificaciones**: Configure alertas para el estado de finalización de trabajos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="upcoming-improvements" summary="Mejoras planificadas en la plataforma">
+
+SleakOps está trabajando en implementar las siguientes funcionalidades de gestión de trabajos:
+
+1. **Limpieza autoservicio**: Los usuarios podrán eliminar ejecuciones antiguas
+2. **Visualización mejorada de registros**: Los registros serán accesibles tanto para trabajos exitosos como fallidos
+3. **Gestión del historial de trabajos**: Mejor filtrado y organización de ejecuciones
+4. **Políticas de retención de registros**: Configuraciones para retención de registros
+
+Estas mejoras están planificadas para futuras versiones para mejorar la experiencia del usuario.
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 4 de febrero de 2025 basada en una consulta real de usuario._

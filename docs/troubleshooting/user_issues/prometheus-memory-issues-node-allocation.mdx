@@ -1,0 +1,218 @@
+---
+sidebar_position: 3
+title: "Prometheus Memory Issues and Node Allocation"
+description: "Solution for Prometheus pod crashes due to memory constraints and dynamic node allocation"
+date: "2024-12-19"
+category: "cluster"
+tags: ["prometheus", "memory", "monitoring", "grafana", "node-allocation"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Prometheus Memory Issues and Node Allocation
+
+**Date:** December 19, 2024  
+**Category:** Cluster  
+**Tags:** Prometheus, Memory, Monitoring, Grafana, Node Allocation
+
+## Problem Description
+
+**Context:** Prometheus pods in SleakOps clusters experience crashes due to memory constraints when allocated to nodes with insufficient resources, causing monitoring dashboards and metrics collection to fail.
+
+**Observed Symptoms:**
+
+- Prometheus pod crashes due to memory exhaustion
+- Grafana dashboards show no data or become unavailable
+- Metrics are not being collected or stored
+- Prometheus container shows yellow status (warning state)
+- Monitoring functionality is completely disrupted
+
+**Relevant Configuration:**
+
+- Prometheus has dynamic memory requirements
+- Node allocation is dynamic and may place Prometheus on undersized nodes
+- Grafana depends on Prometheus for metrics data
+- Loki may be affected by the same node resource constraints
+
+**Error Conditions:**
+
+- Occurs when Prometheus is scheduled on nodes with insufficient memory
+- Problem is intermittent due to dynamic node allocation
+- Affects all monitoring and observability features
+- Can recur as cluster scaling changes node availability
+
+## Detailed Solution
+
+<TroubleshootingItem id="immediate-fix" summary="Immediate solution: Configure node affinity for Prometheus">
+
+The immediate solution involves configuring Prometheus to always be scheduled on nodes with sufficient resources:
+
+1. **Access your cluster configuration**
+2. **Modify Prometheus deployment** to include node affinity rules
+3. **Ensure Prometheus targets larger nodes** with adequate memory
+
+```yaml
+# Example node affinity configuration for Prometheus
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+spec:
+  template:
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node.kubernetes.io/instance-type
+                    operator: In
+                    values:
+                      - "m5.large"
+                      - "m5.xlarge"
+                      - "c5.large"
+                      - "c5.xlarge"
+```
+
+This prevents Prometheus from being scheduled on smaller nodes that cannot handle its memory requirements.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verify-recovery" summary="How to verify monitoring recovery">
+
+After applying the fix, verify that monitoring is working correctly:
+
+1. **Check Prometheus pod status**:
+
+   ```bash
+   kubectl get pods -n monitoring | grep prometheus
+   ```
+
+   The pod should show `Running` status with all containers green.
+
+2. **Verify Grafana dashboards**:
+
+   - **Container Logs (Loki)**: Check if log data is available
+   - **Compute and RAM (Prometheus)**: Verify metrics are being collected
+   - **Network Traffic (Prometheus)**: Confirm network metrics are updating
+
+3. **Test dashboard functionality**:
+   - Access Grafana interface
+   - Navigate to different dashboards
+   - Confirm data is being displayed with recent timestamps
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-prometheus-health" summary="Monitor Prometheus container health">
+
+To identify when Prometheus is experiencing issues:
+
+1. **Visual indicators in SleakOps dashboard**:
+
+   - Look for yellow containers (warning state)
+   - Check for red containers (failed state)
+   - Monitor resource usage graphs
+
+2. **Command line monitoring**:
+
+   ```bash
+   # Check Prometheus pod resource usage
+   kubectl top pod -n monitoring | grep prometheus
+
+   # Check pod events for memory issues
+   kubectl describe pod <prometheus-pod-name> -n monitoring
+
+   # Monitor pod logs for memory errors
+   kubectl logs <prometheus-pod-name> -n monitoring
+   ```
+
+3. **Set up alerts** for Prometheus pod restarts or memory usage spikes.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="resource-requirements" summary="Configure proper resource requirements">
+
+Set appropriate resource requests and limits for Prometheus:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+spec:
+  template:
+    spec:
+      containers:
+        - name: prometheus
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "500m"
+            limits:
+              memory: "4Gi"
+              cpu: "1000m"
+```
+
+**Guidelines for resource sizing**:
+
+- **Small clusters** (< 50 pods): 2Gi memory request, 4Gi limit
+- **Medium clusters** (50-200 pods): 4Gi memory request, 8Gi limit
+- **Large clusters** (> 200 pods): 8Gi memory request, 16Gi limit
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-strategies" summary="Long-term prevention strategies">
+
+To prevent this issue from recurring:
+
+1. **Implement node taints and tolerations**:
+
+   ```yaml
+   # Taint nodes for monitoring workloads
+   kubectl taint nodes <node-name> monitoring=true:NoSchedule
+
+   # Add toleration to Prometheus deployment
+   tolerations:
+   - key: "monitoring"
+     operator: "Equal"
+     value: "true"
+     effect: "NoSchedule"
+   ```
+
+2. **Use dedicated node pools** for monitoring components
+3. **Implement cluster autoscaling** with minimum node requirements
+4. **Set up monitoring alerts** for resource exhaustion
+5. **Regular capacity planning** based on cluster growth
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Additional troubleshooting steps">
+
+If the problem persists after applying the initial fix:
+
+1. **Check cluster node capacity**:
+
+   ```bash
+   kubectl describe nodes | grep -A 5 "Allocated resources"
+   ```
+
+2. **Verify Prometheus configuration**:
+
+   - Check scrape intervals and retention policies
+   - Review target discovery configuration
+   - Validate storage configuration
+
+3. **Examine cluster events**:
+
+   ```bash
+   kubectl get events --sort-by=.metadata.creationTimestamp
+   ```
+
+4. **Consider Prometheus federation** for very large clusters
+5. **Implement Prometheus sharding** if single instance cannot handle the load
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

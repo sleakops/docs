@@ -1,0 +1,143 @@
+---
+sidebar_position: 3
+title: "Nodepools Desaparecidos Después del Apagado del Clúster"
+description: "Solución para nodepools que desaparecen tras el ciclo de apagado/arranque del clúster"
+date: "2025-02-20"
+category: "cluster"
+tags: ["nodepool", "shutdown", "cluster", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Nodepools Desaparecidos Después del Apagado del Clúster
+
+**Fecha:** 20 de febrero de 2025  
+**Categoría:** Clúster  
+**Etiquetas:** Nodepool, Apagado, Clúster, Solución de problemas
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios experimentan la desaparición de nodepools después de un ciclo de apagado y arranque del clúster, particularmente al usar la función de apagado nocturno en SleakOps.
+
+**Síntomas Observados:**
+
+- Los procesos de compilación fallan tras el reinicio del clúster
+- Los nodepools faltan en el clúster
+- No se pueden desplegar aplicaciones por falta de recursos computacionales
+- El clúster parece estar en funcionamiento pero sin nodos trabajadores
+
+**Configuración Relevante:**
+
+- Clúster con apagado nocturno habilitado
+- Múltiples nodepools configurados
+- Procesos de compilación dependientes de la disponibilidad de nodepools
+
+**Condiciones de Error:**
+
+- El error ocurre tras el ciclo de apagado/arranque del clúster
+- Afecta a clústeres con funciones de apagado automático
+- Los nodepools no se restauran automáticamente después del reinicio del clúster
+- Fallan las operaciones de compilación y despliegue
+
+## Solución Detallada
+
+<TroubleshootingItem id="immediate-fix" summary="Solución inmediata para nodepools desaparecidos">
+
+Si experimentas nodepools desaparecidos después de un apagado del clúster:
+
+1. **Contacta al soporte de SleakOps** inmediatamente para restaurar los nodepools
+2. **Evita usar compilaciones** hasta que los nodepools se restauren
+3. **Verifica el estado del clúster** en el panel de SleakOps
+4. **Confirma la configuración de los nodepools** una vez restaurados
+
+El equipo de SleakOps puede restaurar manualmente tus nodepools mientras se implementa la solución permanente.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="root-cause" summary="Comprendiendo la causa raíz">
+
+Este problema es causado por un error conocido en la función de apagado nocturno:
+
+- **Proceso de apagado**: Apaga correctamente el clúster
+- **Proceso de arranque**: Reinicia el clúster pero no logra restaurar los nodepools
+- **Impacto**: Deja el clúster sin nodos trabajadores
+- **Estado**: El equipo de SleakOps está corrigiendo el error
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="temporary-workaround" summary="Solución temporal">
+
+Hasta que la solución esté disponible:
+
+1. **Deshabilita el apagado nocturno** si es posible:
+
+   - Ve a **Configuración del Clúster**
+   - Navega a **Gestión de Energía**
+   - Desactiva **Apagado Automático**
+
+2. **Alternativa de apagado manual**:
+
+   - Apaga el clúster manualmente cuando sea necesario
+   - Asegúrate de estar disponible para verificar el estado de los nodepools tras el reinicio
+
+3. **Monitorea el estado del clúster**:
+   - Verifica la disponibilidad de los nodepools antes de iniciar compilaciones
+   - Confirma que los nodos trabajadores estén presentes en el panel de Kubernetes
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Cómo verificar la restauración de nodepools">
+
+Después de que los nodepools sean restaurados, verifica que funcionen correctamente:
+
+```bash
+# Verificar nodos en el clúster
+kubectl get nodes
+
+# Verificar estado de los nodepools
+kubectl get nodes --show-labels
+
+# Comprobar si los pods pueden programarse
+kubectl get pods --all-namespaces
+```
+
+La salida esperada debe mostrar:
+
+- Múltiples nodos trabajadores en estado "Ready"
+- Etiquetas de nodo adecuadas que indiquen la pertenencia a nodepools
+- Pods programados exitosamente en los nodos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention" summary="Prevención de futuras ocurrencias">
+
+Para evitar este problema en el futuro:
+
+1. **Espera la solución**: SleakOps está trabajando en una solución permanente
+2. **Monitorea los anuncios**: Mantente atento a las actualizaciones sobre la disponibilidad de la solución
+3. **Rehabilita el apagado con cuidado**: Solo vuelve a habilitar el apagado automático después de que la solución esté implementada
+4. **Prueba exhaustivamente**: Después de la solución, prueba el ciclo de apagado/arranque primero en un entorno no productivo
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="when-to-contact-support" summary="Cuándo contactar al soporte">
+
+Contacta al soporte de SleakOps inmediatamente si:
+
+- Los nodepools desaparecen tras el reinicio del clúster
+- Las compilaciones fallan por recursos insuficientes
+- No puedes desplegar aplicaciones
+- El clúster aparece en ejecución pero sin nodos trabajadores
+
+Proporciona la siguiente información:
+
+- Nombre e ID del clúster
+- Hora en que ocurrió el apagado/arranque
+- Capturas de pantalla de los mensajes de error
+- Configuración actual de los nodepools
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 20 de febrero de 2025 basada en una consulta real de usuario._

@@ -1,0 +1,226 @@
+---
+sidebar_position: 3
+title: "PostgreSQL pgvector Extension Issues with Alpine vs Debian"
+description: "Solution for pgvector extension compatibility issues between Alpine and Debian PostgreSQL images"
+date: "2024-04-24"
+category: "dependency"
+tags: ["postgresql", "pgvector", "alpine", "debian", "extensions", "database"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# PostgreSQL pgvector Extension Issues with Alpine vs Debian
+
+**Date:** April 24, 2024  
+**Category:** Dependency  
+**Tags:** PostgreSQL, pgvector, Alpine, Debian, Extensions, Database
+
+## Problem Description
+
+**Context:** User is implementing the pgvector extension for PostgreSQL in their SleakOps environment. The extension works correctly in production and staging environments but fails in the local development environment.
+
+**Observed Symptoms:**
+
+- pgvector extension installs successfully in production and staging
+- Local development environment cannot install or use pgvector extension
+- Inconsistent behavior between environments
+- Extension-related errors in local PostgreSQL instance
+
+**Relevant Configuration:**
+
+- Local environment: `postgres:14-alpine`
+- Production/Staging: `postgres:14` (Debian-based)
+- Extension: pgvector for vector similarity search
+- Platform: SleakOps with PostgreSQL dependency
+
+**Error Conditions:**
+
+- Error occurs when trying to install pgvector extension locally
+- Problem appears only in Alpine-based PostgreSQL images
+- Works correctly in Debian-based PostgreSQL images
+- Environment inconsistency between local and production
+
+## Detailed Solution
+
+<TroubleshootingItem id="alpine-debian-difference" summary="Understanding Alpine vs Debian PostgreSQL Images">
+
+The key difference between PostgreSQL images:
+
+- **postgres:14-alpine**: Based on Alpine Linux, minimal image with musl libc
+- **postgres:14**: Based on Debian, includes glibc and more development tools
+
+Alpine images are smaller but may lack certain libraries and compilation tools needed for PostgreSQL extensions like pgvector.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="switch-to-debian" summary="Switch Local Environment to Debian Image">
+
+To maintain environment consistency, update your local PostgreSQL configuration:
+
+**In docker-compose.yml or equivalent:**
+
+```yaml
+services:
+  postgres:
+    image: postgres:14 # Changed from postgres:14-alpine
+    environment:
+      POSTGRES_DB: your_database
+      POSTGRES_USER: your_user
+      POSTGRES_PASSWORD: your_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+```
+
+**In SleakOps dependency configuration:**
+
+```yaml
+dependencies:
+  postgres:
+    image: postgres:14
+    version: "14"
+    extensions:
+      - pgvector
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="install-pgvector" summary="Installing pgvector Extension">
+
+After switching to the Debian image, install pgvector:
+
+**Method 1: Using SQL commands**
+
+```sql
+-- Connect to your database
+\c your_database
+
+-- Create the extension
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- Verify installation
+\dx vector
+```
+
+**Method 2: Using init script**
+
+Create an initialization script:
+
+```sql
+-- init-pgvector.sql
+CREATE EXTENSION IF NOT EXISTS vector;
+```
+
+Mount it in your container:
+
+```yaml
+volumes:
+  - ./init-pgvector.sql:/docker-entrypoint-initdb.d/init-pgvector.sql
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verify-installation" summary="Verify pgvector Installation">
+
+To confirm pgvector is working correctly:
+
+```sql
+-- Check if extension is installed
+SELECT * FROM pg_extension WHERE extname = 'vector';
+
+-- Test vector functionality
+CREATE TABLE test_vectors (
+    id SERIAL PRIMARY KEY,
+    embedding vector(3)
+);
+
+-- Insert test data
+INSERT INTO test_vectors (embedding) VALUES ('[1,2,3]');
+INSERT INTO test_vectors (embedding) VALUES ('[4,5,6]');
+
+-- Test similarity search
+SELECT id, embedding, embedding <-> '[1,2,3]' AS distance
+FROM test_vectors
+ORDER BY distance;
+
+-- Clean up test
+DROP TABLE test_vectors;
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Troubleshooting Common Issues">
+
+**If pgvector still doesn't work after switching to Debian:**
+
+1. **Check PostgreSQL version compatibility:**
+
+   ```bash
+   docker exec -it your_postgres_container psql -U your_user -c "SELECT version();"
+   ```
+
+2. **Install pgvector manually if needed:**
+
+   ```bash
+   # Connect to container
+   docker exec -it your_postgres_container bash
+
+   # Install dependencies
+   apt-get update
+   apt-get install -y postgresql-14-pgvector
+   ```
+
+3. **Restart PostgreSQL service:**
+
+   ```bash
+   docker restart your_postgres_container
+   ```
+
+4. **Check extension availability:**
+   ```sql
+   SELECT * FROM pg_available_extensions WHERE name = 'vector';
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="environment-consistency" summary="Maintaining Environment Consistency">
+
+To prevent future environment inconsistencies:
+
+**1. Use identical base images:**
+
+```yaml
+# Use the same image across all environments
+postgres:
+  image: postgres:14 # Not postgres:14-alpine
+```
+
+**2. Document dependencies:**
+
+```yaml
+# Create a dependencies.yml file
+postgres:
+  version: "14"
+  image: postgres:14
+  extensions:
+    - pgvector
+    - uuid-ossp
+  required_packages:
+    - postgresql-14-pgvector
+```
+
+**3. Use initialization scripts:**
+
+```bash
+# Create init-extensions.sql
+#!/bin/bash
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2025 based on a real user query._

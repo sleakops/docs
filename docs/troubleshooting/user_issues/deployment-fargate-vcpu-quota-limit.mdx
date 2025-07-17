@@ -1,0 +1,198 @@
+---
+sidebar_position: 3
+title: "Fargate vCPU Quota Limit During Deployment"
+description: "Solution for deployment failures due to Fargate vCPU quota limitations"
+date: "2025-02-13"
+category: "deployment"
+tags: ["fargate", "aws", "quota", "vcpu", "deployment", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Fargate vCPU Quota Limit During Deployment
+
+**Date:** February 13, 2025  
+**Category:** Deployment  
+**Tags:** Fargate, AWS, Quota, vCPU, Deployment, Troubleshooting
+
+## Problem Description
+
+**Context:** Users experience deployment failures in SleakOps when using AWS Fargate as the deployment mode, specifically due to vCPU quota limitations that prevent successful deployments.
+
+**Observed Symptoms:**
+
+- Deployment fails during execution
+- Error messages related to insufficient Fargate capacity
+- Unable to complete deployment process
+- Previous deployments may have worked but suddenly start failing
+- Issue affects multiple deployment attempts
+
+**Relevant Configuration:**
+
+- Deployment mode: AWS Fargate
+- Platform: SleakOps
+- Service: Container deployments
+- Resource type: vCPU allocation
+
+**Error Conditions:**
+
+- Error occurs during deployment execution
+- Happens when Fargate vCPU quota is reached
+- May coincide with attempts to delete variable groups or other resources
+- Prevents both new deployments and cleanup operations
+
+## Detailed Solution
+
+<TroubleshootingItem id="quota-identification" summary="Identifying Fargate vCPU quota issues">
+
+Fargate vCPU quota limits can cause deployment failures. To identify if this is your issue:
+
+1. **Check AWS Service Quotas Console:**
+
+   - Navigate to AWS Console → Service Quotas
+   - Search for "AWS Fargate"
+   - Look for "Fargate On-Demand vCPU resource count"
+
+2. **Review deployment logs:**
+
+   - Look for error messages mentioning "insufficient capacity"
+   - Check for Fargate-specific error codes
+   - Monitor resource allocation failures
+
+3. **Check current usage:**
+   - AWS Console → ECS → Clusters
+   - Review running Fargate tasks and their vCPU allocation
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="quota-increase-request" summary="Requesting vCPU quota increase">
+
+To request a Fargate vCPU quota increase:
+
+1. **Access Service Quotas:**
+
+   ```bash
+   # Via AWS CLI (optional)
+   aws service-quotas get-service-quota \
+     --service-code fargate \
+     --quota-code L-3032A538
+   ```
+
+2. **Submit quota increase request:**
+
+   - Go to AWS Console → Service Quotas
+   - Find "Fargate On-Demand vCPU resource count"
+   - Click "Request quota increase"
+   - Specify the new limit needed
+   - Provide business justification
+
+3. **Typical processing time:**
+   - Standard requests: 24-48 hours
+   - Urgent requests: Can be expedited through AWS Support
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-workarounds" summary="Immediate workarounds while waiting for quota increase">
+
+While waiting for quota approval, try these workarounds:
+
+1. **Optimize resource allocation:**
+
+   ```yaml
+   # Reduce vCPU allocation in your deployment configuration
+   resources:
+     limits:
+       cpu: "0.25" # Instead of "0.5" or "1.0"
+       memory: "512Mi"
+     requests:
+       cpu: "0.1"
+       memory: "256Mi"
+   ```
+
+2. **Clean up unused resources:**
+
+   - Stop unnecessary Fargate tasks
+   - Remove idle deployments
+   - Delete unused ECS services
+
+3. **Use different deployment strategy:**
+
+   - Deploy in smaller batches
+   - Implement rolling deployments with lower concurrency
+   - Consider using EC2 launch type temporarily
+
+4. **Regional alternatives:**
+   - Deploy to a different AWS region with available capacity
+   - Use multiple regions to distribute load
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-monitoring" summary="Preventing future quota issues">
+
+To prevent future Fargate vCPU quota issues:
+
+1. **Set up monitoring:**
+
+   ```yaml
+   # CloudWatch alarm for Fargate usage
+   FargateVCPUUsageAlarm:
+     Type: AWS::CloudWatch::Alarm
+     Properties:
+       AlarmName: FargateVCPUUsageHigh
+       MetricName: CPUUtilization
+       Namespace: AWS/ECS
+       Statistic: Average
+       Threshold: 80
+       ComparisonOperator: GreaterThanThreshold
+   ```
+
+2. **Implement resource governance:**
+
+   - Set default resource limits for deployments
+   - Implement approval workflows for high-resource deployments
+   - Regular audit of resource usage
+
+3. **Plan capacity:**
+
+   - Monitor usage trends
+   - Request quota increases proactively
+   - Maintain buffer capacity for peak usage
+
+4. **Documentation and alerts:**
+   - Document current quota limits
+   - Set up alerts at 70% and 85% usage
+   - Create runbooks for quota management
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-cleanup" summary="Handling cleanup operations during quota issues">
+
+When quota issues prevent cleanup operations (like deleting variable groups):
+
+1. **Temporary deployment for cleanup:**
+
+   - Deploy minimal resources to enable cleanup operations
+   - Use smallest possible vCPU allocation
+   - Execute cleanup tasks immediately after deployment
+
+2. **Manual cleanup via AWS Console:**
+
+   ```bash
+   # List ECS services that might be blocking cleanup
+   aws ecs list-services --cluster your-cluster-name
+
+   # Stop services if safe to do so
+   aws ecs update-service --cluster your-cluster-name \
+     --service your-service-name --desired-count 0
+   ```
+
+3. **Coordinate with SleakOps support:**
+   - Report the specific resource causing issues
+   - Request manual intervention if needed
+   - Provide deployment logs and error messages
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on February 13, 2025 based on a real user query._

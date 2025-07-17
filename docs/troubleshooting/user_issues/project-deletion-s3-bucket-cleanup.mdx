@@ -1,0 +1,127 @@
+---
+sidebar_position: 3
+title: "Project Deletion Stuck - S3 Bucket Cleanup Issue"
+description: "Solution for projects stuck in 'pending for delete' status due to S3 bucket cleanup problems"
+date: "2024-10-31"
+category: "project"
+tags: ["s3", "deletion", "bucket", "cleanup", "aws"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Project Deletion Stuck - S3 Bucket Cleanup Issue
+
+**Date:** October 31, 2024  
+**Category:** Project  
+**Tags:** S3, Deletion, Bucket, Cleanup, AWS
+
+## Problem Description
+
+**Context:** When attempting to delete a project in SleakOps, the project becomes stuck in "pending for delete" status due to issues with S3 bucket cleanup processes.
+
+**Observed Symptoms:**
+
+- Project remains in "pending for delete" status indefinitely
+- Deletion process appears to hang or timeout
+- S3 buckets associated with the project are not properly cleaned up
+- Error occurs specifically with buckets containing large numbers of objects
+
+**Relevant Configuration:**
+
+- Project type: Any project with associated S3 storage
+- AWS S3 buckets with significant object count
+- SleakOps automated cleanup processes
+
+**Error Conditions:**
+
+- Occurs during project deletion process
+- Happens when S3 buckets contain many objects
+- Cleanup process fails to handle large object volumes
+- Deletion gets stuck before completion
+
+## Detailed Solution
+
+<TroubleshootingItem id="root-cause" summary="Understanding the root cause">
+
+The issue occurs because AWS S3 requires all objects to be deleted from a bucket before the bucket itself can be deleted. When a bucket contains a large number of objects, the cleanup process can:
+
+1. **Timeout**: The deletion process may exceed time limits
+2. **Rate limit**: AWS API rate limits may be hit during bulk deletions
+3. **Memory issues**: Processing too many objects at once can cause memory problems
+4. **Incomplete cleanup**: Some objects may remain, preventing bucket deletion
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-verification" summary="How to verify S3 bucket status">
+
+To check if this is affecting your project:
+
+1. **Access AWS Console**
+2. **Navigate to S3 service**
+3. **Search for buckets** related to your project name
+4. **Check object count** in each bucket
+5. **Look for buckets** that should have been deleted but still exist
+
+```bash
+# Using AWS CLI to check bucket contents
+aws s3 ls s3://your-project-bucket-name --recursive --summarize
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="platform-fix" summary="SleakOps platform resolution">
+
+The SleakOps team has implemented fixes for this issue:
+
+1. **Improved batch processing**: Objects are now deleted in smaller, manageable batches
+2. **Enhanced error handling**: Better retry mechanisms for failed deletions
+3. **Timeout management**: Extended timeouts for large bucket cleanup
+4. **Progress tracking**: Better monitoring of cleanup progress
+
+If your project is currently stuck:
+
+- **Contact support**: Report the stuck project via support ticket
+- **Provide project name**: Include the exact project name showing "pending for delete"
+- **Wait for resolution**: The team will manually complete the cleanup process
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention" summary="Preventing future occurrences">
+
+To avoid this issue in future project deletions:
+
+1. **Regular cleanup**: Periodically clean up unnecessary files in your project
+2. **Lifecycle policies**: Implement S3 lifecycle policies to automatically delete old objects
+3. **Monitor storage**: Keep track of object counts in your project's S3 buckets
+4. **Staged deletion**: For projects with large amounts of data, consider manual cleanup before deletion
+
+```yaml
+# Example S3 lifecycle policy
+LifecycleConfiguration:
+  Rules:
+    - Id: DeleteOldObjects
+      Status: Enabled
+      Filter:
+        Prefix: temp/
+      Expiration:
+        Days: 30
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring" summary="Monitoring deletion progress">
+
+While waiting for a stuck deletion to complete:
+
+1. **Check project status** regularly in the SleakOps dashboard
+2. **Monitor AWS CloudTrail** for S3 deletion events (if you have access)
+3. **Watch for email notifications** from the SleakOps team
+4. **Avoid retrying** the deletion process while it's being resolved
+
+**Note**: The resolution process may take some time depending on the number of objects that need to be cleaned up.
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on November 1, 2024 based on a real user query._

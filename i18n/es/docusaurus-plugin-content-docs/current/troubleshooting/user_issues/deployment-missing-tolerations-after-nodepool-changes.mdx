@@ -1,0 +1,147 @@
+---
+sidebar_position: 3
+title: "Despliegue sin Tolerancias Después de Cambios en el Nodepool"
+description: "Solución para pods que no pueden programarse tras modificaciones en el nodepool"
+date: "2025-03-05"
+category: "cluster"
+tags: ["nodepool", "tolerancias", "despliegue", "programación", "kubernetes"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Despliegue sin Tolerancias Después de Cambios en el Nodepool
+
+**Fecha:** 5 de marzo de 2025  
+**Categoría:** Clúster  
+**Etiquetas:** Nodepool, Tolerancias, Despliegue, Programación, Kubernetes
+
+## Descripción del Problema
+
+**Contexto:** Después de actualizaciones del clúster o modificaciones en el nodepool, los despliegues existentes pueden perder la capacidad de programar pods en nodos disponibles debido a la falta de tolerancias.
+
+**Síntomas Observados:**
+
+- Los pods permanecen en estado Pendiente a pesar de haber nodos disponibles
+- Despliegues que funcionaban previamente no pueden programarse
+- Se crean nuevos nodepools pero los pods no los utilizan
+- Mensajes de error relacionados con fallos en la programación de pods
+
+**Configuración Relevante:**
+
+- Múltiples nodepools en el clúster (ejemplo: producción y desarrollo)
+- Diferentes tipos de nodos: on-demand y spot
+- Despliegues escalados a 0 y luego escalados nuevamente
+- Recientes actualizaciones del clúster o cambios en nodepool
+
+**Condiciones de Error:**
+
+- Ocurre tras eliminar nodepools por defecto antiguos
+- Sucede cuando los despliegues no han sido actualizados luego de cambios en nodepool
+- Afecta despliegues que fueron escalados a cero durante transiciones de nodepool
+- El problema persiste hasta que las tolerancias se actualizan manualmente
+
+## Solución Detallada
+
+<TroubleshootingItem id="root-cause-analysis" summary="Comprendiendo la causa raíz">
+
+Este problema típicamente ocurre cuando:
+
+1. **Eliminación del nodepool por defecto**: El nodepool por defecto original se elimina durante las actualizaciones del clúster
+2. **Falta de tolerancias**: Los despliegues existentes no tienen las tolerancias correctas para los nuevos nodepools
+3. **Configuraciones obsoletas**: Los despliegues conservan configuraciones de programación antiguas que ya no coinciden con los nodos disponibles
+
+Kubernetes requiere que los pods tengan tolerancias que coincidan con las taints de los nodos, las cuales se usan comúnmente para separar diferentes tipos de cargas de trabajo (producción vs desarrollo, on-demand vs spot).
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-solution" summary="Solución a través de la interfaz de SleakOps">
+
+La forma más sencilla de resolver este problema es mediante la plataforma SleakOps:
+
+1. **Navega a tu servicio** en el panel de control de SleakOps
+2. **Haz clic en "Editar"** sobre el despliegue afectado
+3. **No modifiques ningún valor** - deja todo tal cual
+4. **Haz clic en "Desplegar"** para activar un nuevo despliegue
+
+Este proceso:
+
+- Añadirá automáticamente las tolerancias correctas
+- Actualizará la configuración del despliegue
+- Permitirá que los pods se programen en los nodepools adecuados
+
+```bash
+# El sistema añadirá automáticamente tolerancias como:
+tolerationsː
+- key: "node-type"
+  operator: "Equal"
+  value: "spot"
+  effect: "NoSchedule"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-verification" summary="Verificar la configuración del nodepool">
+
+Para entender la configuración de tus nodepools:
+
+1. **Consulta los nodepools disponibles**:
+
+   ```bash
+   kubectl get nodes --show-labels
+   ```
+
+2. **Verifica las taints de los nodos**:
+
+   ```bash
+   kubectl describe nodes | grep -A5 -B5 Taints
+   ```
+
+3. **Consulta el estado de programación de pods**:
+   ```bash
+   kubectl describe pod <nombre-del-pod> | grep -A10 Events
+   ```
+
+Configuraciones comunes de taints:
+
+- Nodos de producción: `node-type=ondemand:NoSchedule`
+- Nodos de desarrollo: `node-type=spot:NoSchedule`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="multiple-deployments" summary="Manejo de múltiples despliegues afectados">
+
+Si tienes múltiples despliegues afectados:
+
+1. **Identifica todos los servicios afectados** en el panel de SleakOps
+2. **Repite el proceso de editar/desplegar** para cada servicio
+3. **Prioriza primero los servicios críticos**
+4. **Monitorea la programación de pods** después de cada actualización
+
+Para servicios que fueron escalados a 0:
+
+1. Primero aplica la corrección (editar sin cambios + desplegar)
+2. Luego escala el despliegue según sea necesario
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-tips" summary="Prevención de futuras ocurrencias">
+
+Para evitar este problema en el futuro:
+
+1. **Planifica los cambios en nodepool**: Coordina con tu equipo de SleakOps antes de cambios mayores
+2. **Actualiza los despliegues proactivamente**: Cuando cambien los nodepools, actualiza los despliegues afectados
+3. **Usa estrategias consistentes de taints**: Mantén la etiquetación y taints de nodos de forma consistente
+4. **Monitorea tras actualizaciones**: Revisa el estado de los despliegues después de actualizaciones del clúster
+
+**Buenas prácticas:**
+
+- Mantén las configuraciones de despliegue actualizadas
+- Prueba operaciones de escalado tras cambios en nodepool
+- Documenta tu estrategia de taints para nodepools
+- Configura monitoreo para fallos en la programación de pods
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 5 de marzo de 2025 basada en una consulta real de usuario._

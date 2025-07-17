@@ -1,0 +1,211 @@
+---
+sidebar_position: 3
+title: "Problemas para visualizar logs en Grafana Loki"
+description: "Soluciones para visualización incompleta de logs y problemas de zona horaria en el panel de Grafana Loki"
+date: "2025-01-15"
+category: "general"
+tags: ["grafana", "loki", "logs", "zona horaria", "solución de problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas para visualizar logs en Grafana Loki
+
+**Fecha:** 15 de enero de 2025  
+**Categoría:** General  
+**Etiquetas:** Grafana, Loki, Logs, Zona horaria, Solución de problemas
+
+## Descripción del problema
+
+**Contexto:** Los usuarios experimentan problemas al visualizar logs en el panel de Grafana Loki, particularmente con pods y servicios de CronJob donde la salida completa del log no es visible, dificultando determinar si los trabajos se completaron con éxito.
+
+**Síntomas observados:**
+
+- Visualización incompleta de logs - no se muestran las líneas finales
+- No se puede ver el estado de finalización del trabajo (éxito/fallo)
+- El panel de Grafana se congela o muestra carga infinita
+- Errores de timeout al acceder a los logs de Loki
+- Mensajes finales "OK" o de finalización ausentes en los logs
+- Los problemas ocurren tanto en el panel de SleakOps como en Lens
+
+**Configuración relevante:**
+
+- Plataforma: SleakOps con integración Grafana/Loki
+- Tipo de carga de trabajo: CronJobs y Pods regulares
+- Visualización de logs: A través del panel de Grafana y Lens
+- Zona horaria: Desajustes entre UTC y zona horaria local
+
+**Condiciones de error:**
+
+- El error ocurre al consultar logs fuera de rangos de tiempo específicos
+- El panel se rompe cuando hay huecos en los datos de logs
+- La configuración de zona horaria causa problemas en la visualización
+- La consulta a Loki falla cuando el rango de tiempo incluye periodos sin logs
+
+## Solución detallada
+
+<TroubleshootingItem id="timezone-configuration" summary="Corregir problemas de configuración de zona horaria">
+
+La causa principal de los problemas para visualizar logs es la discrepancia de zona horaria entre los paneles:
+
+**Solución:**
+
+1. **Configurar ambos paneles en la misma zona horaria**:
+
+   - Cambiar la zona horaria del panel principal a **UTC 0**
+   - O configurar ambos paneles a **UTC-3** (zona horaria local)
+
+2. **Cómo cambiar la zona horaria en Grafana**:
+
+   - Ir a la configuración del panel (icono de engranaje)
+   - Navegar a **General** → **Opciones de tiempo**
+   - Establecer **Zona horaria** al valor deseado
+   - Guardar el panel
+
+3. **Verificar que los rangos de tiempo coincidan**:
+   - Asegurarse que tanto el explorador de logs como los paneles de métricas usen el mismo rango de tiempo
+   - Usar rangos de tiempo absolutos cuando sea posible
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="time-range-filtering" summary="Filtrado correcto del rango de tiempo para logs">
+
+Para evitar fallos en las consultas, filtrar los logs dentro de rangos de tiempo válidos:
+
+**Pasos:**
+
+1. **Identificar periodos válidos de logs**:
+
+   - Primero revisar el panel de métricas para ver cuándo su servicio realmente estuvo activo
+   - Anotar el rango de tiempo exacto con actividad de logs
+
+2. **Aplicar filtros de tiempo conservadores**:
+
+   - Usar el selector de rango de tiempo en Grafana
+   - Establecer horas de **Desde** y **Hasta** que cubran solo periodos con actividad de logs conocida
+   - Evitar extender más allá del rango donde existen logs
+
+3. **Ejemplo de filtrado de tiempo**:
+   ```
+   Desde: 2025-01-15 14:00:00
+   Hasta: 2025-01-15 16:00:00
+   ```
+
+**Nota:** Extender el rango de tiempo más allá de periodos con logs reales causará que la consulta a Loki falle.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="incomplete-logs-diagnosis" summary="Diagnóstico de visualización incompleta de logs">
+
+Cuando los logs aparecen incompletos (faltan líneas finales):
+
+**Causas posibles:**
+
+1. **Tiempo de terminación del pod**: Los logs pueden cortarse si el pod termina antes de que todos los logs se hayan vaciado
+2. **Retraso en la ingestión de Loki**: Puede haber un retraso entre la generación del log y su disponibilidad en Loki
+3. **Problemas de buffer**: Los buffers de logs pueden no vaciarse completamente antes de la terminación del pod
+
+**Pasos para diagnóstico:**
+
+1. **Verificar estado del pod**:
+
+   ```bash
+   kubectl get pods -n <namespace>
+   kubectl describe pod <nombre-pod> -n <namespace>
+   ```
+
+2. **Verificar finalización del trabajo**:
+
+   ```bash
+   kubectl get jobs -n <namespace>
+   kubectl describe job <nombre-job> -n <namespace>
+   ```
+
+3. **Revisar fuentes alternativas de logs**:
+   - Usar `kubectl logs` directamente
+   - Revisar logs de pods en Lens
+   - Verificar salidas en archivos si el servicio escribe a archivos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cronjob-exit-codes" summary="Comprender códigos de salida de CronJob y estado del pod">
+
+Para CronJobs, el estado del pod indica éxito o fallo del trabajo:
+
+**Significados del estado del pod:**
+
+- **Completed**: Trabajo finalizado con éxito (código de salida 0)
+- **Failed**: Trabajo fallido (código de salida 1 u otro distinto de cero)
+- **Running**: Trabajo aún en ejecución
+
+**Buenas prácticas para logs de CronJob:**
+
+1. **Incluir siempre mensajes explícitos de finalización**:
+
+   ```bash
+   echo "Trabajo iniciado a $(date)"
+   # Lógica de su trabajo aquí
+   echo "Trabajo completado con éxito a $(date)"
+   exit 0
+   ```
+
+2. **Usar códigos de salida correctos**:
+
+   ```bash
+   # Para éxito
+   exit 0
+
+   # Para fallo
+   echo "Error: Algo salió mal"
+   exit 1
+   ```
+
+3. **Revisar historial de trabajos**:
+   ```bash
+   kubectl get jobs -n <namespace> --show-labels
+   kubectl describe cronjob <nombre-cronjob> -n <namespace>
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="workaround-solutions" summary="Soluciones temporales mientras se implementan correcciones">
+
+Mientras se desarrollan correcciones permanentes:
+
+**Soluciones inmediatas:**
+
+1. **Usar kubectl para logs completos**:
+
+   ```bash
+   kubectl logs <nombre-pod> -n <namespace> --tail=-1
+   ```
+
+2. **Revisar múltiples fuentes de logs**:
+
+   - Panel de SleakOps
+   - Aplicación Lens
+   - Comandos directos kubectl
+   - Salidas en archivos (si aplica)
+
+3. **Verificar finalización de trabajos mediante estado de pods**:
+
+   ```bash
+   kubectl get pods -n <namespace> --field-selector=status.phase=Succeeded
+   kubectl get pods -n <namespace> --field-selector=status.phase=Failed
+   ```
+
+4. **Usar rangos de tiempo conservadores**:
+   - Consultar solo periodos donde se sabe que existen logs
+   - Evitar rangos amplios que puedan incluir huecos
+
+**Soluciones a largo plazo en desarrollo:**
+
+- Corrección para manejo de consultas Loki cuando existen huecos en logs
+- Mejor manejo de zonas horarias en paneles
+- Mejor vaciado de buffers de logs para pods en terminación
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2025 basada en una consulta real de usuario._

@@ -1,0 +1,202 @@
+---
+sidebar_position: 3
+title: "Understanding EC2 Instances and Costs in EKS Clusters"
+description: "Explanation of EC2 instances created by SleakOps and their cost implications"
+date: "2025-01-29"
+category: "cluster"
+tags: ["eks", "aws", "ec2", "costs", "karpenter", "vpn"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Understanding EC2 Instances and Costs in EKS Clusters
+
+**Date:** January 29, 2025  
+**Category:** Cluster  
+**Tags:** EKS, AWS, EC2, Costs, Karpenter, VPN
+
+## Problem Description
+
+**Context:** Users notice multiple EC2 instances running in their AWS account alongside their EKS cluster and want to understand the purpose of each instance and associated costs.
+
+**Observed Symptoms:**
+
+- Multiple EC2 instances appearing in AWS console (e.g., t4g.medium, t3a.small, c7g.xlarge)
+- Uncertainty about which instances are for VPN vs cluster nodes
+- Questions about cost implications as workloads scale
+- Need to understand relationship between pods and EC2 instances
+
+**Relevant Configuration:**
+
+- EKS cluster with Karpenter node management
+- Spot instances configuration for pods
+- VPN instance for secure access
+- Various instance types (t4g.medium, t3a.small, c7g.xlarge)
+
+**Error Conditions:**
+
+- No technical errors, but confusion about infrastructure costs
+- Need for cost optimization understanding
+- Scaling behavior clarification needed
+
+## Detailed Solution
+
+<TroubleshootingItem id="instance-purposes" summary="Purpose of each EC2 instance type">
+
+**VPN Instance:**
+
+- **Purpose**: Provides secure VPN access to your cluster and resources
+- **Typical size**: Usually t3a.small or similar small instance
+- **Cost**: Fixed cost, runs continuously regardless of workload
+- **Scaling**: Does not scale with your application workload
+
+**Cluster Worker Nodes:**
+
+- **Purpose**: Run your application pods and Kubernetes workloads
+- **Managed by**: Karpenter (automatic node provisioning)
+- **Instance types**: Various sizes (t4g.medium, c7g.xlarge, etc.)
+- **Cost**: Variable, scales with your workload demands
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="karpenter-management" summary="How Karpenter manages your nodes">
+
+Karpenter automatically manages your cluster nodes:
+
+```yaml
+# Example Nodepool configuration
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
+metadata:
+  name: default
+spec:
+  template:
+    spec:
+      requirements:
+        - key: kubernetes.io/arch
+          operator: In
+          values: ["amd64"]
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["spot", "on-demand"]
+      nodeClassRef:
+        apiVersion: karpenter.k8s.aws/v1beta1
+        kind: EC2NodeClass
+        name: default
+```
+
+**Key behaviors:**
+
+- **Automatic scaling**: Creates instances when pods need resources
+- **Cost optimization**: Prefers spot instances when available
+- **Right-sizing**: Selects appropriate instance types for workload requirements
+- **Cleanup**: Terminates unused instances to reduce costs
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cost-implications" summary="Understanding cost implications">
+
+**Fixed Costs:**
+
+- VPN instance: ~$10-20/month (depending on instance size)
+- EKS control plane: $0.10/hour (~$73/month)
+
+**Variable Costs (scale with workload):**
+
+- Worker node instances: Depends on:
+  - Number of pods running
+  - Resource requirements (CPU/memory)
+  - Instance types selected by Karpenter
+  - Spot vs On-Demand pricing
+
+**Cost optimization tips:**
+
+```bash
+# Monitor your node utilization
+kubectl top nodes
+
+# Check pod resource requests
+kubectl describe pods -A | grep -A 5 "Requests:"
+
+# View Karpenter node decisions
+kubectl logs -n karpenter deployment/karpenter
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="scaling-behavior" summary="How scaling works with more pods">
+
+**Scaling Process:**
+
+1. **Pod Creation**: You deploy more pods to your cluster
+2. **Resource Assessment**: Karpenter evaluates resource requirements
+3. **Node Provisioning**: If existing nodes can't accommodate new pods:
+   - Karpenter provisions new EC2 instances
+   - Selects optimal instance type based on requirements
+   - Prefers spot instances for cost savings
+4. **Pod Scheduling**: Kubernetes schedules pods on available nodes
+5. **Scale Down**: When pods are deleted, Karpenter removes unused nodes
+
+**Example scaling scenario:**
+
+```yaml
+# If you have pods with these requirements:
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+```
+
+Karpenter will:
+
+- Calculate total resource needs
+- Select cost-effective instance types
+- Provision minimum number of instances needed
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-costs" summary="Monitoring and controlling costs">
+
+**Cost Monitoring Tools:**
+
+1. **AWS Cost Explorer**: Track EC2 spending by instance type
+2. **Karpenter Metrics**: Monitor node provisioning decisions
+3. **SleakOps Dashboard**: View cluster resource utilization
+
+**Cost Control Strategies:**
+
+```yaml
+# Set resource limits in your deployments
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+```
+
+**Nodepool cost controls:**
+
+- Configure maximum instance sizes
+- Set node pool limits
+- Use spot instances when possible
+- Configure appropriate resource requests
+
+For detailed nodepool configuration, see: [Nodepool Documentation](https://docs.sleakops.com/cluster/nodepools)
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 29, 2025 based on a real user query._

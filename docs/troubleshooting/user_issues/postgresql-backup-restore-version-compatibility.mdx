@@ -1,0 +1,206 @@
+---
+sidebar_position: 3
+title: "PostgreSQL Backup Restore Version Compatibility Issue"
+description: "Solution for pg_restore version compatibility errors when restoring backups between different PostgreSQL versions"
+date: "2024-08-20"
+category: "dependency"
+tags: ["postgresql", "backup", "restore", "rds", "version-compatibility"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# PostgreSQL Backup Restore Version Compatibility Issue
+
+**Date:** August 20, 2024  
+**Category:** Dependency  
+**Tags:** PostgreSQL, Backup, Restore, RDS, Version Compatibility
+
+## Problem Description
+
+**Context:** User attempts to restore PostgreSQL backups created with newer versions of pg_dump to older PostgreSQL RDS instances, encountering version compatibility issues.
+
+**Observed Symptoms:**
+
+- Error: `pg_restore: error: unsupported version (1.15) in file header`
+- Backup created with PostgreSQL 16.1 and pg_dump 16.3
+- Target RDS instance running PostgreSQL 14.11
+- Restore operation fails due to format incompatibility
+
+**Relevant Configuration:**
+
+- Source PostgreSQL version: 16.1
+- pg_dump version: 16.3
+- Target RDS PostgreSQL version: 14.11
+- Backup format: Custom format (likely)
+
+**Error Conditions:**
+
+- Error occurs when attempting to restore backup files
+- Happens when pg_dump version is newer than pg_restore version
+- Affects custom format backups created with newer PostgreSQL versions
+
+## Detailed Solution
+
+<TroubleshootingItem id="version-compatibility-explanation" summary="Understanding PostgreSQL version compatibility">
+
+PostgreSQL backup compatibility follows these rules:
+
+- **pg_dump**: Can create backups from older or same version databases
+- **pg_restore**: Can restore backups created by same or older versions of pg_dump
+- **Format versions**: Each PostgreSQL version may introduce new backup format versions
+
+In your case:
+
+- pg_dump 16.3 created a backup with format version 1.15
+- pg_restore from PostgreSQL 14.11 doesn't support format version 1.15
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-solutions" summary="Immediate solutions for backup restoration">
+
+### Option 1: Use Plain Text Format
+
+Create a new backup using plain text format which is more compatible:
+
+```bash
+# Create plain text backup (compatible across versions)
+pg_dump -h source-host -U username -d database_name -f backup.sql
+
+# Restore using psql (works with any PostgreSQL version)
+psql -h rds-endpoint -U username -d target_database -f backup.sql
+```
+
+### Option 2: Use Compatible pg_dump Version
+
+Use pg_dump from PostgreSQL 14.x to create the backup:
+
+```bash
+# Install PostgreSQL 14 client tools
+sudo apt-get install postgresql-client-14
+
+# Create backup with compatible version
+/usr/lib/postgresql/14/bin/pg_dump -h source-host -U username -d database_name -Fc -f backup_v14.dump
+
+# Restore with pg_restore
+pg_restore -h rds-endpoint -U username -d target_database backup_v14.dump
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="rds-upgrade-process" summary="Upgrading RDS PostgreSQL version">
+
+### Planning RDS Upgrade to PostgreSQL 16
+
+**Prerequisites:**
+
+1. Review PostgreSQL 16 compatibility with your applications
+2. Test upgrade in a staging environment
+3. Plan for downtime (major version upgrades require restart)
+
+**Upgrade Steps:**
+
+1. **Create RDS Snapshot:**
+
+```bash
+aws rds create-db-snapshot \
+  --db-instance-identifier your-rds-instance \
+  --db-snapshot-identifier pre-upgrade-snapshot-$(date +%Y%m%d)
+```
+
+2. **Modify RDS Instance:**
+
+```bash
+aws rds modify-db-instance \
+  --db-instance-identifier your-rds-instance \
+  --engine-version 16.1 \
+  --apply-immediately
+```
+
+3. **Monitor Upgrade Progress:**
+
+```bash
+aws rds describe-db-instances \
+  --db-instance-identifier your-rds-instance \
+  --query 'DBInstances[0].DBInstanceStatus'
+```
+
+**Considerations:**
+
+- Upgrade path: 14.11 → 15.x → 16.1 (may require intermediate versions)
+- Downtime: 10-30 minutes depending on database size
+- Cost: No additional cost for major version upgrades
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-configuration" summary="Configuring PostgreSQL version in SleakOps">
+
+### Updating PostgreSQL Version in SleakOps
+
+If using SleakOps managed PostgreSQL:
+
+1. **Access Database Configuration:**
+
+   - Go to your project dashboard
+   - Navigate to **Dependencies** → **Databases**
+   - Select your PostgreSQL instance
+
+2. **Update Version:**
+
+```yaml
+# In your sleakops.yaml or database configuration
+dependencies:
+  databases:
+    - name: main-db
+      type: postgresql
+      version: "16.1" # Update from 14.11
+      instance_class: db.t3.micro
+      storage: 20
+```
+
+3. **Apply Changes:**
+
+```bash
+sleakops deploy --environment production
+```
+
+**Note:** This will trigger a database upgrade with associated downtime.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-best-practices" summary="Best practices to prevent future issues">
+
+### Backup Strategy Best Practices
+
+1. **Version-Aware Backups:**
+
+```bash
+# Always specify format and version compatibility
+pg_dump --version  # Check your pg_dump version
+pg_dump -Fc --no-owner --no-privileges -f backup_$(date +%Y%m%d).dump database_name
+```
+
+2. **Multiple Format Backups:**
+
+```bash
+# Create both custom and plain text backups
+pg_dump -Fc -f backup_custom.dump database_name
+pg_dump -f backup_plain.sql database_name
+```
+
+3. **Regular Compatibility Testing:**
+
+- Test restore procedures in staging environments
+- Maintain compatible pg_dump versions for different target environments
+- Document backup and restore procedures
+
+4. **Version Management:**
+
+- Keep PostgreSQL versions synchronized between environments when possible
+- Plan regular upgrade cycles to avoid large version gaps
+- Use containerized pg_dump tools for consistent versions
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on August 20, 2024 based on a real user query._

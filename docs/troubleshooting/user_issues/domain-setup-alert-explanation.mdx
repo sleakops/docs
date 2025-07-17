@@ -1,0 +1,157 @@
+---
+sidebar_position: 3
+title: "Domain Setup Alert Explanation"
+description: "Understanding the 'Setup domain' alert and when action is required"
+date: "2024-01-15"
+category: "project"
+tags: ["domain", "alert", "setup", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Domain Setup Alert Explanation
+
+**Date:** January 15, 2024  
+**Category:** Project  
+**Tags:** Domain, Alert, Setup, Troubleshooting
+
+## Problem Description
+
+**Context:** Users receive "Setup domain" alerts for domains that appear to be functioning correctly, causing confusion about whether action is required.
+
+**Observed Symptoms:**
+
+- Multiple domains showing "Setup domain" alert
+- Domains are accessible and functioning normally (e.g., https://www.mocona.com.ar/)
+- Alert appears despite proper domain functionality
+- Uncertainty about required actions
+
+**Relevant Configuration:**
+
+- Domain status: Functional and accessible
+- Alert type: "Setup domain"
+- Domain examples: External domains like mocona.com.ar
+- Platform: SleakOps domain management
+
+**Error Conditions:**
+
+- Alert appears for working domains
+- No apparent functional issues with the domains
+- Alert persists despite normal operation
+
+## Detailed Solution
+
+<TroubleshootingItem id="alert-meaning" summary="What does 'Setup domain' alert mean?">
+
+The "Setup domain" alert in SleakOps indicates one of the following conditions:
+
+1. **DNS Configuration Incomplete**: The domain's DNS records are not properly configured to point to your SleakOps services
+2. **SSL Certificate Pending**: The SSL certificate for the domain is still being provisioned or validated
+3. **Domain Verification Pending**: The platform is waiting for domain ownership verification
+4. **Configuration Mismatch**: There's a discrepancy between the expected and actual domain configuration
+
+This alert can appear even when the domain is accessible because it may be pointing to a different server or service.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="when-action-needed" summary="When do you need to take action?">
+
+You should take action if:
+
+- **Your application is not accessible** through the domain
+- **SSL certificate errors** appear when accessing the domain
+- **You want the domain to point to your SleakOps deployment** instead of its current destination
+- **Email notifications** indicate failed deployments or services
+
+You can **ignore the alert** if:
+
+- The domain is working as expected
+- It's pointing to the correct destination (even if not SleakOps)
+- You're using the domain for external services
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="How to verify if action is needed">
+
+To determine if you need to take action:
+
+1. **Check where your domain points**:
+
+   ```bash
+   nslookup www.mocona.com.ar
+   # or
+   dig www.mocona.com.ar
+   ```
+
+2. **Verify SSL certificate**:
+
+   - Visit your domain in a browser
+   - Check if there are SSL warnings
+   - Verify the certificate issuer
+
+3. **Check SleakOps deployment status**:
+
+   - Go to your project dashboard
+   - Verify if services are running
+   - Check deployment logs for errors
+
+4. **Test application functionality**:
+   - Access all critical pages
+   - Test forms and interactive elements
+   - Verify API endpoints if applicable
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="resolving-alert" summary="How to resolve the alert (if needed)">
+
+If you determine action is needed:
+
+**For DNS Configuration:**
+
+1. Go to your domain registrar's DNS management
+2. Update A records to point to SleakOps IP addresses
+3. Update CNAME records as specified in your SleakOps project
+
+**For SSL Certificate Issues:**
+
+1. In SleakOps dashboard, go to **Domain Settings**
+2. Click **Regenerate SSL Certificate**
+3. Wait for validation (can take up to 24 hours)
+
+**For Domain Verification:**
+
+1. Check your email for verification requests
+2. Follow the verification link or add required DNS TXT records
+3. Contact support if verification fails
+
+**Configuration Example:**
+
+```dns
+# DNS Records for SleakOps
+www.yourdomain.com    A      1.2.3.4
+yourdomain.com        A      1.2.3.4
+*.yourdomain.com      CNAME  your-project.sleakops.com
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dismissing-alert" summary="How to dismiss unnecessary alerts">
+
+If the domain is working correctly and you don't want it managed by SleakOps:
+
+1. Go to **Project Settings** → **Domains**
+2. Find the domain with the alert
+3. Click **Remove Domain** or **Disable Monitoring**
+4. Confirm the action
+
+Alternatively, you can:
+
+- **Mute notifications** for specific domains
+- **Configure alert thresholds** to reduce false positives
+- **Contact support** to whitelist external domains
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

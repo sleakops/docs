@@ -1,0 +1,234 @@
+---
+sidebar_position: 3
+title: "TypeORM SSL Connection Error with RDS"
+description: "Solution for pg_hba.conf SSL connection errors when connecting TypeORM to RDS databases"
+date: "2024-01-15"
+category: "dependency"
+tags: ["typeorm", "rds", "ssl", "database", "postgresql"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# TypeORM SSL Connection Error with RDS
+
+**Date:** January 15, 2024  
+**Category:** Dependency  
+**Tags:** TypeORM, RDS, SSL, Database, PostgreSQL
+
+## Problem Description
+
+**Context:** User experiences SSL connection issues when trying to connect TypeORM to an RDS PostgreSQL database in production environment, while the same configuration works in development.
+
+**Observed Symptoms:**
+
+- Error during migration run: `no pg_hba.conf entry for host "10.130.96.232", user "postgres", database "rattlesnake", no encryption`
+- Migrations fail to execute in production environment
+- Same configuration works in development/staging environments
+- Application cannot connect to the database
+
+**Relevant Configuration:**
+
+- Database: PostgreSQL on AWS RDS
+- ORM: TypeORM
+- Environment: Production vs Development difference
+- SSL enforcement: RDS requires SSL connections
+
+**Error Conditions:**
+
+- Error occurs during TypeORM migration execution
+- Happens when application attempts to connect to database
+- Specific to production environment
+- Related to SSL/encryption requirements
+
+## Detailed Solution
+
+<TroubleshootingItem id="root-cause" summary="Understanding the root cause">
+
+The error `no pg_hba.conf entry for host... no encryption` indicates that:
+
+1. **RDS requires SSL connections** in production
+2. **TypeORM is not configured** to use SSL
+3. **Development environments** may have different SSL requirements
+4. **pg_hba.conf** on RDS is configured to reject non-encrypted connections
+
+This is a common security difference between development and production database configurations.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="typeorm-ssl-configuration" summary="Configure SSL in TypeORM">
+
+Add SSL configuration to your TypeORM connection options:
+
+```typescript
+// TypeScript configuration
+const connectionOptions: ConnectionOptions = {
+  type: "postgres",
+  host: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT || "5432"),
+  username: process.env.DB_USERNAME,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  // Add SSL configuration
+  ssl: {
+    rejectUnauthorized: false,
+  },
+  // ... other options
+};
+```
+
+```javascript
+// JavaScript configuration
+module.exports = {
+  type: "postgres",
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT || 5432,
+  username: process.env.DB_USERNAME,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  ssl: {
+    rejectUnauthorized: false,
+  },
+};
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="environment-specific-config" summary="Environment-specific SSL configuration">
+
+To handle different SSL requirements across environments:
+
+```typescript
+const sslConfig =
+  process.env.NODE_ENV === "production"
+    ? {
+        ssl: {
+          rejectUnauthorized: false,
+        },
+      }
+    : {};
+
+const connectionOptions: ConnectionOptions = {
+  type: "postgres",
+  host: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT || "5432"),
+  username: process.env.DB_USERNAME,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  ...sslConfig,
+  // ... other options
+};
+```
+
+Or use environment variables:
+
+```typescript
+const connectionOptions: ConnectionOptions = {
+  // ... other config
+  ssl:
+    process.env.DB_SSL_ENABLED === "true"
+      ? {
+          rejectUnauthorized:
+            process.env.DB_SSL_REJECT_UNAUTHORIZED !== "false",
+        }
+      : false,
+};
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="migration-command-ssl" summary="Running migrations with SSL">
+
+When running migrations, ensure your TypeORM CLI configuration includes SSL:
+
+```json
+// ormconfig.json
+{
+  "type": "postgres",
+  "host": "your-rds-endpoint",
+  "port": 5432,
+  "username": "postgres",
+  "password": "your-password",
+  "database": "your-database",
+  "ssl": {
+    "rejectUnauthorized": false
+  },
+  "migrations": ["src/migrations/*.ts"],
+  "cli": {
+    "migrationsDir": "src/migrations"
+  }
+}
+```
+
+Then run migrations:
+
+```bash
+# Using npm/pnpm
+pnpm typeorm migration:run
+
+# Or with explicit config
+pnpm typeorm migration:run -f ormconfig.json
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="security-considerations" summary="Security considerations and alternatives">
+
+**Current Solution Security:**
+
+- `rejectUnauthorized: false` disables certificate validation
+- Still uses encrypted connection (SSL/TLS)
+- Acceptable for most production scenarios with RDS
+
+**More Secure Alternatives:**
+
+1. **Use RDS CA Certificate:**
+
+```typescript
+ssl: {
+  ca: fs.readFileSync('rds-ca-2019-root.pem').toString(),
+  rejectUnauthorized: true
+}
+```
+
+2. **Environment-based SSL mode:**
+
+```typescript
+ssl: {
+  mode: 'require', // or 'verify-full'
+  rejectUnauthorized: process.env.NODE_ENV === 'production'
+}
+```
+
+3. **Use AWS IAM Database Authentication** (for enhanced security)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Additional troubleshooting steps">
+
+If the SSL configuration doesn't resolve the issue:
+
+1. **Verify RDS SSL settings:**
+
+   - Check if `rds.force_ssl` parameter is enabled
+   - Verify security group allows connections from your application
+
+2. **Test connection manually:**
+
+```bash
+psql "host=your-rds-endpoint port=5432 dbname=your-db user=postgres sslmode=require"
+```
+
+3. **Check TypeORM version compatibility:**
+
+   - Ensure you're using a recent version of TypeORM
+   - Some older versions had SSL configuration issues
+
+4. **Verify environment variables:**
+   - Ensure all database connection variables are correctly set in production
+   - Check that the database endpoint is accessible from your production environment
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

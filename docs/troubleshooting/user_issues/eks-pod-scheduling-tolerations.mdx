@@ -1,0 +1,229 @@
+---
+sidebar_position: 3
+title: "EKS Pod Scheduling Issues with Spot Instances"
+description: "Solution for pods failing to schedule on spot instance nodepools in EKS"
+date: "2025-02-21"
+category: "cluster"
+tags: ["eks", "scheduling", "tolerations", "spot-instances", "karpenter"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# EKS Pod Scheduling Issues with Spot Instances
+
+**Date:** February 21, 2025  
+**Category:** Cluster  
+**Tags:** EKS, Scheduling, Tolerations, Spot Instances, Karpenter
+
+## Problem Description
+
+**Context:** After upgrading to a newer version of EKS in SleakOps, pods (such as Elasticsearch) are failing to schedule properly on spot instance nodepools due to missing tolerations configuration.
+
+**Observed Symptoms:**
+
+- Pods failing to start or remain in Pending state
+- Scheduling errors related to node taints
+- Applications not being deployed to spot instance nodepools
+- Pod scheduling failures after EKS version upgrades
+
+**Relevant Configuration:**
+
+- EKS cluster with spot instance nodepools
+- Nodepool name: `spot-amd64`
+- Karpenter-managed node provisioning
+- Taint key: `karpenter.sh/nodepool`
+
+**Error Conditions:**
+
+- Occurs after EKS version upgrades
+- Affects deployments without proper tolerations
+- Impacts both direct kubectl deployments and Helm-managed applications
+
+## Detailed Solution
+
+<TroubleshootingItem id="understanding-tolerations" summary="Understanding the tolerations requirement">
+
+With newer versions of EKS and Karpenter, spot instance nodepools are automatically tainted to prevent regular workloads from being scheduled on them unless explicitly configured. This ensures better resource management and cost optimization.
+
+The taint applied is:
+
+```yaml
+key: karpenter.sh/nodepool
+value: spot-amd64
+effect: NoSchedule
+```
+
+Pods need matching tolerations to be scheduled on these nodes.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="direct-deployment-fix" summary="Adding tolerations to direct deployments">
+
+If you deployed your application directly using `kubectl apply`, add the following tolerations to your deployment YAML:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasticsearch
+spec:
+  template:
+    spec:
+      tolerations:
+        - key: karpenter.sh/nodepool
+          operator: Equal
+          value: spot-amd64
+          effect: NoSchedule
+      containers:
+        - name: elasticsearch
+          image: elasticsearch:7.17.0
+          # ... rest of your container configuration
+```
+
+Apply the updated configuration:
+
+```bash
+kubectl apply -f your-deployment.yaml
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="helm-deployment-fix" summary="Adding tolerations to Helm deployments">
+
+If your application was deployed using Helm, you need to update the values file or pass the tolerations as parameters:
+
+**Option 1: Update values.yaml**
+
+```yaml
+# values.yaml
+tolerations:
+  - key: karpenter.sh/nodepool
+    operator: Equal
+    value: spot-amd64
+    effect: NoSchedule
+```
+
+**Option 2: Pass tolerations during Helm install/upgrade**
+
+```bash
+helm upgrade elasticsearch elastic/elasticsearch \
+  --set tolerations[0].key=karpenter.sh/nodepool \
+  --set tolerations[0].operator=Equal \
+  --set tolerations[0].value=spot-amd64 \
+  --set tolerations[0].effect=NoSchedule
+```
+
+**Option 3: Create a custom values file**
+
+```yaml
+# custom-tolerations.yaml
+tolerations:
+  - key: karpenter.sh/nodepool
+    operator: Equal
+    value: spot-amd64
+    effect: NoSchedule
+```
+
+Then apply:
+
+```bash
+helm upgrade elasticsearch elastic/elasticsearch -f custom-tolerations.yaml
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Verifying the fix">
+
+After applying the tolerations, verify that your pods are scheduling correctly:
+
+1. **Check pod status:**
+
+```bash
+kubectl get pods -l app=elasticsearch
+```
+
+2. **Verify pod scheduling:**
+
+```bash
+kubectl describe pod <pod-name>
+```
+
+3. **Check which node the pod is running on:**
+
+```bash
+kubectl get pods -o wide
+```
+
+4. **Verify the node is part of the spot nodepool:**
+
+```bash
+kubectl describe node <node-name> | grep -i taint
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="multiple-nodepools" summary="Handling multiple nodepools">
+
+If you have multiple spot nodepools or want to allow scheduling on both spot and on-demand instances, you can add multiple tolerations:
+
+```yaml
+tolerations:
+  - key: karpenter.sh/nodepool
+    operator: Equal
+    value: spot-amd64
+    effect: NoSchedule
+  - key: karpenter.sh/nodepool
+    operator: Equal
+    value: spot-arm64
+    effect: NoSchedule
+  - key: karpenter.sh/nodepool
+    operator: Equal
+    value: on-demand
+    effect: NoSchedule
+```
+
+Alternatively, use the `Exists` operator to tolerate any nodepool:
+
+```yaml
+tolerations:
+  - key: karpenter.sh/nodepool
+    operator: Exists
+    effect: NoSchedule
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-tips" summary="Prevention and best practices">
+
+**Best Practices:**
+
+1. **Always include tolerations in your deployment templates** when using spot instances
+2. **Use Helm charts with configurable tolerations** for easier management
+3. **Test deployments after EKS upgrades** to ensure compatibility
+4. **Document your nodepool configuration** for team reference
+
+**Template for future deployments:**
+
+```yaml
+# deployment-template.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.name }}
+spec:
+  template:
+    spec:
+      tolerations:
+      {{- if .Values.tolerations }}
+      {{- toYaml .Values.tolerations | nindent 6 }}
+      {{- end }}
+      containers:
+      - name: {{ .Values.name }}
+        # ... container configuration
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on February 21, 2025 based on a real user query._

@@ -1,0 +1,160 @@
+---
+sidebar_position: 3
+title: "Build Branch Configuration in Projects"
+description: "Understanding how SleakOps handles branch selection during build processes"
+date: "2024-07-23"
+category: "project"
+tags: ["build", "branch", "git", "configuration"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Build Branch Configuration in Projects
+
+**Date:** July 23, 2024  
+**Category:** Project  
+**Tags:** Build, Branch, Git, Configuration
+
+## Problem Description
+
+**Context:** Users need to understand how SleakOps determines which Git branch to use during the build process when no specific branch is specified in the build configuration.
+
+**Observed Symptoms:**
+
+- Uncertainty about which branch is used when none is explicitly specified
+- Builds may use unexpected branches
+- Need clarification on default branch behavior
+
+**Relevant Configuration:**
+
+- Project default branch setting
+- Build configuration without explicit branch specification
+- Git repository configuration
+
+**Error Conditions:**
+
+- Builds using incorrect branch when expectations differ
+- Confusion about branch selection logic
+
+## Detailed Solution
+
+<TroubleshootingItem id="default-branch-behavior" summary="How SleakOps selects branches for builds">
+
+When no specific branch is defined in the build configuration, SleakOps follows this behavior:
+
+**Default Branch Selection:**
+
+- The build process automatically uses the **default branch defined in the project settings**
+- This ensures consistent behavior across all builds within the project
+- The project's default branch takes precedence over repository default branches
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="configure-project-branch" summary="Setting the project default branch">
+
+To configure or verify your project's default branch:
+
+1. Navigate to your **Project Settings**
+2. Go to the **Source Code** or **Repository** section
+3. Look for the **Default Branch** setting
+4. Set it to your preferred branch (e.g., `main`, `master`, `develop`)
+
+```yaml
+# Example project configuration
+project:
+  name: "my-application"
+  repository:
+    url: "https://github.com/company/my-app"
+    default_branch: "main" # This branch will be used when none specified
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="override-branch" summary="Overriding branch for specific builds">
+
+You can override the default branch for specific builds:
+
+**Manual Builds:**
+
+1. Go to **Build** section in your project
+2. Click **New Build** or **Trigger Build**
+3. Specify the desired branch in the branch field
+
+**Automated Builds:**
+
+```yaml
+# In your build configuration
+build:
+  trigger:
+    branch: "feature/new-functionality" # Override default branch
+  steps:
+    - name: "build"
+      command: "npm run build"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Best practices for branch management">
+
+**Recommended Practices:**
+
+1. **Set clear default branches**: Use `main` or `master` as your project default
+2. **Document branch strategy**: Make sure team members understand the branching model
+3. **Use environment-specific branches**:
+   - `main` for production builds
+   - `develop` for staging builds
+   - Feature branches for testing
+
+**Environment Configuration Example:**
+
+```yaml
+environments:
+  production:
+    branch: "main"
+    auto_deploy: true
+  staging:
+    branch: "develop"
+    auto_deploy: true
+  development:
+    branch: "*" # Allow any branch
+    auto_deploy: false
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Troubleshooting branch selection issues">
+
+**Common Issues and Solutions:**
+
+1. **Wrong branch being built:**
+
+   - Check project default branch setting
+   - Verify build configuration doesn't have conflicting branch specifications
+
+2. **Build fails with branch not found:**
+
+   - Ensure the specified branch exists in the repository
+   - Check branch name spelling and case sensitivity
+
+3. **Inconsistent build behavior:**
+   - Review all build configurations for explicit branch settings
+   - Standardize branch naming across environments
+
+**Verification Steps:**
+
+```bash
+# Check current project configuration
+sleakops project show <project-name>
+
+# List available branches
+sleakops project branches <project-name>
+
+# View build history with branch information
+sleakops builds list --project <project-name> --show-branches
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

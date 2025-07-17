@@ -1,0 +1,225 @@
+---
+sidebar_position: 3
+title: "Variables de Entorno No Accesibles en Aplicación NuxtJS"
+description: "Solución para variables de entorno que no se reciben en aplicaciones NuxtJS desplegadas en SleakOps"
+date: "2024-01-15"
+category: "proyecto"
+tags: ["nuxtjs", "variables-de-entorno", "despliegue", "configuración"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Variables de Entorno No Accesibles en Aplicación NuxtJS
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** NuxtJS, Variables de Entorno, Despliegue, Configuración
+
+## Descripción del Problema
+
+**Contexto:** El usuario ha desplegado una aplicación NuxtJS en SleakOps y configurado variables de entorno a través de la plataforma, pero la aplicación no puede acceder a estas variables en tiempo de ejecución.
+
+**Síntomas Observados:**
+
+- Variables de entorno configuradas en la plataforma SleakOps
+- Variables no accesibles dentro de la aplicación NuxtJS
+- Comportamiento de la aplicación sugiere configuración de entorno ausente
+- Variables pueden aparecer como indefinidas o vacías
+
+**Configuración Relevante:**
+
+- Framework: NuxtJS
+- Plataforma: SleakOps
+- Variables de entorno: Configuradas mediante la interfaz de la plataforma
+- Tipo de despliegue: Despliegue basado en contenedores
+
+**Condiciones de Error:**
+
+- Variables no disponibles en tiempo de ejecución de la aplicación
+- El problema ocurre después de un despliegue exitoso
+- Persiste tras reinicios de la aplicación
+- Puede afectar tanto el acceso en servidor como en cliente
+
+## Solución Detallada
+
+<TroubleshootingItem id="nuxt-env-basics" summary="Entendiendo las Variables de Entorno en NuxtJS">
+
+NuxtJS tiene requerimientos específicos para las variables de entorno:
+
+1. **Variables del lado servidor**: Disponibles en `process.env`
+2. **Variables del lado cliente**: Deben exponerse explícitamente usando `publicRuntimeConfig` o `privateRuntimeConfig`
+3. **Variables en tiempo de compilación**: Necesitan estar disponibles durante el proceso de build
+
+```javascript
+// nuxt.config.js
+export default {
+  // Solo servidor
+  privateRuntimeConfig: {
+    apiSecret: process.env.API_SECRET,
+  },
+  // Expuestas al cliente
+  publicRuntimeConfig: {
+    apiUrl: process.env.API_URL || "https://api.example.com",
+  },
+};
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-env-config" summary="Configurando Variables de Entorno en SleakOps">
+
+Para configurar correctamente las variables de entorno en SleakOps:
+
+1. **Ve a la Configuración de tu Proyecto**
+2. **Navega a la sección de Variables de Entorno**
+3. **Agrega variables con nombres adecuados**:
+
+   - Usa el prefijo `NUXT_` para reconocimiento automático por Nuxt
+   - Ejemplo: `NUXT_API_URL`, `NUXT_DATABASE_URL`
+
+4. **Asegura que las variables estén disponibles en tiempo de compilación**:
+   - Marca variables críticas como "Build Time" si se necesitan durante la compilación
+   - Marca variables de ejecución como "Runtime" para uso en la aplicación
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-configuration" summary="Configuración del Dockerfile para Variables de Entorno">
+
+Asegúrate de que tu Dockerfile maneje correctamente las variables de entorno:
+
+```dockerfile
+# Ejemplo Dockerfile para NuxtJS
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copiar archivos de paquetes
+COPY package*.json ./
+RUN npm ci --only=production
+
+# Copiar código fuente
+COPY . .
+
+# Construir la aplicación (variables de entorno necesarias aquí)
+ARG NUXT_API_URL
+ARG NUXT_APP_NAME
+ENV NUXT_API_URL=$NUXT_API_URL
+ENV NUXT_APP_NAME=$NUXT_APP_NAME
+
+RUN npm run build
+
+# Exponer puerto
+EXPOSE 3000
+
+# Iniciar la aplicación
+CMD ["npm", "start"]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="nuxt3-configuration" summary="Configuración Específica para Nuxt 3">
+
+Para aplicaciones Nuxt 3, usa la nueva configuración de tiempo de ejecución:
+
+```typescript
+// nuxt.config.ts
+export default defineNuxtConfig({
+  runtimeConfig: {
+    // Claves privadas (solo disponibles en servidor)
+    apiSecret: process.env.API_SECRET,
+    // Claves públicas (expuestas al cliente)
+    public: {
+      apiUrl: process.env.NUXT_PUBLIC_API_URL || "https://api.example.com",
+      appName: process.env.NUXT_PUBLIC_APP_NAME || "Mi App",
+    },
+  },
+});
+```
+
+Accede a las variables en tu aplicación:
+
+```vue
+<template>
+  <div>
+    <h1>{{ config.public.appName }}</h1>
+    <p>URL API: {{ config.public.apiUrl }}</p>
+  </div>
+</template>
+
+<script setup>
+const config = useRuntimeConfig();
+
+// Ejemplo de llamada API en servidor
+const { data } = await $fetch("/api/data", {
+  headers: {
+    Authorization: `Bearer ${config.apiSecret}`,
+  },
+});
+</script>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Pasos para Solucionar Problemas">
+
+1. **Verifica nombres de variables en SleakOps**:
+
+   - Revisa errores tipográficos en los nombres
+   - Asegura consistencia entre plataforma y código
+
+2. **Revisa los logs de compilación**:
+
+   - Comprueba disponibilidad de variables durante el build
+   - Verifica que no haya errores relacionados con variables faltantes
+
+3. **Prueba localmente**:
+
+   ```bash
+   # Crear archivo .env para pruebas locales
+   NUXT_PUBLIC_API_URL=https://api.example.com
+   NUXT_PUBLIC_APP_NAME=App de Prueba
+   API_SECRET=tu-clave-secreta
+
+   # Ejecutar localmente
+   npm run dev
+   ```
+
+4. **Depura en producción**:
+   ```javascript
+   // Añade logs temporales
+   console.log("Chequeo de entorno:", {
+     nodeEnv: process.env.NODE_ENV,
+     apiUrl: process.env.NUXT_PUBLIC_API_URL,
+     tieneSecreto: !!process.env.API_SECRET,
+   });
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-solutions" summary="Soluciones Comunes">
+
+**Solución 1: Actualizar nombres de variables**
+
+- Prefija variables públicas con `NUXT_PUBLIC_`
+- Usa mayúsculas consistentes (MAYÚSCULAS para vars de entorno)
+
+**Solución 2: Reconstruir la aplicación**
+
+- Tras cambiar variables de entorno, dispara un nuevo despliegue
+- Asegura que el proceso de build tome las nuevas variables
+
+**Solución 3: Verificar ámbito de variables**
+
+- Confirma si las variables deben ser de build-time o runtime
+- Configura adecuadamente en la plataforma SleakOps
+
+**Solución 4: Actualizar nuxt.config**
+
+- Asegura que todas las variables requeridas estén configuradas correctamente
+- Prueba acceso tanto en servidor como en cliente
+
+</TroubleshootingItem>
+
+---
+
+_Este FAQ fue generado automáticamente el 15 de enero de 2024 basado en una consulta real de usuario._

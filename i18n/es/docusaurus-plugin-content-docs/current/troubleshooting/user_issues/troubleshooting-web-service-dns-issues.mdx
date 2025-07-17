@@ -1,0 +1,199 @@
+---
+sidebar_position: 3
+title: "Problemas de Configuración DNS en Servicios Web"
+description: "Resolución de problemas de delegación DNS y conectividad de servicios web"
+date: "2024-01-15"
+category: "project"
+tags:
+  [
+    "dns",
+    "servicio-web",
+    "despliegue",
+    "resolucion-de-problemas",
+    "delegacion-dominio",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de Configuración DNS en Servicios Web
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** DNS, Servicio Web, Despliegue, Resolución de Problemas, Delegación de Dominio
+
+## Descripción del Problema
+
+**Contexto:** El usuario crea un servicio web en SleakOps con compilación y despliegue exitosos, pero el servicio no es accesible mediante su nombre de dominio debido a problemas de configuración DNS.
+
+**Síntomas observados:**
+
+- El servicio web devuelve error 404 al acceder mediante el dominio
+- Las herramientas de propagación DNS no muestran registros DNS para el subdominio
+- Los procesos de compilación y despliegue se completan con éxito
+- El servicio aparece saludable en el clúster de Kubernetes
+
+**Configuración relevante:**
+
+- Tipo de servicio: Servicio web
+- Dominio: Subdominio personalizado (por ejemplo, `subdominio.dominio.com`)
+- Estado del despliegue: Exitoso
+- Estado de compilación: Exitoso
+
+**Condiciones de error:**
+
+- Registros DNS no propagados globalmente
+- Delegación DNS faltante para el subdominio
+- Servicio accesible mediante port-forward pero no vía dominio
+- Errores 404 al acceder mediante URL pública
+
+## Solución Detallada
+
+<TroubleshootingItem id="initial-diagnosis" summary="Verificar estado del pod y contenedor">
+
+Antes de resolver problemas DNS, confirme que su servicio esté funcionando correctamente:
+
+1. **Verifique el estado de los pods en Lens o kubectl:**
+
+   - Los pods deben aparecer en verde/en ejecución
+   - Los chequeos de salud del contenedor deben pasar
+   - Si los pods están amarillos, revise los logs para errores
+
+2. **Pruebe la conectividad local:**
+
+   ```bash
+   # Reenvío de puerto para probar servicio localmente
+   kubectl port-forward service/nombre-de-su-servicio 8080:80
+   # Luego pruebe: curl http://localhost:8080
+   ```
+
+3. **Verifique la configuración del chequeo de salud:**
+   - Asegúrese que la ruta del chequeo de salud sea correcta
+   - Pruebe endpoints HTTP y HTTPS
+   - Verifique requisitos de barra diagonal final
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dns-validation" summary="Validar configuración DNS">
+
+Use herramientas DNS para diagnosticar problemas de delegación:
+
+1. **Verifique la delegación DNS con dig:**
+
+   ```bash
+   # Compruebe si el subdominio está delegado correctamente
+   dig NS subdominio.sudominio.com
+
+   # Debe devolver servidores de nombres de AWS Route53 como:
+   # subdominio.sudominio.com. 300 IN NS ns-xxx.awsdns-xx.com.
+   # subdominio.sudominio.com. 300 IN NS ns-xxx.awsdns-xx.co.uk.
+   ```
+
+2. **Verifique resolución del registro A:**
+
+   ```bash
+   # Verifique que el registro A apunte a la IP correcta
+   dig A subdominio.sudominio.com
+
+   # Debe devolver la IP del balanceador de carga
+   ```
+
+3. **Use herramientas en línea de propagación DNS:**
+   - Consulte https://www.whatsmydns.net/
+   - Verifique la propagación global de DNS
+   - Busque inconsistencias entre regiones
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dns-delegation-fix" summary="Corregir problemas de delegación DNS">
+
+Si la delegación DNS falta o es incorrecta:
+
+1. **Identifique los registros DNS requeridos:**
+
+   - Obtenga los servidores de nombres de la zona hospedada Route53 desde la consola AWS
+   - O revise el panel de SleakOps para configuración DNS
+
+2. **Agregue registros NS al dominio padre:**
+
+   ```
+   # Añada estos registros NS al DNS de su dominio principal:
+   subdominio.sudominio.com. IN NS ns-xxx.awsdns-xx.com.
+   subdominio.sudominio.com. IN NS ns-xxx.awsdns-xx.co.uk.
+   subdominio.sudominio.com. IN NS ns-xxx.awsdns-xx.net.
+   subdominio.sudominio.com. IN NS ns-xxx.awsdns-xx.org.
+   ```
+
+3. **Espere la propagación:**
+   - Los cambios DNS pueden tardar 24-48 horas en propagarse completamente
+   - Use `dig` para monitorear el progreso de propagación
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-troubleshooting" summary="Pasos comunes para resolución de problemas">
+
+**Pruebe diferentes variaciones de URL:**
+
+```bash
+# Pruebe con y sin barra diagonal final
+curl http://subdominio.sudominio.com/
+curl http://subdominio.sudominio.com
+
+# Pruebe tanto HTTP como HTTPS
+curl https://subdominio.sudominio.com/
+curl http://subdominio.sudominio.com/
+```
+
+**Verifique configuración de ingress:**
+
+```bash
+# Confirme que el ingress esté configurado correctamente
+kubectl get ingress -n su-namespace
+kubectl describe ingress nombre-del-ingress -n su-namespace
+```
+
+**Monitoree propagación DNS:**
+
+```bash
+# Consulte múltiples servidores DNS
+nslookup subdominio.sudominio.com 8.8.8.8
+nslookup subdominio.sudominio.com 1.1.1.1
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-tips" summary="Prevención y mejores prácticas">
+
+**Antes de crear servicios web:**
+
+1. **Verifique la delegación del dominio:**
+
+   - Asegúrese que el dominio padre esté configurado correctamente
+   - Pruebe la resolución DNS de subdominios existentes
+
+2. **Planifique la estructura de subdominios:**
+
+   - Use convenciones de nombres consistentes
+   - Considere delegación wildcard para múltiples servicios
+
+3. **Monitoree el proceso de despliegue:**
+   - Verifique tanto la compilación COMO la configuración DNS
+   - Confirme que el controlador ingress esté en ejecución
+
+**Después del despliegue:**
+
+1. **Espere la propagación DNS:**
+
+   - Permita de 15 a 30 minutos para propagación inicial
+   - Use múltiples herramientas de verificación DNS
+
+2. **Pruebe sistemáticamente:**
+   - Comience con pruebas por port-forward
+   - Luego pruebe vía IP del balanceador de carga
+   - Finalmente pruebe mediante el nombre de dominio
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

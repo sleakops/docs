@@ -1,0 +1,191 @@
+---
+sidebar_position: 3
+title: "Dockerfile Build Errors with .NET Applications"
+description: "Troubleshooting Docker build failures and application startup issues in .NET projects"
+date: "2024-12-19"
+category: "project"
+tags: ["dockerfile", "dotnet", "build", "troubleshooting", "docker"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Dockerfile Build Errors with .NET Applications
+
+**Date:** December 19, 2024  
+**Category:** Project  
+**Tags:** Dockerfile, .NET, Build, Troubleshooting, Docker
+
+## Problem Description
+
+**Context:** Users experience build failures when deploying .NET applications through SleakOps, particularly during the Docker build process or when the application fails to start properly after deployment.
+
+**Observed Symptoms:**
+
+- Docker build fails during the deployment process
+- Application fails to start with .NET runtime errors
+- Build logs show errors related to `dotnet` command execution
+- Pull request deployments fail unexpectedly
+
+**Relevant Configuration:**
+
+- Application type: .NET Web API
+- Build process: Docker-based deployment
+- Command: `dotnet Netdo.Firev.WebApi.dll`
+- Deployment trigger: Pull request from develop to main branch
+
+**Error Conditions:**
+
+- Error occurs during Docker build process
+- May be related to Dockerfile configuration
+- Could involve application-level issues (Main class problems)
+- Appears during automated deployment workflows
+
+## Detailed Solution
+
+<TroubleshootingItem id="local-debugging" summary="Debug the issue locally">
+
+To diagnose the problem, first test your application locally using Docker:
+
+1. **Run the container locally:**
+
+   ```bash
+   docker compose run --rm --name api-shell api
+   ```
+
+2. **Inside the container, test the application command:**
+
+   ```bash
+   dotnet Netdo.Firev.WebApi.dll
+   ```
+
+3. **Check for any runtime errors or missing dependencies**
+
+This will help identify if the issue is with the application code or the Docker configuration.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-validation" summary="Validate your Dockerfile">
+
+Common Dockerfile issues with .NET applications:
+
+```dockerfile
+# Ensure you're using the correct base image
+FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
+WORKDIR /app
+EXPOSE 80
+EXPOSE 443
+
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+WORKDIR /src
+COPY ["YourProject.csproj", "./"]
+RUN dotnet restore "YourProject.csproj"
+COPY . .
+RUN dotnet build "YourProject.csproj" -c Release -o /app/build
+
+# Publish stage
+FROM build AS publish
+RUN dotnet publish "YourProject.csproj" -c Release -o /app/publish
+
+# Final stage
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "YourProject.dll"]
+```
+
+**Key points to verify:**
+
+- Correct .NET runtime version
+- Proper file copying and build steps
+- Correct entry point configuration
+- All necessary dependencies included
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="main-class-issues" summary="Fix Main class and application startup issues">
+
+If the error is related to the Main class or application startup:
+
+1. **Check your Program.cs file:**
+
+   ```csharp
+   // For .NET 6+ (minimal hosting model)
+   var builder = WebApplication.CreateBuilder(args);
+
+   // Add services
+   builder.Services.AddControllers();
+
+   var app = builder.Build();
+
+   // Configure pipeline
+   app.UseRouting();
+   app.MapControllers();
+
+   app.Run();
+   ```
+
+2. **For older .NET versions, ensure proper Main method:**
+
+   ```csharp
+   public class Program
+   {
+       public static void Main(string[] args)
+       {
+           CreateHostBuilder(args).Build().Run();
+       }
+
+       public static IHostBuilder CreateHostBuilder(string[] args) =>
+           Host.CreateDefaultBuilder(args)
+               .ConfigureWebHostDefaults(webBuilder =>
+               {
+                   webBuilder.UseStartup<Startup>();
+               });
+   }
+   ```
+
+3. **Verify your project file (.csproj):**
+   ```xml
+   <Project Sdk="Microsoft.NET.Sdk.Web">
+     <PropertyGroup>
+       <TargetFramework>net6.0</TargetFramework>
+       <OutputType>Exe</OutputType>
+     </PropertyGroup>
+   </Project>
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="build-logs-analysis" summary="Analyze SleakOps build logs">
+
+To get detailed information about the build failure:
+
+1. **Access SleakOps dashboard**
+2. **Navigate to your project's deployment logs**
+3. **Look for specific error messages in the build phase**
+4. **Check for:**
+   - Missing dependencies
+   - Compilation errors
+   - Runtime configuration issues
+   - File permission problems
+
+**Common error patterns:**
+
+- `Unable to find a matching executable`
+- `Assembly not found`
+- `Configuration errors`
+- `Port binding issues`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="environment-configuration" summary="Verify environment configuration">
+
+Ensure your application is properly configured for the deployment environment:
+
+1. **Check appsettings.json:**
+   ```json
+   {
+     "Logging": {
+       "LogLevel": {
+         "Default": "Information"
+   ```

@@ -1,0 +1,165 @@
+---
+sidebar_position: 3
+title: "GitHub Actions CI/CD Pipeline Not Triggering"
+description: "Solution for when continuous integration builds stop working after push to repository"
+date: "2024-01-15"
+category: "project"
+tags: ["github", "ci-cd", "deployment", "troubleshooting", "pipeline"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# GitHub Actions CI/CD Pipeline Not Triggering
+
+**Date:** January 15, 2024  
+**Category:** Project  
+**Tags:** GitHub, CI/CD, Deployment, Troubleshooting, Pipeline
+
+## Problem Description
+
+**Context:** User experiences issues with continuous integration pipeline in SleakOps where GitHub Actions workflows stop triggering automatic builds and deployments after pushing to the development branch.
+
+**Observed Symptoms:**
+
+- Push to development branch no longer triggers automatic builds
+- Previously working CI/CD pipeline has stopped functioning
+- No visible workflow execution in GitHub Actions
+- Deployments are not being created automatically
+
+**Relevant Configuration:**
+
+- Repository: GitHub
+- Branch: dev (development branch)
+- Project: mx-simplee-web
+- Pipeline: GitHub Actions with YAML configuration
+- Platform: SleakOps integration
+
+**Error Conditions:**
+
+- Pipeline worked previously but stopped suddenly
+- No apparent changes to YAML configuration file
+- Push events are not triggering workflow execution
+- No error messages visible in repository
+
+## Detailed Solution
+
+<TroubleshootingItem id="initial-diagnosis" summary="Check GitHub Actions workflow status">
+
+First, verify the current status of your GitHub Actions workflows:
+
+1. Go to your GitHub repository
+2. Click on the **Actions** tab
+3. Look for the latest workflow runs
+4. Check if workflows are:
+   - Not being triggered at all
+   - Failing during execution
+   - Queued but not running
+
+This will help identify whether the issue is with triggering or execution.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="yaml-verification" summary="Verify YAML configuration file">
+
+Even if you haven't changed the YAML file recently, verify its current state:
+
+1. Check the workflow file location: `.github/workflows/[workflow-name].yml`
+2. Verify the trigger configuration:
+
+```yaml
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+```
+
+3. Ensure the branch name matches exactly (case-sensitive)
+4. Check for any syntax errors using a YAML validator
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="branch-protection" summary="Check branch protection rules">
+
+Branch protection rules can prevent workflows from running:
+
+1. Go to **Settings** → **Branches** in your repository
+2. Check if there are protection rules on your `dev` branch
+3. Ensure "Restrict pushes that create files" is not blocking your workflow
+4. Verify that required status checks aren't preventing execution
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="permissions-check" summary="Verify repository permissions">
+
+Check if GitHub Actions has the necessary permissions:
+
+1. Go to **Settings** → **Actions** → **General**
+2. Ensure "Actions permissions" is set to allow workflows
+3. Check "Workflow permissions" - should be "Read and write permissions"
+4. Verify that "Allow GitHub Actions to create and approve pull requests" is enabled if needed
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-integration" summary="Verify SleakOps integration">
+
+Check the integration between GitHub and SleakOps:
+
+1. In SleakOps dashboard, go to your project settings
+2. Verify the connected repository URL is correct
+3. Check that the target branch is set to `dev`
+4. Ensure the webhook is still active in GitHub:
+   - Go to **Settings** → **Webhooks** in your repository
+   - Look for SleakOps webhook and verify it's active
+   - Check recent deliveries for any failed requests
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="workflow-recreation" summary="Recreate workflow if necessary">
+
+If the issue persists, try recreating the workflow:
+
+1. Create a new branch from `dev`
+2. Make a small change to trigger the workflow
+3. Create a simple test workflow:
+
+```yaml
+name: Test CI
+on:
+  push:
+    branches: [dev]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Test
+        run: echo "Workflow is working"
+```
+
+4. Push the changes and verify the workflow triggers
+5. If successful, gradually add back your original workflow steps
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-fixes" summary="Common fixes that resolve the issue">
+
+Based on common scenarios, try these solutions:
+
+1. **Re-push to trigger**: Make a small commit and push again
+2. **Check quotas**: Ensure you haven't exceeded GitHub Actions minutes
+3. **Restart workflows**: Cancel any stuck workflows and retry
+4. **Update checkout action**: Use the latest version `actions/checkout@v4`
+5. **Clear cache**: Delete workflow caches if they're corrupted
+
+```bash
+# Force trigger workflow with empty commit
+git commit --allow-empty -m "Trigger workflow"
+git push origin dev
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

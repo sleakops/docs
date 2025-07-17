@@ -1,0 +1,191 @@
+---
+sidebar_position: 3
+title: "Conflictos de Migraciones en Django Durante la Importación de Base de Datos"
+description: "Solución para errores de migración en Django al importar volcados de base de datos con estados de migración diferentes"
+date: "2024-12-20"
+category: "proyecto"
+tags:
+  [
+    "django",
+    "migraciones",
+    "base de datos",
+    "importación",
+    "solución de problemas",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Conflictos de Migraciones en Django Durante la Importación de Base de Datos
+
+**Fecha:** 20 de diciembre de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Django, Migraciones, Base de Datos, Importación, Solución de Problemas
+
+## Descripción del Problema
+
+**Contexto:** Al importar un volcado de base de datos en una aplicación Django desplegada en SleakOps, el hook de pre-actualización encargado de ejecutar las migraciones de Django falla porque el sistema no reconoce que ciertas migraciones ya fueron aplicadas.
+
+**Síntomas Observados:**
+
+- El hook de pre-actualización falla durante el despliegue
+- El sistema de migraciones de Django no reconoce migraciones previamente aplicadas
+- El proceso de importación de la base de datos falla
+- Conflictos de migración entre el estado del volcado y el código actual
+
+**Configuración Relevante:**
+
+- Framework: Django con Django REST Framework
+- Base de datos: PostgreSQL (típico en despliegues SleakOps)
+- Despliegue: Kubernetes con hooks de pre-actualización
+- Aplicaciones de migración: cobranza, django_celery_results, y otras
+
+**Condiciones de Error:**
+
+- Error ocurre durante la ejecución del hook de pre-actualización
+- Sucede cuando el volcado de base de datos contiene estados de migración diferentes al código actual
+- Afecta múltiples aplicaciones Django con migraciones pendientes
+- El problema persiste hasta que los estados de migración se sincronizan
+
+## Solución Detallada
+
+<TroubleshootingItem id="root-cause-analysis" summary="Comprendiendo la causa raíz">
+
+Este problema ocurre cuando:
+
+1. **Origen del volcado de base de datos**: El volcado fue creado desde una base de datos donde el proyecto corría en una rama diferente
+2. **Desajuste del estado de migración**: El historial de migraciones en el volcado no coincide con las migraciones del código actual
+3. **Seguimiento de migraciones en Django**: La tabla `django_migrations` contiene registros que no se alinean con los archivos de migración actuales
+
+El indicador clave es ver migraciones marcadas como `[ ]` (no aplicadas) al ejecutar `python manage.py showmigrations`, aunque la base de datos contenga los cambios reales de esquema.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-diagnosis" summary="Diagnóstico de conflictos en el estado de migración">
+
+Para diagnosticar el problema, conéctate a tu pod de la aplicación y ejecuta:
+
+```bash
+# Verificar el estado actual de las migraciones
+python manage.py showmigrations
+
+# Buscar aplicaciones con estados mixtos como:
+# cobranza
+#  [X] 0001_initial
+#  [ ] 0002_initial  # <-- Esto indica un conflicto
+```
+
+También revisa directamente la base de datos:
+
+```sql
+-- Conéctate a tu base de datos y revisa los registros de migración
+SELECT app, name, applied FROM django_migrations
+WHERE app IN ('cobranza', 'django_celery_results')
+ORDER BY app, applied;
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="solution-fake-migrations" summary="Resolución con migraciones falsas">
+
+La solución más efectiva es marcar las migraciones en conflicto como aplicadas sin ejecutarlas realmente:
+
+```bash
+# Conéctate a tu pod de la aplicación
+kubectl exec -it <nombre-del-pod> -- bash
+
+# Marcar migraciones específicas como aplicadas de forma falsa
+python manage.py migrate cobranza 0002_initial --fake
+python manage.py migrate django_celery_results 0011_taskresult_periodic_task_name --fake
+
+# Verificar la corrección
+python manage.py showmigrations
+```
+
+Para múltiples migraciones:
+
+```bash
+# Marcar todas las migraciones pendientes como falsas para una app específica
+python manage.py migrate cobranza --fake
+
+# O marcar todas las migraciones pendientes en todas las apps
+python manage.py migrate --fake
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-best-practices" summary="Prevención de futuros conflictos de migración">
+
+Para evitar este problema en el futuro:
+
+1. **Volcados de ramas consistentes**: Siempre crea los volcados de base de datos desde la misma rama que vas a desplegar
+
+2. **Sincronización de migraciones**: Antes de crear volcados, asegúrate que las migraciones estén actualizadas:
+
+   ```bash
+   python manage.py migrate
+   python manage.py showmigrations  # Verificar que todas estén aplicadas
+   ```
+
+3. **Proceso limpio de importación**: Al importar volcados:
+
+   ```bash
+   # Después de la importación, verifica inmediatamente el estado de migraciones
+   python manage.py showmigrations
+   # Corrige cualquier conflicto antes del despliegue
+   ```
+
+4. **Consistencia de ambiente**: Usa la misma versión de Django y versiones de las apps entre el entorno de creación del volcado y el de importación
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-specific-handling" summary="Manejo en despliegues SleakOps">
+
+Para despliegues SleakOps con hooks de pre-actualización:
+
+1. **Modificación temporal del hook**: Si necesitas desplegar inmediatamente, puedes modificar temporalmente el hook de pre-actualización para usar `--fake-initial`:
+
+   ```yaml
+   # En tu configuración de despliegue
+   preUpgradeHook:
+     command: |
+       python manage.py migrate --fake-initial
+   ```
+
+2. **Corrección post-despliegue**: Después del despliegue exitoso, conéctate al pod y ejecuta las migraciones falsas adecuadas como se describió arriba
+
+3. **Restaurar hook normal**: Una vez corregido, restaura el hook normal de migración:
+   ```yaml
+   preUpgradeHook:
+     command: |
+       python manage.py migrate
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Verificación de la solución">
+
+Después de aplicar la corrección:
+
+1. **Verificar estado de migraciones**:
+
+   ```bash
+   python manage.py showmigrations
+   # Todas las migraciones deberían mostrar [X]
+   ```
+
+2. **Probar funcionalidad de la aplicación**:
+
+   - Verificar que las operaciones con la base de datos funcionen correctamente
+   - Comprobar que todos los modelos sean accesibles
+   - Probar funcionalidades críticas de la aplicación
+
+3. **Despliegue exitoso**:
+   - El próximo despliegue debería completarse sin errores de migración
+   - Los hooks de pre-actualización deberían ejecutarse correctamente
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 20 de diciembre de 2024 basada en una consulta real de un usuario._

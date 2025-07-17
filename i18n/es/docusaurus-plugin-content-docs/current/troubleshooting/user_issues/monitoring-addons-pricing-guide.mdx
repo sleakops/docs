@@ -1,0 +1,175 @@
+---
+sidebar_position: 3
+title: "Guía de Precios para Complementos de Monitoreo"
+description: "Desglose completo de precios para los complementos de monitoreo Grafana, Loki, KubeCost y OpenTelemetry"
+date: "2024-12-19"
+category: "general"
+tags:
+  [
+    "precios",
+    "monitoreo",
+    "grafana",
+    "loki",
+    "kubecost",
+    "opentelemetry",
+    "complementos",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Guía de Precios para Complementos de Monitoreo
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** General  
+**Etiquetas:** Precios, Monitoreo, Grafana, Loki, KubeCost, OpenTelemetry, Complementos
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios necesitan entender la estructura de precios para los complementos de monitoreo y observabilidad en SleakOps, incluyendo costos individuales de componentes y dependencias.
+
+**Síntomas Observados:**
+
+- Necesidad de estimar costos antes de implementar la pila de monitoreo
+- Incertidumbre sobre el precio individual de cada complemento
+- Preguntas sobre las dependencias entre componentes de monitoreo
+- Confusión sobre qué impulsa los costos reales
+
+**Configuración Relevante:**
+
+- Pila de monitoreo: Grafana + Loki + KubeCost + OpenTelemetry
+- Retención de logs: 14 días (configurable)
+- Infraestructura: instancias spot dentro del clúster existente
+- Base de datos: RDS requerida para Grafana
+
+**Condiciones de Error:**
+
+- Planificación presupuestaria sin desglose claro de costos
+- Posible sobreaprovisionamiento debido a falta de transparencia en precios
+- Dificultad para justificar inversiones en monitoreo
+
+## Solución Detallada
+
+<TroubleshootingItem id="individual-pricing" summary="Desglose de Precios Individuales de Complementos">
+
+**Precios Actuales de Complementos de Monitoreo (Aproximados):**
+
+- **Grafana**: 20 USD/mes
+- **Loki**: 10 USD/mes
+- **KubeCost**: 10 USD/mes
+- **OpenTelemetry**: 10 USD/mes (complemento próximo)
+
+**Notas Importantes:**
+
+- Loki requiere que Grafana esté instalado primero
+- Costo total para la pila completa de monitoreo: aproximadamente 40-50 USD/mes
+- Los precios son aproximados y pueden variar según el uso
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cost-structure" summary="Comprendiendo la Estructura de Costos">
+
+**Costos Fijos:**
+
+- **Base de datos RDS**: Requerida para Grafana (componente principal de costo fijo)
+
+**Costos Variables:**
+
+- **Recursos de cómputo**: Ejecutados en instancias spot dentro de su clúster existente
+- **Almacenamiento**: Buckets S3 para retención de logs y métricas
+- **Red**: Costos de transferencia de datos (mínimos)
+
+**Optimización de Costos:**
+
+- Los complementos de monitoreo comparten instancias con complementos Esenciales
+- En muchos casos, no se necesitan nuevas instancias
+- Las instancias spot reducen significativamente los costos de cómputo
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dependencies" summary="Dependencias y Requisitos de Complementos">
+
+**Dependencias Requeridas:**
+
+1. **Grafana** (independiente)
+
+   - Requiere: base de datos RDS
+   - Costo: 20 USD/mes
+
+2. **Loki** (agregación de logs)
+
+   - Requiere: Grafana debe estar instalado primero
+   - Costo adicional: 10 USD/mes
+   - Combinado con Grafana: 30 USD/mes
+
+3. **KubeCost** (monitoreo de costos)
+
+   - Puede instalarse independientemente
+   - Costo: 10 USD/mes
+
+4. **OpenTelemetry** (próximo)
+   - Parte de la pila de observabilidad
+   - Costo estimado: 10 USD/mes
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="retention-benefits" summary="Ventajas de la Retención de Datos">
+
+**Beneficios de Retención en SleakOps:**
+
+- **Retención estándar**: 14 días (incluido en el precio base)
+- **Retención extendida**: Hasta 3 meses con aumento mínimo de costo
+- **Ubicación de almacenamiento**: Buckets S3 (rentable)
+- **Sin impacto en rendimiento**: Los datos históricos no afectan el rendimiento del clúster
+
+**Comparación con otras soluciones:**
+
+```yaml
+# Monitoreo tradicional (costoso)
+retention_days: 14
+storage_type: "cluster-local"
+cost_increase: "lineal con la retención"
+
+# Enfoque SleakOps (rentable)
+retention_days: 90
+storage_type: "s3-bucket"
+cost_increase: "mínimo"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="planning-recommendations" summary="Recomendaciones para la Planificación de Costos">
+
+**Para la Planificación Presupuestaria:**
+
+1. **Configuración mínima de monitoreo**:
+
+   - Solo Grafana: 20 USD/mes
+   - Bueno para visualización básica de métricas
+
+2. **Configuración estándar de monitoreo**:
+
+   - Grafana + Loki: 30 USD/mes
+   - Incluye agregación y análisis de logs
+
+3. **Configuración completa de monitoreo**:
+
+   - Grafana + Loki + KubeCost: 40 USD/mes
+   - Observabilidad completa con seguimiento de costos
+
+4. **Configuración preparada para el futuro**:
+   - Todos los complementos + OpenTelemetry: 50 USD/mes
+   - Observabilidad completa y trazabilidad
+
+**Consejos para Optimización de Costos:**
+
+- Comience con complementos esenciales para compartir recursos de cómputo
+- Monitoree el uso real antes de agregar más componentes
+- Aproveche el almacenamiento en S3 para retención a largo plazo
+- Considere patrones de uso estacionales para la planificación de costos
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de usuario._

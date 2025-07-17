@@ -1,0 +1,159 @@
+---
+sidebar_position: 3
+title: "Loki and Grafana Connection Issues"
+description: "Troubleshooting Loki pod configuration bugs affecting Grafana connectivity"
+date: "2024-11-22"
+category: "dependency"
+tags: ["loki", "grafana", "monitoring", "troubleshooting", "pods"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Loki and Grafana Connection Issues
+
+**Date:** November 22, 2024  
+**Category:** Dependency  
+**Tags:** Loki, Grafana, Monitoring, Troubleshooting, Pods
+
+## Problem Description
+
+**Context:** Users experience connectivity issues between Grafana and Loki logging service in SleakOps clusters, preventing proper log visualization and monitoring functionality.
+
+**Observed Symptoms:**
+
+- Grafana cannot connect to Loki data source
+- Loki service appears unresponsive or unreachable
+- Log queries fail or timeout in Grafana interface
+- Monitoring dashboards show no log data
+
+**Relevant Configuration:**
+
+- Service: Loki logging stack
+- Component affected: `loki-read` pod
+- Interface: Grafana dashboard
+- Management tool: Lens Kubernetes IDE
+
+**Error Conditions:**
+
+- Error occurs after cluster updates or pod restarts
+- Problem persists until manual pod recreation
+- Affects log aggregation and monitoring capabilities
+- May impact multiple users accessing Grafana dashboards
+
+## Detailed Solution
+
+<TroubleshootingItem id="immediate-workaround" summary="Quick fix: Restart loki-read pod">
+
+To immediately resolve the connection issue:
+
+1. **Open Lens Kubernetes IDE**
+2. **Navigate to your SleakOps cluster**
+3. **Go to Workloads → Pods**
+4. **Search for the `loki-read` pod**
+5. **Right-click on the pod and select "Delete"**
+6. **Wait for the pod to be automatically recreated**
+7. **Test Grafana connectivity**
+
+The pod will be automatically recreated by the deployment controller, which should resolve the configuration bug.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verify-pod-recreation" summary="Verify pod recreation and health">
+
+After deleting the pod, verify it's properly recreated:
+
+```bash
+# Check pod status
+kubectl get pods -n monitoring | grep loki-read
+
+# Verify pod is running and ready
+kubectl describe pod <loki-read-pod-name> -n monitoring
+
+# Check pod logs for any errors
+kubectl logs <loki-read-pod-name> -n monitoring
+```
+
+The pod should show status `Running` with all containers ready (e.g., `1/1`).
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="test-grafana-connection" summary="Test Grafana connection to Loki">
+
+After the pod recreation:
+
+1. **Access Grafana dashboard**
+2. **Go to Configuration → Data Sources**
+3. **Find the Loki data source**
+4. **Click "Test" to verify connectivity**
+5. **Try running a simple log query**:
+   ```
+   {namespace="default"}
+   ```
+
+If successful, you should see log entries appearing in the query results.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-kubectl-method" summary="Alternative: Using kubectl command">
+
+If you prefer using kubectl instead of Lens:
+
+```bash
+# List loki pods
+kubectl get pods -n monitoring | grep loki
+
+# Delete the loki-read pod
+kubectl delete pod <loki-read-pod-name> -n monitoring
+
+# Watch pod recreation
+kubectl get pods -n monitoring -w | grep loki-read
+```
+
+Replace `<loki-read-pod-name>` with the actual pod name from the first command.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-monitoring" summary="Monitoring for future occurrences">
+
+To monitor for this issue in the future:
+
+1. **Set up alerts for Loki pod restarts**
+2. **Monitor Grafana data source health**
+3. **Check pod logs regularly for configuration errors**
+
+```yaml
+# Example alert rule for Loki pod issues
+groups:
+  - name: loki-alerts
+    rules:
+      - alert: LokiPodDown
+        expr: up{job="loki-read"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Loki read pod is down"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="escalation-path" summary="When to escalate">
+
+Escalate to SleakOps support if:
+
+- Pod recreation doesn't resolve the issue
+- Problem recurs frequently (more than once per day)
+- Multiple Loki components are affected
+- Grafana shows persistent connection errors after pod restart
+
+Include in your support request:
+
+- Pod logs before and after recreation
+- Grafana error messages
+- Cluster and namespace information
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on November 22, 2024 based on a real user query._

@@ -1,0 +1,205 @@
+---
+sidebar_position: 3
+title: "Problemas de Conexión VPN con Addons de Clúster"
+description: "Solución de problemas de conectividad VPN que impiden el acceso a addons de clúster y entornos de desarrollo"
+date: "2024-12-19"
+category: "usuario"
+tags: ["vpn", "conexión", "addons", "solución de problemas", "lens"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de Conexión VPN con Addons de Clúster
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Usuario  
+**Etiquetas:** VPN, Conexión, Addons, Solución de problemas, Lens
+
+## Descripción del Problema
+
+**Contexto:** El usuario experimenta problemas de conectividad con addons del clúster de desarrollo y Lens después de trabajar en un nuevo proyecto, mientras que los servicios de producción siguen accesibles.
+
+**Síntomas Observados:**
+
+- No puede acceder a ningún addon del clúster de desarrollo
+- Incapacidad para conectar al clúster de desarrollo vía Lens
+- Pérdida de acceso al nuevo proyecto (n8n)
+- Los servicios de producción (Grafana, Loki) permanecen accesibles
+- Los problemas comenzaron en la mañana (zona horaria de Francia)
+
+**Configuración Relevante:**
+
+- Entorno: Clúster de desarrollo vs Clúster de producción
+- Herramientas afectadas: Addons de clúster, Lens, cargas de trabajo del proyecto
+- Ubicación geográfica: Francia
+- VPN: Conexión VPN estándar de SleakOps
+
+**Condiciones de Error:**
+
+- Pérdida selectiva de conectividad (dev accesible, prod no)
+- Coincide con el trabajo en nuevo proyecto
+- Persiste a pesar de la reconexión VPN y limpieza de DNS
+- Afecta múltiples servicios simultáneamente
+
+## Solución Detallada
+
+<TroubleshootingItem id="initial-diagnosis" summary="Entendiendo problemas selectivos de conectividad">
+
+Cuando puedes acceder a los servicios de producción pero no a los addons del clúster de desarrollo, esto típicamente indica:
+
+1. **Segmentación de red**: Los entornos de desarrollo y producción usan rutas de red diferentes
+2. **Tablas de enrutamiento VPN**: Tu cliente VPN puede tener información de enrutamiento desactualizada o incompleta
+3. **Resolución DNS**: Las entradas DNS del clúster de desarrollo pueden no estar resolviéndose correctamente
+4. **Tokens de autenticación**: Tu kubeconfig o tokens de acceso para desarrollo pueden haber expirado
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="vpn-troubleshooting" summary="Pasos avanzados para solucionar problemas VPN">
+
+Más allá de la reconexión básica VPN, prueba estos pasos:
+
+1. **Reinicio completo de la VPN**:
+
+   ```bash
+   # Desconectar la VPN completamente
+   # Limpiar caché/configuración del cliente VPN
+   # Reiniciar la aplicación cliente VPN
+   # Reconectar con configuración nueva
+   ```
+
+2. **Verificar tablas de enrutamiento**:
+
+   ```bash
+   # En Windows
+   route print
+
+   # En macOS/Linux
+   netstat -rn
+   ```
+
+3. **Probar endpoints específicos**:
+
+   ```bash
+   # Probar API del clúster de desarrollo
+   curl -k https://tu-endpoint-api-dev-cluster/version
+
+   # Probar endpoints de addons
+   nslookup tu-dominio-addon.sleakops.com
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="lens-specific-fixes" summary="Solución de problemas de conectividad en Lens">
+
+Para problemas de conexión en Lens:
+
+1. **Actualizar configuración del clúster**:
+
+   - Abrir Lens
+   - Ir a configuración del clúster
+   - Hacer clic en "Actualizar" o "Reconectar"
+   - Verificar que la ruta del kubeconfig sea correcta
+
+2. **Actualizar kubeconfig**:
+
+   ```bash
+   # Descargar kubeconfig fresco desde SleakOps
+   sleakops cluster kubeconfig --cluster development
+
+   # O actualizar configuración existente
+   kubectl config use-context development
+   kubectl cluster-info
+   ```
+
+3. **Limpiar caché de Lens**:
+   - Cerrar Lens completamente
+   - Limpiar caché de la aplicación (la ubicación varía según el SO)
+   - Reiniciar Lens
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="project-access-recovery" summary="Recuperar acceso a nuevos proyectos">
+
+Si perdiste acceso a un proyecto recién creado:
+
+1. **Verificar permisos del proyecto**:
+
+   - Comprobar si el despliegue del proyecto se completó exitosamente
+   - Confirmar que tu usuario tiene los permisos adecuados
+   - Verificar que el proyecto esté en estado "Running" en el panel de SleakOps
+
+2. **Revisar red del proyecto**:
+
+   ```bash
+   # Verificar que los endpoints del proyecto sean accesibles
+   nslookup tu-url-proyecto.sleakops.com
+
+   # Probar conectividad directa
+   curl -I https://tu-url-proyecto.sleakops.com
+   ```
+
+3. **Re-sincronizar configuración del proyecto**:
+   - Ir al panel de SleakOps
+   - Navegar a tu proyecto
+   - Hacer clic en "Sincronizar" o "Actualizar configuración"
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="environment-specific-issues" summary="Diferencias entre entornos de Desarrollo y Producción">
+
+Cuando producción funciona pero desarrollo no:
+
+1. **Verificar estado del entorno**:
+
+   - Confirmar que el clúster de desarrollo esté saludable en el panel de SleakOps
+   - Buscar notificaciones de mantenimiento
+   - Revisar si hay despliegues en curso
+
+2. **Diferencias en configuración de red**:
+
+   - Los clústeres de desarrollo pueden usar rangos IP diferentes
+   - El túnel dividido de la VPN puede afectar las rutas de desarrollo
+   - Las reglas de firewall pueden variar entre entornos
+
+3. **Ámbito de autenticación**:
+   - Tus tokens pueden tener diferentes ámbitos para dev vs prod
+   - El acceso a desarrollo puede requerir permisos adicionales
+   - Verificar si tu rol de usuario incluye acceso al clúster de desarrollo
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="escalation-steps" summary="Cuándo escalar y qué información proporcionar">
+
+Si estos pasos no resuelven el problema, escala con esta información:
+
+1. **Diagnósticos de red**:
+
+   ```bash
+   # Recopilar información de enrutamiento
+   route print > info_enrutamiento.txt
+
+   # Pruebas de resolución DNS
+   nslookup grafana.prod.sleakops.com
+   nslookup tu-addon.dev.sleakops.com
+
+   # Pruebas de conectividad
+   traceroute tu-endpoint-dev-cluster
+   ```
+
+2. **Información de línea de tiempo**:
+
+   - Hora exacta cuando comenzaron los problemas
+   - Última conexión exitosa
+   - Cambios recientes o creación de nuevos proyectos
+
+3. **Detalles del entorno**:
+   - Sistema operativo y versión
+   - Versión del cliente VPN
+   - Versión de Lens
+   - Ubicación geográfica/zona horaria
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de usuario._

@@ -1,0 +1,213 @@
+---
+sidebar_position: 3
+title: "Error AppRegistryNotReady de Django Celery"
+description: "Solución para el error AppRegistryNotReady de Django al ejecutar trabajos cron con Celery"
+date: "2024-12-26"
+category: "carga de trabajo"
+tags:
+  ["django", "celery", "cron", "appregistrynotready", "solución de problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Error AppRegistryNotReady de Django Celery
+
+**Fecha:** 26 de diciembre de 2024  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** Django, Celery, Cron, AppRegistryNotReady, Solución de problemas
+
+## Descripción del problema
+
+**Contexto:** El usuario experimenta errores al ejecutar trabajos cron con Celery en una aplicación Django desplegada en la plataforma SleakOps.
+
+**Síntomas observados:**
+
+- Error `django.core.exceptions.AppRegistryNotReady: Apps aren't loaded yet.`
+- El error ocurre al usar el comando `celery -A (App) call function`
+- Los trabajos cron no se ejecutan correctamente
+- La aplicación parece no estar completamente inicializada cuando se ejecutan las tareas de Celery
+
+**Configuración relevante:**
+
+- Framework: Django con Celery
+- Ejecución de tareas: trabajos cron
+- Formato de comando: `celery -A (App) call function`
+- Plataforma: SleakOps
+
+**Condiciones del error:**
+
+- El error ocurre durante la ejecución de tareas Celery
+- Sucede específicamente con la programación de trabajos cron
+- Las apps de Django no están correctamente cargadas cuando la tarea se ejecuta
+- Puede estar relacionado con la configuración de Django
+
+## Solución detallada
+
+<TroubleshootingItem id="django-setup-verification" summary="Verificar configuración de Django en Celery">
+
+Asegúrate de que Django esté correctamente inicializado antes de que Celery inicie:
+
+```python
+# celery.py
+import os
+from celery import Celery
+from django.conf import settings
+
+# Establecer el módulo de configuración por defecto de Django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tu_proyecto.settings')
+
+# Inicializar Django
+import django
+django.setup()
+
+app = Celery('tu_proyecto')
+app.config_from_object('django.conf:settings', namespace='CELERY')
+app.autodiscover_tasks()
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="installed-apps-check" summary="Verificar configuración de INSTALLED_APPS">
+
+Revisa tu archivo `settings.py` de Django para asegurarte de que todas las apps necesarias estén incluidas:
+
+```python
+# settings.py
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+
+    # Apps de terceros
+    'celery',
+    'django_celery_beat',  # Si usas tareas periódicas
+    'django_celery_results',  # Si almacenas resultados en la BD de Django
+
+    # Tus apps
+    'tu_app_nombre',
+    # Agrega aquí cualquier app faltante
+]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="task-definition-fix" summary="Definición y ejecución correcta de tareas">
+
+Asegúrate de que tus tareas Celery estén definidas correctamente:
+
+```python
+# tasks.py
+from celery import shared_task
+from django.apps import apps
+
+@shared_task
+def tu_tarea_cron():
+    # Asegurar que Django esté listo
+    if not apps.ready:
+        import django
+        django.setup()
+
+    # Lógica de tu tarea aquí
+    return "Tarea completada"
+```
+
+Para la ejecución manual de tareas, usa:
+
+```bash
+# En lugar de: celery -A tu_proyecto call tu_app.tasks.tu_tarea
+# Usa:
+celery -A tu_proyecto worker --loglevel=info
+
+# O para ejecución puntual:
+python manage.py shell -c "from tu_app.tasks import tu_tarea; tu_tarea.delay()"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="environment-variables" summary="Verificar variables de entorno y configuración">
+
+Verifica que las configuraciones de Django se estén cargando correctamente:
+
+```python
+# En tu tarea o celery.py
+import os
+print(f"DJANGO_SETTINGS_MODULE: {os.environ.get('DJANGO_SETTINGS_MODULE')}")
+
+from django.conf import settings
+print(f"Configuración cargada: {settings.configured}")
+print(f"Apps instaladas: {settings.INSTALLED_APPS}")
+```
+
+En SleakOps, asegúrate de que las variables de entorno estén definidas:
+
+```yaml
+# En tu configuración de despliegue
+environment:
+  DJANGO_SETTINGS_MODULE: "tu_proyecto.settings"
+  CELERY_BROKER_URL: "redis://redis:6379/0"
+  CELERY_RESULT_BACKEND: "redis://redis:6379/0"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-specific-config" summary="Configuración específica para SleakOps">
+
+Para despliegues en SleakOps, asegúrate de que la configuración de tus workers sea correcta:
+
+```yaml
+# sleakops.yaml o configuración similar
+workloads:
+  - name: celery-worker
+    type: worker
+    image: tu-app-django
+    command: ["celery", "-A", "tu_proyecto", "worker", "--loglevel=info"]
+    environment:
+      DJANGO_SETTINGS_MODULE: "tu_proyecto.settings"
+
+  - name: celery-beat
+    type: worker
+    image: tu-app-django
+    command: ["celery", "-A", "tu_proyecto", "beat", "--loglevel=info"]
+    environment:
+      DJANGO_SETTINGS_MODULE: "tu_proyecto.settings"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="debugging-steps" summary="Pasos para depurar y probar">
+
+Para depurar el problema:
+
+1. **Prueba localmente primero:**
+
+   ```bash
+   # Establece la variable de entorno
+   export DJANGO_SETTINGS_MODULE=tu_proyecto.settings
+
+   # Prueba la configuración de Django
+   python -c "import django; django.setup(); print('Configuración de Django exitosa')"
+
+   # Prueba la tarea de Celery
+   python manage.py shell -c "from tu_app.tasks import tu_tarea; print(tu_tarea())"
+   ```
+
+2. **Revisa los logs del worker de Celery:**
+
+   ```bash
+   kubectl logs -f deployment/celery-worker
+   ```
+
+3. **Verifica la conexión con Redis/Broker:**
+   ```python
+   from celery import current_app
+   print(current_app.control.inspect().stats())
+   ```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 26 de diciembre de 2024 basada en una consulta real de un usuario._

@@ -1,0 +1,183 @@
+---
+sidebar_position: 3
+title: "Build Pods Stuck in Creation State"
+description: "Solution for builds that get stuck with pods never completing creation"
+date: "2025-03-22"
+category: "project"
+tags: ["build", "pods", "deployment", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Build Pods Stuck in Creation State
+
+**Date:** March 22, 2025  
+**Category:** Project  
+**Tags:** Build, Pods, Deployment, Troubleshooting
+
+## Problem Description
+
+**Context:** User experiences builds that remain stuck in an incomplete state, with pods that never finish creating and are not visible in the interface.
+
+**Observed Symptoms:**
+
+- Builds appear "bugged" or stuck
+- Pods are not visible in the interface
+- Pods never complete their creation process
+- Issue persists for extended periods (12+ hours)
+- Build process appears frozen
+
+**Relevant Configuration:**
+
+- Platform: SleakOps
+- Build system: Kubernetes-based builds
+- Duration: Extended periods without resolution
+- User interface: Pods not appearing in dashboard
+
+**Error Conditions:**
+
+- Builds initiated but never complete
+- Pod creation process hangs indefinitely
+- No visible progress in build status
+- Issue requires manual intervention to resolve
+
+## Detailed Solution
+
+<TroubleshootingItem id="initial-diagnosis" summary="Diagnosing stuck build pods">
+
+When builds get stuck with pods not appearing, this typically indicates:
+
+1. **Resource constraints**: Insufficient cluster resources to schedule pods
+2. **Image pull issues**: Problems downloading container images
+3. **Node scheduling problems**: Pods cannot be assigned to available nodes
+4. **Persistent volume issues**: Storage-related problems preventing pod startup
+5. **Network connectivity**: Issues with cluster networking
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-troubleshooting" summary="Immediate troubleshooting steps">
+
+To diagnose and resolve stuck build pods:
+
+**Step 1: Check cluster resources**
+
+```bash
+# Check node resources
+kubectl top nodes
+
+# Check pod status in build namespace
+kubectl get pods -n <build-namespace> --show-labels
+
+# Describe stuck pods for detailed information
+kubectl describe pod <pod-name> -n <build-namespace>
+```
+
+**Step 2: Check for pending pods**
+
+```bash
+# List all pending pods
+kubectl get pods --all-namespaces --field-selector=status.phase=Pending
+
+# Check events for scheduling issues
+kubectl get events --sort-by=.metadata.creationTimestamp
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-solutions" summary="Common solutions for stuck builds">
+
+**Solution 1: Restart stuck builds**
+
+In SleakOps dashboard:
+
+1. Navigate to **Projects** → **Your Project**
+2. Go to **Builds** section
+3. Find the stuck build
+4. Click **Cancel Build**
+5. Start a new build
+
+**Solution 2: Clear build cache**
+
+If builds consistently get stuck:
+
+1. Go to **Project Settings**
+2. Navigate to **Build Configuration**
+3. Enable **"Clear build cache"** option
+4. Trigger a new build
+
+**Solution 3: Check resource limits**
+
+Verify your project's resource allocation:
+
+```yaml
+# Example resource configuration
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "500m"
+  limits:
+    memory: "1Gi"
+    cpu: "1000m"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-measures" summary="Preventing future build issues">
+
+**Best practices to avoid stuck builds:**
+
+1. **Monitor resource usage**:
+
+   - Regularly check cluster resource consumption
+   - Set appropriate resource requests and limits
+   - Monitor build queue length
+
+2. **Optimize build configuration**:
+
+   - Use smaller base images when possible
+   - Implement proper build caching strategies
+   - Set reasonable build timeouts
+
+3. **Regular maintenance**:
+   - Periodically clean up old builds
+   - Monitor and clean unused Docker images
+   - Keep build environments updated
+
+**Example build configuration:**
+
+```yaml
+build:
+  timeout: 30m
+  resources:
+    requests:
+      memory: 1Gi
+      cpu: 500m
+  cache:
+    enabled: true
+    ttl: 24h
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="escalation-process" summary="When to contact support">
+
+Contact SleakOps support if:
+
+- Builds remain stuck after trying the above solutions
+- Multiple projects are affected simultaneously
+- The issue persists for more than 2 hours
+- You see cluster-wide resource issues
+
+**Information to provide when contacting support:**
+
+- Project name and build ID
+- Duration of the issue
+- Recent changes to build configuration
+- Screenshots of stuck build status
+- Any error messages from build logs
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on March 22, 2025 based on a real user query._

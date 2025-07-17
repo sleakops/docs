@@ -1,0 +1,163 @@
+---
+sidebar_position: 3
+title: "Problemas de Conexión VPN Pritunl"
+description: "Guía de solución de problemas para problemas de conexión VPN Pritunl en SleakOps"
+date: "2024-12-19"
+category: "usuario"
+tags: ["vpn", "pritunl", "conexión", "solución de problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de Conexión VPN Pritunl
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Usuario  
+**Etiquetas:** VPN, Pritunl, Conexión, Solución de Problemas
+
+## Descripción del Problema
+
+**Contexto:** Usuarios experimentando problemas de conectividad con la VPN Pritunl en el entorno de producción de SleakOps, donde el cliente VPN muestra el estado "conectando" pero nunca establece una conexión exitosa.
+
+**Síntomas Observados:**
+
+- El cliente Pritunl permanece en estado "conectando" indefinidamente
+- No se muestran mensajes de error en el cliente
+- Incapacidad para acceder a recursos internos a través de la VPN
+- El servidor VPN parece estar funcionando pero las conexiones fallan
+
+**Configuración Relevante:**
+
+- Tipo de VPN: Pritunl OpenVPN
+- Entorno: Producción
+- Cliente: Aplicación de escritorio Pritunl
+- Formato de perfil: archivo de configuración .ovpn
+
+**Condiciones de Error:**
+
+- Los intentos de conexión agotan el tiempo sin establecer túnel
+- El problema puede ser intermitente o persistente
+- Puede ocurrir tras actualizaciones del perfil o cambios en la red
+- La configuración de red local puede interferir con la conexión
+
+## Solución Detallada
+
+<TroubleshootingItem id="initial-diagnosis" summary="Verificación inicial de conectividad">
+
+Antes de solucionar problemas del perfil VPN, verifique la conectividad básica al servidor VPN:
+
+1. **Pruebe la conectividad HTTPS** a la IP del servidor VPN:
+   ```bash
+   # Reemplace con la IP real de su servidor VPN
+   curl -k https://3.82.69.46/
+   ```
+2. **Comportamiento esperado**: Debería ver una respuesta HTTPS (incluso con advertencias de certificado)
+
+3. **Si no hay respuesta**: Probablemente el problema sea de red (firewall, bloqueo del ISP, etc.)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="profile-regeneration" summary="Regenerar perfil VPN">
+
+La solución más común es regenerar el perfil VPN:
+
+1. **Acceda al Panel de SleakOps**
+2. Navegue a **Configuración VPN** o **Perfil de Usuario**
+3. **Genere una nueva URL de Pritunl**:
+   - Busque la opción "Generar Perfil VPN" o similar
+   - Haga clic para crear un nuevo enlace temporal de descarga
+4. **Descargue el perfil nuevo**:
+   - Las URLs generadas tienen validez limitada (unas pocas horas)
+   - Descargue el nuevo perfil .ovpn inmediatamente
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="profile-reinstallation" summary="Eliminar y reinstalar perfil VPN">
+
+Proceso completo de reinstalación del perfil:
+
+1. **Eliminar perfil existente**:
+
+   - Abra el cliente Pritunl
+   - Haga clic derecho en el perfil problemático
+   - Seleccione "Eliminar" o "Quitar"
+
+2. **Borrar cualquier dato en caché**:
+
+   - Cierre completamente el cliente Pritunl
+   - Reinicie la aplicación
+
+3. **Instalar nuevo perfil**:
+   - Importe el archivo .ovpn recién descargado
+   - Verifique que la configuración del perfil sea correcta
+   - Intente la conexión
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="network-troubleshooting" summary="Solución de problemas específica de red">
+
+Si regenerar el perfil no funciona, pruebe la solución de problemas a nivel de red:
+
+1. **Pruebe diferentes redes**:
+
+   - Intente conectar desde un hotspot móvil
+   - Pruebe desde otra red WiFi
+   - Esto ayuda a identificar problemas con el ISP o la red local
+
+2. **Verifique la configuración del firewall**:
+
+   - Asegúrese de que los puertos de OpenVPN no estén bloqueados
+   - Puertos comunes: 1194 (UDP), 443 (TCP)
+   - Desactive temporalmente el firewall local para pruebas
+
+3. **Resolución DNS**:
+   - Verifique que el nombre de host del servidor VPN se resuelva correctamente
+   - Intente usar la dirección IP en lugar del nombre de host en el perfil
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="server-side-verification" summary="Verificación del lado del servidor (Admin)">
+
+Para administradores con acceso al backend de SleakOps:
+
+1. **Acceda al Gestor de Secretos**:
+
+   - Encuentre las credenciales del servidor Pritunl
+   - Acceda a la consola administrativa de Pritunl
+
+2. **Revise los registros del servidor**:
+
+   - Analice los intentos de conexión en los logs de Pritunl
+   - Busque fallos de autenticación o errores de red
+
+3. **Verifique el estado del servidor**:
+   - Asegúrese de que el servicio Pritunl esté en ejecución
+   - Revise el uso de recursos del servidor
+   - Verifique la conectividad de red desde el servidor
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Soluciones alternativas">
+
+Si la solución estándar no resuelve el problema:
+
+1. **Pruebe diferentes protocolos VPN**:
+
+   - Cambie entre UDP y TCP si hay opciones disponibles
+   - Pruebe diferentes puertos si es configurable
+
+2. **Actualice el cliente Pritunl**:
+
+   - Asegúrese de usar la última versión
+   - Verifique problemas de compatibilidad
+
+3. **Contacte soporte con detalles**:
+   - Proporcione la IP del servidor VPN y registros de conexión
+   - Incluya detalles del entorno de red
+   - Especifique cuándo comenzó a ocurrir el problema
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de usuario._

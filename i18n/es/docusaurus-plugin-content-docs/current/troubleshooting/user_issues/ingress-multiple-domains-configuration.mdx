@@ -1,0 +1,212 @@
+---
+sidebar_position: 3
+title: "Configuración de Múltiples Dominios en Kubernetes Ingress"
+description: "Configuración manual de Kubernetes Ingress para múltiples dominios cuando la configuración raíz del entorno SleakOps presenta problemas"
+date: "2024-12-23"
+category: "workload"
+tags: ["ingress", "kubernetes", "dominios", "lens", "resolución de problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Configuración de Múltiples Dominios en Kubernetes Ingress
+
+**Fecha:** 23 de diciembre de 2024  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** Ingress, Kubernetes, Dominios, Lens, Resolución de problemas
+
+## Descripción del Problema
+
+**Contexto:** Cuando SleakOps presenta problemas con múltiples configuraciones raíz de entorno en producción, se vuelve necesaria la configuración manual de Ingress para enrutar correctamente múltiples dominios al mismo servicio.
+
+**Síntomas observados:**
+
+- Configuración del dominio del entorno mostrando dominio incorrecto (por ejemplo, mostrando simplee.cl en lugar de simplee.com.mx)
+- Imposibilidad de crear nuevos servicios debido a un enrutamiento de dominio incorrecto
+- Múltiples dominios deben apuntar al mismo servicio backend
+- Entorno de producción afectado por un error en la configuración raíz del entorno
+
+**Configuración relevante:**
+
+- Múltiples dominios: web.simplee.com.mx, simplee.com.mx, www.simplee.com.mx
+- Servicio backend: mx-simplee-web-prod-mx-2-mx-simplee-web-svc
+- Puerto del servicio: 7500
+- Herramienta usada: Lens para gestión de Kubernetes
+
+**Condiciones de error:**
+
+- Error en SleakOps con 2 raíces de entorno en producción
+- Enrutamiento de dominio apuntando al entorno incorrecto
+- Creación de servicio bloqueada debido a configuración de dominio incorrecta
+
+## Solución Detallada
+
+<TroubleshootingItem id="manual-ingress-configuration" summary="Configuración Manual de Ingress vía Lens">
+
+Cuando SleakOps presenta problemas en la configuración raíz del entorno, puedes configurar manualmente el recurso Ingress usando Lens:
+
+1. **Abre Lens** y conéctate a tu clúster
+2. **Navega a Red** → **Ingresses**
+3. **Encuentra el Ingress objetivo** en el namespace adecuado
+4. **Edita el recurso Ingress** haciendo clic en el botón de editar
+5. **Actualiza la configuración** con las reglas correctas y ajustes TLS
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="ingress-yaml-configuration" summary="Configuración Completa de Ingress en YAML">
+
+Aquí está la configuración completa para múltiples dominios apuntando al mismo servicio:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: your-ingress-name
+  namespace: your-namespace
+spec:
+  tls:
+    - hosts:
+        - web.simplee.com.mx
+        - simplee.com.mx
+        - www.simplee.com.mx
+      secretName: your-tls-secret
+  rules:
+    - host: web.simplee.com.mx
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mx-simplee-web-prod-mx-2-mx-simplee-web-svc
+                port:
+                  number: 7500
+    - host: simplee.com.mx
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mx-simplee-web-prod-mx-2-mx-simplee-web-svc
+                port:
+                  number: 7500
+    - host: www.simplee.com.mx
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mx-simplee-web-prod-mx-2-mx-simplee-web-svc
+                port:
+                  number: 7500
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="tls-configuration" summary="Configuración TLS para Múltiples Dominios">
+
+La sección TLS asegura que todos los dominios estén cubiertos por certificados SSL:
+
+```yaml
+tls:
+  - hosts:
+      - web.simplee.com.mx
+      - simplee.com.mx
+      - www.simplee.com.mx
+    secretName: your-tls-secret-name
+```
+
+**Consideraciones importantes:**
+
+- Todos los dominios deben estar listados en la sección hosts de TLS
+- El secreto TLS debe contener certificados para todos los dominios listados
+- El certificado debe ser válido para todos los subdominios y el dominio raíz
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="service-verification" summary="Verificar Configuración del Servicio Backend">
+
+Antes de aplicar la configuración de Ingress, verifica tu servicio backend:
+
+1. **Verifica que el servicio exista:**
+
+   ```bash
+   kubectl get svc mx-simplee-web-prod-mx-2-mx-simplee-web-svc -n your-namespace
+   ```
+
+2. **Verifica el puerto del servicio:**
+
+   ```bash
+   kubectl describe svc mx-simplee-web-prod-mx-2-mx-simplee-web-svc -n your-namespace
+   ```
+
+3. **Prueba la conectividad del servicio:**
+   ```bash
+   kubectl port-forward svc/mx-simplee-web-prod-mx-2-mx-simplee-web-svc 8080:7500 -n your-namespace
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Resolución de Problemas Comunes">
+
+**Si los dominios no resuelven:**
+
+1. **Verifica la configuración DNS:**
+
+   ```bash
+   nslookup simplee.com.mx
+   nslookup web.simplee.com.mx
+   nslookup www.simplee.com.mx
+   ```
+
+2. **Verifica el controlador Ingress:**
+
+   ```bash
+   kubectl get pods -n ingress-nginx
+   kubectl logs -n ingress-nginx deployment/ingress-nginx-controller
+   ```
+
+3. **Revisa el estado del Ingress:**
+   ```bash
+   kubectl describe ingress your-ingress-name -n your-namespace
+   ```
+
+**Si los certificados SSL no funcionan:**
+
+1. **Verifica el secreto del certificado:**
+
+   ```bash
+   kubectl get secret your-tls-secret -n your-namespace -o yaml
+   ```
+
+2. **Verifica la validez del certificado:**
+   ```bash
+   openssl x509 -in <(kubectl get secret your-tls-secret -n your-namespace -o jsonpath='{.data.tls\.crt}' | base64 -d) -text -noout
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="temporary-workaround" summary="Solución Temporal Hasta la Corrección en la Plataforma">
+
+Esta configuración manual sirve como solución temporal mientras el equipo de SleakOps corrige el error en la configuración raíz del entorno:
+
+1. **Monitorea actualizaciones de la plataforma** que resuelvan el problema de múltiples raíces de entorno
+2. **Documenta los cambios manuales** realizados para referencia futura
+3. **Prueba todos los puntos finales de dominio** después de aplicar la configuración
+4. **Configura monitoreo** para asegurar que todos los dominios permanezcan accesibles
+
+**Lista de verificación para pruebas:**
+
+- [ ] https://web.simplee.com.mx carga correctamente
+- [ ] https://simplee.com.mx carga correctamente
+- [ ] https://www.simplee.com.mx carga correctamente
+- [ ] Los certificados SSL son válidos para todos los dominios
+- [ ] Todos los dominios enrutan al servicio correcto
+
+</TroubleshootingItem>
+
+---
+
+_Este FAQ fue generado automáticamente el 23 de diciembre de 2024 basado en una consulta real de usuario._

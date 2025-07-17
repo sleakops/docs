@@ -1,0 +1,156 @@
+---
+sidebar_position: 3
+title: "Problema de Resolución DNS en VPN de Lens"
+description: "Solución para problemas de resolución DNS al usar Lens con VPN Pritunl"
+date: "2025-03-05"
+category: "usuario"
+tags: ["lens", "vpn", "pritunl", "dns", "solución de problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problema de Resolución DNS en VPN de Lens
+
+**Fecha:** 5 de marzo de 2025  
+**Categoría:** Usuario  
+**Etiquetas:** Lens, VPN, Pritunl, DNS, Solución de problemas
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios experimentan problemas de resolución DNS al intentar conectarse a clústeres de Kubernetes a través de Lens mientras están conectados a la VPN de Pritunl. El sistema resuelve DNS públicos en lugar de DNS internos, impidiendo el acceso correcto al clúster.
+
+**Síntomas Observados:**
+
+- Lens no puede conectarse al clúster de Kubernetes a pesar de estar conectado a la VPN
+- Errores de resolución DNS al acceder a recursos del clúster
+- Se resuelve DNS público en lugar de DNS interno/privado
+- La conexión funciona de manera intermitente o no funciona en absoluto
+
+**Configuración Relevante:**
+
+- Herramienta: Lens (IDE de Kubernetes)
+- VPN: Pritunl
+- Conexión: VPN activa y conectada
+- Kubeconfig: Configurado e importado correctamente
+
+**Condiciones de Error:**
+
+- El error ocurre cuando Lens intenta resolver los endpoints del clúster
+- El problema persiste incluso con la conexión VPN activa
+- La resolución DNS por defecto es pública en lugar de privada
+- El problema ocurre comúnmente después de reinicios del sistema o cambios en la red
+
+## Solución Detallada
+
+<TroubleshootingItem id="dns-resolution-fix" summary="Solucionar problema de resolución DNS">
+
+Este es un problema común que ocurre cuando el sistema resuelve DNS públicos en lugar del DNS interno de la VPN. Sigue estos pasos para resolverlo:
+
+1. **Cerrar Lens completamente**
+
+   - Asegúrate de que Lens esté totalmente cerrado (revisa la bandeja del sistema)
+   - Finaliza cualquier proceso de Lens restante si es necesario
+
+2. **Reconectar a la VPN Pritunl**
+
+   - Desconéctate de la conexión VPN actual
+   - Espera unos segundos
+   - Vuelve a conectarte a la VPN
+
+3. **Restablecer el servicio DNS en Pritunl**
+
+   - Abre el cliente Pritunl
+   - Ve a **Opciones** o **Configuración**
+   - Busca la opción **"Restablecer servicio DNS"**
+   - Haz clic para restablecer la configuración DNS
+
+4. **Reabrir Lens**
+   - Inicia Lens nuevamente
+   - Intenta conectarte a tu clúster
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Verificar que la solución funcionó">
+
+Para confirmar que la resolución DNS funciona correctamente:
+
+1. **Verificar estado de la VPN**
+
+   ```bash
+   # En Windows
+   nslookup your-cluster-endpoint
+
+   # En macOS/Linux
+   dig your-cluster-endpoint
+   ```
+
+2. **Probar conectividad al clúster**
+
+   ```bash
+   kubectl cluster-info
+   kubectl get nodes
+   ```
+
+3. **Verificar en Lens**
+   - Abre Lens
+   - Conéctate a tu clúster
+   - Revisa si los recursos cargan correctamente
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Soluciones alternativas si el problema persiste">
+
+Si el restablecimiento del DNS no funciona, prueba estas alternativas:
+
+**Opción 1: Reiniciar servicios de red**
+
+```bash
+# Windows (ejecutar como administrador)
+ipconfig /flushdns
+ipconfig /release
+ipconfig /renew
+
+# macOS
+sudo dscacheutil -flushcache
+sudo killall -HUP mDNSResponder
+
+# Linux
+sudo systemctl restart systemd-resolved
+```
+
+**Opción 2: Configuración manual de DNS**
+
+- Configura tu sistema para usar los servidores DNS de la VPN
+- Añade los servidores DNS internos a tu configuración de red
+- Asegúrate que el DNS de la VPN tenga prioridad sobre el DNS del sistema
+
+**Opción 3: Usar kubectl directamente**
+
+- Si Lens continúa presentando problemas, usa kubectl desde la terminal
+- Esto evita la resolución DNS de Lens
+- Configura correctamente tu kubeconfig para acceso directo
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-tips" summary="Prevenir futuros problemas de DNS">
+
+Para minimizar problemas de resolución DNS:
+
+1. **Siempre conecta la VPN antes de abrir Lens**
+2. **Usa la función de restablecer DNS de Pritunl regularmente**
+3. **Mantén el cliente Pritunl actualizado**
+4. **Configura DNS estático si es necesario**
+5. **Monitorea cambios en la red que puedan afectar el DNS**
+
+**Consejo profesional:** Crea un script o rutina:
+
+1. Conectar a la VPN
+2. Restablecer servicio DNS
+3. Esperar 10 segundos
+4. Abrir Lens
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 5 de marzo de 2025 basada en una consulta real de usuario._

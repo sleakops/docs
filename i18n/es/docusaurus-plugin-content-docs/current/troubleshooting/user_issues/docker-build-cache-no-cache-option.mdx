@@ -1,0 +1,168 @@
+---
+sidebar_position: 3
+title: "Problemas con la Caché de Construcción de Docker y Argumentos de Construcción"
+description: "Solución para que la caché de construcción de Docker no se actualice al cambiar argumentos de construcción"
+date: "2025-02-10"
+category: "proyecto"
+tags: ["docker", "build", "cache", "arguments", "no-cache"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas con la Caché de Construcción de Docker y Argumentos de Construcción
+
+**Fecha:** 10 de febrero de 2025  
+**Categoría:** Proyecto  
+**Etiquetas:** Docker, Construcción, Caché, Argumentos, No-cache
+
+## Descripción del Problema
+
+**Contexto:** Al cambiar los argumentos de construcción de Docker en proyectos de SleakOps, el proceso de construcción puede usar capas en caché y no reflejar los nuevos valores de los argumentos en la imagen final, aunque se inicie una nueva construcción.
+
+**Síntomas Observados:**
+
+- Se cambian los argumentos de construcción en la configuración del proyecto
+- Se inicia una nueva construcción con éxito
+- El despliegue usa la misma etiqueta de imagen
+- El contenedor aún contiene archivos/configuraciones antiguas
+- La caché de construcción impide que los cambios en los argumentos tengan efecto
+
+**Configuración Relevante:**
+
+- Argumentos de construcción Docker (p. ej., `MANIFEST_FILE_URL`)
+- Proceso de construcción usando caché de capas Docker
+- Sistema de construcción de SleakOps con etiquetado personalizado
+
+**Condiciones de Error:**
+
+- Ocurre al modificar argumentos de construcción sin cambios en el código
+- La caché de Docker reutiliza capas de construcciones previas
+- Los nuevos valores de argumentos no se propagan a la imagen final
+- El problema persiste hasta que se modifica el código del repositorio
+
+## Solución Detallada
+
+<TroubleshootingItem id="manual-no-cache" summary="Uso manual de la bandera --no-cache">
+
+La solución más directa es usar la bandera `--no-cache` al construir. Esto fuerza a Docker a reconstruir todas las capas sin usar caché.
+
+**Estado Actual en SleakOps:**
+
+- La plataforma se está preparando para soportar flags de construcción como `--no-cache`
+- Esto estará disponible como opción manual en el frontend
+- Los usuarios podrán decidir cuándo forzar una reconstrucción completa
+
+**Cuándo usar:**
+
+- Después de cambiar argumentos de construcción
+- Cuando los recursos externos referenciados por los argumentos han cambiado
+- Al solucionar problemas relacionados con la caché
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-optimization" summary="Optimización del Dockerfile para minimizar problemas de caché">
+
+Modifica tu Dockerfile para reducir interferencias con la caché:
+
+```dockerfile
+# En lugar de copiar recursos externos durante la construcción
+COPY external-resource.json /app/
+
+# Mover el proceso de descarga a tiempo de ejecución
+RUN echo "#!/bin/sh" > /app/download.sh && \
+    echo "curl -o /app/resource.json \$RESOURCE_URL" >> /app/download.sh && \
+    chmod +x /app/download.sh
+
+# Usar variables de entorno en tiempo de ejecución
+ENV RESOURCE_URL=""
+CMD ["/app/download.sh", "&&", "your-app"]
+```
+
+**Beneficios:**
+
+- Los argumentos de construcción no afectan la caché de capas de Docker
+- Los recursos externos se obtienen en tiempo de ejecución
+- Los cambios en URLs no requieren reconstrucción de la imagen
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="ci-cd-integration" summary="Configuración de pipeline CI/CD">
+
+Para construcciones automatizadas, puedes configurar tu CI/CD para usar siempre `--no-cache` cuando cambien los argumentos de construcción:
+
+```yaml
+# Ejemplo de configuración CI/CD
+build:
+  script:
+    - |
+      if [ "$BUILD_ARGS_CHANGED" = "true" ]; then
+        docker build --no-cache -t $IMAGE_TAG .
+      else
+        docker build -t $IMAGE_TAG .
+      fi
+```
+
+**Consideraciones:**
+
+- Tiempos de construcción más largos al usar `--no-cache`
+- Mayor consumo de recursos
+- Recomendado para despliegues en producción con cambios en argumentos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-approaches" summary="Enfoques alternativos para evitar problemas de caché">
+
+**1. Usar variables de entorno en lugar de argumentos de construcción:**
+
+```dockerfile
+# En lugar de ARG
+# ARG MANIFEST_FILE_URL
+# Usar ENV en tiempo de ejecución
+ENV MANIFEST_FILE_URL=""
+```
+
+**2. Incluir valores de argumentos en capas que rompen caché:**
+
+```dockerfile
+ARG MANIFEST_FILE_URL
+# Añadir una capa que cambie cuando cambia el argumento
+RUN echo "Cache bust: $MANIFEST_FILE_URL" > /tmp/cache-bust
+RUN curl -o /app/manifest.json "$MANIFEST_FILE_URL"
+```
+
+**3. Usar construcciones multi-etapa:**
+
+```dockerfile
+FROM alpine as downloader
+ARG MANIFEST_FILE_URL
+RUN curl -o /tmp/manifest.json "$MANIFEST_FILE_URL"
+
+FROM your-base-image
+COPY --from=downloader /tmp/manifest.json /app/
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="future-features" summary="Próximas características de SleakOps">
+
+SleakOps está desarrollando características mejoradas para el control de construcción:
+
+**Características Planeadas:**
+
+- Opción de bandera `--no-cache` en el frontend
+- Soporte para `--flush-cache` en escenarios específicos
+- Detección automática de invalidación de caché
+- Detección de cambios en argumentos de construcción
+
+**Cronograma:**
+
+- Infraestructura backend lista
+- Integración frontend en desarrollo
+- Control manual disponible primero
+- Funciones de detección automática planificadas para versiones posteriores
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 10 de febrero de 2025 basada en una consulta real de usuario._

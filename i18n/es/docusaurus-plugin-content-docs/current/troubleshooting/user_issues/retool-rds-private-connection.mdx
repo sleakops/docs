@@ -1,0 +1,208 @@
+---
+sidebar_position: 3
+title: "Conectando Retool a Base de Datos RDS Privada"
+description: "Cómo conectar el servicio externo Retool a una base de datos RDS privada en SleakOps"
+date: "2024-08-30"
+category: "dependencia"
+tags: ["retool", "rds", "base de datos", "nlb", "privado", "conexión"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Conectando Retool a Base de Datos RDS Privada
+
+**Fecha:** 30 de agosto de 2024  
+**Categoría:** Dependencia  
+**Etiquetas:** Retool, RDS, Base de datos, NLB, Privado, Conexión
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios necesitan conectar los paneles externos de Retool a bases de datos RDS desplegadas a través de SleakOps. Anteriormente, podían modificar los grupos de seguridad para permitir acceso directo, pero SleakOps despliega instancias RDS en subredes privadas por seguridad.
+
+**Síntomas Observados:**
+
+- No se puede conectar Retool directamente a la base de datos RDS
+- RDS está desplegado en subredes privadas sin acceso a internet
+- Las modificaciones en grupos de seguridad no proporcionan conectividad externa
+- Retool requiere una lista de IPs permitidas específica para la conexión
+
+**Configuración Relevante:**
+
+- Base de datos RDS: PostgreSQL en subredes privadas
+- IPs de Retool para permitir: `35.90.103.132/30`, `44.208.168.68/30`
+- VPC de SleakOps con arquitectura de subredes privadas/públicas
+- Grupos de seguridad gestionados por SleakOps
+
+**Condiciones de Error:**
+
+- Tiempo de espera agotado al intentar conectar RDS desde Retool
+- Resolución DNS puede fallar para endpoints privados de RDS
+- Problemas de conectividad en el puerto (típicamente puerto 5432 para PostgreSQL)
+
+## Solución Detallada
+
+<TroubleshootingItem id="architecture-overview" summary="Entendiendo el Desafío de Arquitectura">
+
+SleakOps despliega bases de datos RDS en subredes privadas siguiendo las mejores prácticas de seguridad. Esto significa:
+
+- **Subredes privadas**: Sin acceso directo a internet
+- **Aislamiento de seguridad**: Protegido de amenazas externas
+- **Acceso solo dentro de la VPC**: Solo recursos dentro de la VPC pueden conectar
+
+Para conectar servicios externos como Retool, es necesario crear un puente entre la base de datos privada y el internet.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="nlb-solution" summary="Solución Recomendada: Network Load Balancer (NLB)">
+
+El enfoque recomendado es usar un Network Load Balancer (NLB) como se describe en la [documentación de Retool](https://docs.retool.com/center-of-excellence/patterns/AWS/Connect/privateresource).
+
+**Pasos para implementar:**
+
+1. **Crear Network Load Balancer**
+
+   - Desplegar en subredes públicas
+   - Asignar direcciones IP elásticas
+   - Configurar para tráfico TCP en puerto 5432
+
+2. **Configurar Grupo de Destino**
+
+   - Tipo: Direcciones IP
+   - Protocolo: TCP
+   - Puerto: 5432
+   - Destino: IP privada de la instancia RDS
+
+3. **Actualizar Grupos de Seguridad**
+
+   - Grupo de seguridad del NLB: Permitir entrada desde IPs de Retool
+   - Grupo de seguridad de RDS: Permitir entrada desde NLB
+
+4. **Configurar Conexión en Retool**
+   - Usar la IP elástica del NLB como host de base de datos
+   - Puerto estándar 5432
+   - Mismas credenciales de base de datos
+
+**Consideración de costo:** Aproximadamente 20 USD al mes más costos de transferencia de datos.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="security-group-config" summary="Configuración de Grupos de Seguridad">
+
+Para el enfoque con NLB, configure los grupos de seguridad como sigue:
+
+**Grupo de Seguridad del NLB:**
+
+```
+Reglas de Entrada:
+- Tipo: TCP personalizado
+- Puerto: 5432
+- Origen: 35.90.103.132/30 (rango IP Retool 1)
+- Origen: 44.208.168.68/30 (rango IP Retool 2)
+
+Reglas de Salida:
+- Tipo: TCP personalizado
+- Puerto: 5432
+- Destino: ID del grupo de seguridad de RDS
+```
+
+**Grupo de Seguridad de RDS (agregar regla):**
+
+```
+Reglas de Entrada:
+- Tipo: PostgreSQL
+- Puerto: 5432
+- Origen: ID del grupo de seguridad del NLB
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Soluciones Alternativas">
+
+Si NLB no es adecuado, considere estas alternativas:
+
+**1. Retool autoalojado en el clúster**
+
+- Desplegar Retool directamente en su clúster Kubernetes
+- Requiere recursos significativos (16GB RAM, 8 CPUs)
+- Costos de infraestructura más altos pero mejor seguridad
+- Acceso directo a recursos privados
+
+**2. Réplica de lectura RDS en subredes públicas**
+
+- Crear réplica de solo lectura en subredes públicas
+- Usar solo para informes/paneles
+- Mantiene seguridad de la base de datos primaria
+- Costo adicional por instancia réplica
+
+**3. Conexión VPN (si está soportada)**
+
+- Algunos planes de Retool soportan conexiones VPN
+- Consultar con soporte de Retool para disponibilidad
+- Opción más segura si está disponible
+- Puede requerir plan empresarial de Retool
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="testing-connectivity" summary="Probando la Conectividad con la Base de Datos">
+
+Para probar la conectividad antes de configurar Retool:
+
+**Desde su máquina local con VPN:**
+
+```bash
+# Probar conectividad de puerto
+nmap -Pn -p 5432 your-rds-endpoint.amazonaws.com
+
+# Probar conexión a base de datos
+psql -h your-rds-endpoint.amazonaws.com -p 5432 -U username -d database_name
+```
+
+**Desde dentro del clúster:**
+
+```bash
+# Crear pod de prueba
+kubectl run postgres-client --rm -it --image=postgres:13 -- bash
+
+# Dentro del pod
+psql -h your-rds-endpoint.amazonaws.com -p 5432 -U username -d database_name
+```
+
+**Después de configurar el NLB:**
+
+```bash
+# Probar a través del NLB (desde internet)
+nmap -Pn -p 5432 your-nlb-elastic-ip
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Pasos Comunes para Solución de Problemas">
+
+**Tiempos de espera en conexión:**
+
+- Verificar que las reglas de grupos de seguridad estén configuradas correctamente
+- Revisar el estado de salud del grupo de destino del NLB
+- Asegurar que RDS esté en estado activo
+
+**Problemas de resolución DNS:**
+
+- Usar direcciones IP en lugar de nombres de host para pruebas
+- Verificar configuración DNS en su red
+
+**Fallos de autenticación:**
+
+- Confirmar que las credenciales de base de datos sean correctas
+- Revisar si el usuario de base de datos tiene permisos necesarios
+- Verificar que el nombre de la base de datos sea correcto
+
+**Fallos en chequeos de salud del NLB:**
+
+- Asegurar que el grupo de destino apunta a la IP privada correcta de RDS
+- Verificar que el grupo de seguridad de RDS permita tráfico desde el NLB
+- Revisar tablas de ruteo de subredes de RDS
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente basada en una consulta real de usuario sobre cómo conectar Retool a bases de datos RDS privadas en SleakOps._

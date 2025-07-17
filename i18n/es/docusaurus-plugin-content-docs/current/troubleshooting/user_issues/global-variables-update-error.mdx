@@ -1,0 +1,91 @@
+---
+sidebar_position: 3
+title: "Error de Actualización de Variables Globales en SleakOps"
+description: "Solución para errores al actualizar variables globales en la plataforma SleakOps"
+date: "2024-03-27"
+category: "proyecto"
+tags: ["variables", "configuración", "error", "solución de problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Error de Actualización de Variables Globales en SleakOps
+
+**Fecha:** 27 de marzo de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Variables, Configuración, Error, Solución de Problemas
+
+## Descripción del Problema
+
+**Contexto:** El usuario encuentra errores al intentar actualizar variables globales a través de la interfaz de la plataforma SleakOps, impidiendo que los cambios de configuración se apliquen.
+
+**Síntomas Observados:**
+
+- Aparece un mensaje de error al intentar modificar variables globales
+- No se pueden guardar los cambios de configuración a través de la interfaz
+- El proceso de actualización de variables falla sin detalles específicos del error
+- Incapacidad para modificar configuraciones existentes
+
+**Configuración Relevante:**
+
+- Plataforma: Interfaz web de SleakOps
+- Funcionalidad: Gestión de Variables Globales
+- Acción: Actualización de valores de variables existentes
+- Tipo de error: Error genérico durante la operación de guardado
+
+**Condiciones del Error:**
+
+- El error ocurre al guardar los cambios de variables
+- Afecta modificaciones de variables globales
+- Impide que se apliquen las actualizaciones de configuración
+- El problema persiste tras múltiples intentos
+
+## Solución Detallada
+
+<TroubleshootingItem id="immediate-workaround" summary="Solución inmediata usando Lens">
+
+Mientras se investiga el problema en la plataforma, puedes actualizar las variables directamente en el clúster:
+
+**Usando Lens (IDE de Kubernetes):**
+
+1. **Conéctate a tu clúster** mediante Lens
+2. **Navega a Secrets** en la barra lateral izquierda
+3. **Encuentra el secreto relevante** que contiene tus variables
+4. **Edita el secreto** haciendo clic en el botón de editar
+5. **Actualiza los valores de las variables** en la sección de datos
+6. **Guarda los cambios**
+7. **Reinicia el despliegue** para aplicar las nuevas variables
+
+```bash
+# Alternativa: Usando kubectl
+kubectl edit secret <nombre-del-secreto> -n <namespace>
+
+# Después de editar, reinicia el despliegue
+kubectl rollout restart deployment <nombre-del-despliegue> -n <namespace>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="kubectl-method" summary="Uso de la línea de comandos kubectl">
+
+Si prefieres usar kubectl directamente:
+
+**Paso 1: Identificar el secreto**
+
+```bash
+# Lista los secretos en tu namespace
+kubectl get secrets -n <tu-namespace>
+
+# Busca secretos con el nombre de tu aplicación o variables de entorno
+kubectl describe secret <nombre-del-secreto> -n <namespace>
+```
+
+**Paso 2: Actualizar el secreto**
+
+```bash
+# Edita el secreto directamente
+kubectl edit secret <nombre-del-secreto> -n <namespace>
+
+# O aplica un parche a valores específicos
+kubectl patch secret <nombre-del-secreto> -n <namespace> --type='json' -p='[{"op": "replace""
+```

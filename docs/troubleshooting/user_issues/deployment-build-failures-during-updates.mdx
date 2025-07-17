@@ -1,0 +1,155 @@
+---
+sidebar_position: 3
+title: "Deployment Build Failures During Platform Updates"
+description: "Solution for build failures that occur during scheduled platform updates"
+date: "2024-10-14"
+category: "project"
+tags: ["deployment", "build", "updates", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Deployment Build Failures During Platform Updates
+
+**Date:** October 14, 2024  
+**Category:** Project  
+**Tags:** Deployment, Build, Updates, Troubleshooting
+
+## Problem Description
+
+**Context:** Users experience deployment failures when trying to make their projects public during scheduled platform updates. The build process fails temporarily while the SleakOps platform undergoes maintenance or updates.
+
+**Observed Symptoms:**
+
+- Deployment errors when changing project visibility to public
+- Build failures during specific time windows
+- Error occurs without any downtime to running services
+- Temporary inability to deploy new changes
+
+**Relevant Configuration:**
+
+- Project type: Development environment
+- Action attempted: Changing project visibility to public
+- Platform status: Under scheduled maintenance/update
+- Service availability: No downtime for running services
+
+**Error Conditions:**
+
+- Error occurs during scheduled platform updates
+- Build process fails temporarily
+- Deployment pipeline is affected
+- Running services remain unaffected
+
+## Detailed Solution
+
+<TroubleshootingItem id="understanding-build-failures" summary="Understanding build failures during updates">
+
+Build failures during platform updates are temporary issues that occur when:
+
+1. **Platform components are being updated**: Core build infrastructure undergoes maintenance
+2. **Build pipelines are temporarily unavailable**: CI/CD systems may be restarting
+3. **Resource allocation changes**: Build resources are temporarily redistributed
+4. **Configuration updates**: Platform settings are being modified
+
+**Important**: These failures do not affect running applications - only new deployments are impacted.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-resolution" summary="Immediate resolution steps">
+
+When encountering build failures during updates:
+
+1. **Wait for update completion**: Most platform updates complete within 15-30 minutes
+2. **Retry the deployment**: Once updates are complete, retry your original action
+3. **Check platform status**: Monitor SleakOps status page or notifications
+4. **Verify project state**: Ensure your project configuration remains intact
+
+```bash
+# Example: Retry deployment after update
+# No special commands needed - simply retry through the UI
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-strategies" summary="Prevention and best practices">
+
+To minimize impact from scheduled updates:
+
+1. **Schedule deployments appropriately**:
+
+   - Avoid deployments during announced maintenance windows
+   - Plan critical deployments outside update schedules
+
+2. **Monitor platform communications**:
+
+   - Subscribe to SleakOps status updates
+   - Check email notifications for scheduled maintenance
+
+3. **Implement deployment strategies**:
+   - Use staging environments for testing
+   - Deploy during low-traffic periods
+   - Have rollback plans ready
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-persistent-issues" summary="Troubleshooting persistent issues">
+
+If build failures persist after platform updates complete:
+
+1. **Verify project configuration**:
+
+   ```yaml
+   # Check your project settings
+   visibility: public
+   environment: development
+   build_status: ready
+   ```
+
+2. **Clear build cache**:
+
+   - Go to Project Settings
+   - Navigate to Build Configuration
+   - Select "Clear Build Cache"
+   - Retry deployment
+
+3. **Check resource quotas**:
+
+   - Verify your account limits
+   - Ensure sufficient build minutes available
+   - Check storage quotas
+
+4. **Contact support if needed**:
+   - Provide specific error messages
+   - Include project details and timing
+   - Use "Reply to all" for faster resolution
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-during-updates" summary="Monitoring services during updates">
+
+During platform updates, monitor your services:
+
+1. **Running services remain available**:
+
+   - No downtime expected for active deployments
+   - Existing applications continue running normally
+   - Only new builds/deployments are affected
+
+2. **Health check verification**:
+
+   ```bash
+   # Verify your services are still responding
+   curl -I https://your-app.sleakops.dev
+   # Should return 200 OK
+   ```
+
+3. **Log monitoring**:
+   - Check application logs for any anomalies
+   - Monitor resource usage during updates
+   - Verify database connections remain stable
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on October 14, 2024 based on a real user query._

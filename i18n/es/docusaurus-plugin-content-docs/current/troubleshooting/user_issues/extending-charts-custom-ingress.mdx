@@ -1,0 +1,89 @@
+---
+sidebar_position: 3
+title: "Añadiendo Configuración Personalizada de Ingress Usando Gráficos Extendidos"
+description: "Cómo configurar recursos personalizados persistentes de Ingress usando la función de Gráficos Extendidos de SleakOps"
+date: "2024-12-26"
+category: "proyecto"
+tags:
+  ["ingress", "helm", "gráficos-extendidos", "aws-load-balancer", "kubernetes"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Añadiendo Configuración Personalizada de Ingress Usando Gráficos Extendidos
+
+**Fecha:** 26 de diciembre de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Ingress, Helm, Gráficos Extendidos, AWS Load Balancer, Kubernetes
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios necesitan añadir configuraciones personalizadas de Ingress a sus proyectos SleakOps que persistan a través de despliegues y actualizaciones. La configuración estándar del proyecto puede no cubrir todos los requisitos específicos de Ingress como anotaciones personalizadas, múltiples hosts o configuraciones específicas del Controlador de Balanceador de Carga AWS.
+
+**Síntomas Observados:**
+
+- Necesidad de configurar manualmente los recursos de Ingress después de cada despliegue
+- Las configuraciones personalizadas de Ingress se pierden durante las actualizaciones del proyecto
+- Requisito de anotaciones y configuraciones específicas del AWS ALB
+- Necesidad de manejar múltiples dominios y certificados SSL
+
+**Configuración Relevante:**
+
+- Plataforma: SleakOps con Kubernetes
+- Balanceador de Carga: AWS Application Load Balancer (ALB)
+- Controlador de Ingress: AWS Load Balancer Controller
+- SSL/TLS: Integración con AWS Certificate Manager
+
+**Condiciones de Error:**
+
+- Las configuraciones de Ingress no persisten a través de los despliegues
+- Las configuraciones manuales son sobrescritas durante las actualizaciones
+- Necesidad de reglas complejas de enrutamiento y redireccionamientos
+
+## Solución Detallada
+
+<TroubleshootingItem id="access-extended-charts" summary="Cómo acceder a la función de Gráficos Extendidos">
+
+Para añadir configuraciones personalizadas persistentes de Ingress:
+
+1. Navega a tu proyecto en SleakOps
+2. Ve a la sección **"Gráficos Extendidos"**
+3. Esta función te permite añadir recursos personalizados de Kubernetes que serán incluidos en tu despliegue Helm
+
+![Opción de Gráficos Extendidos](./images/extended-charts-option.png)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="add-ingress-template" summary="Añadiendo configuración de Ingress a las plantillas">
+
+Una vez en la sección de Gráficos Extendidos:
+
+1. Haz clic en **"Plantillas"** o **"Añadir Plantilla"**
+2. Añade tu configuración YAML personalizada de Ingress
+3. La configuración será incluida automáticamente en tu gráfico Helm
+
+![Configuración de Plantilla](./images/template-configuration.png)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="ingress-example" summary="Ejemplo completo de configuración de Ingress">
+
+Aquí tienes un ejemplo completo de una configuración de Ingress con anotaciones de AWS ALB:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: websimpleecommx
+  namespace: mx-simplee-web-prod-mx-2
+  labels:
+    app.kubernetes.io/instance: 1.0.1
+    app.kubernetes.io/name: websimpleecommx
+  annotations:
+    # Configuración de redireccionamiento
+    alb.ingress.kubernetes.io/actions.redirect-to-simplee: >
+      {"Type": "redirect""
+}
+```
+
+</TroubleshootingItem>

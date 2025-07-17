@@ -1,0 +1,203 @@
+---
+sidebar_position: 3
+title: "Conectando al Cluster de Kubernetes con Lens IDE"
+description: "Guía paso a paso para conectarte a tu cluster SleakOps usando Lens IDE"
+date: "2024-12-19"
+category: "cluster"
+tags: ["lens", "kubernetes", "ide", "conexión", "kubectl"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Conectando al Cluster de Kubernetes con Lens IDE
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Cluster  
+**Etiquetas:** Lens, Kubernetes, IDE, Conexión, kubectl
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios necesitan conectarse a su cluster de Kubernetes SleakOps desde su entorno local de desarrollo para monitorear cargas de trabajo, depurar problemas y gestionar recursos.
+
+**Síntomas Observados:**
+
+- Necesidad de acceder a recursos del cluster desde la máquina local
+- Deseo de usar una interfaz visual en lugar de solo línea de comandos
+- Requiere capacidad para ver pods, registros y estado de cargas de trabajo
+- Necesidad de solucionar problemas de despliegue
+
+**Configuración Relevante:**
+
+- Cluster SleakOps con datos de conexión disponibles
+- Máquina local de desarrollo
+- Preferencia de IDE Kubernetes (Lens recomendado)
+- CLI kubectl como opción alternativa
+
+**Casos de Uso:**
+
+- Monitoreo del estado y registros de pods
+- Depuración de problemas de despliegue
+- Gestión visual de recursos Kubernetes
+- Solución de problemas de chequeos de salud de aplicaciones
+
+## Solución Detallada
+
+<TroubleshootingItem id="lens-overview" summary="¿Qué es Lens IDE y por qué usarlo">
+
+Lens es un IDE para Kubernetes que proporciona una interfaz visual para gestionar clusters Kubernetes. SleakOps lo recomienda porque ofrece:
+
+- **Gestión visual del cluster**: Interfaz gráfica fácil de usar
+- **Monitoreo en tiempo real**: Vista en vivo de pods, servicios y despliegues
+- **Agregación de registros**: Visualización centralizada de logs de múltiples pods
+- **Gestión de recursos**: Crear, editar y eliminar recursos Kubernetes
+- **Soporte multi-cluster**: Conexión simultánea a múltiples clusters
+
+**Alternativas:**
+
+- CLI kubectl (interfaz de línea de comandos)
+- Otros IDEs para Kubernetes (k9s, Octant, etc.)
+- Consolas de proveedores cloud
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="connection-prerequisites" summary="Paso 1: Instalar dependencias requeridas">
+
+Antes de conectarte a tu cluster, asegúrate de tener instaladas estas 4 dependencias en tu máquina local:
+
+1. **Lens IDE**: Descarga desde [k8slens.dev](https://k8slens.dev)
+2. **kubectl**: Herramienta de línea de comandos de Kubernetes
+3. **AWS CLI**: Para autenticación en AWS (si usas AWS)
+4. **Docker**: Runtime de contenedores (opcional pero recomendado)
+
+### Comandos de Instalación
+
+**macOS (usando Homebrew):**
+
+```bash
+# Instalar kubectl
+brew install kubectl
+
+# Instalar AWS CLI
+brew install awscli
+
+# Instalar Docker Desktop
+brew install --cask docker
+```
+
+**Linux (Ubuntu/Debian):**
+
+```bash
+# Instalar kubectl
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+# Instalar AWS CLI
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+```
+
+**Windows:**
+
+- Descargar Lens desde el sitio oficial
+- Instalar kubectl usando chocolatey: `choco install kubernetes-cli`
+- Instalar AWS CLI desde la documentación oficial de AWS
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="authentication-setup" summary="Paso 2: Autenticarse y obtener credenciales">
+
+Para conectarte a tu cluster SleakOps, necesitas autenticarte y obtener las credenciales necesarias:
+
+1. **Accede al Panel de SleakOps**: Inicia sesión en tu cuenta SleakOps
+2. **Navega al Cluster**: Ve a tu cluster específico
+3. **Encuentra Datos de Conexión**: Busca "Datos de Conexión" en las opciones del cluster
+4. **Obtén Credenciales AWS**: Sigue el enlace proporcionado para obtener:
+   - AWS Access Key ID
+   - AWS Secret Access Key
+   - Token de sesión (si usas credenciales temporales)
+
+### Configurar Credenciales AWS
+
+```bash
+# Configura AWS CLI con tus credenciales
+aws configure
+# Ingresa tu Access Key ID, Secret Access Key y región
+
+# O establece variables de entorno
+export AWS_ACCESS_KEY_ID="tu-access-key"
+export AWS_SECRET_ACCESS_KEY="tu-secret-key"
+export AWS_SESSION_TOKEN="tu-session-token"  # si aplica
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="kubeconfig-setup" summary="Paso 3: Copiar y configurar kubeconfig">
+
+El archivo kubeconfig contiene la información de conexión al cluster:
+
+1. **Obtén el YAML kubeconfig**: Copia el YAML kubeconfig desde los datos de conexión de SleakOps
+2. **Guárdalo en un archivo**: Guarda el archivo local kubeconfig
+
+### Método 1: Reemplazo directo de archivo
+
+```bash
+# Haz una copia de seguridad del kubeconfig existente (si la hay)
+cp ~/.kube/config ~/.kube/config.backup
+
+# Crea el directorio .kube si no existe
+mkdir -p ~/.kube
+
+# Guarda el nuevo kubeconfig
+# Pega el contenido YAML de SleakOps en ~/.kube/config
+```
+
+### Método 2: Fusionar con configuración existente
+
+```bash
+# Si tienes múltiples clusters, fusiona configuraciones
+export KUBECONFIG=~/.kube/config:~/ruta/a/sleakops-config.yaml
+kubectl config view --flatten > ~/.kube/config.new
+mv ~/.kube/config.new ~/.kube/config
+```
+
+### Verificar conexión
+
+```bash
+# Prueba la conexión
+kubectl cluster-info
+kubectl get nodes
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="lens-connection" summary="Conectando con Lens IDE">
+
+Una vez que tienes el kubeconfig configurado:
+
+1. **Abre Lens IDE**
+2. **Agregar Cluster**: Haz clic en "+" o "Agregar Cluster"
+3. **Pegar kubeconfig**: Pega el contenido YAML desde SleakOps
+4. **Conectar**: Lens detectará y conectará automáticamente con tu cluster
+
+### Navegando en Lens
+
+- **Workloads → Pods**: Ver todos los pods en tu cluster
+- **Workloads → Deployments**: Gestionar tus despliegues
+- **Network → Services**: Ver y administrar servicios
+- **Storage**: Gestionar volúmenes y claims persistentes
+- **Namespaces**: Tu entorno de proyecto aparecerá como `nombre-proyecto-entorno`
+
+### Encontrando tu Aplicación
+
+Tus pods de aplicación estarán en un namespace con este patrón:
+
+```
+[nombre-proyecto]-[nombre-entorno]
+```
+
+Por ejemplo: `miapp-producción` o `miapp-preproducción`
+
+</TroubleshootingItem>
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de usuario._

@@ -1,0 +1,151 @@
+---
+sidebar_position: 3
+title: "Project Stuck in Analyzing State - Missing Dockerfile"
+description: "Solution for projects that remain permanently stuck in analyzing state due to missing Dockerfile"
+date: "2024-12-11"
+category: "project"
+tags: ["dockerfile", "analyzing", "deployment", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Project Stuck in Analyzing State - Missing Dockerfile
+
+**Date:** December 11, 2024  
+**Category:** Project  
+**Tags:** Dockerfile, Analyzing, Deployment, Troubleshooting
+
+## Problem Description
+
+**Context:** A new project in SleakOps gets stuck permanently in the "analyzing" state and cannot proceed with the deployment process.
+
+**Observed Symptoms:**
+
+- Project remains in "analyzing" state indefinitely
+- No progress in the deployment pipeline
+- Build process does not advance to next stages
+- No clear error messages displayed in the UI
+
+**Relevant Configuration:**
+
+- Project type: New project
+- Status: Stuck in analyzing phase
+- Repository: Connected to source code repository
+- Dockerfile: Missing or not detected
+
+**Error Conditions:**
+
+- Error occurs during initial project analysis
+- Happens when SleakOps cannot find a Dockerfile in the repository
+- Problem persists until Dockerfile is properly configured
+- May occur if Dockerfile was added after the initial analysis
+
+## Detailed Solution
+
+<TroubleshootingItem id="dockerfile-verification" summary="Verify Dockerfile presence and location">
+
+First, check if your repository contains a Dockerfile:
+
+1. **Check repository root**: Ensure there's a file named `Dockerfile` (case-sensitive) in the root directory
+2. **Verify file contents**: The Dockerfile should contain valid Docker instructions
+3. **Check file permissions**: Ensure the file is readable and properly committed to the repository
+
+```bash
+# Example of a basic Dockerfile structure
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-creation" summary="Create a Dockerfile if missing">
+
+If your repository doesn't have a Dockerfile, you need to create one:
+
+1. **Create the file**: Add a file named `Dockerfile` in your repository root
+2. **Choose appropriate base image**: Select based on your application technology
+3. **Define build steps**: Include all necessary commands to build your application
+4. **Commit and push**: Make sure to commit the Dockerfile to your repository
+
+**Common Dockerfile templates:**
+
+```dockerfile
+# Node.js application
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+EXPOSE 3000
+CMD ["node", "server.js"]
+```
+
+```dockerfile
+# Python application
+FROM python:3.9-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+EXPOSE 8000
+CMD ["python", "app.py"]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="project-reanalysis" summary="Trigger project reanalysis">
+
+After adding or fixing the Dockerfile:
+
+1. **Commit changes**: Ensure the Dockerfile is committed to your repository
+2. **Trigger reanalysis**: In SleakOps dashboard:
+   - Go to your project
+   - Look for "Re-analyze" or "Refresh" button
+   - Click to trigger a new analysis
+3. **Monitor progress**: Watch the project status change from "analyzing" to the next phase
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-validation" summary="Validate Dockerfile syntax">
+
+Before committing, validate your Dockerfile:
+
+```bash
+# Test Dockerfile locally
+docker build -t test-image .
+
+# Check for syntax errors
+docker run --rm -i hadolint/hadolint < Dockerfile
+```
+
+**Common Dockerfile issues:**
+
+- Missing `FROM` instruction
+- Incorrect file paths in `COPY` commands
+- Missing executable permissions
+- Wrong working directory setup
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Alternative solutions if problem persists">
+
+If the project remains stuck after adding a Dockerfile:
+
+1. **Check repository permissions**: Ensure SleakOps has access to read the repository
+2. **Verify branch**: Make sure you're working on the correct branch
+3. **Clear cache**: Try disconnecting and reconnecting the repository
+4. **Contact support**: If the issue persists, provide:
+   - Repository URL
+   - Dockerfile contents
+   - Project configuration details
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 11, 2024 based on a real user query._

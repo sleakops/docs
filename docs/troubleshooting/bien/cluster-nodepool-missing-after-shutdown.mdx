@@ -1,0 +1,143 @@
+---
+sidebar_position: 3
+title: "Missing Nodepools After Cluster Shutdown"
+description: "Solution for nodepools disappearing after cluster shutdown/startup cycle"
+date: "2025-02-20"
+category: "cluster"
+tags: ["nodepool", "shutdown", "cluster", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Missing Nodepools After Cluster Shutdown
+
+**Date:** February 20, 2025  
+**Category:** Cluster  
+**Tags:** Nodepool, Shutdown, Cluster, Troubleshooting
+
+## Problem Description
+
+**Context:** Users experience missing nodepools after a cluster shutdown and startup cycle, particularly when using the nighttime shutdown feature in SleakOps.
+
+**Observed Symptoms:**
+
+- Build processes fail after cluster restart
+- Nodepools are missing from the cluster
+- Applications cannot be deployed due to lack of compute resources
+- Cluster appears to be running but without worker nodes
+
+**Relevant Configuration:**
+
+- Cluster with nighttime shutdown enabled
+- Multiple nodepools configured
+- Build processes dependent on nodepool availability
+
+**Error Conditions:**
+
+- Error occurs after cluster shutdown/startup cycle
+- Affects clusters with automatic shutdown features
+- Nodepools do not automatically restore after cluster restart
+- Build and deployment operations fail
+
+## Detailed Solution
+
+<TroubleshootingItem id="immediate-fix" summary="Immediate solution for missing nodepools">
+
+If you're experiencing missing nodepools after a cluster shutdown:
+
+1. **Contact SleakOps Support** immediately to restore nodepools
+2. **Avoid using builds** until nodepools are restored
+3. **Check cluster status** in the SleakOps dashboard
+4. **Verify nodepool configuration** once restored
+
+The SleakOps team can manually restore your nodepools while the permanent fix is being implemented.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="root-cause" summary="Understanding the root cause">
+
+This issue is caused by a known bug in the nighttime shutdown feature:
+
+- **Shutdown process**: Properly shuts down the cluster
+- **Startup process**: Restarts the cluster but fails to restore nodepools
+- **Impact**: Leaves the cluster without worker nodes
+- **Status**: Bug is currently being fixed by the SleakOps team
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="temporary-workaround" summary="Temporary workaround">
+
+Until the fix is available:
+
+1. **Disable nighttime shutdown** if possible:
+
+   - Go to **Cluster Settings**
+   - Navigate to **Power Management**
+   - Disable **Automatic Shutdown**
+
+2. **Manual shutdown alternative**:
+
+   - Shut down cluster manually when needed
+   - Ensure you're available to verify nodepool status after restart
+
+3. **Monitor cluster status**:
+   - Check nodepool availability before starting builds
+   - Verify worker nodes are present in Kubernetes dashboard
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="How to verify nodepool restoration">
+
+After nodepools are restored, verify they're working correctly:
+
+```bash
+# Check nodes in cluster
+kubectl get nodes
+
+# Verify nodepool status
+kubectl get nodes --show-labels
+
+# Check if pods can be scheduled
+kubectl get pods --all-namespaces
+```
+
+Expected output should show:
+
+- Multiple worker nodes in "Ready" state
+- Proper node labels indicating nodepool membership
+- Pods successfully scheduled across nodes
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention" summary="Preventing future occurrences">
+
+To avoid this issue in the future:
+
+1. **Wait for the fix**: SleakOps is working on a permanent solution
+2. **Monitor announcements**: Watch for updates about the fix availability
+3. **Re-enable shutdown carefully**: Only re-enable automatic shutdown after the fix is deployed
+4. **Test thoroughly**: After the fix, test the shutdown/startup cycle in a non-production environment first
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="when-to-contact-support" summary="When to contact support">
+
+Contact SleakOps support immediately if:
+
+- Nodepools are missing after cluster restart
+- Builds are failing due to insufficient resources
+- You cannot deploy applications
+- Cluster shows as running but has no worker nodes
+
+Provide the following information:
+
+- Cluster name and ID
+- Time when the shutdown/startup occurred
+- Screenshots of the error messages
+- Current nodepool configuration
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on February 20, 2025 based on a real user query._

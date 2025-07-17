@@ -1,0 +1,147 @@
+---
+sidebar_position: 3
+title: "Grafana Loki Not Loading Logs or Options"
+description: "Solution for Grafana Loki when dashboards and explore view don't load log options"
+date: "2024-10-21"
+category: "dependency"
+tags: ["grafana", "loki", "logs", "monitoring", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Grafana Loki Not Loading Logs or Options
+
+**Date:** October 21, 2024  
+**Category:** Dependency  
+**Tags:** Grafana, Loki, Logs, Monitoring, Troubleshooting
+
+## Problem Description
+
+**Context:** Users experience issues with Grafana Loki where log dashboards and the explore view stop working, preventing access to log data and options.
+
+**Observed Symptoms:**
+
+- Grafana Loki stops functioning suddenly
+- Log dashboards don't load any options
+- Explore view with Loki data source shows no available options
+- Loki service status appears normal
+- Problem affects all log-related functionality in Grafana
+
+**Relevant Configuration:**
+
+- Service: Grafana with Loki data source
+- Platform: SleakOps managed environment
+- Affected components: Log dashboards and Explore view
+- External status: Loki service status shows as operational
+
+**Error Conditions:**
+
+- Error occurs intermittently without clear trigger
+- Affects all users accessing log functionality
+- Problem persists until manual intervention
+- No obvious configuration changes preceding the issue
+
+## Detailed Solution
+
+<TroubleshootingItem id="immediate-fix" summary="Immediate solution: Restart loki-read pod">
+
+The quickest way to resolve this issue is to restart the `loki-read` pod:
+
+**Using kubectl:**
+
+```bash
+# Find the loki-read pod
+kubectl get pods -n monitoring | grep loki-read
+
+# Restart the pod by deleting it (it will be recreated automatically)
+kubectl delete pod <loki-read-pod-name> -n monitoring
+
+# Verify the new pod is running
+kubectl get pods -n monitoring | grep loki-read
+```
+
+**Using SleakOps Dashboard:**
+
+1. Navigate to your cluster's workloads
+2. Find the `loki-read` deployment in the monitoring namespace
+3. Restart the deployment or delete the pod
+4. Wait for the new pod to be ready
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification" summary="Verify the fix is working">
+
+After restarting the loki-read pod:
+
+1. **Wait 2-3 minutes** for the pod to fully initialize
+2. **Access Grafana** and go to the Explore view
+3. **Select Loki** as the data source
+4. **Check if log labels** and options are now loading
+5. **Test a simple query** like `{job="your-app-name"}`
+6. **Verify dashboards** are showing log data again
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="root-cause" summary="Understanding the root cause">
+
+This issue typically occurs due to:
+
+- **Memory pressure** on the loki-read component
+- **Connection timeouts** between Grafana and Loki
+- **Index corruption** in Loki's temporary storage
+- **Resource exhaustion** during high log volume periods
+
+The SleakOps team is working on a permanent solution to prevent this issue from recurring.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention" summary="Prevention and monitoring">
+
+To minimize the occurrence of this issue:
+
+**Monitor resource usage:**
+
+```bash
+# Check loki-read pod resource usage
+kubectl top pod -n monitoring | grep loki-read
+
+# Check pod logs for errors
+kubectl logs -n monitoring <loki-read-pod-name> --tail=100
+```
+
+**Set up alerts:**
+
+- Monitor Loki query response times
+- Alert on high memory usage in loki-read pods
+- Set up health checks for Grafana data source connectivity
+
+**Best practices:**
+
+- Regularly review log retention policies
+- Monitor log ingestion rates
+- Consider log sampling for high-volume applications
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="escalation" summary="When to escalate">
+
+Contact SleakOps support if:
+
+- Restarting the loki-read pod doesn't resolve the issue
+- The problem recurs frequently (more than once per week)
+- You see persistent errors in loki-read pod logs
+- Log data appears to be missing or corrupted
+- Performance degradation affects other monitoring components
+
+Include the following information:
+
+- Timestamp when the issue started
+- Any recent changes to log volume or configuration
+- Screenshots of the Grafana interface showing the problem
+- Output of `kubectl logs -n monitoring <loki-read-pod-name>`
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on November 15, 2024 based on a real user query._

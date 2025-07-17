@@ -1,0 +1,227 @@
+---
+sidebar_position: 3
+title: "Problemas de Espacio en Disco en Nodos de Construcción"
+description: "Resolución de problemas y solución de problemas de espacio en disco en nodos de construcción"
+date: "2024-09-10"
+category: "cluster"
+tags:
+  [
+    "construcción",
+    "espacio-en-disco",
+    "nodos",
+    "resolución-de-problemas",
+    "almacenamiento",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de Espacio en Disco en Nodos de Construcción
+
+**Fecha:** 10 de septiembre de 2024  
+**Categoría:** Cluster  
+**Etiquetas:** Construcción, Espacio en Disco, Nodos, Resolución de Problemas, Almacenamiento
+
+## Descripción del Problema
+
+**Contexto:** Procesos de construcción que fallan intermitentemente debido a espacio insuficiente en disco en nodos Kubernetes, incluso después de aumentar el almacenamiento del nodo de 20GB a 40GB.
+
+**Síntomas Observados:**
+
+- Los procesos de construcción se bloquean intermitentemente por problemas de espacio en disco
+- Algunas construcciones fallan mientras otras tienen éxito inmediatamente después
+- El problema persiste incluso tras aumentar el tamaño del disco del nodo a 40GB
+- El uso de memoria del clúster muestra aproximadamente un 60% de utilización
+- El problema ocurre de manera esporádica y no constante
+
+**Configuración Relevante:**
+
+- Tamaño del disco del nodo: Anteriormente 20GB, aumentado a 40GB
+- Uso de memoria del clúster: ~60%
+- Sistema de construcción: Construcciones basadas en Docker en nodos Kubernetes
+- Plataforma: Clúster Kubernetes gestionado por SleakOps
+
+**Condiciones de Error:**
+
+- Las construcciones fallan cuando los nodos se quedan sin espacio en disco
+- El problema ocurre durante el proceso de construcción de imágenes Docker
+- Fallos intermitentes sugieren agotamiento temporal del espacio en disco
+- El problema afecta a múltiples construcciones pero no de forma consistente
+
+## Solución Detallada
+
+<TroubleshootingItem id="disk-usage-analysis" summary="Análisis del uso de disco en nodos de construcción">
+
+Para identificar qué está consumiendo espacio en disco en tus nodos de construcción:
+
+1. **Accede por SSH al nodo afectado** (si tienes acceso)
+2. **Usa el comando ncdu** para analizar el uso de disco:
+
+```bash
+# Instalar ncdu si no está disponible
+sudo apt-get update && sudo apt-get install ncdu
+
+# Analizar uso de disco desde la raíz
+sudo ncdu /
+
+# Enfócate en áreas problemáticas comunes
+sudo ncdu /var/lib/docker
+sudo ncdu /var/log
+sudo ncdu /tmp
+```
+
+3. **Revisa el uso específico de Docker**:
+
+```bash
+# Ver uso del sistema Docker
+docker system df
+
+# Listar todos los contenedores y sus tamaños
+docker ps -a --size
+
+# Listar todas las imágenes y sus tamaños
+docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-causes" summary="Causas comunes de problemas de espacio en disco">
+
+Causas típicas del agotamiento de espacio en disco en nodos de construcción:
+
+1. **Acumulación de capas Docker**:
+
+   - Imágenes Docker no usadas consumiendo espacio
+   - Capas intermedias de construcción no limpiadas
+   - Caché de construcción Docker creciendo con el tiempo
+
+2. **Acumulación de archivos de registro**:
+
+   - Logs de contenedores en `/var/log/containers/`
+   - Logs del sistema en `/var/log/`
+   - Logs de construcción que no se rotan
+
+3. **Archivos temporales**:
+
+   - Artefactos de construcción en `/tmp`
+   - Cachés de gestores de paquetes
+   - Archivos temporales de aplicaciones
+
+4. **Imágenes Docker grandes**:
+   - Imágenes base innecesariamente grandes
+   - Construcciones en múltiples etapas no optimizadas
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-cleanup" summary="Acciones inmediatas de limpieza">
+
+Para liberar espacio en disco inmediatamente:
+
+```bash
+# Limpiar sistema Docker (elimina contenedores, redes e imágenes no usadas)
+docker system prune -af
+
+# Eliminar volúmenes no usados
+docker volume prune -f
+
+# Limpiar caché de construcción
+docker builder prune -af
+
+# Limpiar logs (ten cuidado con este comando)
+sudo journalctl --vacuum-time=7d
+sudo find /var/log -name "*.log" -type f -mtime +7 -delete
+
+# Limpiar archivos temporales
+sudo rm -rf /tmp/*
+sudo apt-get clean
+```
+
+**Nota**: Siempre realiza copias de seguridad de datos importantes antes de ejecutar comandos de limpieza.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="docker-optimization" summary="Optimización de construcciones Docker">
+
+Para prevenir futuros problemas de espacio en disco, optimiza tus construcciones Docker:
+
+1. **Usa construcciones multi-etapa**:
+
+```dockerfile
+# Ejemplo de construcción multi-etapa
+FROM node:16 AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+
+FROM node:16-alpine AS runtime
+WORKDIR /app
+COPY --from=builder /app/node_modules ./node_modules
+COPY . .
+CMD ["npm", "start"]
+```
+
+2. **Usa archivo .dockerignore**:
+
+```dockerignore
+node_modules
+.git
+.gitignore
+README.md
+.env
+.nyc_output
+coverage
+.cache
+```
+
+3. **Limpieza en el mismo comando RUN**:
+
+```dockerfile
+RUN apt-get update && \
+    apt-get install -y package-name && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-prevention" summary="Monitoreo y prevención">
+
+Configura monitoreo para prevenir problemas futuros:
+
+1. **Monitorea el uso de disco**:
+
+```bash
+# Ver uso actual de disco
+df -h
+
+# Monitorear uso de disco con intervalos
+watch -n 5 'df -h'
+
+# Configura alertas para uso de disco > 80%
+```
+
+2. **Implementa limpieza automática**:
+
+```bash
+# Crear script de limpieza
+#!/bin/bash
+# cleanup-docker.sh
+
+echo "Iniciando limpieza de Docker..."
+docker system prune -f
+docker volume prune -f
+echo "Limpieza de Docker completada"
+
+# Agregar a crontab para ejecutar diariamente
+# 0 2 * * * /ruta/a/cleanup-docker.sh
+```
+
+3. **Configura rotación de logs**:
+
+```json
+{
+  "log-driver": "json-file"
+}
+```
+
+</TroubleshootingItem>

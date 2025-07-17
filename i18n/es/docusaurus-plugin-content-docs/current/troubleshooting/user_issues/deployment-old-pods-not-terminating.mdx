@@ -1,0 +1,127 @@
+---
+sidebar_position: 3
+title: "Problema de Despliegue - Pods Antiguos No Se Terminan"
+description: "Solución para cuando los nuevos despliegues crean pods pero los pods antiguos permanecen activos y reciben tráfico"
+date: "2024-06-10"
+category: "workload"
+tags:
+  [
+    "despliegue",
+    "kubernetes",
+    "pods",
+    "enrutamiento-de-tráfico",
+    "resolución-de-problemas",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problema de Despliegue - Pods Antiguos No Se Terminan
+
+**Fecha:** 10 de junio de 2024  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** Despliegue, Kubernetes, Pods, Enrutamiento de Tráfico, Resolución de Problemas
+
+## Descripción del Problema
+
+**Contexto:** El usuario experimenta problemas al desplegar nuevas versiones donde se crean pods nuevos con éxito pero los pods antiguos de despliegues previos (creados hace 2 días) permanecen activos y siguen recibiendo tráfico en lugar de los pods nuevos.
+
+**Síntomas Observados:**
+
+- Se crea un pod nuevo con la última etiqueta de imagen
+- Los pods antiguos (de más de 2 días) no se terminan
+- Todo el tráfico continúa siendo dirigido a los pods antiguos en lugar de a los nuevos
+- El pod nuevo funciona correctamente cuando se accede directamente vía port-forward
+- Los chequeos de salud del pod nuevo están pasando
+- Al intentar eliminar manualmente los pods antiguos, estos se reinician
+
+**Configuración Relevante:**
+
+- Proyecto: `rattlesnake`
+- Entorno: `development`
+- Etiqueta de Imagen: `7edb7463a22198fc4d79bac76cfcb2c0f94b3755`
+- Plataforma: Kubernetes (visto a través de Lens)
+
+**Condiciones de Error:**
+
+- El problema ocurre durante el proceso de despliegue
+- Los pods antiguos se reinician al eliminarlos manualmente
+- El enrutamiento de tráfico no cambia a los pods nuevos
+- El problema ha ocurrido anteriormente con otros proyectos
+
+## Solución Detallada
+
+<TroubleshootingItem id="initial-diagnosis" summary="Comprendiendo la causa raíz">
+
+Este problema típicamente ocurre debido a uno de estos problemas en el despliegue de Kubernetes:
+
+1. **Mala configuración de la estrategia de despliegue**: Las configuraciones de actualización continua pueden estar impidiendo que los pods antiguos se terminen
+2. **Restricciones de recursos**: Recursos insuficientes que impiden que los pods nuevos estén listos
+3. **Desajuste en el selector del servicio**: El servicio no apunta a los pods nuevos
+4. **Fallos en las sondas de disponibilidad (readiness probes)**: Los pods nuevos pueden no estar pasando las comprobaciones de disponibilidad
+5. **Múltiples controladores de despliegue**: Controladores en conflicto gestionando los mismos pods
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="check-deployment-status" summary="Verificar estado del despliegue y pods">
+
+Primero, verifica el estado actual de tu despliegue:
+
+```bash
+# Ver estado del despliegue
+kubectl get deployments -n <namespace>
+kubectl describe deployment <nombre-del-despliegue> -n <namespace>
+
+# Ver pods y sus edades
+kubectl get pods -n <namespace> --show-labels
+kubectl get pods -n <namespace> -o wide
+
+# Ver conjuntos de réplicas
+kubectl get replicasets -n <namespace>
+```
+
+Busca:
+
+- Múltiples conjuntos de réplicas con pods
+- Estado de disponibilidad de los pods
+- Estado del despliegue y su progreso
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verify-service-endpoints" summary="Verificar endpoints del servicio y enrutamiento de tráfico">
+
+Verifica si el servicio apunta correctamente a los pods nuevos:
+
+```bash
+# Ver endpoints del servicio
+kubectl get endpoints <nombre-del-servicio> -n <namespace>
+kubectl describe service <nombre-del-servicio> -n <namespace>
+
+# Comparar selector del servicio con etiquetas de los pods
+kubectl get service <nombre-del-servicio> -n <namespace> -o yaml
+kubectl get pods -n <namespace> --show-labels
+```
+
+El selector del servicio debe coincidir con las etiquetas de tus pods nuevos, no con las antiguas.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="check-readiness-probes" summary="Verificar sondas de disponibilidad y vivacidad">
+
+Aunque port-forward funciona, verifica si las sondas de disponibilidad están configuradas correctamente:
+
+```bash
+# Ver estado de disponibilidad del pod
+kubectl describe pod <nombre-del-pod-nuevo> -n <namespace>
+
+# Buscar configuración de readiness probe
+kubectl get pod <nombre-del-pod-nuevo> -n <namespace> -o yaml | grep -A 10 readinessProbe
+```
+
+Si las sondas de disponibilidad fallan, el servicio no enviará tráfico a los pods nuevos.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="force-deployment-rollout" summary="Forzar un despliegue correcto">
+
+Si el despliegue está atascado

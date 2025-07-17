@@ -1,0 +1,198 @@
+---
+sidebar_position: 3
+title: "Production Build Failure with Log Loading Issues"
+description: "Solution for production build failures when logs won't load in SleakOps dashboard"
+date: "2024-01-15"
+category: "project"
+tags: ["build", "production", "logs", "deployment", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Production Build Failure with Log Loading Issues
+
+**Date:** January 15, 2024  
+**Category:** Project  
+**Tags:** Build, Production, Logs, Deployment, Troubleshooting
+
+## Problem Description
+
+**Context:** Production build process has stopped working and when attempting to view error logs through the SleakOps dashboard, the loading indicator appears indefinitely without displaying the actual logs.
+
+**Observed Symptoms:**
+
+- Production build process fails to complete
+- SleakOps dashboard shows perpetual loading when trying to access build logs
+- Unable to view error details to diagnose the build failure
+- Build worked previously but suddenly stopped functioning
+
+**Relevant Configuration:**
+
+- Environment: Production
+- Platform: SleakOps
+- Issue type: Build failure + Log access problem
+- Status: Both build and log viewing are affected
+
+**Error Conditions:**
+
+- Build failure occurs during production deployment
+- Log loading gets stuck in loading state
+- Problem prevents proper troubleshooting
+- Issue appeared suddenly after previously working builds
+
+## Detailed Solution
+
+<TroubleshootingItem id="immediate-diagnosis" summary="Initial troubleshooting steps">
+
+When facing both build failures and log loading issues, follow this diagnostic approach:
+
+1. **Check build status**: Verify if the build is actually running or completely failed
+2. **Browser refresh**: Try refreshing the SleakOps dashboard
+3. **Different browser**: Test log access from an incognito window or different browser
+4. **Network connectivity**: Ensure stable internet connection
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-log-access" summary="Alternative ways to access build logs">
+
+If the dashboard logs won't load, try these alternatives:
+
+**Via CLI (if available):**
+
+```bash
+# Check recent builds
+sleakops builds list --project your-project-name
+
+# Get specific build logs
+sleakops builds logs --build-id <build-id>
+```
+
+**Via API:**
+
+```bash
+# Get build information
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  https://api.sleakops.com/v1/projects/PROJECT_ID/builds
+```
+
+**Check email notifications:**
+
+- Review any build failure emails that might contain error details
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-build-failures" summary="Common production build failure causes">
+
+Typical reasons for sudden production build failures:
+
+**Resource Issues:**
+
+- Insufficient memory or CPU during build
+- Disk space exhaustion
+- Build timeout exceeded
+
+**Configuration Changes:**
+
+- Environment variables modified or missing
+- Dockerfile changes that broke the build
+- Dependency version conflicts
+
+**External Dependencies:**
+
+- Package registry issues (npm, pip, etc.)
+- Base image unavailability
+- Network connectivity problems
+
+**Code Issues:**
+
+- Recent commits that introduced build-breaking changes
+- Missing files or incorrect file paths
+- Compilation errors
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dashboard-log-issues" summary="Resolving dashboard log loading problems">
+
+When SleakOps dashboard logs won't load:
+
+**Browser-related fixes:**
+
+1. Clear browser cache and cookies
+2. Disable browser extensions temporarily
+3. Try incognito/private browsing mode
+4. Update your browser to the latest version
+
+**Dashboard-specific solutions:**
+
+1. Log out and log back into SleakOps
+2. Check if other dashboard sections work properly
+3. Try accessing from a different device
+4. Wait a few minutes and retry (temporary server issues)
+
+**If problem persists:**
+
+- Contact SleakOps support with specific build ID
+- Provide browser console errors (F12 → Console tab)
+- Include screenshot of the loading issue
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="recovery-steps" summary="Steps to recover from build failure">
+
+To get your production builds working again:
+
+**1. Identify the last working build:**
+
+```bash
+# Find recent successful builds
+sleakops builds list --status success --limit 5
+```
+
+**2. Compare configurations:**
+
+- Check what changed between working and failing builds
+- Review recent commits and configuration updates
+- Verify environment variables haven't changed
+
+**3. Rollback if necessary:**
+
+```bash
+# Deploy from last known good build
+sleakops deploy --build-id <last-working-build-id>
+```
+
+**4. Test with minimal changes:**
+
+- Try building with a simple change first
+- Gradually add complexity to identify the breaking point
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-measures" summary="Preventing future build issues">
+
+To avoid similar problems:
+
+**Monitoring:**
+
+- Set up build failure notifications
+- Monitor build duration trends
+- Track resource usage during builds
+
+**Best practices:**
+
+- Test builds in staging before production
+- Use dependency version pinning
+- Implement build caching strategies
+- Regular backup of working configurations
+
+**Documentation:**
+
+- Document build dependencies and requirements
+- Keep track of working environment configurations
+- Maintain rollback procedures
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

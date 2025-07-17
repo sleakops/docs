@@ -1,0 +1,211 @@
+---
+sidebar_position: 3
+title: "Reinicios de Pods en Kubernetes Debido a Límites de Memoria"
+description: "Solución para pods que se reinician debido a una configuración insuficiente de memoria"
+date: "2024-12-19"
+category: "workload"
+tags:
+  [
+    "kubernetes",
+    "memoria",
+    "reinicios-pod",
+    "recursos",
+    "solución-de-problemas",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Reinicios de Pods en Kubernetes Debido a Límites de Memoria
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** Kubernetes, Memoria, Reinicios de Pods, Recursos, Solución de problemas
+
+## Descripción del Problema
+
+**Contexto:** Un servicio en Kubernetes deja de funcionar de repente sin ningún cambio por parte del usuario. El pod se reinicia continuamente mostrando el mensaje "Back-off restarting failed container", y el servicio se reinicia cada vez que se accede a él.
+
+**Síntomas Observados:**
+
+- El pod muestra el mensaje "Back-off restarting failed container"
+- El servicio se reinicia automáticamente al acceder
+- No se realizaron cambios en el código de la aplicación
+- El problema aparece de forma repentina y sin causa aparente
+
+**Configuración Relevante:**
+
+- Los valores de MemoryMin y MemoryMax parecen estar configurados demasiado bajos
+- Kubernetes está matando el pod al exceder los límites de memoria
+- El servicio es accesible pero inestable debido a reinicios constantes
+
+**Condiciones de Error:**
+
+- El error ocurre cuando el pod supera los límites de memoria definidos
+- Kubernetes termina el pod asumiendo que el uso excesivo de memoria es incorrecto
+- El problema se manifiesta durante el acceso al servicio o bajo alta carga
+
+## Solución Detallada
+
+<TroubleshootingItem id="memory-limit-diagnosis" summary="Entendiendo la Gestión de Memoria en Kubernetes">
+
+Kubernetes gestiona los recursos de los pods mediante solicitudes y límites:
+
+- **Solicitud de Memoria (MemoryMin)**: Asignación garantizada de memoria
+- **Límite de Memoria (MemoryMax)**: Memoria máxima que el pod puede usar
+
+Cuando un pod supera su límite de memoria, Kubernetes lo termina con un estado OOMKilled (terminado por falta de memoria) y lo reinicia automáticamente.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="grafana-monitoring" summary="Monitorear el Uso de Memoria con Grafana">
+
+Para analizar el uso actual de memoria:
+
+1. Accede a tu panel de Grafana
+2. Navega a **'Kubernetes / Recursos de Cómputo / Namespace (Pods)'**
+3. Selecciona tu namespace y pod
+4. Revisa los patrones de uso de memoria:
+   - Consumo actual de memoria
+   - Picos de memoria durante la operación
+   - Comparación con los límites configurados
+
+```yaml
+# Ejemplo de lo que debes buscar en las métricas
+Uso de Memoria: 512Mi
+Límite de Memoria: 256Mi # Esto causaría OOMKilled
+Solicitud de Memoria: 128Mi
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="increase-memory-limits" summary="Cómo Incrementar los Límites de Memoria">
+
+Para resolver el problema, aumenta la configuración de memoria:
+
+**En el Panel de SleakOps:**
+
+1. Ve a la configuración de tu servicio
+2. Navega a **Configuración de Recursos**
+3. Incrementa el **Límite de Memoria** (MemoryMax)
+4. Opcionalmente, incrementa la **Solicitud de Memoria** (MemoryMin)
+5. Despliega los cambios
+
+**Ejemplo de Configuración:**
+
+```yaml
+resources:
+  requests:
+    memory: "512Mi" # MemoryMin
+    cpu: "250m"
+  limits:
+    memory: "1Gi" # MemoryMax
+    cpu: "500m"
+```
+
+**Valores Recomendados Iniciales:**
+
+- Para aplicaciones pequeñas: 512Mi - 1Gi
+- Para aplicaciones medianas: 1Gi - 2Gi
+- Para aplicaciones grandes: 2Gi - 4Gi
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Solución de Problemas Paso a Paso">
+
+**Paso 1: Verificar el Estado Actual del Pod**
+
+```bash
+kubectl get pods -n tu-namespace
+kubectl describe pod tu-nombre-pod -n tu-namespace
+```
+
+**Paso 2: Revisar Eventos del Pod**
+
+```bash
+kubectl get events -n tu-namespace --sort-by='.lastTimestamp'
+```
+
+**Paso 3: Revisar Logs del Pod**
+
+```bash
+kubectl logs tu-nombre-pod -n tu-namespace --previous
+```
+
+**Paso 4: Monitorear Uso de Recursos**
+
+```bash
+kubectl top pods -n tu-namespace
+```
+
+**Paso 5: Actualizar Límites de Recursos**
+
+- Incrementa los límites de memoria según el uso observado
+- Añade un margen del 20-50% sobre el pico de uso
+- Prueba con aumentos graduales
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-best-practices" summary="Mejores Prácticas para la Configuración de Memoria">
+
+**Guías para Dimensionar la Memoria:**
+
+1. **Comienza de forma conservadora:** Establece límites razonables y monitorea
+2. **Monitorea regularmente:** Usa paneles de Grafana para seguir patrones de uso
+3. **Establece proporciones adecuadas:**
+   - Solicitud de Memoria: 70-80% del uso típico
+   - Límite de Memoria: 150-200% del uso típico
+
+**Ejemplo de Configuración:**
+
+```yaml
+# Para una aplicación Node.js
+resources:
+  requests:
+    memory: "256Mi"   # Asignación garantizada
+    cpu: "100m"
+  limits:
+    memory: "512Mi"   # Máximo permitido
+    cpu: "200m"
+
+# Para una aplicación Java
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "1Gi"
+    cpu: "500m"
+```
+
+**Alertas de Monitoreo:**
+
+- Configura alertas cuando el uso de memoria supere el 80% del límite
+- Monitorea reinicios frecuentes
+- Sigue las tendencias de uso de memoria a lo largo del tiempo
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="when-to-contact-support" summary="Cuándo Contactar Soporte">
+
+Contacta al soporte de SleakOps si:
+
+- Los problemas de memoria persisten tras aumentar los límites
+- Observas patrones inusuales de consumo de memoria
+- La aplicación funcionaba antes sin cambios en la configuración
+- Necesitas ayuda para interpretar métricas de Grafana
+- Los aumentos de recursos no resuelven el problema de reinicios
+
+Proporciona esta información:
+
+- Nombre del servicio y namespace
+- Configuración actual de recursos
+- Capturas de pantalla de Grafana mostrando uso de memoria
+- Logs y eventos del pod
+- Línea de tiempo de cuándo comenzó el problema
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de usuario._

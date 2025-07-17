@@ -1,0 +1,226 @@
+---
+sidebar_position: 3
+title: "S3 Bucket Access and Authentication Issues"
+description: "Resolving AWS S3 bucket access problems with IAM roles and cross-project authentication"
+date: "2025-02-11"
+category: "dependency"
+tags: ["s3", "aws", "authentication", "boto3", "iam", "bucket"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# S3 Bucket Access and Authentication Issues
+
+**Date:** February 11, 2025  
+**Category:** Dependency  
+**Tags:** S3, AWS, Authentication, Boto3, IAM, Bucket
+
+## Problem Description
+
+**Context:** User created a private S3 bucket through SleakOps and is experiencing authentication issues when accessing it from Python applications using boto3. The bucket works with explicit AWS credentials but fails with IAM role-based authentication within the cluster.
+
+**Observed Symptoms:**
+
+- `botocore.exceptions.ClientError: An error occurred (403) when calling the HeadObject operation: Forbidden`
+- Authentication works outside the cluster with explicit credentials
+- Authentication fails inside the cluster without explicit credentials
+- Need to access S3 bucket from different projects/services
+
+**Relevant Configuration:**
+
+- Bucket: Private S3 bucket created through SleakOps
+- Library: boto3 (Python)
+- Environment: EKS cluster with IAM roles
+- Access pattern: Both same-project and cross-project access needed
+
+**Error Conditions:**
+
+- Error occurs when using IAM role authentication within pods
+- Problem appears during HeadObject and other S3 operations
+- Works with explicit AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+- Fails when relying on pod identity or service account roles
+
+## Detailed Solution
+
+<TroubleshootingItem id="authentication-methods" summary="Understanding S3 authentication in SleakOps">
+
+SleakOps provides automatic IAM role-based authentication for S3 buckets created within projects. This means:
+
+1. **Same-project access**: No explicit credentials needed
+2. **Cross-project access**: Requires additional configuration
+3. **External access**: Requires explicit credentials or presigned URLs
+
+```python
+# Within the same project - no credentials needed
+import boto3
+
+s3_client = boto3.client('s3', region_name='us-east-1')
+# This should work automatically
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="debugging-authentication" summary="How to debug S3 authentication issues">
+
+To debug authentication problems:
+
+1. **Enter a pod in your project**:
+
+```bash
+kubectl exec -it <pod-name> -- /bin/bash
+```
+
+2. **Install AWS CLI** (if not present):
+
+```bash
+apt-get update && apt-get install -y awscli
+# or
+pip install awscli
+```
+
+3. **Clear any existing credentials**:
+
+```bash
+unset AWS_ACCESS_KEY_ID
+unset AWS_SECRET_ACCESS_KEY
+unset AWS_SESSION_TOKEN
+```
+
+4. **Test authentication**:
+
+```bash
+aws s3 ls
+# Should list buckets if authentication works
+```
+
+5. **Test specific bucket access**:
+
+```bash
+aws s3 ls s3://your-bucket-name
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="python-configuration" summary="Correct Python boto3 configuration">
+
+For same-project S3 access:
+
+```python
+import boto3
+from botocore.exceptions import ClientError
+
+# Initialize S3 client without explicit credentials
+# The IAM role will be used automatically
+s3_client = boto3.client(
+    's3',
+    region_name='us-east-1'  # Specify your region
+)
+
+try:
+    # Test bucket access
+    response = s3_client.head_bucket(Bucket='your-bucket-name')
+    print("Bucket access successful")
+except ClientError as e:
+    print(f"Error accessing bucket: {e}")
+```
+
+For listing objects:
+
+```python
+try:
+    response = s3_client.list_objects_v2(Bucket='your-bucket-name')
+    for obj in response.get('Contents', []):
+        print(f"Object: {obj['Key']}")
+except ClientError as e:
+    print(f"Error listing objects: {e}")
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cross-project-access" summary="Configuring cross-project S3 access">
+
+To access an S3 bucket from a different project:
+
+1. **In SleakOps dashboard**:
+
+   - Go to the **source project** (where the bucket was created)
+   - Navigate to **Project Settings** → **Access Config**
+   - Add the target project or service account
+
+2. **Grant specific permissions**:
+
+   - Select the S3 bucket resource
+   - Choose appropriate permissions (read, write, delete)
+   - Save the configuration
+
+3. **Use the same authentication method**:
+
+```python
+# No changes needed in code - IAM roles handle cross-project access
+s3_client = boto3.client('s3', region_name='us-east-1')
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="presigned-urls" summary="Generating presigned URLs for external access">
+
+For HTTP access from external services or browsers:
+
+```python
+import boto3
+from botocore.exceptions import ClientError
+
+def generate_presigned_url(bucket_name, object_key, expiration=3600):
+    """Generate a presigned URL for S3 object access"""
+    s3_client = boto3.client('s3', region_name='us-east-1')
+
+    try:
+        response = s3_client.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': bucket_name, 'Key': object_key},
+            ExpiresIn=expiration
+        )
+        return response
+    except ClientError as e:
+        print(f"Error generating presigned URL: {e}")
+        return None
+
+# Usage
+url = generate_presigned_url('your-bucket', 'path/to/file.txt')
+if url:
+    print(f"Download URL: {url}")
+```
+
+For upload URLs:
+
+```python
+def generate_presigned_upload_url(bucket_name, object_key, expiration=3600):
+    """Generate a presigned URL for uploading files"""
+    s3_client = boto3.client('s3', region_name='us-east-1')
+
+    try:
+        response = s3_client.generate_presigned_url(
+            'put_object',
+            Params={'Bucket': bucket_name, 'Key': object_key},
+            ExpiresIn=expiration
+        )
+        return response
+    except ClientError as e:
+        print(f"Error generating upload URL: {e}")
+        return None
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-403" summary="Resolving 403 Forbidden errors">
+
+If you're still getting 403 errors:
+
+1. **Check IAM role permissions**:
+
+   - Verify the pod's service account has the correct IAM role
+   - Ensure the role has S3 permissions for your bucket
+
+2. **Verify bucket policy**:
+   - Check if the bucket has restrictive policies
+   - Ensure your IAM role is

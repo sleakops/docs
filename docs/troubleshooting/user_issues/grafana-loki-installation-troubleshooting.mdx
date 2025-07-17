@@ -1,0 +1,194 @@
+---
+sidebar_position: 3
+title: "Grafana and Loki Installation Issues"
+description: "Troubleshooting stuck Loki installation and Grafana timeout issues"
+date: "2024-11-12"
+category: "dependency"
+tags: ["grafana", "loki", "monitoring", "addons", "timeout"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Grafana and Loki Installation Issues
+
+**Date:** November 12, 2024  
+**Category:** Dependency  
+**Tags:** Grafana, Loki, Monitoring, Addons, Timeout
+
+## Problem Description
+
+**Context:** User installed Grafana and Loki addons on their production cluster through SleakOps platform but encountered installation and access issues.
+
+**Observed Symptoms:**
+
+- Grafana shows as "installed" but returns timeout when accessing the web interface
+- Loki installation appears stuck and never completes
+- Grafana becomes accessible after resuming stuck Loki installation
+- Access works properly when connected via VPN
+
+**Relevant Configuration:**
+
+- Environment: Production cluster
+- Addons: Grafana and Loki
+- Access method: VPN connection required
+- Installation status: Grafana marked as installed, Loki stuck during installation
+
+**Error Conditions:**
+
+- Timeout errors when accessing Grafana web interface
+- Loki installation process hangs indefinitely
+- Issues resolved after manually resuming stuck installation
+
+## Detailed Solution
+
+<TroubleshootingItem id="check-installation-status" summary="How to check addon installation status">
+
+To verify the current status of your addons in SleakOps:
+
+1. Navigate to your **Cluster Dashboard**
+2. Go to the **Addons** section
+3. Check the status of each addon:
+   - **Installing**: Still in progress
+   - **Installed**: Successfully deployed
+   - **Failed**: Installation encountered errors
+   - **Stuck**: Installation appears frozen
+
+If an addon shows as "Installing" for more than 30 minutes, it may be stuck.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="resume-stuck-installation" summary="How to resume stuck Loki installation">
+
+When Loki installation gets stuck:
+
+1. Go to **Cluster Dashboard** → **Addons**
+2. Find the Loki addon with "Installing" status
+3. Click on the **three dots menu** next to Loki
+4. Select **"Resume Installation"** or **"Retry"**
+5. Monitor the installation progress
+6. Wait for status to change to "Installed"
+
+**Alternative method via kubectl:**
+
+```bash
+# Check pod status
+kubectl get pods -n loki-system
+
+# Check for stuck pods
+kubectl describe pod <stuck-pod-name> -n loki-system
+
+# Restart stuck pods if necessary
+kubectl delete pod <stuck-pod-name> -n loki-system
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="grafana-timeout-solution" summary="Resolving Grafana timeout issues">
+
+Grafana timeout issues are often related to:
+
+1. **Incomplete Loki installation**: Grafana may depend on Loki being fully installed
+2. **Network connectivity**: Ensure you're connected via VPN
+3. **Pod readiness**: Grafana pods may not be fully ready
+
+**Steps to resolve:**
+
+1. **Ensure Loki is fully installed** (as described above)
+2. **Check Grafana pod status:**
+   ```bash
+   kubectl get pods -n grafana-system
+   kubectl logs -f <grafana-pod-name> -n grafana-system
+   ```
+3. **Verify VPN connection** is active
+4. **Wait 5-10 minutes** after Loki installation completes
+5. **Try accessing Grafana again**
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="vpn-access-requirements" summary="VPN access requirements for monitoring tools">
+
+Grafana and other monitoring tools in SleakOps typically require VPN access for security:
+
+**Requirements:**
+
+- Active VPN connection to your cluster network
+- Proper DNS resolution through VPN
+- Correct firewall rules allowing access
+
+**Verification steps:**
+
+1. Confirm VPN connection is active
+2. Test DNS resolution: `nslookup grafana.your-cluster.local`
+3. Check if you can reach other cluster services
+4. Verify your user has proper permissions for Grafana access
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-best-practices" summary="Best practices to prevent installation issues">
+
+To avoid similar issues in the future:
+
+**Installation order:**
+
+1. Install Loki first (logging backend)
+2. Wait for Loki to be fully ready
+3. Then install Grafana (visualization frontend)
+
+**Monitoring installation:**
+
+- Check addon status every 10-15 minutes during installation
+- Don't install multiple heavy addons simultaneously
+- Ensure cluster has sufficient resources before installing
+
+**Resource requirements:**
+
+```yaml
+# Minimum recommended resources
+Loki:
+  memory: 2Gi
+  cpu: 500m
+Grafana:
+  memory: 1Gi
+  cpu: 250m
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-commands" summary="Useful troubleshooting commands">
+
+**Check overall cluster health:**
+
+```bash
+kubectl get nodes
+kubectl top nodes
+kubectl get pods --all-namespaces | grep -E "(loki|grafana)"
+```
+
+**Check specific addon logs:**
+
+```bash
+# Loki logs
+kubectl logs -f deployment/loki -n loki-system
+
+# Grafana logs
+kubectl logs -f deployment/grafana -n grafana-system
+```
+
+**Check service endpoints:**
+
+```bash
+kubectl get svc -n grafana-system
+kubectl get svc -n loki-system
+```
+
+**Check ingress/routes:**
+
+```bash
+kubectl get ingress --all-namespaces
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on November 12, 2024 based on a real user query._

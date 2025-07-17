@@ -1,0 +1,226 @@
+---
+sidebar_position: 3
+title: "Problemas de Integración de Doppler en SleakOps"
+description: "Solución de problemas de configuración de Doppler y sincronización de variables de entorno"
+date: "2024-12-19"
+category: "dependency"
+tags:
+  ["doppler", "environment-variables", "secrets", "configuration", "deployment"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de Integración de Doppler en SleakOps
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Dependencia  
+**Etiquetas:** Doppler, Variables de Entorno, Secretos, Configuración, Despliegue
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios que integran Doppler como un servicio externo para la gestión de variables de entorno en los despliegues de SleakOps experimentan problemas donde las variables no se actualizan durante los despliegues, a pesar de una configuración exitosa.
+
+**Síntomas Observados:**
+
+- Variables de entorno que no se actualizan durante despliegues recientes
+- Servicio Doppler configurado pero las variables permanecen obsoletas
+- Los despliegues se completan con éxito pero usan configuración desactualizada
+- La estrategia de actualización continua muestra un aumento temporal en el conteo de réplicas
+
+**Configuración Relevante:**
+
+- Servicio externo: Doppler para la gestión de variables de entorno
+- Estrategia de despliegue: Actualización Continua (Rolling Update)
+- Argumentos de Docker: `DOPPLER_CONFIG = staging`
+- Secretos del proyecto y referencias a Doppler configuradas en SleakOps
+
+**Condiciones de Error:**
+
+- Variables que no se refrescan en nuevos despliegues
+- Ocurre específicamente con variables de entorno gestionadas por Doppler
+- El problema persiste tras múltiples intentos de despliegue
+- Los secretos locales pueden funcionar mientras la integración con Doppler falla
+
+## Solución Detallada
+
+<TroubleshootingItem id="doppler-config-verification" summary="Verificar Configuración de Doppler en SleakOps">
+
+Primero, verifica que tu configuración de Doppler esté correctamente establecida en SleakOps:
+
+1. **Revisa los Argumentos de Docker:**
+
+   ```yaml
+   # En la configuración de tu proyecto SleakOps
+   docker_args:
+     DOPPLER_CONFIG: "staging" # o el nombre de tu entorno
+     DOPPLER_TOKEN: "${DOPPLER_TOKEN}" # debe referenciar un secreto
+   ```
+
+2. **Verifica el Secreto del Token de Doppler:**
+
+   - Ve a **Configuración del Proyecto** → **Secretos**
+   - Asegúrate de que `DOPPLER_TOKEN` esté correctamente configurado
+   - El token debe tener acceso de lectura a la configuración especificada
+
+3. **Revisa la Referencia de la Configuración de Doppler:**
+   - Verifica que el nombre de la configuración coincida exactamente en el panel de Doppler
+   - Configuraciones comunes: `dev`, `staging`, `production`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="doppler-token-validation" summary="Validar Token de Doppler y Permisos">
+
+Asegúrate de que tu token de Doppler tenga los permisos correctos:
+
+1. **Prueba el Token Localmente:**
+
+   ```bash
+   # Verifica si el token puede acceder a la configuración
+   curl -H "Authorization: Bearer TU_TOKEN_DOPPLER" \
+        "https://api.doppler.com/v3/configs/config/secrets" \
+        -G -d project=TU_PROYECTO -d config=staging
+   ```
+
+2. **Verifica el Alcance del Token:**
+
+   - El token debe tener acceso de `read` a la configuración específica
+   - Verifica que el token no haya expirado
+   - Asegúrate de que sea un **Token de Servicio**, no un **Token Personal**
+
+3. **Regenera el Token si es Necesario:**
+   - Ve al Panel de Doppler → **Acceso** → **Tokens de Servicio**
+   - Crea un nuevo token con el alcance adecuado
+   - Actualiza el secreto en SleakOps
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deployment-refresh-strategy" summary="Forzar Actualización de Variables de Entorno">
+
+Para asegurar que las variables de entorno se actualicen durante el despliegue:
+
+1. **Forzar un Redepliegue Completo:**
+
+   ```bash
+   # Forzar reinicio de todos los pods para cargar nuevas variables
+   kubectl rollout restart deployment/tu-nombre-de-app
+   ```
+
+2. **Verificar Variables de Entorno en el Pod:**
+
+   ```bash
+   # Verifica que las variables se carguen correctamente
+   kubectl exec -it pod/tu-nombre-de-pod -- env | grep TU_VARIABLE
+   ```
+
+3. **Usar Anotaciones en el Despliegue:**
+   Añade una anotación con marca temporal para forzar la recreación del pod:
+   ```yaml
+   # Esto fuerza a Kubernetes a recrear los pods
+   spec:
+     template:
+       metadata:
+         annotations:
+           deployment.kubernetes.io/revision: "$(date +%s)"
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="doppler-sync-troubleshooting" summary="Solucionar Problemas de Sincronización con Doppler">
+
+Si las variables aún no se actualizan:
+
+1. **Revisa los Logs de Doppler:**
+
+   ```bash
+   # Verifica si la CLI de Doppler funciona en tu contenedor
+   kubectl logs deployment/tu-app -c tu-contenedor | grep -i doppler
+   ```
+
+2. **Verifica la Instalación de la CLI de Doppler:**
+
+   ```dockerfile
+   # Asegúrate de que la CLI de Doppler esté instalada en tu imagen Docker
+   RUN curl -Ls https://cli.doppler.com/install.sh | sh
+
+   # Usa Doppler para ejecutar tu aplicación
+   CMD ["doppler", "run", "--", "tu-comando-app"]
+   ```
+
+3. **Prueba la Sincronización Manual:**
+
+   ```bash
+   # Dentro de tu contenedor, prueba la sincronización manual
+   doppler secrets download --no-file --format env
+   ```
+
+4. **Verifica la Conectividad de Red:**
+   - Asegúrate de que tu clúster pueda acceder a `api.doppler.com`
+   - Verifica que no haya reglas de firewall que bloqueen la conexión
+   - Prueba la resolución DNS: `nslookup api.doppler.com`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-approaches" summary="Enfoques Alternativos de Configuración">
+
+Si la integración con Doppler sigue fallando:
+
+1. **Usar Secretos de Kubernetes como Respaldo:**
+
+   ```yaml
+   # Crea un secreto de Kubernetes con variables críticas
+   apiVersion: v1
+   kind: Secret
+   metadata:
+     name: app-secrets
+   data:
+     DATABASE_URL: <valor-codificado-en-base64>
+   ```
+
+2. **Implementar Webhooks de Doppler:**
+
+   - Configura webhooks de Doppler para disparar redepliegues
+   - Actualiza automáticamente los secretos cuando la configuración de Doppler cambie
+
+3. **Usar Patrón de Init Container:**
+
+   ```yaml
+   # Obtén los secretos antes de que inicie el contenedor principal
+   initContainers:
+     - name: doppler-sync
+       image: dopplerhq/cli:latest
+       command:
+         ["doppler", "secrets", "download", "--format", "env", "--no-file"]
+       volumeMounts:
+         - name: secrets-volume
+           mountPath: /secrets
+   ```
+
+4. **Enfoque Híbrido:**
+   - Usa secretos de SleakOps para variables críticas
+   - Usa Doppler para configuración no crítica
+   - Implementa mecanismos de respaldo en tu aplicación
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="rolling-update-explanation" summary="Entendiendo el Comportamiento de Actualización Continua">
+
+El aumento temporal en el conteo de réplicas es normal durante los despliegues:
+
+1. **Proceso de Actualización Continua:**
+
+   - Kubernetes crea nuevos pods con configuración actualizada
+   - Mantiene los pods antiguos en ejecución hasta que los nuevos estén listos
+   - Gradualmente dirige el tráfico a los nuevos pods
+   - Termina los pods antiguos una vez que los nuevos están saludables
+
+2. **Comportamiento Esperado:**
+
+   - Conteo temporal de réplicas: `deseado + maxSurge`
+   - Para 2 réplicas con configuración por defecto: hasta 3 pods temporalmente
+   - Vuelve al conteo deseado (2) tras completar el despliegue
+
+3. **Monitorear el Progreso del Despliegue:**
+   ```bash
+   kubectl rollout status deployment
+   ```
+   }

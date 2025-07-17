@@ -1,0 +1,62 @@
+---
+sidebar_position: 3
+title: "Environment-Specific Configuration Files"
+description: "How to manage configuration files that change between environments (prod/dev/qa)"
+date: "2024-01-15"
+category: "project"
+tags: ["configuration", "environment", "files", "deployment"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Environment-Specific Configuration Files
+
+**Date:** January 15, 2024  
+**Category:** Project  
+**Tags:** Configuration, Environment, Files, Deployment
+
+## Problem Description
+
+**Context:** User needs to deploy configuration files that vary between different environments (production, development, QA) in SleakOps platform.
+
+**Observed Symptoms:**
+
+- Need to upload different configuration files per environment
+- Environment variables are available but insufficient for file-based configuration
+- Uncertainty about how to handle file variations across environments
+- Configuration files contain environment-specific settings
+
+**Relevant Configuration:**
+
+- Multiple environments: prod, dev, qa
+- Configuration stored in files (not just environment variables)
+- Environment variables are already available
+- File content changes based on deployment target
+
+**Error Conditions:**
+
+- Unable to deploy different configuration files per environment
+- Configuration files contain hardcoded values for specific environments
+- Need dynamic file content based on deployment context
+
+## Detailed Solution
+
+<TroubleshootingItem id="configmap-approach" summary="Using ConfigMaps for Environment-Specific Files">
+
+The recommended approach is to use Kubernetes ConfigMaps with environment-specific configurations:
+
+1. **Create separate ConfigMaps** for each environment
+2. **Use environment variables** to reference the correct ConfigMap
+3. **Mount ConfigMaps as files** in your containers
+
+```yaml
+# config-dev.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config-dev
+data:
+  config.json: |
+    {
+      "database_url": "dev-db.example.com"
+```

@@ -1,0 +1,158 @@
+---
+sidebar_position: 3
+title: "Deployment Failure Due to Redis Communication Error"
+description: "Solution for deployment failures caused by Redis connectivity issues"
+date: "2024-01-15"
+category: "deployment"
+tags: ["deployment", "redis", "communication", "troubleshooting", "push"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Deployment Failure Due to Redis Communication Error
+
+**Date:** January 15, 2024  
+**Category:** Deployment  
+**Tags:** Deployment, Redis, Communication, Troubleshooting, Push
+
+## Problem Description
+
+**Context:** User experiences deployment failures when pushing code to repository. The automatic deployment process gets stuck and doesn't complete successfully.
+
+**Observed Symptoms:**
+
+- Deployment process gets stuck after git push
+- Automatic deployment doesn't trigger properly
+- Deploy action remains in pending state
+- No error messages visible to the user initially
+
+**Relevant Configuration:**
+
+- Project: simplee-web-dev
+- Environment: dev
+- Deployment method: Automatic deployment via git push
+- Platform: SleakOps
+
+**Error Conditions:**
+
+- Error occurs during automatic deployment process
+- Triggered by git push to repository
+- Deployment pipeline fails to complete
+- Issue persists across multiple push attempts
+
+## Detailed Solution
+
+<TroubleshootingItem id="root-cause" summary="Understanding the root cause">
+
+This issue is typically caused by Redis communication errors within the SleakOps infrastructure. Redis is used for:
+
+- Managing deployment queues
+- Storing deployment state information
+- Coordinating between different services
+- Caching deployment configurations
+
+When Redis communication fails, deployments get stuck in the queue and cannot proceed.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-resolution" summary="Immediate resolution steps">
+
+If you encounter this issue:
+
+1. **Contact SleakOps Support**: This is typically an infrastructure issue that requires admin intervention
+2. **Wait for confirmation**: Support team will resolve the Redis communication issue
+3. **Retry deployment**: Once confirmed fixed, retry your deployment
+4. **Clean conflicting deployments**: Support may need to clean up stuck deployments
+
+**Example support interaction:**
+
+```
+Subject: Deployment stuck - Redis communication error
+Project: [your-project-name]
+Environment: [environment-name]
+Issue: Deployment gets stuck after git push
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="retry-process" summary="How to retry after resolution">
+
+Once the Redis issue is resolved:
+
+1. **Verify the fix**: Confirm with support that the issue is resolved
+2. **Clean local cache**:
+   ```bash
+   git fetch --all
+   git status
+   ```
+3. **Trigger new deployment**:
+   ```bash
+   # Make a small change or use empty commit
+   git commit --allow-empty -m "Retry deployment after Redis fix"
+   git push origin main
+   ```
+4. **Monitor deployment**: Watch the deployment progress in SleakOps dashboard
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention" summary="Prevention and monitoring">
+
+To minimize impact of similar issues:
+
+1. **Monitor deployment status**: Always check deployment completion in SleakOps dashboard
+2. **Set up notifications**: Configure deployment status notifications
+3. **Have rollback plan**: Keep previous working version ready
+4. **Regular health checks**: Monitor your application health after deployments
+
+**Deployment monitoring checklist:**
+
+- [ ] Deployment started successfully
+- [ ] Build process completed
+- [ ] Container deployment successful
+- [ ] Application health check passed
+- [ ] Traffic routing updated
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Additional troubleshooting steps">
+
+If the problem persists after Redis fix:
+
+1. **Check deployment logs**:
+
+   - Go to SleakOps dashboard
+   - Navigate to your project
+   - Check deployment history and logs
+
+2. **Verify repository configuration**:
+
+   ```yaml
+   # Check .sleakops/config.yml
+   version: "1"
+   environments:
+     dev:
+       cluster: your-cluster
+       namespace: your-namespace
+   ```
+
+3. **Test with minimal change**:
+
+   ```bash
+   # Update timestamp or version
+   echo "# Updated $(date)" >> README.md
+   git add README.md
+   git commit -m "Test deployment"
+   git push
+   ```
+
+4. **Contact support with details**:
+   - Project name and environment
+   - Exact time of deployment attempt
+   - Any error messages from logs
+   - Git commit hash that failed
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

@@ -1,0 +1,77 @@
+---
+sidebar_position: 15
+title: "Configuración de Variables de Entorno para Migración de Base de Datos"
+description: "Solución para problemas de migración de base de datos con variables de entorno en SleakOps"
+date: "2024-12-11"
+category: "proyecto"
+tags:
+  ["base-de-datos", "migracion", "variables-de-entorno", "dotnet", "postgres"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Configuración de Variables de Entorno para Migración de Base de Datos
+
+**Fecha:** 11 de diciembre de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Base de datos, Migración, Variables de Entorno, .NET, PostgreSQL
+
+## Descripción del Problema
+
+**Contexto:** El usuario encuentra múltiples problemas al ejecutar migraciones de base de datos con .NET Entity Framework en SleakOps, específicamente con conexiones a bases de datos PostgreSQL y configuraciones de variables de entorno.
+
+**Síntomas Observados:**
+
+- El comando de migración de base de datos falla debido a una ruta de proyecto incorrecta
+- Errores de conexión a la base de datos por falta de autenticación con contraseña
+- Los hooks de migración no encuentran variables de entorno necesarias como `CORS_ALLOWED_ORIGINS`
+- Variables de entorno no accesibles para los procesos de migración
+
+**Configuración Relevante:**
+
+- Framework: .NET Entity Framework
+- Base de datos: PostgreSQL
+- Entorno: plataforma SleakOps
+- Grupos de Variables: Variables de entorno del proyecto Backend
+- Comando de migración: `dotnet ef database update`
+
+**Condiciones de Error:**
+
+- Ruta de proyecto incorrecta en el comando de migración
+- Nombres de variables de entorno desajustados (`POSTGRES_PASS` vs `POSTGRES_PASSWORD`)
+- Grupos de Variables asignados a servicios específicos en lugar de alcance global
+- Hooks de migración incapaces de acceder a las variables de entorno requeridas
+
+## Solución Detallada
+
+<TroubleshootingItem id="correct-migration-command" summary="Corregir la ruta del comando de migración de base de datos">
+
+La sintaxis correcta para ejecutar migraciones de Entity Framework es:
+
+```bash
+dotnet ef database update --project ../Netdo.Firev.WebApi/Netdo.Firev.WebApi.csproj
+```
+
+**Errores comunes:**
+
+- Errores tipográficos en la ruta del proyecto
+- Referencias relativas faltantes o incorrectas
+- Extensión o nombre del archivo de proyecto incorrectos
+
+**Pasos para verificar:**
+
+1. Verificar que el archivo del proyecto existe en la ruta especificada
+2. Comprobar que la ruta es relativa a su directorio de trabajo actual
+3. Asegurarse de que el nombre del archivo `.csproj` coincida exactamente
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="environment-variable-naming" summary="Estandarizar nombres de variables de entorno">
+
+El nombre de las variables de entorno debe coincidir exactamente entre la configuración de su aplicación y los Grupos de Variables:
+
+**Problema:** La aplicación espera `POSTGRES_PASSWORD` pero el Grupo de Variables contiene `POSTGRES_PASS`
+
+**Solución:**
+
+1. Revise los archivos de configuración de su aplicación (appsettings.json

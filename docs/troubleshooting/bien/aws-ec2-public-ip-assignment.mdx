@@ -1,0 +1,171 @@
+---
+sidebar_position: 3
+title: "EC2 Instance Not Getting Public IPv4 Address"
+description: "Solution for EC2 instances created in VPC without public IP assignment"
+date: "2024-01-15"
+category: "provider"
+tags: ["aws", "ec2", "vpc", "networking", "public-ip"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# EC2 Instance Not Getting Public IPv4 Address
+
+**Date:** January 15, 2024  
+**Category:** Provider  
+**Tags:** AWS, EC2, VPC, Networking, Public IP
+
+## Problem Description
+
+**Context:** User creates an EC2 instance within a production VPC through SleakOps but the instance doesn't receive a public IPv4 address that can be accessed externally by third-party providers.
+
+**Observed Symptoms:**
+
+- EC2 instance created successfully in the specified VPC
+- No public IPv4 address assigned to the instance
+- Instance cannot be reached from external networks
+- Third-party providers cannot access the instance
+
+**Relevant Configuration:**
+
+- Environment: Production VPC
+- Instance type: EC2
+- Network: VPC-based deployment
+- Access requirement: External provider access needed
+
+**Error Conditions:**
+
+- Public IP not automatically assigned during instance creation
+- Instance only has private IP within VPC
+- External connectivity not available
+
+## Detailed Solution
+
+<TroubleshootingItem id="subnet-configuration" summary="Check subnet configuration">
+
+The most common reason an EC2 instance doesn't get a public IP is that it's launched in a private subnet or a public subnet without auto-assign public IP enabled.
+
+**To verify subnet configuration:**
+
+1. Go to **AWS Console** → **VPC** → **Subnets**
+2. Find the subnet where your instance was launched
+3. Check the **"Auto-assign public IPv4 address"** setting
+4. If it's disabled, this explains why no public IP was assigned
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="assign-elastic-ip" summary="Assign an Elastic IP address">
+
+The recommended solution is to assign an Elastic IP (EIP) to your instance:
+
+**Steps to assign Elastic IP:**
+
+1. Go to **AWS Console** → **EC2** → **Elastic IPs**
+2. Click **"Allocate Elastic IP address"**
+3. Choose **Amazon's pool of IPv4 addresses**
+4. Click **"Allocate"**
+5. Select the newly created EIP
+6. Click **"Actions"** → **"Associate Elastic IP address"**
+7. Select your EC2 instance
+8. Click **"Associate"**
+
+```bash
+# Using AWS CLI
+aws ec2 allocate-address --domain vpc
+aws ec2 associate-address --instance-id i-1234567890abcdef0 --allocation-id eipalloc-12345678
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="security-group-rules" summary="Configure security group rules">
+
+Once you have a public IP, ensure your security groups allow the necessary traffic:
+
+**For HTTP/HTTPS access:**
+
+```
+Type: HTTP
+Protocol: TCP
+Port Range: 80
+Source: 0.0.0.0/0
+
+Type: HTTPS
+Protocol: TCP
+Port Range: 443
+Source: 0.0.0.0/0
+```
+
+**For specific provider access:**
+
+```
+Type: Custom TCP
+Protocol: TCP
+Port Range: [YOUR_APPLICATION_PORT]
+Source: [PROVIDER_IP_RANGE]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="route-table-verification" summary="Verify route table configuration">
+
+Ensure your subnet's route table has a route to an Internet Gateway:
+
+1. Go to **AWS Console** → **VPC** → **Route Tables**
+2. Find the route table associated with your subnet
+3. Check for a route like:
+   - **Destination:** `0.0.0.0/0`
+   - **Target:** `igw-xxxxxxxxx` (Internet Gateway)
+
+If this route doesn't exist, your instance won't have internet access even with a public IP.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-configuration" summary="Configure through SleakOps">
+
+If you're managing this through SleakOps, you can configure public IP assignment:
+
+1. In your **Project Configuration**
+2. Go to **Infrastructure** → **Compute**
+3. Enable **"Assign Public IP"** for your EC2 instances
+4. Or configure **Elastic IP** allocation in the advanced settings
+
+```yaml
+# Example SleakOps configuration
+compute:
+  ec2_instances:
+    - name: "production-instance"
+      instance_type: "t3.medium"
+      subnet_type: "public"
+      assign_public_ip: true
+      elastic_ip: true
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cost-considerations" summary="Cost considerations">
+
+**Important cost information:**
+
+- **Elastic IPs are free** when associated with a running instance
+- **Elastic IPs cost $0.005/hour** when not associated with an instance
+- **Data transfer charges** apply for traffic going out to the internet
+- Always release unused Elastic IPs to avoid charges
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Alternative solutions">
+
+If you don't want to use Elastic IPs, consider these alternatives:
+
+1. **Application Load Balancer (ALB)**: For web applications
+2. **Network Load Balancer (NLB)**: For TCP/UDP traffic
+3. **NAT Gateway**: For outbound-only internet access
+4. **VPC Endpoints**: For AWS service access without internet
+
+These solutions can provide external access without directly assigning public IPs to instances.
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

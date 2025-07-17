@@ -1,0 +1,158 @@
+---
+sidebar_position: 3
+title: "Límites de Recursos de Job No Aplicados en Pod de Kubernetes"
+description: "Solución para cuando los límites de CPU y memoria definidos en trabajos de SleakOps no se aplican a pods de Kubernetes"
+date: "2024-04-22"
+category: "workload"
+tags: ["job", "kubernetes", "recursos", "límites", "memoria", "cpu"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Límites de Recursos de Job No Aplicados en Pod de Kubernetes
+
+**Fecha:** 22 de abril de 2024  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** Job, Kubernetes, Recursos, Límites, Memoria, CPU
+
+## Descripción del Problema
+
+**Contexto:** El usuario define límites de CPU y memoria para un trabajo en la plataforma SleakOps, pero el pod resultante de Kubernetes muestra `resources: {}` en lugar de las restricciones de recursos especificadas.
+
+**Síntomas Observados:**
+
+- Trabajo configurado con CPU (1000 min, 1500 max) y Memoria (2500 min, 3000 max)
+- Pod generado de Kubernetes muestra `resources: {}` en la especificación
+- El pod experimenta errores por falta de memoria debido a la ausencia de límites de recursos
+- Mensaje de error: "El nodo tenía pocos recursos: memoria. El contenedor estaba usando 4068000Ki, la solicitud es 0"
+
+**Configuración Relevante:**
+
+- CPU Mínimo: 1000m, Máximo: 1500m
+- Memoria Mínima: 2500Mi, Máxima: 3000Mi
+- Tipo de trabajo: Kubernetes Job
+- Plataforma: SleakOps en AWS EKS
+
+**Condiciones de Error:**
+
+- Los límites de recursos definidos en la interfaz de SleakOps no se traducen a la especificación del pod de Kubernetes
+- El pod se ejecuta sin restricciones de recursos, lo que puede agotar recursos del nodo
+- El contenedor puede consumir recursos ilimitados causando expulsión
+
+## Solución Detallada
+
+<TroubleshootingItem id="bug-acknowledgment" summary="Estado del Problema Conocido">
+
+Este es un error confirmado en la plataforma SleakOps donde los límites de recursos definidos en la configuración del trabajo no se aplican correctamente a los pods generados de Kubernetes.
+
+**Estado:** Corregido en la próxima versión (programada para la semana actual)
+
+El equipo de desarrollo ha identificado y resuelto el problema donde los límites de CPU y memoria especificados en la configuración del trabajo de SleakOps no se traducían en la especificación del pod de Kubernetes.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-workaround" summary="Solución Temporal Inmediata">
+
+Si necesita ejecutar el trabajo con urgencia antes de que se publique la corrección, puede agregar manualmente los límites de recursos al trabajo de Kubernetes:
+
+1. **Exporte la configuración actual del trabajo**
+2. **Edite manualmente el YAML del trabajo** para incluir las especificaciones de recursos
+3. **Aplique la configuración modificada**
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nombre-de-su-job
+spec:
+  template:
+    spec:
+      containers:
+        - name: nombre-de-su-contenedor
+          image: su-imagen
+          resources:
+            requests:
+              cpu: "1000m" # Su valor mínimo de CPU
+              memory: "2500Mi" # Su valor mínimo de memoria
+            limits:
+              cpu: "1500m" # Su valor máximo de CPU
+              memory: "3000Mi" # Su valor máximo de memoria
+          # ... resto de la especificación del contenedor
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="resource-format" summary="Formato de Especificación de Recursos">
+
+Al agregar recursos manualmente, use el formato correcto de recursos de Kubernetes:
+
+**Recursos de CPU:**
+
+- Use milicores: `1000m` = 1 núcleo de CPU
+- O decimal: `1.5` = 1.5 núcleos de CPU
+
+**Recursos de Memoria:**
+
+- Use unidades estándar: `Mi` (Mebibytes), `Gi` (Gibibytes)
+- Ejemplos: `2500Mi`, `3Gi`
+
+**Ejemplo Completo:**
+
+```yaml
+resources:
+  requests: # Recursos mínimos garantizados
+    cpu: "1000m"
+    memory: "2500Mi"
+  limits: # Recursos máximos permitidos
+    cpu: "1500m"
+    memory: "3000Mi"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Cómo Verificar la Corrección">
+
+Después de aplicar la corrección manual o cuando se publique la actualización de la plataforma:
+
+1. **Verifique la especificación del pod:**
+
+```bash
+kubectl get pod <nombre-del-pod> -o yaml | grep -A 10 resources:
+```
+
+2. **Verifique la asignación de recursos:**
+
+```bash
+kubectl describe pod <nombre-del-pod>
+```
+
+3. **Monitoree el uso de recursos:**
+
+```bash
+kubectl top pod <nombre-del-pod>
+```
+
+La salida debe mostrar los límites de CPU y memoria especificados en lugar de recursos vacíos.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-tips" summary="Prevención y Mejores Prácticas">
+
+**Mejores Prácticas para la Gestión de Recursos:**
+
+1. **Siempre establezca límites de recursos** para evitar la falta de recursos
+2. **Configure solicitudes apropiadas** para asegurar una correcta programación
+3. **Monitoree el uso de recursos** para ajustar límites basados en el consumo real
+4. **Use cuotas de recursos** a nivel de namespace para protección adicional
+
+**Estrategia Recomendada de Recursos:**
+
+- Establezca solicitudes al 70-80% del uso esperado
+- Establezca límites al 120-150% del uso esperado
+- Monitoree y ajuste según métricas reales
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 22 de abril de 2024 basada en una consulta real de usuario._

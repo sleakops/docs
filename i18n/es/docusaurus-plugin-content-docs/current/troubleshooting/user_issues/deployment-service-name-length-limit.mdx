@@ -1,0 +1,174 @@
+---
+sidebar_position: 3
+title: "Error de Límite de Longitud en el Nombre del Servicio de Kubernetes"
+description: "Solución para nombres de servicio que exceden el límite de 63 caracteres durante el despliegue"
+date: "2025-02-13"
+category: "proyecto"
+tags: ["despliegue", "kubernetes", "servicio", "nomenclatura", "helm"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Error de Límite de Longitud en el Nombre del Servicio de Kubernetes
+
+**Fecha:** 13 de febrero de 2025  
+**Categoría:** Proyecto  
+**Etiquetas:** Despliegue, Kubernetes, Servicio, Nomenclatura, Helm
+
+## Descripción del Problema
+
+**Contexto:** El usuario encuentra un fallo en el despliegue al intentar desplegar un proyecto con un nombre largo en SleakOps. El nombre del servicio Kubernetes generado automáticamente excede el límite de 63 caracteres impuesto por Kubernetes.
+
+**Síntomas Observados:**
+
+- El despliegue falla durante el proceso de actualización con Helm
+- Mensaje de error: "UPGRADE FAILED: failed to create resource"
+- Error de validación del nombre del servicio: "debe tener no más de 63 caracteres"
+- Los nombres de servicio generados automáticamente son demasiado largos
+
+**Configuración Relevante:**
+
+- Nombre del proyecto: `velo-contacto-email-sender`
+- Entorno: `production`
+- Nombre del servicio generado: `velo-contact-email-sender-production-velo-contact-email-sender-svc`
+- Recuento de caracteres: Más de 63 caracteres
+
+**Condiciones del Error:**
+
+- Ocurre durante el proceso de despliegue
+- Sucede con proyectos que tienen nombres largos
+- Afecta a los nombres de recursos Kubernetes generados automáticamente
+- No puede ser controlado directamente por la configuración del usuario
+
+## Solución Detallada
+
+<TroubleshootingItem id="kubernetes-naming-limits" summary="Entendiendo las limitaciones de nomenclatura en Kubernetes">
+
+Kubernetes tiene convenciones estrictas para los nombres de recursos:
+
+- **Nombres de servicio**: Máximo 63 caracteres
+- **Nombres de pods**: Máximo 63 caracteres
+- **Nombres de ConfigMap/Secret**: Máximo 253 caracteres
+- Los nombres deben ser alfanuméricos en minúsculas con guiones
+
+SleakOps genera automáticamente nombres de servicio usando el patrón:
+`{nombre-del-proyecto}-{entorno}-{nombre-del-proyecto}-svc`
+
+Esto puede fácilmente exceder el límite de 63 caracteres con nombres de proyecto largos.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-workaround" summary="Solución inmediata: Acortar el nombre del proyecto">
+
+La solución más rápida es renombrar tu proyecto a un nombre más corto:
+
+1. **Ve a Configuración del Proyecto** en el panel de SleakOps
+2. **Renombra el proyecto** a algo más corto (por ejemplo, `velo-email-sender`)
+3. **Despliega nuevamente** el proyecto
+
+**Ejemplo:**
+
+```
+Original: velo-contacto-email-sender (24 caracteres)
+Más corto:  velo-email-sender (17 caracteres)
+```
+
+Esto generaría:
+`velo-email-sender-production-velo-email-sender-svc` (51 caracteres)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="custom-service-name" summary="Configurar nombre de servicio personalizado (si está disponible)">
+
+Si tu proyecto soporta nombres de servicio personalizados, puedes sobrescribir el valor por defecto:
+
+1. **En la configuración de tu proyecto**, busca las opciones de servicio
+2. **Agrega un nombre de servicio personalizado**:
+
+```yaml
+# sleakops.yaml o configuración equivalente
+service:
+  name: "velo-contact-svc" # Nombre corto personalizado
+  type: ClusterIP
+  port: 80
+```
+
+3. **Despliega nuevamente** el proyecto
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="helm-override" summary="Personalización del chart de Helm">
+
+Si tienes acceso para personalizar el chart de Helm:
+
+1. **Crea un archivo de sobreescritura de valores**:
+
+```yaml
+# values-override.yaml
+service:
+  name: "velo-contact-svc"
+  fullnameOverride: "velo-contact-svc"
+  nameOverride: "contact-svc"
+```
+
+2. **Aplica durante el despliegue**:
+
+```bash
+helm upgrade --install my-release ./chart \
+  -f values-override.yaml
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Buenas prácticas para nombrar proyectos">
+
+Para evitar este problema en el futuro:
+
+**Patrones recomendados para nombres:**
+
+- Usa abreviaciones: `velo-contact-sender` en lugar de `velo-contacto-email-sender`
+- Mantén los nombres de proyecto por debajo de 20 caracteres cuando sea posible
+- Usa nombres significativos pero concisos
+- Evita palabras redundantes
+
+**Ejemplos de buenos nombres de proyecto:**
+
+```
+✅ velo-email-svc
+✅ contact-sender
+✅ notification-api
+✅ user-auth
+
+❌ velo-contacto-email-sender-service
+❌ my-super-long-project-name-with-details
+❌ company-department-team-project-service
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-tips" summary="Prevención y monitoreo">
+
+**Antes de crear proyectos:**
+
+1. **Calcula la longitud final del nombre del servicio**:
+
+   - Nombre del proyecto + entorno + "svc" + separadores
+   - Debe ser menor a 60 caracteres para mayor seguridad
+
+2. **Usa una calculadora de nombres**:
+
+   ```
+   {nombre-del-proyecto}-{entorno}-{nombre-del-proyecto}-svc
+
+   Ejemplo de cálculo:
+   "my-project" + "-production-" + "my-project" + "-svc"
+   = 10 + 12 + 10 + 4 = 36 caracteres ✅
+   ```
+
+3. **Prueba primero en staging** con el mismo nombre de proyecto
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 13 de febrero de 2025 basada en una consulta real de un usuario._

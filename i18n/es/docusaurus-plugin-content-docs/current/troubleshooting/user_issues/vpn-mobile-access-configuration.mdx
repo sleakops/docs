@@ -1,0 +1,181 @@
+---
+sidebar_position: 3
+title: "Configuración de Acceso VPN Móvil"
+description: "Cómo configurar el acceso VPN desde dispositivos móviles usando Pritunl Server"
+date: "2024-03-10"
+category: "usuario"
+tags: ["vpn", "móvil", "pritunl", "openvpn", "aws", "acceso"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Configuración de Acceso VPN Móvil
+
+**Fecha:** 10 de marzo de 2024  
+**Categoría:** Usuario  
+**Etiquetas:** VPN, Móvil, Pritunl, OpenVPN, AWS, Acceso
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios necesitan acceder a la VPN de SleakOps desde dispositivos móviles para probar aplicaciones sin desplegarlas en entornos de producción.
+
+**Síntomas Observados:**
+
+- Imposible instalar el cliente Pritunl en el dispositivo móvil
+- Necesidad de realizar pruebas móviles a través de conexión VPN
+- Requisito de probar aplicaciones desde móvil sin despliegue en producción
+
+**Configuración Relevante:**
+
+- Servidor VPN: Pritunl Server ejecutándose en instancia EC2
+- Protocolo: Compatible con OpenVPN
+- Método de acceso: AWS Secrets Manager para credenciales
+- Entornos objetivo: Desarrollo y Producción
+
+**Condiciones de Error:**
+
+- Cliente Pritunl no disponible para instalación móvil
+- Necesidad de método alternativo de conexión para dispositivos móviles
+- Requisitos de prueba desde dispositivos móviles
+
+## Solución Detallada
+
+<TroubleshootingItem id="pritunl-server-overview" summary="Entendiendo la Arquitectura de la VPN SleakOps">
+
+La infraestructura VPN de SleakOps utiliza:
+
+- **Pritunl Server**: Ejecutándose en instancia EC2 en AWS
+- **Protocolo OpenVPN**: Compatible con clientes estándar OpenVPN
+- **Soporte Móvil Nativo**: La mayoría de dispositivos móviles soportan OpenVPN de forma nativa
+- **Acceso Multi-ambiente**: Configuraciones separadas para desarrollo y producción
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="aws-credentials-access" summary="Accediendo a las Credenciales VPN a través de AWS">
+
+Para obtener tu configuración VPN:
+
+1. **Inicia sesión en la Consola AWS** con tus credenciales de usuario SleakOps
+2. **Cambia a la cuenta objetivo** (desarrollo o producción)
+3. **Navega a AWS Systems Manager**:
+   - Busca "Systems Manager" en los servicios AWS
+   - O ve al servicio "Secrets Manager"
+4. **Encuentra el Secreto Pritunl**:
+   - Busca secretos relacionados con Pritunl
+   - Haz clic en el secreto para ver detalles
+5. **Revela los Valores del Secreto**:
+   - Haz clic en el botón "Retrieve secret value" (Obtener valor secreto)
+   - Anota: dirección IP, usuario y contraseña
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="pritunl-dashboard-access" summary="Accediendo al Panel de Pritunl">
+
+Una vez que tengas las credenciales:
+
+1. **Abre un navegador web** en cualquier dispositivo
+2. **Navega a la IP de Pritunl** (desde el secreto AWS)
+3. **Inicia sesión con las credenciales**:
+   - Usuario: (desde el secreto AWS)
+   - Contraseña: (desde el secreto AWS)
+4. **Accede al Panel**: Verás la interfaz de gestión de Pritunl
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="mobile-profile-download" summary="Descargando el Perfil VPN Móvil">
+
+En el panel de Pritunl:
+
+1. **Encuentra tu cuenta de usuario** en la lista de usuarios
+2. **Descarga el perfil de conexión** en múltiples formatos:
+   - **Archivo ZIP**: Contiene todos los archivos de configuración
+   - **Archivo OVPN**: Configuración estándar OpenVPN
+   - **Configuración URL**: Para configuración rápida en móvil
+3. **Elige formato compatible con móvil**: Se recomienda OVPN para móviles
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="mobile-client-setup" summary="Configurando VPN en Dispositivos Móviles">
+
+### Dispositivos iOS:
+
+1. **Descarga OpenVPN Connect** desde App Store
+2. **Importa archivo OVPN**:
+   - Envíate el archivo OVPN por correo electrónico
+   - Ábrelo desde el correo y elige "Abrir en OpenVPN"
+   - O usa la configuración URL para importación directa
+3. **Conéctate**: Pulsa conectar en la app OpenVPN
+
+### Dispositivos Android:
+
+1. **Descarga OpenVPN for Android** desde Play Store
+2. **Importa configuración**:
+   - Transfiere el archivo OVPN al dispositivo
+   - Ábrelo con la app OpenVPN
+   - O usa la configuración VPN nativa con el archivo OVPN
+3. **Alternativa**: Usa la configuración VPN nativa de Android
+
+### VPN Móvil Nativo (Alternativa):
+
+La mayoría de smartphones modernos soportan OpenVPN nativamente:
+
+- Ve a **Ajustes** → **VPN**
+- Añade nueva configuración VPN
+- Importa archivo OVPN o ingresa datos manualmente
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="testing-workflow" summary="Flujo de Trabajo para Pruebas Móviles">
+
+Una vez configurada la VPN:
+
+1. **Conéctate a la VPN** desde el dispositivo móvil
+2. **Accede al entorno de desarrollo**:
+   - Tus aplicaciones serán accesibles mediante URLs internas
+   - No es necesario desplegar en producción para pruebas
+3. **Realiza pruebas móviles**:
+   - Prueba diseño responsivo
+   - Verifica funcionalidades específicas de móvil
+   - Comprueba rendimiento en redes móviles
+4. **Desconecta la VPN** al finalizar las pruebas
+
+**Beneficios:**
+
+- Prueba en dispositivos móviles reales
+- Acceso seguro al entorno de desarrollo
+- No se requiere despliegue en producción
+- Mantiene separación desarrollo/producción
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Problemas Comunes con VPN Móvil">
+
+**Problemas de Conexión:**
+
+- Verifica que las credenciales sean correctas
+- Revisa conectividad de datos móviles/WiFi
+- Asegúrate que el servidor VPN esté activo (revisa instancia EC2 en AWS)
+
+**Problemas al Importar Perfil:**
+
+- Prueba diferentes métodos de importación (correo, almacenamiento en la nube, URL)
+- Verifica que el archivo OVPN no esté corrupto
+- Usa formato ZIP si falla OVPN
+
+**Problemas de Rendimiento:**
+
+- Las redes móviles pueden tener mayor latencia
+- Considera probar tanto en WiFi como en celular
+- La VPN añade sobrecarga por cifrado
+
+**Soluciones Alternativas:**
+
+- Usa herramientas de prueba basadas en navegador
+- Configura reenvío de puertos para servicios específicos
+- Crea endpoints públicos temporales para pruebas
+
+</TroubleshootingItem>
+
+---
+
+_Este FAQ fue generado automáticamente el 10 de marzo de 2024 basado en una consulta real de usuario._

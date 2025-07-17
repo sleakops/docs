@@ -1,0 +1,194 @@
+---
+sidebar_position: 3
+title: "Docker Build Environment Variables Not Available"
+description: "Solution for environment variables not being accessible during Docker build process"
+date: "2025-03-10"
+category: "project"
+tags: ["docker", "dockerfile", "build", "environment-variables", "rails"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Docker Build Environment Variables Not Available
+
+**Date:** March 10, 2025  
+**Category:** Project  
+**Tags:** Docker, Dockerfile, Build, Environment Variables, Rails
+
+## Problem Description
+
+**Context:** User is experiencing a Docker build failure where environment variables defined in SleakOps Docker settings are not accessible during the build process, specifically for Rails master key decryption.
+
+**Observed Symptoms:**
+
+- Build fails with "Missing encryption key to decrypt file" error
+- Rails cannot find RAILS_MASTER_KEY environment variable
+- Environment variables are defined in SleakOps Docker settings
+- Build process cannot access the required encryption key
+
+**Relevant Configuration:**
+
+- Framework: Ruby on Rails
+- Error: Missing RAILS_MASTER_KEY for SOPS decryption
+- Environment variables defined in SleakOps Docker settings
+- Build context: Docker container build process
+
+**Error Conditions:**
+
+- Error occurs during Docker build phase
+- Environment variables are not passed to build context
+- Rails credentials decryption fails
+- Build process terminates with encryption key error
+
+## Detailed Solution
+
+<TroubleshootingItem id="dockerfile-arg-definition" summary="Define ARG in Dockerfile">
+
+Environment variables from SleakOps settings are only available at runtime, not during build. To use them during build, you must define them as ARG in your Dockerfile:
+
+```dockerfile
+# Define the argument that will receive the environment variable
+ARG RAILS_MASTER_KEY
+
+# Use the argument in your build process
+RUN echo "Master key: $RAILS_MASTER_KEY"
+
+# Optional: Set it as environment variable for runtime
+ENV RAILS_MASTER_KEY=$RAILS_MASTER_KEY
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="build-args-configuration" summary="Configure build arguments in SleakOps">
+
+In SleakOps, you need to configure build arguments separately from environment variables:
+
+1. Go to your **Project Settings**
+2. Navigate to **Docker Configuration**
+3. In the **Build Arguments** section (not Environment Variables)
+4. Add your build argument:
+   ```
+   RAILS_MASTER_KEY=${RAILS_MASTER_KEY}
+   ```
+
+This passes the environment variable value as a build argument.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-best-practices" summary="Dockerfile best practices for secrets">
+
+For handling secrets during build:
+
+```dockerfile
+# Method 1: Using ARG (recommended for non-sensitive data)
+ARG RAILS_MASTER_KEY
+ENV RAILS_MASTER_KEY=$RAILS_MASTER_KEY
+
+# Method 2: Using Docker secrets (for sensitive data)
+# RUN --mount=type=secret,id=rails_master_key \
+#     RAILS_MASTER_KEY=$(cat /run/secrets/rails_master_key) && \
+#     # your build commands here
+
+# Method 3: Multi-stage build to avoid exposing secrets
+FROM ruby:3.0 as builder
+ARG RAILS_MASTER_KEY
+ENV RAILS_MASTER_KEY=$RAILS_MASTER_KEY
+# Build and decrypt here
+
+FROM ruby:3.0 as runtime
+# Copy only necessary files, not the secrets
+COPY --from=builder /app /app
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="rails-specific-solution" summary="Rails-specific configuration">
+
+For Rails applications with encrypted credentials:
+
+```dockerfile
+# Define the master key as build argument
+ARG RAILS_MASTER_KEY
+ARG RAILS_ENV=production
+
+# Set environment variables
+ENV RAILS_MASTER_KEY=$RAILS_MASTER_KEY
+ENV RAILS_ENV=$RAILS_ENV
+
+# Install dependencies
+RUN bundle install
+
+# Precompile assets (this step needs the master key)
+RUN RAILS_MASTER_KEY=$RAILS_MASTER_KEY rails assets:precompile
+
+# Alternative: Create the key file
+# RUN mkdir -p config && echo "$RAILS_MASTER_KEY" > config/master.key
+```
+
+Make sure your `config/credentials.yml.enc` file is included in your Docker context.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Troubleshooting steps">
+
+If the problem persists:
+
+1. **Verify the ARG is defined before use:**
+
+   ```dockerfile
+   ARG RAILS_MASTER_KEY
+   RUN echo "Key length: ${#RAILS_MASTER_KEY}" # Should not be 0
+   ```
+
+2. **Check build logs for the argument:**
+
+   ```bash
+   docker build --build-arg RAILS_MASTER_KEY=your_key_here .
+   ```
+
+3. **Verify in SleakOps build logs:**
+
+   - Look for "Step X: ARG RAILS_MASTER_KEY"
+   - Check if the build argument is being passed
+
+4. **Test locally:**
+   ```bash
+   # Test the build with the same argument
+   docker build --build-arg RAILS_MASTER_KEY="$(cat config/master.key)" .
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="security-considerations" summary="Security considerations">
+
+**Important security notes:**
+
+- Build arguments are visible in Docker history (`docker history`)
+- For production, consider using Docker secrets or multi-stage builds
+- Never commit master keys to version control
+- Use different keys for different environments
+
+**Recommended approach for production:**
+
+```dockerfile
+# Use multi-stage build
+FROM ruby:3.0 as builder
+ARG RAILS_MASTER_KEY
+WORKDIR /app
+COPY . .
+RUN bundle install
+RUN RAILS_MASTER_KEY=$RAILS_MASTER_KEY rails assets:precompile
+
+# Production stage without secrets
+FROM ruby:3.0 as production
+WORKDIR /app
+COPY --from=builder /app/public/assets ./public/assets
+COPY --from=builder /app/vendor/bundle ./vendor/bundle
+# Don't copy the master key to final image
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on March 10, 2025 based on a real user query._

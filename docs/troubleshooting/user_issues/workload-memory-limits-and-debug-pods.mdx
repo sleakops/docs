@@ -1,0 +1,214 @@
+---
+sidebar_position: 3
+title: "Increasing Memory Limits and Creating Debug Pods"
+description: "How to increase memory limits for web services and create debug pods for running scripts"
+date: "2024-01-15"
+category: "workload"
+tags: ["memory", "limits", "debug", "pods", "web-service", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Increasing Memory Limits and Creating Debug Pods
+
+**Date:** January 15, 2024  
+**Category:** Workload  
+**Tags:** Memory, Limits, Debug, Pods, Web Service, Troubleshooting
+
+## Problem Description
+
+**Context:** Users need to increase memory limits for web service pods to run resource-intensive scripts and want to create dedicated debug pods for running console commands.
+
+**Observed Symptoms:**
+
+- Web service pods hitting memory limits (768M default)
+- Scripts failing due to insufficient memory
+- Need for temporary pods to execute commands
+- Requirement for console access to run maintenance scripts
+
+**Relevant Configuration:**
+
+- Default memory limit: 768M
+- Workload type: Web Service
+- Platform: SleakOps Kubernetes environment
+- Need for temporary debug containers
+
+**Error Conditions:**
+
+- Memory limit exceeded during script execution
+- Out of memory errors in application logs
+- Need for ad-hoc command execution environment
+
+## Detailed Solution
+
+<TroubleshootingItem id="increase-memory-limits" summary="How to increase memory limits for web services">
+
+To increase memory limits for your web service:
+
+1. **Navigate to Workloads**:
+
+   - Go to **Workloads** → **Web Service**
+   - Find your web service in the list
+
+2. **Edit the Service**:
+
+   - Click on the 'web' service you want to modify
+   - Click **Edit** to open the configuration
+
+3. **Configure Resources**:
+
+   - Navigate to the **last step** of the configuration forms
+   - In the **Resources** section, you'll find minimum and maximum resource settings
+   - Increase the **maximum memory** limit to your desired value (e.g., 2048M or 4096M)
+
+4. **Deploy Changes**:
+   - Make sure **Deploy** is activated/checked
+   - Click **Save** or **Update**
+   - Wait for the deployment to complete
+
+```yaml
+# Example resource configuration
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "2048Mi" # Increased from 768Mi
+    cpu: "1000m"
+```
+
+**Note**: The deployment process will update these values in the cluster automatically.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="create-debug-pod" summary="Creating a debug pod for running scripts">
+
+To create a debug pod for running console commands:
+
+1. **Create a New Job**:
+
+   - Go to **Workloads** → **Jobs**
+   - Click **Create New Job**
+
+2. **Configure the Job**:
+
+   - **Name**: Give it a descriptive name like `debug-pod` or `script-runner`
+   - **Image URL**: Leave **empty** (this will use the same image as your web service)
+   - **Image Tag**: Leave **empty**
+   - **Command**: Enter `sleep infinity` or `sleep 999999`
+
+3. **Set Resources** (Second Step):
+   - Configure the memory and CPU resources this debug pod should have
+   - Set appropriate limits based on your script requirements
+
+```yaml
+# Example debug job configuration
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: debug-pod
+spec:
+  template:
+    spec:
+      containers:
+        - name: debug
+          image: your-app-image # Same as web service
+          command: ["sleep", "infinity"]
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "2048Mi"
+              cpu: "1000m"
+      restartPolicy: Never
+```
+
+4. **Deploy the Job**:
+   - Click **Create** to deploy the debug pod
+   - Wait for it to be in **Running** status
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="access-debug-shell" summary="Accessing the debug pod shell">
+
+Once your debug pod is running:
+
+1. **Navigate to Kubernetes Dashboard**:
+
+   - Go to the **Kubernetes** section in SleakOps
+   - Find your debug pod in the pods list
+
+2. **Open Shell Access**:
+
+   - Click on the debug pod
+   - Look for the **Shell** or **Terminal** button
+   - Click to open a terminal session
+
+3. **Run Your Scripts**:
+
+   ```bash
+   # Example commands you can run
+   php artisan migrate
+   php artisan cache:clear
+   npm run build
+   python manage.py migrate
+   ```
+
+4. **Clean Up**:
+   - Once finished, delete the debug pod
+   - Go back to **Jobs** and delete the debug job
+   - This prevents unnecessary resource usage
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Best practices for debug pods and memory management">
+
+**Memory Limit Best Practices:**
+
+- Start with 2x your current limit and monitor usage
+- Use monitoring tools to understand actual memory consumption
+- Consider if the scripts can be optimized instead of just increasing limits
+- Set both requests and limits appropriately
+
+**Debug Pod Best Practices:**
+
+- Always clean up debug pods after use
+- Use descriptive names for easy identification
+- Set appropriate resource limits to avoid cluster resource exhaustion
+- Consider using `kubectl exec` directly if you have cluster access
+
+**Alternative Approaches:**
+
+1. **Scheduled Jobs**: For recurring scripts, create proper Kubernetes CronJobs
+2. **Init Containers**: For one-time setup scripts during deployment
+3. **Sidecar Containers**: For ongoing maintenance tasks
+
+```yaml
+# Example of a proper maintenance job
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: maintenance-script
+spec:
+  schedule: "0 2 * * *" # Daily at 2 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: maintenance
+              image: your-app-image
+              command:
+                ["/bin/sh", "-c", "php artisan queue:work --stop-when-empty"]
+              resources:
+                limits:
+                  memory: "1024Mi"
+          restartPolicy: OnFailure
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

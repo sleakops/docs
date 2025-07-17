@@ -1,0 +1,238 @@
+---
+sidebar_position: 3
+title: "Advertencias de Programación de Pods en Karpenter y Aprovisionamiento de Nodos"
+description: "Entendiendo las advertencias de Karpenter cuando los pods no pueden programarse y cómo funciona el aprovisionamiento de nodos"
+date: "2024-04-17"
+category: "cluster"
+tags:
+  [
+    "karpenter",
+    "programacion-pods",
+    "aprovisionamiento-nodos",
+    "advertencias",
+    "resolucion-de-problemas",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Advertencias de Programación de Pods en Karpenter y Aprovisionamiento de Nodos
+
+**Fecha:** 17 de abril de 2024  
+**Categoría:** Clúster  
+**Etiquetas:** Karpenter, Programación de Pods, Aprovisionamiento de Nodos, Advertencias, Resolución de Problemas
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios experimentan advertencias de programación de pods en entornos de producción al usar Karpenter para el autoescalado de nodos, lo que puede causar errores 502 y interrupciones del servicio.
+
+**Síntomas Observados:**
+
+- Los pods muestran estado "running" pero presentan advertencias de programación
+- Errores 502 intermitentes que afectan a los usuarios finales
+- Mensajes de advertencia aparecen cuando no hay nodos disponibles para colocar pods
+- Interrupciones del servicio durante los períodos de aprovisionamiento de nodos
+
+**Configuración Relevante:**
+
+- Entorno: Producción
+- Autoescalador: Karpenter
+- Estado de pods: En ejecución con advertencias
+- Aprovisionamiento de nodos: Automático
+
+**Condiciones de Error:**
+
+- Las advertencias aparecen cuando el clúster no tiene nodos disponibles para nuevos pods
+- Ocurre durante picos de tráfico o eventos de escalado
+- Puede correlacionarse con errores 502 visibles para usuarios
+- Condición temporal durante el proceso de aprovisionamiento de nodos
+
+## Solución Detallada
+
+<TroubleshootingItem id="understanding-warnings" summary="Entendiendo las advertencias de programación de Karpenter">
+
+Cuando ves advertencias de programación de pods con Karpenter, esto es generalmente un comportamiento normal:
+
+1. **Disparo de advertencia**: La alerta aparece cuando ningún nodo existente tiene recursos suficientes para nuevos pods
+2. **Respuesta automática**: Karpenter detecta esta condición y comienza a aprovisionar nuevos nodos
+3. **Estado temporal**: Este es un período de transición, no un error permanente
+4. **Tiempo de resolución**: El proceso usualmente tarda entre 2 y 3 minutos en completarse
+
+La advertencia indica que Karpenter está funcionando correctamente, no que haya un problema.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="node-provisioning-process" summary="Cómo funciona el aprovisionamiento de nodos en Karpenter">
+
+El aprovisionamiento de nodos en Karpenter sigue esta secuencia:
+
+1. **Detección**: Karpenter identifica pods no programables
+2. **Selección de instancia**: Elige el tipo de instancia EC2 apropiado según los requisitos
+3. **Lanzamiento de instancia**: Solicita una nueva instancia EC2 a AWS
+4. **Inicialización del nodo**: La instancia arranca e instala los componentes necesarios
+5. **Registro en el clúster**: El nuevo nodo se une al clúster de Kubernetes
+6. **Programación de pods**: Los pods pendientes se programan en el nuevo nodo
+
+**Cronología**: Este proceso completo suele tardar entre 2 y 3 minutos.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-node-creation" summary="Cómo monitorear la creación de nodos durante las advertencias">
+
+Cuando ves advertencias de programación, puedes monitorear el proceso de aprovisionamiento de nodos:
+
+**En el Panel de SleakOps:**
+
+1. Navega a **Clúster** → **Nodos**
+2. Busca nodos con estado "Creating" o "Pending"
+3. Monitorea la lista de nodos para nuevas incorporaciones
+
+**Usando kubectl:**
+
+```bash
+# Observar nodos en creación
+kubectl get nodes -w
+
+# Revisar logs de Karpenter
+kubectl logs -n karpenter -l app.kubernetes.io/name=karpenter
+
+# Ver pods pendientes
+kubectl get pods --field-selector=status.phase=Pending
+```
+
+**Comportamiento esperado:** Deberías ver nuevos nodos aparecer dentro de 2 a 3 minutos después de la advertencia.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="correlation-with-502-errors" summary="Relación entre advertencias de programación y errores 502">
+
+La correlación entre advertencias de programación de pods y errores 502 puede ocurrir cuando:
+
+1. **Agotamiento de recursos**: Los pods existentes consumen todos los recursos disponibles
+2. **Retraso en el escalado**: Nuevas solicitudes llegan durante la ventana de aprovisionamiento de 2 a 3 minutos
+3. **Comportamiento del balanceador de carga**: Algunas solicitudes pueden fallar mientras la nueva capacidad se activa
+
+**Estrategias de mitigación:**
+
+- Configurar solicitudes y límites de recursos adecuados
+- Implementar chequeos de salud y probes de readiness apropiados
+- Considerar el preescalado para patrones de tráfico predecibles
+- Usar Horizontal Pod Autoscaler (HPA) junto con Karpenter
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="optimization-recommendations" summary="Optimización de Karpenter para reducir advertencias">
+
+Para minimizar las advertencias de programación y mejorar los tiempos de respuesta:
+
+**1. Configura correctamente el NodePool de Karpenter:**
+
+```yaml
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
+metadata:
+  name: default
+spec:
+  template:
+    spec:
+      requirements:
+        - key: kubernetes.io/arch
+          operator: In
+          values: ["amd64"]
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["spot", "on-demand"]
+      nodeClassRef:
+        apiVersion: karpenter.k8s.aws/v1beta1
+        kind: EC2NodeClass
+        name: default
+  disruption:
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 30s
+```
+
+**2. Establece solicitudes de recursos adecuadas:**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+```
+
+**3. Usa Horizontal Pod Autoscaler:**
+
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: app-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: app
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-persistent-issues" summary="Resolución de problemas con advertencias persistentes de programación">
+
+Si las advertencias de programación persisten o continúan los errores 502:
+
+**1. Verifica la configuración de Karpenter:**
+
+```bash
+# Verificar que Karpenter esté corriendo
+kubectl get pods -n karpenter
+
+# Revisar eventos de Karpenter
+kubectl get events -n karpenter --sort-by='.lastTimestamp'
+```
+
+**2. Verifica permisos en AWS:**
+
+- Asegúrate que Karpenter tenga permisos IAM adecuados
+- Revisa cuotas y límites del servicio EC2
+- Verifica configuraciones de subredes y grupos de seguridad
+
+**3. Monitorea la utilización de recursos:**
+
+```bash
+# Ver uso de recursos en nodos
+kubectl top nodes
+
+# Ver uso de recursos en pods
+kubectl top pods --all-namespaces
+```
+
+**4. Revisa la configuración de la aplicación:**
+
+- Verifica que las solicitudes de recursos coincidan con el uso real
+- Revisa probes de readiness y liveness
+- Asegura un manejo correcto del apagado ordenado
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 17 de abril de 2024 basado en una consulta real de usuario._

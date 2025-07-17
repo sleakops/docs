@@ -1,0 +1,196 @@
+---
+sidebar_position: 3
+title: "Deployment and Teams Instances Not Creating"
+description: "Troubleshooting deployment failures and Teams instance creation issues"
+date: "2024-01-15"
+category: "project"
+tags: ["deployment", "teams", "instances", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Deployment and Teams Instances Not Creating
+
+**Date:** January 15, 2024  
+**Category:** Project  
+**Tags:** Deployment, Teams, Instances, Troubleshooting
+
+## Problem Description
+
+**Context:** User reports that deployments are not executing and Teams instances are not being created in the SleakOps platform.
+
+**Observed Symptoms:**
+
+- Deployments are not being triggered or completed
+- Teams instances are not being created
+- No visible progress in deployment pipeline
+- Services may appear stuck in pending state
+
+**Relevant Configuration:**
+
+- Domain: teams.simplee.cl
+- Platform: SleakOps
+- Deployment type: Teams instances
+
+**Error Conditions:**
+
+- Deployment process fails to start or complete
+- Instance creation process does not execute
+- May affect multiple services or environments
+
+## Detailed Solution
+
+<TroubleshootingItem id="initial-diagnosis" summary="Check deployment status and logs">
+
+First, verify the current status of your deployments:
+
+1. **Navigate to your Project Dashboard**
+2. **Check the Deployments section** for any failed or pending deployments
+3. **Review deployment logs** for error messages
+4. **Verify the build status** in the CI/CD pipeline
+
+Look for common indicators:
+
+- Red status indicators
+- Error messages in logs
+- Stuck "pending" states
+- Resource allocation issues
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="teams-configuration" summary="Verify Teams instance configuration">
+
+Check your Teams instance configuration:
+
+1. **Go to Workloads** → **Teams Services**
+2. **Verify the configuration** for teams.simplee.cl
+3. **Check resource allocation**:
+   - CPU and memory limits
+   - Storage requirements
+   - Network configuration
+
+```yaml
+# Example Teams configuration
+apiVersion: v1
+kind: Service
+metadata:
+  name: teams-service
+spec:
+  selector:
+    app: teams
+  ports:
+    - port: 80
+      targetPort: 8080
+  type: LoadBalancer
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="resource-verification" summary="Check cluster resources and quotas">
+
+Verify that your cluster has sufficient resources:
+
+1. **Check Node Resources**:
+
+   - Available CPU and memory
+   - Disk space
+   - Network capacity
+
+2. **Verify Quotas**:
+
+   - Namespace resource quotas
+   - Cluster-wide limits
+   - Provider-specific quotas (AWS, Azure, GCP)
+
+3. **Review Pod Status**:
+   ```bash
+   kubectl get pods -n your-namespace
+   kubectl describe pod <pod-name> -n your-namespace
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="networking-dns" summary="Verify networking and DNS configuration">
+
+For Teams instances, networking configuration is critical:
+
+1. **Check DNS Configuration**:
+
+   - Verify teams.simplee.cl DNS records
+   - Ensure proper A/CNAME records point to load balancer
+
+2. **Verify Load Balancer**:
+
+   - Check if load balancer is provisioned
+   - Verify security groups and firewall rules
+
+3. **Test Connectivity**:
+   ```bash
+   nslookup teams.simplee.cl
+   curl -I https://teams.simplee.cl
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-solutions" summary="Common solutions for deployment issues">
+
+**Restart Deployment Process**:
+
+1. Navigate to your project
+2. Go to **Deployments** tab
+3. Click **Redeploy** on the failed deployment
+
+**Clear Stuck Resources**:
+
+1. Delete stuck pods manually if needed
+2. Restart deployment controllers
+3. Check for resource locks or conflicts
+
+**Update Configuration**:
+
+1. Verify all environment variables
+2. Check secrets and configmaps
+3. Ensure image repositories are accessible
+
+**Scale Resources**:
+
+1. Increase node capacity if needed
+2. Adjust resource requests and limits
+3. Consider using different instance types
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="escalation-steps" summary="When to escalate the issue">
+
+Escalate to SleakOps support if:
+
+1. **Infrastructure Issues**:
+
+   - Cluster nodes are not responding
+   - Provider-level service outages
+   - Persistent resource allocation failures
+
+2. **Platform Issues**:
+
+   - SleakOps dashboard not responding
+   - Deployment pipeline completely broken
+   - Authentication or authorization failures
+
+3. **Data Loss Concerns**:
+   - Persistent volumes not mounting
+   - Database connectivity issues
+   - Backup and recovery problems
+
+**Information to provide when escalating**:
+
+- Project name and environment
+- Specific error messages from logs
+- Timeline of when the issue started
+- Recent changes made to configuration
+- Screenshots of error states
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

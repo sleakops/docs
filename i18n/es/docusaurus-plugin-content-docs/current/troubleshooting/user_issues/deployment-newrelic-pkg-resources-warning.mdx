@@ -1,0 +1,189 @@
+---
+sidebar_position: 3
+title: "Fallo en el Despliegue en Producción con Advertencia de pkg_resources de New Relic"
+description: "Solución para fallos en el despliegue causados por la advertencia de deprecación de pkg_resources de New Relic"
+date: "2024-12-11"
+category: "proyecto"
+tags:
+  [
+    "despliegue",
+    "compilación",
+    "newrelic",
+    "python",
+    "pkg_resources",
+    "setuptools",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Fallo en el Despliegue en Producción con Advertencia de pkg_resources de New Relic
+
+**Fecha:** 11 de diciembre de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Despliegue, Compilación, NewRelic, Python, pkg_resources, Setuptools
+
+## Descripción del Problema
+
+**Contexto:** El usuario intenta desplegar un proyecto Python en producción usando SleakOps CLI pero encuentra fallos en la compilación relacionados con el uso de la API pkg_resources obsoleta por parte de New Relic.
+
+**Síntomas Observados:**
+
+- El proceso de compilación comienza normalmente pero falla con el mensaje "Algo salió mal"
+- Aparece una advertencia UserWarning sobre la deprecación de pkg_resources en los diagnósticos
+- La compilación queda atascada en un bucle "Construyendo proyecto..." antes de fallar
+- El despliegue al entorno de producción falla completamente
+
+**Configuración Relevante:**
+
+- Proyecto: `api-mecubro`
+- Rama: `master`
+- Versión de Python: `3.9`
+- Integración de New Relic habilitada
+- Comando usado: `sleakops build -p api-mecubro -b master -w`
+
+**Condiciones de Error:**
+
+- El error ocurre durante el proceso de compilación para despliegue en producción
+- La advertencia se origina en `/usr/local/lib/python3.9/site-packages/newrelic/config.py:4555`
+- La advertencia de deprecación de pkg_resources sugiere fijar Setuptools<81
+- El fallo en la compilación impide un despliegue exitoso
+
+## Solución Detallada
+
+<TroubleshootingItem id="immediate-fix" summary="Solución inmediata: Fijar la versión de Setuptools">
+
+La solución más rápida es fijar la versión de Setuptools en los requisitos de tu proyecto:
+
+1. **Agregar a requirements.txt**:
+
+```txt
+setuptools<81
+```
+
+2. **O agregar a pyproject.toml** (si usas este archivo):
+
+```toml
+[build-system]
+requires = ["setuptools<81", "wheel"]
+```
+
+3. **Reconstruir el proyecto**:
+
+```bash
+sleakops build -p api-mecubro -b master -w
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-solution" summary="Solución basada en Dockerfile">
+
+Si tienes control sobre el Dockerfile, puedes fijar Setuptools durante el proceso de construcción:
+
+```dockerfile
+# Antes de instalar otras dependencias
+RUN pip install "setuptools<81"
+
+# Luego instala tus requerimientos
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+```
+
+O instalarlo junto con otras dependencias:
+
+```dockerfile
+RUN pip install "setuptools<81" -r requirements.txt
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="newrelic-update" summary="Actualizar el agente de New Relic (solución recomendada a largo plazo)">
+
+La mejor solución a largo plazo es actualizar el agente de New Relic para Python a una versión que no use pkg_resources:
+
+1. **Verificar versión actual de New Relic**:
+
+```bash
+pip show newrelic
+```
+
+2. **Actualizar a la última versión**:
+
+```txt
+# En requirements.txt
+newrelic>=9.0.0
+```
+
+3. **Verificar compatibilidad** con tu versión de Python y aplicación
+
+4. **Probar exhaustivamente** en un entorno de desarrollo antes de desplegar en producción
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="environment-variables" summary="Alternativa: Suprimir advertencias mediante variables de entorno">
+
+Como solución temporal, puedes suprimir la advertencia específica:
+
+1. **Agregar variable de entorno en tu configuración de despliegue**:
+
+```bash
+export PYTHONWARNINGS="ignore::UserWarning:pkg_resources"
+```
+
+2. **O agregar a las variables de entorno de tu aplicación**:
+
+```yaml
+# En la configuración de tu proyecto SleakOps
+environment:
+  PYTHONWARNINGS: "ignore::UserWarning:pkg_resources"
+```
+
+**Nota**: Esto solo suprime la advertencia pero no soluciona el problema subyacente.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Pasos para verificación y pruebas">
+
+Después de implementar cualquier solución:
+
+1. **Probar la compilación localmente** (si es posible):
+
+```bash
+sleakops build -p api-mecubro -b master -w
+```
+
+2. **Monitorear los registros de compilación** para el mensaje de advertencia
+
+3. **Verificar funcionalidad de New Relic** tras el despliegue:
+
+   - Comprobar que se están recolectando métricas
+   - Verificar que los datos APM aparecen en el panel de New Relic
+   - Probar la funcionalidad de seguimiento de errores
+
+4. **Revisar el rendimiento de la aplicación** para asegurar que no hay regresiones
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention" summary="Prevención para futuros proyectos">
+
+Para prevenir este problema en nuevos proyectos:
+
+1. **Usar gestión moderna de dependencias**:
+
+   - Usar `pyproject.toml` en lugar de `setup.py` cuando sea posible
+   - Fijar versiones críticas de dependencias incluyendo herramientas de construcción
+
+2. **Actualizaciones regulares de dependencias**:
+
+   - Mantener actualizado el agente de New Relic
+   - Monitorear advertencias de deprecación en CI/CD
+
+3. **Consistencia del entorno de construcción**:
+   - Usar versiones específicas de Python y paquetes
+   - Probar compilaciones en entornos similares a producción
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 11 de diciembre de 2024 basada en una consulta real de usuario._

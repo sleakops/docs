@@ -1,0 +1,212 @@
+---
+sidebar_position: 3
+title: "Configuring Multiple Domains in Kubernetes Ingress"
+description: "Manual configuration of Kubernetes Ingress for multiple domains when SleakOps environment root configuration has issues"
+date: "2024-12-23"
+category: "workload"
+tags: ["ingress", "kubernetes", "domains", "lens", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Configuring Multiple Domains in Kubernetes Ingress
+
+**Date:** December 23, 2024  
+**Category:** Workload  
+**Tags:** Ingress, Kubernetes, Domains, Lens, Troubleshooting
+
+## Problem Description
+
+**Context:** When SleakOps has issues with multiple environment root configurations in production, manual Ingress configuration becomes necessary to properly route multiple domains to the same service.
+
+**Observed Symptoms:**
+
+- Environment domain configuration showing incorrect domain (e.g., showing simplee.cl instead of simplee.com.mx)
+- Unable to create new services due to incorrect domain routing
+- Multiple domains need to point to the same backend service
+- Production environment affected by environment root configuration bug
+
+**Relevant Configuration:**
+
+- Multiple domains: web.simplee.com.mx, simplee.com.mx, www.simplee.com.mx
+- Backend service: mx-simplee-web-prod-mx-2-mx-simplee-web-svc
+- Service port: 7500
+- Tool used: Lens for Kubernetes management
+
+**Error Conditions:**
+
+- SleakOps bug with 2 environment root in production
+- Domain routing pointing to wrong environment
+- Service creation blocked due to incorrect domain configuration
+
+## Detailed Solution
+
+<TroubleshootingItem id="manual-ingress-configuration" summary="Manual Ingress Configuration via Lens">
+
+When SleakOps has environment root configuration issues, you can manually configure the Ingress resource using Lens:
+
+1. **Open Lens** and connect to your cluster
+2. **Navigate to Network** → **Ingresses**
+3. **Find the target Ingress** in the appropriate namespace
+4. **Edit the Ingress resource** by clicking the edit button
+5. **Update the configuration** with the correct rules and TLS settings
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="ingress-yaml-configuration" summary="Complete Ingress YAML Configuration">
+
+Here's the complete configuration for multiple domains pointing to the same service:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: your-ingress-name
+  namespace: your-namespace
+spec:
+  tls:
+    - hosts:
+        - web.simplee.com.mx
+        - simplee.com.mx
+        - www.simplee.com.mx
+      secretName: your-tls-secret
+  rules:
+    - host: web.simplee.com.mx
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mx-simplee-web-prod-mx-2-mx-simplee-web-svc
+                port:
+                  number: 7500
+    - host: simplee.com.mx
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mx-simplee-web-prod-mx-2-mx-simplee-web-svc
+                port:
+                  number: 7500
+    - host: www.simplee.com.mx
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mx-simplee-web-prod-mx-2-mx-simplee-web-svc
+                port:
+                  number: 7500
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="tls-configuration" summary="TLS Configuration for Multiple Domains">
+
+The TLS section ensures all domains are covered by SSL certificates:
+
+```yaml
+tls:
+  - hosts:
+      - web.simplee.com.mx
+      - simplee.com.mx
+      - www.simplee.com.mx
+    secretName: your-tls-secret-name
+```
+
+**Important considerations:**
+
+- All domains must be listed in the TLS hosts section
+- The TLS secret must contain certificates for all listed domains
+- Certificate must be valid for all subdomains and the root domain
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="service-verification" summary="Verify Backend Service Configuration">
+
+Before applying the Ingress configuration, verify your backend service:
+
+1. **Check service exists:**
+
+   ```bash
+   kubectl get svc mx-simplee-web-prod-mx-2-mx-simplee-web-svc -n your-namespace
+   ```
+
+2. **Verify service port:**
+
+   ```bash
+   kubectl describe svc mx-simplee-web-prod-mx-2-mx-simplee-web-svc -n your-namespace
+   ```
+
+3. **Test service connectivity:**
+   ```bash
+   kubectl port-forward svc/mx-simplee-web-prod-mx-2-mx-simplee-web-svc 8080:7500 -n your-namespace
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Troubleshooting Common Issues">
+
+**If domains are not resolving:**
+
+1. **Check DNS configuration:**
+
+   ```bash
+   nslookup simplee.com.mx
+   nslookup web.simplee.com.mx
+   nslookup www.simplee.com.mx
+   ```
+
+2. **Verify Ingress Controller:**
+
+   ```bash
+   kubectl get pods -n ingress-nginx
+   kubectl logs -n ingress-nginx deployment/ingress-nginx-controller
+   ```
+
+3. **Check Ingress status:**
+   ```bash
+   kubectl describe ingress your-ingress-name -n your-namespace
+   ```
+
+**If SSL certificates are not working:**
+
+1. **Check certificate secret:**
+
+   ```bash
+   kubectl get secret your-tls-secret -n your-namespace -o yaml
+   ```
+
+2. **Verify certificate validity:**
+   ```bash
+   openssl x509 -in <(kubectl get secret your-tls-secret -n your-namespace -o jsonpath='{.data.tls\.crt}' | base64 -d) -text -noout
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="temporary-workaround" summary="Temporary Workaround Until Platform Fix">
+
+This manual configuration serves as a temporary workaround while the SleakOps team fixes the environment root configuration bug:
+
+1. **Monitor for platform updates** that resolve the multiple environment root issue
+2. **Document the manual changes** made for future reference
+3. **Test all domain endpoints** after applying the configuration
+4. **Set up monitoring** to ensure all domains remain accessible
+
+**Testing checklist:**
+
+- [ ] https://web.simplee.com.mx loads correctly
+- [ ] https://simplee.com.mx loads correctly
+- [ ] https://www.simplee.com.mx loads correctly
+- [ ] SSL certificates are valid for all domains
+- [ ] All domains route to the correct service
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 23, 2024 based on a real user query._

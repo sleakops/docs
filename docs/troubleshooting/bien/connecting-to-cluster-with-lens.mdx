@@ -1,0 +1,205 @@
+---
+sidebar_position: 3
+title: "Connecting to Kubernetes Cluster with Lens IDE"
+description: "Step-by-step guide to connect to your SleakOps cluster using Lens IDE"
+date: "2024-12-19"
+category: "cluster"
+tags: ["lens", "kubernetes", "ide", "connection", "kubectl"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Connecting to Kubernetes Cluster with Lens IDE
+
+**Date:** December 19, 2024  
+**Category:** Cluster  
+**Tags:** Lens, Kubernetes, IDE, Connection, kubectl
+
+## Problem Description
+
+**Context:** Users need to connect to their SleakOps Kubernetes cluster from their local development environment to monitor workloads, debug issues, and manage resources.
+
+**Observed Symptoms:**
+
+- Need to access cluster resources from local machine
+- Want to use a visual interface instead of command line only
+- Require ability to view pods, logs, and workload status
+- Need to troubleshoot deployment issues
+
+**Relevant Configuration:**
+
+- SleakOps cluster with connection data available
+- Local development machine
+- Kubernetes IDE preference (Lens recommended)
+- kubectl CLI as alternative option
+
+**Use Cases:**
+
+- Monitoring pod status and logs
+- Debugging deployment issues
+- Managing Kubernetes resources visually
+- Troubleshooting application health checks
+
+## Detailed Solution
+
+<TroubleshootingItem id="lens-overview" summary="What is Lens IDE and why use it">
+
+Lens is a Kubernetes IDE that provides a visual interface for managing Kubernetes clusters. It's recommended by SleakOps because it offers:
+
+- **Visual cluster management**: Easy-to-use graphical interface
+- **Real-time monitoring**: Live view of pods, services, and deployments
+- **Log aggregation**: Centralized log viewing from multiple pods
+- **Resource management**: Create, edit, and delete Kubernetes resources
+- **Multi-cluster support**: Connect to multiple clusters simultaneously
+
+**Alternatives:**
+
+- kubectl CLI (command-line interface)
+- Other Kubernetes IDEs (k9s, Octant, etc.)
+- Cloud provider consoles
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="connection-prerequisites" summary="Step 1: Install required dependencies">
+
+Before connecting to your cluster, ensure you have these 4 dependencies installed on your local machine:
+
+1. **Lens IDE**: Download from [k8slens.dev](https://k8slens.dev)
+2. **kubectl**: Kubernetes command-line tool
+3. **AWS CLI**: For AWS authentication (if using AWS)
+4. **Docker**: Container runtime (optional but recommended)
+
+### Installation Commands
+
+**macOS (using Homebrew):**
+
+```bash
+# Install kubectl
+brew install kubectl
+
+# Install AWS CLI
+brew install awscli
+
+# Install Docker Desktop
+brew install --cask docker
+```
+
+**Linux (Ubuntu/Debian):**
+
+```bash
+# Install kubectl
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+# Install AWS CLI
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+```
+
+**Windows:**
+
+- Download Lens from the official website
+- Install kubectl using chocolatey: `choco install kubernetes-cli`
+- Install AWS CLI from AWS documentation
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="authentication-setup" summary="Step 2: Authenticate and get credentials">
+
+To connect to your SleakOps cluster, you need to authenticate and obtain the necessary credentials:
+
+1. **Access SleakOps Dashboard**: Log into your SleakOps account
+2. **Navigate to Cluster**: Go to your specific cluster
+3. **Find Connection Data**: Look for "Connection Data" in the cluster options
+4. **Get AWS Credentials**: Follow the provided link to obtain:
+   - AWS Access Key ID
+   - AWS Secret Access Key
+   - Session Token (if using temporary credentials)
+
+### Configure AWS Credentials
+
+```bash
+# Configure AWS CLI with your credentials
+aws configure
+# Enter your Access Key ID, Secret Access Key, and region
+
+# Or set environment variables
+export AWS_ACCESS_KEY_ID="your-access-key"
+export AWS_SECRET_ACCESS_KEY="your-secret-key"
+export AWS_SESSION_TOKEN="your-session-token"  # if applicable
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="kubeconfig-setup" summary="Step 3: Copy and configure kubeconfig">
+
+The kubeconfig file contains the cluster connection information:
+
+1. **Get kubeconfig YAML**: Copy the kubeconfig YAML from the SleakOps connection data
+2. **Save to file**: Save it to your local kubeconfig file
+
+### Method 1: Direct file replacement
+
+```bash
+# Backup existing kubeconfig (if any)
+cp ~/.kube/config ~/.kube/config.backup
+
+# Create the .kube directory if it doesn't exist
+mkdir -p ~/.kube
+
+# Save the new kubeconfig
+# Paste the YAML content from SleakOps into ~/.kube/config
+```
+
+### Method 2: Merge with existing config
+
+```bash
+# If you have multiple clusters, merge configurations
+export KUBECONFIG=~/.kube/config:~/path/to/sleakops-config.yaml
+kubectl config view --flatten > ~/.kube/config.new
+mv ~/.kube/config.new ~/.kube/config
+```
+
+### Verify connection
+
+```bash
+# Test the connection
+kubectl cluster-info
+kubectl get nodes
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="lens-connection" summary="Connecting with Lens IDE">
+
+Once you have the kubeconfig configured:
+
+1. **Open Lens IDE**
+2. **Add Cluster**: Click on "+" or "Add Cluster"
+3. **Paste kubeconfig**: Paste the YAML content from SleakOps
+4. **Connect**: Lens will automatically detect and connect to your cluster
+
+### Navigating in Lens
+
+- **Workloads → Pods**: View all pods in your cluster
+- **Workloads → Deployments**: Manage your deployments
+- **Network → Services**: View and manage services
+- **Storage**: Manage persistent volumes and claims
+- **Namespaces**: Your project environment will appear as `project-name-environment`
+
+### Finding Your Application
+
+Your application pods will be in a namespace following this pattern:
+
+```
+[project-name]-[environment-name]
+```
+
+For example: `myapp-production` or `myapp-staging`
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2025 based on a real user query._

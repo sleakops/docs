@@ -1,0 +1,90 @@
+---
+sidebar_position: 3
+title: "Control de Acceso de Usuarios en Entornos de Producción"
+description: "Cómo gestionar permisos de usuarios y control de acceso para recursos de producción en SleakOps"
+date: "2024-02-17"
+category: "usuario"
+tags: ["control-de-acceso", "iam", "permisos", "produccion", "seguridad"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Control de Acceso de Usuarios en Entornos de Producción
+
+**Fecha:** 17 de febrero de 2024  
+**Categoría:** Usuario  
+**Etiquetas:** Control de Acceso, IAM, Permisos, Producción, Seguridad
+
+## Descripción del Problema
+
+**Contexto:** Las organizaciones necesitan implementar un control de acceso granular cuando usan un solo clúster para múltiples entornos (desarrollo, staging, producción) mientras restringen el acceso a producción a miembros específicos del equipo.
+
+**Síntomas Observados:**
+
+- Necesidad de limitar el acceso al entorno de producción a solo 2 miembros del equipo
+- Los desarrolladores requieren acceso únicamente a recursos de desarrollo y staging
+- Incertidumbre sobre a qué recursos pueden acceder los diferentes roles de usuario
+- Preguntas sobre permisos para manipular buckets S3 y bases de datos
+
+**Configuración Relevante:**
+
+- Un solo clúster que aloja múltiples entornos
+- Entornos de producción, desarrollo y staging en la misma cuenta de AWS
+- Necesidad de control de acceso basado en roles (Viewer, Editor, Admin)
+- Integración de AWS IAM con SleakOps
+
+**Condiciones de Error:**
+
+- Riesgo de acceso no autorizado a recursos de producción
+- Posible manipulación de datos por usuarios con permisos excesivos
+- Falta de segregación adecuada entre entornos
+
+## Solución Detallada
+
+<TroubleshootingItem id="viewer-role-permissions" summary="Comprendiendo los Permisos del Rol Viewer">
+
+El rol **Viewer** en SleakOps tiene tres requisitos principales de acceso:
+
+1. **Acceso a la Cuenta AWS**: Los usuarios reciben la política administrada de AWS [ReadOnlyAccess](https://docs.aws.amazon.com/aws-managed-policy/latest/reference/ReadOnlyAccess.html)
+2. **Acceso VPN**: Requerido para acceder a recursos internos
+3. **Acceso a la Plataforma SleakOps**: Acceso a la interfaz de SleakOps
+
+**Lo que el rol Viewer PUEDE hacer:**
+
+- Ver VariableGroups en SleakOps
+- Acceder a RDS y otras dependencias a través de VPN
+- Ver recursos y configuraciones del clúster
+- Acceder a detalles de conexión de base de datos desde VariableGroups o secretos del clúster
+
+**Lo que el rol Viewer NO PUEDE hacer:**
+
+- Editar objetos en S3 mediante la consola de AWS (requiere rol Editor)
+- Modificar VariableGroups (requiere rol Editor)
+- Realizar cambios en configuraciones del clúster
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="access-strategies" summary="Estrategias Recomendadas de Control de Acceso">
+
+### Estrategia 1: Acceso Solo por VPN
+
+Para desarrolladores que solo necesitan acceso a bases de datos:
+
+```yaml
+Nivel de Acceso: Solo VPN
+Permisos:
+  - Conectar a bases de datos de desarrollo/staging
+  - Sin acceso a consola AWS
+  - Sin acceso a plataforma SleakOps
+Implementación: Compartir credenciales de base de datos directamente
+```
+
+### Estrategia 2: Rol IAM Personalizado
+
+Crear un rol personalizado "Developer" en la cuenta de producción:
+
+```json
+{
+  "Version": "2012-10-17""
+}
+```

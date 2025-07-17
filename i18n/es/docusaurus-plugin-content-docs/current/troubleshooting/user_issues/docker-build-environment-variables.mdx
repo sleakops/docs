@@ -1,0 +1,194 @@
+---
+sidebar_position: 3
+title: "Variables de Entorno No Disponibles Durante la Construcción en Docker"
+description: "Solución para variables de entorno que no están accesibles durante el proceso de construcción en Docker"
+date: "2025-03-10"
+category: "project"
+tags: ["docker", "dockerfile", "build", "environment-variables", "rails"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Variables de Entorno No Disponibles Durante la Construcción en Docker
+
+**Fecha:** 10 de marzo de 2025  
+**Categoría:** Proyecto  
+**Etiquetas:** Docker, Dockerfile, Construcción, Variables de Entorno, Rails
+
+## Descripción del Problema
+
+**Contexto:** El usuario experimenta una falla en la construcción de Docker donde las variables de entorno definidas en la configuración Docker de SleakOps no son accesibles durante el proceso de construcción, específicamente para la descifrado de la clave maestra de Rails.
+
+**Síntomas Observados:**
+
+- La construcción falla con el error "Falta la clave de cifrado para descifrar el archivo"
+- Rails no puede encontrar la variable de entorno RAILS_MASTER_KEY
+- Las variables de entorno están definidas en la configuración Docker de SleakOps
+- El proceso de construcción no puede acceder a la clave de cifrado requerida
+
+**Configuración Relevante:**
+
+- Framework: Ruby on Rails
+- Error: Falta RAILS_MASTER_KEY para la descifrado con SOPS
+- Variables de entorno definidas en la configuración Docker de SleakOps
+- Contexto de construcción: proceso de construcción en contenedor Docker
+
+**Condiciones de Error:**
+
+- El error ocurre durante la fase de construcción en Docker
+- Las variables de entorno no se pasan al contexto de construcción
+- La descifrado de credenciales de Rails falla
+- El proceso de construcción termina con error de clave de cifrado
+
+## Solución Detallada
+
+<TroubleshootingItem id="dockerfile-arg-definition" summary="Definir ARG en Dockerfile">
+
+Las variables de entorno configuradas en SleakOps solo están disponibles en tiempo de ejecución, no durante la construcción. Para usarlas durante la construcción, debe definirlas como ARG en su Dockerfile:
+
+```dockerfile
+# Definir el argumento que recibirá la variable de entorno
+ARG RAILS_MASTER_KEY
+
+# Usar el argumento en su proceso de construcción
+RUN echo "Clave maestra: $RAILS_MASTER_KEY"
+
+# Opcional: establecerlo como variable de entorno para tiempo de ejecución
+ENV RAILS_MASTER_KEY=$RAILS_MASTER_KEY
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="build-args-configuration" summary="Configurar argumentos de construcción en SleakOps">
+
+En SleakOps, debe configurar los argumentos de construcción por separado de las variables de entorno:
+
+1. Vaya a sus **Configuraciones del Proyecto**
+2. Navegue a **Configuración de Docker**
+3. En la sección **Argumentos de Construcción** (no Variables de Entorno)
+4. Añada su argumento de construcción:
+   ```
+   RAILS_MASTER_KEY=${RAILS_MASTER_KEY}
+   ```
+
+Esto pasa el valor de la variable de entorno como argumento de construcción.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-best-practices" summary="Buenas prácticas en Dockerfile para secretos">
+
+Para manejar secretos durante la construcción:
+
+```dockerfile
+# Método 1: Usando ARG (recomendado para datos no sensibles)
+ARG RAILS_MASTER_KEY
+ENV RAILS_MASTER_KEY=$RAILS_MASTER_KEY
+
+# Método 2: Usando secretos de Docker (para datos sensibles)
+# RUN --mount=type=secret,id=rails_master_key \
+#     RAILS_MASTER_KEY=$(cat /run/secrets/rails_master_key) && \
+#     # sus comandos de construcción aquí
+
+# Método 3: Construcción multi-etapa para evitar exponer secretos
+FROM ruby:3.0 as builder
+ARG RAILS_MASTER_KEY
+ENV RAILS_MASTER_KEY=$RAILS_MASTER_KEY
+# Construir y descifrar aquí
+
+FROM ruby:3.0 as runtime
+# Copiar solo archivos necesarios, no los secretos
+COPY --from=builder /app /app
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="rails-specific-solution" summary="Configuración específica para Rails">
+
+Para aplicaciones Rails con credenciales cifradas:
+
+```dockerfile
+# Definir la clave maestra como argumento de construcción
+ARG RAILS_MASTER_KEY
+ARG RAILS_ENV=production
+
+# Establecer variables de entorno
+ENV RAILS_MASTER_KEY=$RAILS_MASTER_KEY
+ENV RAILS_ENV=$RAILS_ENV
+
+# Instalar dependencias
+RUN bundle install
+
+# Precompilar assets (este paso necesita la clave maestra)
+RUN RAILS_MASTER_KEY=$RAILS_MASTER_KEY rails assets:precompile
+
+# Alternativa: Crear el archivo de clave
+# RUN mkdir -p config && echo "$RAILS_MASTER_KEY" > config/master.key
+```
+
+Asegúrese de que su archivo `config/credentials.yml.enc` esté incluido en el contexto de Docker.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Pasos para solución de problemas">
+
+Si el problema persiste:
+
+1. **Verifique que el ARG esté definido antes de usarse:**
+
+   ```dockerfile
+   ARG RAILS_MASTER_KEY
+   RUN echo "Longitud de la clave: ${#RAILS_MASTER_KEY}" # No debe ser 0
+   ```
+
+2. **Revise los logs de construcción para el argumento:**
+
+   ```bash
+   docker build --build-arg RAILS_MASTER_KEY=su_clave_aqui .
+   ```
+
+3. **Verifique en los logs de construcción de SleakOps:**
+
+   - Busque "Step X: ARG RAILS_MASTER_KEY"
+   - Compruebe si el argumento de construcción está siendo pasado
+
+4. **Pruebe localmente:**
+   ```bash
+   # Pruebe la construcción con el mismo argumento
+   docker build --build-arg RAILS_MASTER_KEY="$(cat config/master.key)" .
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="security-considerations" summary="Consideraciones de seguridad">
+
+**Notas importantes de seguridad:**
+
+- Los argumentos de construcción son visibles en el historial de Docker (`docker history`)
+- Para producción, considere usar secretos de Docker o construcciones multi-etapa
+- Nunca comprometa claves maestras en el control de versiones
+- Use claves diferentes para distintos entornos
+
+**Enfoque recomendado para producción:**
+
+```dockerfile
+# Usar construcción multi-etapa
+FROM ruby:3.0 as builder
+ARG RAILS_MASTER_KEY
+WORKDIR /app
+COPY . .
+RUN bundle install
+RUN RAILS_MASTER_KEY=$RAILS_MASTER_KEY rails assets:precompile
+
+# Etapa de producción sin secretos
+FROM ruby:3.0 as production
+WORKDIR /app
+COPY --from=builder /app/public/assets ./public/assets
+COPY --from=builder /app/vendor/bundle ./vendor/bundle
+# No copiar la clave maestra a la imagen final
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 10 de marzo de 2025 basada en una consulta real de usuario._

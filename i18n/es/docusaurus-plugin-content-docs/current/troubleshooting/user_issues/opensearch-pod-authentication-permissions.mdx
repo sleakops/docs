@@ -1,0 +1,72 @@
+---
+sidebar_position: 3
+title: "Problemas de Autenticación y Permisos en Pods de OpenSearch"
+description: "Solución de problemas de conectividad y errores de autorización de OpenSearch desde pods de Kubernetes"
+date: "2025-02-19"
+category: "dependency"
+tags: ["opensearch", "autenticación", "permisos", "aws", "iam", "pod"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de Autenticación y Permisos en Pods de OpenSearch
+
+**Fecha:** 19 de febrero de 2025  
+**Categoría:** Dependencia  
+**Etiquetas:** OpenSearch, Autenticación, Permisos, AWS, IAM, Pod
+
+## Descripción del Problema
+
+**Contexto:** El usuario intenta conectarse a un clúster de OpenSearch desde un pod de Kubernetes pero encuentra errores de autorización a pesar de esperar que los permisos se configuren automáticamente.
+
+**Síntomas Observados:**
+
+- Error de autorización al realizar solicitudes curl a la URL de OpenSearch desde dentro de un pod
+- La conexión falla a pesar de que la dependencia de OpenSearch está configurada en SleakOps
+- Similar a problemas de permisos en S3: se encuentran credenciales pero carecen de permisos adecuados
+
+**Configuración Relevante:**
+
+- Dependencia de OpenSearch configurada en SleakOps
+- Pod ejecutándose en un clúster de Kubernetes
+- Infraestructura alojada en AWS
+- Se espera que los roles y políticas IAM se configuren automáticamente
+
+**Condiciones de Error:**
+
+- Error ocurre al hacer solicitudes HTTP a OpenSearch desde el pod
+- Fallo de autorización a pesar de la configuración de la dependencia
+- El problema persiste en diferentes intentos de conexión
+- Patrón similar a problemas de permisos en S3
+
+## Solución Detallada
+
+<TroubleshootingItem id="verify-authentication" summary="Verificar método de autenticación actual">
+
+Primero, determine cómo su pod se está autenticando actualmente con AWS:
+
+1. **Instale AWS CLI en su pod**:
+
+   ```bash
+   # Si no está instalado
+   curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+   unzip awscliv2.zip
+   sudo ./aws/install
+   ```
+
+2. **Verifique la identidad actual**:
+   ```bash
+   aws sts get-caller-identity
+   ```
+
+Esto le mostrará:
+
+- Si está usando identidad del pod o credenciales de entorno
+- El rol IAM que se está asumiendo
+- Información de cuenta y usuario
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="opensearch-permissions" summary="Permisos requeridos para OpenSearch">
+
+Para acceso a OpenSearch

@@ -1,0 +1,222 @@
+---
+sidebar_position: 3
+title: "Incrementar Límites de Memoria y Crear Pods de Depuración"
+description: "Cómo aumentar los límites de memoria para servicios web y crear pods de depuración para ejecutar scripts"
+date: "2024-01-15"
+category: "workload"
+tags:
+  [
+    "memoria",
+    "límites",
+    "depuración",
+    "pods",
+    "servicio-web",
+    "solución-de-problemas",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Incrementar Límites de Memoria y Crear Pods de Depuración
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** Memoria, Límites, Depuración, Pods, Servicio Web, Solución de Problemas
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios necesitan aumentar los límites de memoria para los pods de servicios web para ejecutar scripts que requieren muchos recursos y desean crear pods de depuración dedicados para ejecutar comandos en consola.
+
+**Síntomas Observados:**
+
+- Pods de servicios web alcanzando límites de memoria (768M por defecto)
+- Fallos en scripts debido a memoria insuficiente
+- Necesidad de pods temporales para ejecutar comandos
+- Requisito de acceso a consola para ejecutar scripts de mantenimiento
+
+**Configuración Relevante:**
+
+- Límite de memoria por defecto: 768M
+- Tipo de carga de trabajo: Servicio Web
+- Plataforma: entorno Kubernetes de SleakOps
+- Necesidad de contenedores temporales de depuración
+
+**Condiciones de Error:**
+
+- Exceso del límite de memoria durante la ejecución de scripts
+- Errores de falta de memoria en los registros de la aplicación
+- Necesidad de un entorno para ejecución de comandos ad-hoc
+
+## Solución Detallada
+
+<TroubleshootingItem id="increase-memory-limits" summary="Cómo aumentar los límites de memoria para servicios web">
+
+Para aumentar los límites de memoria de tu servicio web:
+
+1. **Navega a Cargas de Trabajo**:
+
+   - Ve a **Cargas de Trabajo** → **Servicio Web**
+   - Encuentra tu servicio web en la lista
+
+2. **Editar el Servicio**:
+
+   - Haz clic en el servicio 'web' que deseas modificar
+   - Haz clic en **Editar** para abrir la configuración
+
+3. **Configurar Recursos**:
+
+   - Navega al **último paso** de los formularios de configuración
+   - En la sección **Recursos**, encontrarás configuraciones mínimas y máximas de recursos
+   - Incrementa el límite **máximo de memoria** al valor deseado (por ejemplo, 2048M o 4096M)
+
+4. **Desplegar Cambios**:
+   - Asegúrate de que **Desplegar** esté activado/marcado
+   - Haz clic en **Guardar** o **Actualizar**
+   - Espera a que finalice el despliegue
+
+```yaml
+# Ejemplo de configuración de recursos
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "2048Mi" # Incrementado desde 768Mi
+    cpu: "1000m"
+```
+
+**Nota**: El proceso de despliegue actualizará estos valores automáticamente en el clúster.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="create-debug-pod" summary="Creación de un pod de depuración para ejecutar scripts">
+
+Para crear un pod de depuración para ejecutar comandos en consola:
+
+1. **Crear un Nuevo Job**:
+
+   - Ve a **Cargas de Trabajo** → **Jobs**
+   - Haz clic en **Crear Nuevo Job**
+
+2. **Configurar el Job**:
+
+   - **Nombre**: Ponle un nombre descriptivo como `debug-pod` o `script-runner`
+   - **URL de la Imagen**: Déjalo **vacío** (usará la misma imagen que tu servicio web)
+   - **Etiqueta de la Imagen**: Déjalo **vacío**
+   - **Comando**: Ingresa `sleep infinity` o `sleep 999999`
+
+3. **Establecer Recursos** (Segundo Paso):
+   - Configura la memoria y CPU que este pod de depuración debe tener
+   - Establece límites apropiados según los requisitos de tu script
+
+```yaml
+# Ejemplo de configuración de job de depuración
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: debug-pod
+spec:
+  template:
+    spec:
+      containers:
+        - name: debug
+          image: your-app-image # Igual que el servicio web
+          command: ["sleep", "infinity"]
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "2048Mi"
+              cpu: "1000m"
+      restartPolicy: Never
+```
+
+4. **Desplegar el Job**:
+   - Haz clic en **Crear** para desplegar el pod de depuración
+   - Espera a que esté en estado **Running**
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="access-debug-shell" summary="Acceder a la consola del pod de depuración">
+
+Una vez que tu pod de depuración esté en ejecución:
+
+1. **Navega al Panel de Kubernetes**:
+
+   - Ve a la sección **Kubernetes** en SleakOps
+   - Encuentra tu pod de depuración en la lista de pods
+
+2. **Abrir Acceso a Consola**:
+
+   - Haz clic en el pod de depuración
+   - Busca el botón **Shell** o **Terminal**
+   - Haz clic para abrir una sesión de terminal
+
+3. **Ejecuta Tus Scripts**:
+
+   ```bash
+   # Ejemplos de comandos que puedes ejecutar
+   php artisan migrate
+   php artisan cache:clear
+   npm run build
+   python manage.py migrate
+   ```
+
+4. **Limpieza**:
+   - Una vez terminado, elimina el pod de depuración
+   - Regresa a **Jobs** y elimina el job de depuración
+   - Esto previene el uso innecesario de recursos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Buenas prácticas para pods de depuración y gestión de memoria">
+
+**Buenas Prácticas para Límites de Memoria:**
+
+- Comienza con 2 veces tu límite actual y monitorea el uso
+- Usa herramientas de monitoreo para entender el consumo real de memoria
+- Considera si los scripts pueden ser optimizados en lugar de solo aumentar límites
+- Establece adecuadamente tanto requests como limits
+
+**Buenas Prácticas para Pods de Depuración:**
+
+- Siempre limpia los pods de depuración después de usarlos
+- Usa nombres descriptivos para fácil identificación
+- Establece límites de recursos apropiados para evitar agotamiento del clúster
+- Considera usar `kubectl exec` directamente si tienes acceso al clúster
+
+**Enfoques Alternativos:**
+
+1. **Jobs Programados**: Para scripts recurrentes, crea CronJobs de Kubernetes adecuados
+2. **Contenedores Init**: Para scripts de configuración únicos durante el despliegue
+3. **Contenedores Sidecar**: Para tareas de mantenimiento continuas
+
+```yaml
+# Ejemplo de un job de mantenimiento adecuado
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: maintenance-script
+spec:
+  schedule: "0 2 * * *" # Diario a las 2 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: maintenance
+              image: your-app-image
+              command:
+                ["/bin/sh", "-c", "php artisan queue:work --stop-when-empty"]
+              resources:
+                limits:
+                  memory: "1024Mi"
+          restartPolicy: OnFailure
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

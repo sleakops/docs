@@ -1,0 +1,147 @@
+---
+sidebar_position: 3
+title: "EKS Cluster Upgrade Schedule and Process"
+description: "Understanding EKS cluster upgrade frequency, process, and management in SleakOps"
+date: "2025-02-06"
+category: "cluster"
+tags: ["eks", "upgrade", "kubernetes", "maintenance", "aws"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# EKS Cluster Upgrade Schedule and Process
+
+**Date:** February 6, 2025  
+**Category:** Cluster  
+**Tags:** EKS, Upgrade, Kubernetes, Maintenance, AWS
+
+## Problem Description
+
+**Context:** Users need to understand how EKS cluster upgrades are managed in SleakOps, including frequency, process, and whether manual intervention is required.
+
+**Observed Symptoms:**
+
+- Questions about upgrade frequency and timing
+- Concerns about downtime during upgrades
+- Uncertainty about manual vs automatic upgrade processes
+- Need for clarity on upgrade roadmap and version progression
+
+**Relevant Configuration:**
+
+- Current EKS version: 1.29
+- Target version: 1.32 (planned for first semester)
+- Upgrade frequency: 2 major upgrades per year
+- Platform: AWS EKS managed by SleakOps
+
+**Error Conditions:**
+
+- Potential service interruption during upgrades
+- Risk of compatibility issues with manual cluster modifications
+- Need for coordination between SleakOps team and users
+
+## Detailed Solution
+
+<TroubleshootingItem id="upgrade-frequency" summary="EKS Upgrade Frequency and Schedule">
+
+SleakOps manages EKS cluster upgrades with the following schedule:
+
+- **Frequency**: 2 major Kubernetes version upgrades per year
+- **Current Status**: Version 1.29
+- **Target**: Version 1.32 by end of first semester 2025
+- **Remaining Upgrades**: 3 version upgrades (1.29 → 1.30 → 1.31 → 1.32)
+
+**Upgrade Timeline:**
+
+- Upgrades are typically scheduled during maintenance windows
+- Users receive advance notification via email
+- Specific dates are communicated prior to each upgrade
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="upgrade-management" summary="Who Manages the Upgrades">
+
+SleakOps handles all EKS cluster upgrades:
+
+- **Automatic Management**: SleakOps team manages and executes all upgrades
+- **No Manual Intervention**: Users do not need to perform manual upgrades through AWS Console
+- **Pre-testing**: Extensive testing is performed before production upgrades
+- **Monitoring**: SleakOps team monitors the upgrade process
+
+**On-Demand Upgrades:**
+In some cases, SleakOps provides a workflow within the platform for users to trigger upgrades on-demand when needed.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="downtime-considerations" summary="Downtime and Service Impact">
+
+**Expected Downtime:**
+
+- Upgrades are designed to minimize downtime
+- Extensive pre-upgrade testing reduces risk of issues
+- Most upgrades should not cause service interruption
+
+**Potential Risks:**
+
+- Manual modifications to clusters may cause compatibility issues
+- Custom configurations not managed by SleakOps could be affected
+- Users should avoid manual changes to prevent upgrade complications
+
+**Recommendations:**
+
+- Stay alert during upgrade windows
+- Avoid manual cluster modifications
+- Report any issues immediately to SleakOps support
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="upgrade-preparation" summary="How to Prepare for Upgrades">
+
+**Before Upgrades:**
+
+1. **Review Applications**: Ensure your applications are compatible with the target Kubernetes version
+2. **Backup Critical Data**: Although managed by SleakOps, ensure your application data is backed up
+3. **Monitor Communications**: Watch for upgrade notifications from SleakOps
+4. **Avoid Manual Changes**: Do not make manual modifications to the cluster before upgrades
+
+**During Upgrades:**
+
+1. **Stay Available**: Be available to respond to any issues
+2. **Monitor Applications**: Check application health after upgrade completion
+3. **Report Issues**: Contact SleakOps immediately if problems arise
+
+**After Upgrades:**
+
+1. **Verify Functionality**: Test critical application features
+2. **Check Logs**: Review application and system logs for any issues
+3. **Update Dependencies**: Ensure application dependencies are compatible with new Kubernetes version
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="version-compatibility" summary="Kubernetes Version Compatibility">
+
+**Current Upgrade Path:**
+
+```
+Current: 1.29 → Target: 1.32
+Upgrade sequence: 1.29 → 1.30 → 1.31 → 1.32
+```
+
+**Compatibility Considerations:**
+
+- Each version upgrade maintains backward compatibility for most features
+- Deprecated APIs may be removed in newer versions
+- Custom resources and operators should be verified for compatibility
+- Third-party integrations may require updates
+
+**Best Practices:**
+
+- Keep applications updated to use current Kubernetes APIs
+- Avoid using deprecated features
+- Test applications in development environments with newer Kubernetes versions
+- Follow Kubernetes deprecation policies
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on February 6, 2025 based on a real user query._

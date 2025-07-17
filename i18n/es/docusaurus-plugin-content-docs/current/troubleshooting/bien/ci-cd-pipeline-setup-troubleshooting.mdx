@@ -1,0 +1,189 @@
+---
+sidebar_position: 3
+title: "La canalización CI/CD no se activa al hacer push en la rama"
+description: "Guía de solución de problemas para canalizaciones CI/CD que no activan compilaciones y despliegues automáticos"
+date: "2024-03-14"
+category: "proyecto"
+tags: ["ci-cd", "pipeline", "git", "despliegue", "solución de problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# La canalización CI/CD no se activa al hacer push en la rama
+
+**Fecha:** 14 de marzo de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** CI/CD, Pipeline, Git, Despliegue, Solución de problemas
+
+## Descripción del problema
+
+**Contexto:** El usuario hace push de cambios de código a una rama de desarrollo, pero la canalización CI/CD no se activa automáticamente para crear nuevas imágenes de contenedor y desplegar actualizaciones al entorno.
+
+**Síntomas observados:**
+
+- Los push a la rama de desarrollo no activan la ejecución de la canalización
+- No se construyen automáticamente nuevas imágenes de contenedor
+- Los despliegues no se actualizan con los últimos cambios de código
+- La canalización parece estar inactiva o mal configurada
+
+**Configuración relevante:**
+
+- Rama objetivo: Rama de desarrollo (por ejemplo, `dev`, `develop`)
+- Repositorio: Control de versiones basado en Git
+- Canalización: Integración CI/CD de SleakOps
+- Comportamiento esperado: Construcción y despliegue automáticos al hacer push
+
+**Condiciones de error:**
+
+- La canalización no se activa tras hacer git push
+- No se observa actividad de compilación en el panel del proyecto
+- El despliegue permanece en la versión anterior
+- No se generan mensajes de error ni registros en la canalización
+
+## Solución detallada
+
+<TroubleshootingItem id="branch-configuration" summary="Verificar configuración de la rama objetivo">
+
+Primero, asegúrate de que tu proyecto esté configurado para monitorear la rama correcta:
+
+1. Navega a **Proyecto > Configuración > Configuración General**
+2. Revisa el ajuste de **Rama Objetivo**
+3. Verifica que coincida con la rama a la que haces push (por ejemplo, `dev`, `develop`, `main`)
+4. Guarda los cambios si necesitas actualizar el nombre de la rama
+
+**Problemas comunes:**
+
+- Proyecto configurado para `main` pero se hace push a `dev`
+- Desajuste en el nombre de la rama (por ejemplo, `develop` vs `development`)
+- Problemas de sensibilidad a mayúsculas y minúsculas en nombres de ramas
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="pipeline-yaml-setup" summary="Configurar archivo YAML de la canalización">
+
+Asegúrate de que tu repositorio tenga un archivo de canalización correctamente configurado:
+
+1. Ve a **Proyecto > Configuración > Pipelines Git**
+2. Revisa el ejemplo YAML proporcionado
+3. Crea o actualiza tu archivo de canalización en el repositorio
+4. Nombres comunes de archivo: `.sleakops.yml`, `.sleakops/pipeline.yml`
+
+**Ejemplo de configuración de canalización:**
+
+```yaml
+version: "1"
+pipeline:
+  triggers:
+    - branch: dev
+      on: push
+  stages:
+    - name: build
+      steps:
+        - name: build-image
+          action: docker-build
+          dockerfile: Dockerfile
+    - name: deploy
+      steps:
+        - name: deploy-to-dev
+          action: deploy
+          environment: development
+```
+
+**Puntos clave:**
+
+- Asegúrate de que la `branch` en triggers coincida con tu rama objetivo
+- Incluye las etapas `build` y `deploy`
+- Verifica que el archivo de canalización esté en la raíz del repositorio o en el directorio `.sleakops/`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="api-key-setup" summary="Configurar variable SLEAKOPS_KEY">
+
+Configura la clave API requerida para la autenticación de la canalización:
+
+1. Ve a **Configuración > CLI** en el panel de SleakOps
+2. Genera o copia tu clave API
+3. En la configuración de tu repositorio Git, añade una nueva variable de entorno:
+   - **Nombre:** `SLEAKOPS_KEY`
+   - **Valor:** Tu clave API del paso 2
+   - **Ámbito:** Disponible para procesos de pipeline/CI
+
+**Para diferentes proveedores de Git:**
+
+**GitHub:**
+
+- Ve a Repositorio > Configuración > Secrets and variables > Actions
+- Añade un nuevo secreto de repositorio: `SLEAKOPS_KEY`
+
+**GitLab:**
+
+- Ve a Proyecto > Configuración > CI/CD > Variables
+- Añade la variable: `SLEAKOPS_KEY` (márcala como protegida si es necesario)
+
+**Bitbucket:**
+
+- Ve a Repositorio > Configuración del repositorio > Pipelines > Variables del repositorio
+- Añade la variable: `SLEAKOPS_KEY`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Verificar configuración y probar">
+
+Después de completar la configuración, verifica que todo funcione:
+
+1. **Revisar estado de la canalización:**
+
+   - Ve al panel de tu proyecto
+   - Busca actividad de canalización en la sección **Despliegues** o **Compilaciones**
+
+2. **Probar con un cambio pequeño:**
+
+   - Realiza un cambio menor en tu código
+   - Haz commit y push a la rama objetivo
+   - Monitorea la ejecución de la canalización
+
+3. **Revisar registros:**
+
+   - Consulta los registros de la canalización para mensajes de error
+   - Verifica que se ejecuten los pasos de compilación y despliegue
+
+4. **Puntos comunes de verificación:**
+   - El archivo de canalización está comprometido en el repositorio
+   - Los nombres de las ramas coinciden exactamente (sensibles a mayúsculas/minúsculas)
+   - La clave API es válida y tiene permisos necesarios
+   - El webhook del repositorio está configurado (generalmente automático)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-tips" summary="Consejos adicionales para solución de problemas">
+
+Si la canalización aún no se activa:
+
+**Verificar configuración del webhook:**
+
+- Confirma que tu proveedor Git tenga la URL correcta del webhook
+- Prueba la entrega del webhook en la configuración de tu proveedor Git
+
+**Validar permisos de la clave API:**
+
+- Asegúrate de que la clave API tenga permisos para despliegues del proyecto
+- Intenta regenerar la clave API si es antigua
+
+**Revisar sintaxis de la canalización:**
+
+- Valida la sintaxis YAML usando un validador YAML en línea
+- Verifica errores de indentación en el archivo de canalización
+
+**Contactar soporte:**
+Si los problemas persisten, proporciona la siguiente información:
+
+- Nombre e ID del proyecto
+- Nombre de la rama objetivo
+- SHA del commit reciente que debería haber activado la canalización
+- Cualquier mensaje de error desde el panel
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 14 de marzo de 2024 basada en una consulta real de usuario._

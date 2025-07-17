@@ -1,0 +1,211 @@
+---
+sidebar_position: 3
+title: "Configuración y Solución de Problemas de CORS"
+description: "Cómo diagnosticar y solucionar errores de CORS en aplicaciones desplegadas en SleakOps"
+date: "2024-12-19"
+category: "workload"
+tags: ["cors", "frontend", "backend", "api", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Configuración y Solución de Problemas de CORS
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** CORS, Frontend, Backend, API, Solución de problemas
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios experimentan errores de CORS (Cross-Origin Resource Sharing) cuando su aplicación frontend intenta comunicarse con su API backend, aunque CORS parece estar configurado correctamente.
+
+**Síntomas observados:**
+
+- Mensajes de error de CORS en la consola del navegador al hacer llamadas a la API
+- Las solicitudes del frontend a la API backend son bloqueadas
+- El error ocurre a pesar de tener la configuración CORS en su lugar
+- La aplicación funcionaba previamente pero ahora muestra errores de CORS
+
+**Configuración relevante:**
+
+- Frontend y backend desplegados en SleakOps
+- Configuración CORS presente en el código backend
+- Endpoints de la API accesibles pero bloqueados por la política CORS del navegador
+
+**Condiciones del error:**
+
+- El error aparece cuando el frontend realiza solicitudes al backend
+- Puede ocurrir en todas las solicitudes o en endpoints específicos
+- El navegador bloquea la solicitud antes de que llegue al servidor
+- El error persiste a pesar de una aparente configuración CORS correcta
+
+## Solución Detallada
+
+<TroubleshootingItem id="understanding-cors" summary="Entendiendo CORS en SleakOps">
+
+La infraestructura de SleakOps no interfiere con la configuración CORS. CORS se maneja completamente a nivel de aplicación, lo que significa:
+
+- **Nivel de infraestructura:** Los balanceadores de carga y controladores de ingreso de SleakOps pasan los encabezados CORS sin modificaciones
+- **Nivel de aplicación:** Su aplicación backend es responsable de establecer los encabezados CORS adecuados
+- **Aplicación del navegador:** CORS es aplicado por el navegador, no por la infraestructura del servidor
+
+Esto significa que los problemas de CORS suelen estar relacionados con la configuración de su aplicación, no con la plataforma.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="content-type-verification" summary="Verificar la Configuración de Content-Type">
+
+Uno de los problemas más comunes de CORS está relacionado con los encabezados Content-Type:
+
+**Verifique que su configuración CORS permita el Content-Type que está enviando:**
+
+```javascript
+// Ejemplo: configuración CORS en Express.js
+const cors = require("cors");
+
+app.use(
+  cors({
+    origin: ["http://localhost:3000", "https://tu-dominio-frontend.com"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "Accept",
+    ],
+    credentials: true,
+  })
+);
+```
+
+**Valores comunes de Content-Type que necesitan permiso explícito:**
+
+- `application/json`
+- `application/x-www-form-urlencoded`
+- `multipart/form-data`
+- `text/plain`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="backend-configuration-check" summary="Revisar Configuración CORS en Backend">
+
+**Verifique si cambios recientes afectaron la configuración CORS:**
+
+1. **Verifique que el middleware CORS esté configurado correctamente:**
+
+```python
+# Ejemplo: configuración Flask-CORS
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app, origins=[
+    "http://localhost:3000",
+    "https://tu-dominio-frontend.com"
+], supports_credentials=True)
+```
+
+2. **Asegúrese de que los encabezados CORS estén establecidos para todos los endpoints relevantes:**
+
+```javascript
+// Encabezados CORS manuales (si no usa middleware)
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "https://tu-dominio-frontend.com");
+  res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.header("Access-Control-Allow-Credentials", "true");
+
+  if (req.method === "OPTIONS") {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+```
+
+3. **Revise configuraciones específicas por entorno:**
+
+```yaml
+# Ejemplo: variables de entorno para CORS
+CORS_ALLOWED_ORIGINS: "https://tu-frontend.sleakops.app,http://localhost:3000"
+CORS_ALLOW_CREDENTIALS: "true"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="request-analysis" summary="Analizar Solicitudes Específicas">
+
+**Determine si el error afecta todas las solicitudes o solo algunas específicas:**
+
+1. **Pruebe diferentes endpoints:**
+
+```bash
+# Prueba con curl para ver la respuesta del servidor
+curl -H "Origin: https://tu-frontend.com" \
+     -H "Access-Control-Request-Method: POST" \
+     -H "Access-Control-Request-Headers: Content-Type" \
+     -X OPTIONS \
+     https://tu-api.sleakops.app/api/endpoint
+```
+
+2. **Revise las herramientas de desarrollo del navegador:**
+
+   - Abra la pestaña Red (Network)
+   - Busque solicitudes OPTIONS de preflight
+   - Verifique los encabezados de respuesta CORS
+   - Confirme los encabezados reales que se envían en la solicitud
+
+3. **Patrones comunes:**
+   - Las **solicitudes simples** (GET, POST con content-types simples) pueden funcionar
+   - Las **solicitudes complejas** (encabezados personalizados, content-type JSON) pueden fallar
+   - Las **solicitudes preflight** (OPTIONS) pueden carecer de respuestas adecuadas
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="frontend-library-check" summary="Revisar Configuración de Solicitudes en Frontend">
+
+**Verifique si las librerías frontend están enviando encabezados inesperados:**
+
+1. **Configuración de Axios:**
+
+```javascript
+// Asegúrese que axios no agregue encabezados problemáticos
+const api = axios.create({
+  baseURL: "https://tu-api.sleakops.app",
+  withCredentials: true,
+  headers: {
+    "Content-Type": "application/json",
+    // Elimine cualquier encabezado personalizado que pueda disparar preflight
+  },
+});
+```
+
+2. **Configuración de Fetch API:**
+
+```javascript
+// Configuración correcta de fetch
+fetch("https://tu-api.sleakops.app/api/endpoint", {
+  method: "POST",
+  credentials: "include", // Solo si necesita cookies
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify(data),
+});
+```
+
+3. **Verifique encabezados de autenticación:**
+
+```javascript
+// Asegúrese que el encabezado Authorization esté permitido en CORS
+const token = localStorage.getItem("token");
+if (token) {
+  headers["Authorization"] = `Bearer ${token}`;
+}
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 25 de diciembre de 2024 basada en una consulta real de usuario._
+

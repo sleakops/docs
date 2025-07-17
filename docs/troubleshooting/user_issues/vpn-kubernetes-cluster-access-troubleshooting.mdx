@@ -1,0 +1,222 @@
+---
+sidebar_position: 3
+title: "VPN Connection Issues with Kubernetes Cluster Access"
+description: "Troubleshooting VPN connectivity problems when accessing Kubernetes clusters through Lens"
+date: "2025-01-28"
+category: "user"
+tags: ["vpn", "kubernetes", "lens", "connectivity", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# VPN Connection Issues with Kubernetes Cluster Access
+
+**Date:** January 28, 2025  
+**Category:** User  
+**Tags:** VPN, Kubernetes, Lens, Connectivity, Troubleshooting
+
+## Problem Description
+
+**Context:** User successfully connects to VPN using Pritunl but cannot access the Kubernetes cluster through Lens IDE. The connection attempts result in timeout errors, and there are concerns about DNS resolution and network segment configuration.
+
+**Observed Symptoms:**
+
+- Pritunl VPN connection appears successful
+- Lens IDE shows timeout errors when trying to connect to Kubernetes cluster
+- Cluster resolves to public IP instead of internal IP
+- VPN assigns different network segment than expected for Kubernetes cluster
+- AWS console shows cluster update notifications
+
+**Relevant Configuration:**
+
+- VPN Client: Pritunl
+- Kubernetes IDE: Lens
+- Platform: AWS EKS
+- Connection method: kubeconfig import
+- DNS resolution: Forced DNS configuration attempted
+
+**Error Conditions:**
+
+- Timeout errors occur when Lens attempts to connect
+- Problem persists despite successful VPN connection
+- DNS resolution points to public IP instead of private cluster endpoint
+- Issue occurs even with forced DNS settings
+
+## Detailed Solution
+
+<TroubleshootingItem id="dns-resolution-check" summary="Verify DNS resolution and cluster endpoint">
+
+First, verify that your VPN is properly resolving the cluster's internal endpoint:
+
+1. **Check your kubeconfig file** to find the cluster endpoint:
+
+   ```bash
+   cat ~/.kube/config | grep server
+   ```
+
+2. **Test DNS resolution** with the VPN connected:
+
+   ```bash
+   nslookup your-cluster-endpoint.amazonaws.com
+   ping your-cluster-endpoint.amazonaws.com
+   ```
+
+3. **Test HTTP connectivity**:
+   ```bash
+   curl -k https://your-cluster-endpoint.amazonaws.com
+   ```
+
+The cluster should resolve to a private IP address (10.x.x.x or 172.x.x.x range) when VPN is active.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="vpn-conflicts" summary="Check for VPN conflicts and network interference">
+
+Multiple VPN connections can interfere with DNS resolution:
+
+1. **Disconnect all other VPN connections**:
+
+   - Check system tray for active VPN clients
+   - Disable any corporate VPN connections
+   - Close other VPN applications
+
+2. **Verify Pritunl is the only active VPN**:
+
+   ```bash
+   # On Windows
+   ipconfig /all
+
+   # On macOS/Linux
+   ifconfig
+   ```
+
+3. **Check routing table**:
+
+   ```bash
+   # Windows
+   route print
+
+   # macOS/Linux
+   route -n
+   ```
+
+Ensure the VPN route has priority over other network interfaces.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="lens-configuration" summary="Reconfigure Lens with VPN active">
+
+Lens may cache the cluster endpoint resolution:
+
+1. **Close Lens completely**
+2. **Ensure VPN is connected and stable**
+3. **Clear Lens cache** (optional):
+
+   - Windows: `%APPDATA%\Lens`
+   - macOS: `~/Library/Application Support/Lens`
+   - Linux: `~/.config/Lens`
+
+4. **Restart Lens and re-import kubeconfig**:
+
+   - File → Add Cluster
+   - Import your kubeconfig file again
+   - Test connection
+
+5. **Verify cluster context**:
+   ```bash
+   kubectl config current-context
+   kubectl cluster-info
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="network-diagnostics" summary="Advanced network diagnostics">
+
+If basic troubleshooting doesn't work:
+
+1. **Check VPN assigned IP range**:
+
+   ```bash
+   # Find your VPN interface
+   ip addr show | grep tun
+   # or
+   ifconfig | grep -A 5 tun
+   ```
+
+2. **Verify you can reach the cluster's network**:
+
+   ```bash
+   # Try to reach the cluster's internal network
+   ping 10.0.0.1  # Replace with your cluster's network
+   ```
+
+3. **Test kubectl directly**:
+
+   ```bash
+   kubectl get nodes
+   kubectl get pods --all-namespaces
+   ```
+
+4. **Check DNS settings**:
+
+   ```bash
+   # Windows
+   nslookup
+   server
+
+   # macOS/Linux
+   cat /etc/resolv.conf
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="aws-console-updates" summary="Handle AWS cluster update notifications">
+
+Regarding the cluster update notification in AWS console:
+
+1. **This is normal** - AWS regularly notifies about available updates
+2. **Don't update during troubleshooting** - Focus on connectivity first
+3. **Updates should be planned** - Coordinate with your SleakOps team
+
+**To check cluster version**:
+
+```bash
+kubectl version --short
+```
+
+**Note**: Cluster updates don't typically cause VPN connectivity issues.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-access-methods" summary="Alternative access methods">
+
+If Lens continues to have issues:
+
+1. **Use kubectl directly**:
+
+   ```bash
+   kubectl get nodes
+   kubectl get pods
+   ```
+
+2. **Try other Kubernetes IDEs**:
+
+   - K9s (terminal-based)
+   - Octant (web-based)
+   - VS Code with Kubernetes extension
+
+3. **Web-based access** (if available):
+
+   - Kubernetes Dashboard
+   - SleakOps web interface
+
+4. **Verify with SleakOps support**:
+   - Confirm VPN configuration
+   - Check cluster accessibility settings
+   - Verify user permissions
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 28, 2025 based on a real user query._

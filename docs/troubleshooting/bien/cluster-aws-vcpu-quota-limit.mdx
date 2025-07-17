@@ -1,0 +1,200 @@
+---
+sidebar_position: 3
+title: "AWS vCPU Quota Limit Error with Karpenter"
+description: "Solution for VcpuLimitExceeded error when using GPU instances in EKS clusters"
+date: "2024-04-24"
+category: "cluster"
+tags: ["aws", "karpenter", "quota", "gpu", "instances", "eks"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# AWS vCPU Quota Limit Error with Karpenter
+
+**Date:** April 24, 2024  
+**Category:** Cluster  
+**Tags:** AWS, Karpenter, Quota, GPU, Instances, EKS
+
+## Problem Description
+
+**Context:** User attempts to configure a nodepool with GPU instances (g4ad.xlarge) for high-performance computing workloads but encounters vCPU quota limitations when Karpenter tries to provision the instances.
+
+**Observed Symptoms:**
+
+- Karpenter fails to launch NodeClaim with "VcpuLimitExceeded" error
+- Error message: "You have requested more vCPU capacity than your current vCPU limit of 0 allows"
+- GPU instances (g4ad.xlarge) cannot be provisioned
+- Standard instances (c7a.large, c7a.xlarge) work correctly
+- Nodepool configuration appears correct but nodes are not created
+
+**Relevant Configuration:**
+
+- Instance types: g4ad.xlarge (GPU instances)
+- Karpenter NodeClaim provisioning
+- AWS Service Quota initially set to 0 for GPU instance families
+- Nodepool selector configuration using node.kubernetes.io/instance-type
+
+**Error Conditions:**
+
+- Error occurs during Karpenter node provisioning
+- Specific to GPU instance types (g4ad family)
+- AWS Service Quota blocks instance creation
+- Standard compute instances work without issues
+
+## Detailed Solution
+
+<TroubleshootingItem id="quota-understanding" summary="Understanding AWS vCPU Service Quotas">
+
+AWS implements Service Quotas to control resource usage across different instance families. GPU instances have separate quotas from standard compute instances:
+
+- **Standard instances** (t3, c5, m5, etc.): Usually have default quotas
+- **GPU instances** (g4, p3, p4, etc.): Often start with 0 quota for security
+- **Specialized instances**: May require explicit quota requests
+
+The error "VcpuLimitExceeded" indicates your account doesn't have sufficient quota for the requested instance type.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="quota-request" summary="How to request vCPU quota increase">
+
+To request a quota increase for GPU instances:
+
+1. **Access AWS Service Quotas Console**:
+
+   - Go to [AWS Service Quotas Console](https://us-east-1.console.aws.amazon.com/servicequotas/home/services/ec2/quotas/L-FD8E9B9A)
+   - Navigate to **Amazon Elastic Compute Cloud (Amazon EC2)**
+
+2. **Find the correct quota**:
+
+   - Search for "Running On-Demand G and VT instances"
+   - This quota covers g4ad.xlarge instances
+
+3. **Request increase**:
+
+   - Click "Request quota increase"
+   - Start with a conservative number (e.g., 32-64 vCPUs)
+   - Provide business justification
+
+4. **For NVIDIA instances**, there's a separate quota:
+   - "Running On-Demand P instances"
+   - Required for p3, p4 instance families
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="quota-calculation" summary="Calculate required vCPUs">
+
+Calculate the vCPUs needed based on your instance requirements:
+
+```yaml
+# Example calculation for g4ad.xlarge
+Instance: g4ad.xlarge
+vCPUs per instance: 4
+Desired instances: 10
+Total vCPUs needed: 40
+# Request quota: 64 vCPUs (with buffer)
+```
+
+**Common GPU instance vCPU counts**:
+
+- g4ad.xlarge: 4 vCPUs
+- g4ad.2xlarge: 8 vCPUs
+- g4ad.4xlarge: 16 vCPUs
+- g4dn.xlarge: 4 vCPUs
+- p3.2xlarge: 8 vCPUs
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="nodepool-configuration" summary="Correct nodepool configuration for GPU instances">
+
+Ensure your nodepool is correctly configured for GPU instances:
+
+```yaml
+# Nodepool configuration example
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
+metadata:
+  name: gpu-nodepool
+spec:
+  template:
+    spec:
+      requirements:
+        - key: node.kubernetes.io/instance-type
+          operator: In
+          values:
+            - g4ad.xlarge
+            - g4ad.2xlarge
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values:
+            - on-demand # GPU instances work better with on-demand
+      nodeClassRef:
+        apiVersion: karpenter.k8s.aws/v1beta1
+        kind: EC2NodeClass
+        name: gpu-nodeclass
+```
+
+**Important considerations**:
+
+- Use `on-demand` capacity type for GPU instances
+- Ensure AMI supports GPU drivers
+- Configure appropriate taints/tolerations for GPU workloads
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Troubleshooting and monitoring">
+
+**Monitor quota usage**:
+
+```bash
+# Check current quota usage
+aws service-quotas get-service-quota \
+  --service-code ec2 \
+  --quota-code L-FD8E9B9A
+
+# Monitor Karpenter logs
+kubectl logs -n karpenter -l app.kubernetes.io/name=karpenter
+```
+
+**Common issues and solutions**:
+
+1. **Quota approved but still failing**:
+
+   - Wait 15-30 minutes for quota to propagate
+   - Try different availability zones
+
+2. **Instance not available**:
+
+   - Check instance availability in your region
+   - Consider alternative instance types
+
+3. **AMI compatibility**:
+   - Ensure AMI supports GPU drivers
+   - Use EKS-optimized AMI with GPU support
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Best practices for GPU instances">
+
+**Quota management**:
+
+- Request quotas proactively before deployment
+- Start with conservative numbers and increase as needed
+- Monitor usage to avoid unexpected limits
+
+**Cost optimization**:
+
+- Use Spot instances for non-critical GPU workloads
+- Implement proper node scaling policies
+- Consider mixed instance types in nodepools
+
+**Configuration management**:
+
+- Use Infrastructure as Code (Terraform) for quota requests
+- Document quota requirements in deployment guides
+- Set up monitoring for quota utilization
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

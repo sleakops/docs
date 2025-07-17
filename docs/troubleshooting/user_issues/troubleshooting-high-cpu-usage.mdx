@@ -1,0 +1,227 @@
+---
+sidebar_position: 3
+title: "High CPU Usage Investigation and Troubleshooting"
+description: "Guide to investigate and resolve high CPU usage spikes in containerized applications"
+date: "2025-01-27"
+category: "workload"
+tags: ["cpu", "performance", "monitoring", "troubleshooting", "containers"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# High CPU Usage Investigation and Troubleshooting
+
+**Date:** January 27, 2025  
+**Category:** Workload  
+**Tags:** CPU, Performance, Monitoring, Troubleshooting, Containers
+
+## Problem Description
+
+**Context:** Production containerized applications experiencing unexpected CPU usage spikes that may impact performance and user experience.
+
+**Observed Symptoms:**
+
+- Sudden increase in CPU utilization
+- Application performance degradation
+- Potential service slowdowns or timeouts
+- Resource consumption alerts triggered
+
+**Relevant Configuration:**
+
+- Container runtime: Docker/containerd
+- Orchestration: Kubernetes
+- Monitoring: Available through SleakOps dashboard
+- Application type: Production workload
+
+**Error Conditions:**
+
+- CPU usage spikes above normal baseline
+- Performance impact on application responsiveness
+- Potential resource exhaustion scenarios
+
+## Detailed Solution
+
+<TroubleshootingItem id="immediate-assessment" summary="Immediate CPU Usage Assessment">
+
+First, identify the scope and severity of the CPU spike:
+
+1. **Check current CPU metrics** in the SleakOps dashboard
+2. **Identify affected containers/pods**
+3. **Determine timeline** of when the spike started
+4. **Compare with historical baselines**
+
+```bash
+# Check current CPU usage for specific container
+kubectl top pods -n <namespace>
+
+# Get detailed resource usage
+kubectl describe pod <pod-name> -n <namespace>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="root-cause-analysis" summary="Root Cause Analysis Steps">
+
+**1. Application-Level Investigation:**
+
+- Check application logs for errors or unusual activity
+- Review recent deployments or configuration changes
+- Identify any new features or code changes
+
+```bash
+# Check application logs
+kubectl logs <pod-name> -n <namespace> --tail=100
+
+# Check for recent events
+kubectl get events -n <namespace> --sort-by='.lastTimestamp'
+```
+
+**2. System-Level Analysis:**
+
+- Monitor memory usage (high memory can cause CPU spikes)
+- Check disk I/O patterns
+- Review network traffic patterns
+
+**3. External Factors:**
+
+- Increased user traffic or load
+- Database performance issues
+- Third-party service dependencies
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-tools" summary="Using SleakOps Monitoring Tools">
+
+**Access Performance Metrics:**
+
+1. Navigate to **SleakOps Dashboard**
+2. Go to **Monitoring** → **Workloads**
+3. Select your specific container/service
+4. Review **CPU Usage** graphs over different time periods
+
+**Key Metrics to Monitor:**
+
+- CPU utilization percentage
+- Memory usage patterns
+- Request/response times
+- Error rates
+- Network I/O
+
+**Set Up Alerts:**
+
+Configure alerts for future incidents:
+
+- CPU usage > 80% for 5+ minutes
+- Memory usage > 85%
+- Response time > acceptable threshold
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-mitigation" summary="Immediate Mitigation Strategies">
+
+**1. Scale Resources (Quick Fix):**
+
+```yaml
+# Increase CPU limits temporarily
+resources:
+  limits:
+    cpu: "2000m" # Increase from current limit
+    memory: "4Gi"
+  requests:
+    cpu: "1000m"
+    memory: "2Gi"
+```
+
+**2. Horizontal Scaling:**
+
+```bash
+# Scale up replicas temporarily
+kubectl scale deployment <deployment-name> --replicas=5 -n <namespace>
+```
+
+**3. Load Balancing:**
+
+- Ensure traffic is distributed evenly across instances
+- Check if any single instance is receiving disproportionate load
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="long-term-solutions" summary="Long-term Optimization Solutions">
+
+**1. Code Optimization:**
+
+- Profile application code to identify CPU-intensive operations
+- Optimize database queries
+- Implement caching strategies
+- Review algorithm efficiency
+
+**2. Resource Management:**
+
+```yaml
+# Implement proper resource requests and limits
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+  limits:
+    cpu: "1000m"
+    memory: "2Gi"
+```
+
+**3. Auto-scaling Configuration:**
+
+```yaml
+# Configure Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: app-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: your-app
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-best-practices" summary="Prevention and Best Practices">
+
+**1. Monitoring Setup:**
+
+- Implement comprehensive monitoring for all critical metrics
+- Set up proactive alerts before issues become critical
+- Regular performance baseline reviews
+
+**2. Load Testing:**
+
+- Conduct regular load testing to identify performance bottlenecks
+- Test with realistic traffic patterns
+- Validate auto-scaling behavior
+
+**3. Resource Planning:**
+
+- Right-size containers based on actual usage patterns
+- Plan for traffic growth and seasonal variations
+- Regular capacity planning reviews
+
+**4. Code Review Practices:**
+
+- Include performance considerations in code reviews
+- Monitor performance impact of new deployments
+- Implement gradual rollouts for major changes
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 27, 2025 based on a real user query._

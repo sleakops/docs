@@ -1,0 +1,216 @@
+---
+sidebar_position: 3
+title: "Fallo en la sonda de disponibilidad del Pod - Conexión rechazada"
+description: "Solución para pods que fallan en las sondas de disponibilidad con errores de conexión rechazada"
+date: "2024-12-19"
+category: "workload"
+tags: ["pod", "readiness-probe", "connection-refused", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Fallo en la sonda de disponibilidad del Pod - Conexión rechazada
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** Pod, Sonda de disponibilidad, Conexión rechazada, Solución de problemas
+
+## Descripción del problema
+
+**Contexto:** Después de una compilación y despliegue exitosos, el nuevo pod no inicia correctamente y entra en un ciclo de reinicios. La sonda de disponibilidad no puede conectarse al endpoint de verificación de salud de la aplicación.
+
+**Síntomas observados:**
+
+- El pod muestra el estado "Back-off restarting failed container"
+- La sonda de disponibilidad falla con error "conexión rechazada"
+- La imagen del contenedor está presente en la máquina
+- Los procesos de compilación y despliegue se completaron con éxito
+- La aplicación parece no responder a las solicitudes HTTP
+
+**Configuración relevante:**
+
+- Endpoint de verificación de salud: `/users/sign_in`
+- Puerto de la aplicación: `3000`
+- IP interna del pod: `10.130.33.83`
+- Error: `dial tcp 10.130.33.83:3000: connect: connection refused`
+
+**Condiciones de error:**
+
+- Ocurre después de una compilación y despliegue exitosos
+- La sonda de disponibilidad falla constantemente
+- El pod no puede alcanzar el estado listo
+- El servicio de la aplicación no es accesible
+
+## Solución detallada
+
+<TroubleshootingItem id="initial-diagnosis" summary="Entendiendo el error de conexión rechazada">
+
+Un error de "conexión rechazada" durante la sonda de disponibilidad indica que:
+
+1. **La aplicación no ha iniciado**: El servidor HTTP dentro del contenedor no ha arrancado
+2. **Puerto incorrecto**: La aplicación está escuchando en un puerto diferente al esperado
+3. **Fallo de la aplicación**: La aplicación arrancó pero se cayó antes de la sonda
+4. **Problemas de enlace**: La aplicación sólo está enlazando a localhost en lugar de 0.0.0.0
+
+El hecho de que la imagen del contenedor esté presente sugiere que el despliegue fue exitoso, pero la aplicación interna no está funcionando correctamente.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="check-logs" summary="Revisar los logs de la aplicación para errores">
+
+Primero, examine los logs del pod para identificar por qué la aplicación no está iniciando:
+
+```bash
+# Obtener logs del pod
+kubectl logs <nombre-del-pod> -n <namespace>
+
+# Para la instancia previa del contenedor
+kubectl logs <nombre-del-pod> -n <namespace> --previous
+
+# Seguir logs en tiempo real
+kubectl logs <nombre-del-pod> -n <namespace> -f
+```
+
+Busque:
+
+- Errores de inicio de la aplicación
+- Fallos en la conexión a la base de datos
+- Variables de entorno faltantes
+- Problemas de enlace de puerto
+- Fallos de dependencias
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verify-port-configuration" summary="Verificar la configuración del puerto">
+
+Asegúrese de que su aplicación esté configurada correctamente:
+
+1. **Verifique el enlace de la aplicación**:
+
+   ```javascript
+   // Incorrecto - sólo enlaza a localhost
+   app.listen(3000, "localhost");
+
+   // Correcto - enlaza a todas las interfaces
+   app.listen(3000, "0.0.0.0");
+   ```
+
+2. **Verifique el EXPOSE en el Dockerfile**:
+
+   ```dockerfile
+   EXPOSE 3000
+   ```
+
+3. **Revise la configuración del servicio de Kubernetes**:
+   ```yaml
+   spec:
+     ports:
+       - port: 3000
+         targetPort: 3000
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="adjust-readiness-probe" summary="Ajustar la configuración de la sonda de disponibilidad">
+
+Si la aplicación tarda en iniciar, ajuste la sonda de disponibilidad:
+
+```yaml
+spec:
+  containers:
+    - name: app
+      readinessProbe:
+        httpGet:
+          path: /users/sign_in
+          port: 3000
+        initialDelaySeconds: 30 # Esperar 30 segundos antes de la primera sonda
+        periodSeconds: 10 # Revisar cada 10 segundos
+        timeoutSeconds: 5 # Tiempo de espera de 5 segundos
+        failureThreshold: 3 # Fallar después de 3 fallos consecutivos
+        successThreshold: 1 # Éxito tras 1 sonda exitosa
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-health-endpoint" summary="Usar un endpoint de verificación de salud más simple">
+
+Si `/users/sign_in` requiere autenticación o lógica compleja, cree un endpoint de salud más simple:
+
+```javascript
+// Agregar un endpoint simple de verificación de salud
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+```
+
+Luego actualice su sonda de disponibilidad:
+
+```yaml
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 3000
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="debugging-steps" summary="Pasos adicionales para depuración">
+
+1. **Verifique si el contenedor está en ejecución**:
+
+   ```bash
+   kubectl describe pod <nombre-del-pod> -n <namespace>
+   ```
+
+2. **Ejecute dentro del contenedor** (si permanece en ejecución):
+
+   ```bash
+   kubectl exec -it <nombre-del-pod> -n <namespace> -- /bin/bash
+   # Verifique si el puerto está escuchando
+   netstat -tlnp | grep 3000
+   ```
+
+3. **Pruebe el endpoint manualmente**:
+
+   ```bash
+   kubectl exec -it <nombre-del-pod> -n <namespace> -- curl http://localhost:3000/users/sign_in
+   ```
+
+4. **Revise los límites de recursos**:
+   ```bash
+   kubectl top pod <nombre-del-pod> -n <namespace>
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-solutions" summary="Soluciones comunes">
+
+**Para aplicaciones Ruby on Rails:**
+
+```ruby
+# Asegúrese de que Rails se enlaza a todas las interfaces
+# config/puma.rb
+bind "tcp://0.0.0.0:#{ENV.fetch('PORT', 3000)}"
+```
+
+**Para aplicaciones Node.js:**
+
+```javascript
+// Asegúrese de que Express se enlaza a todas las interfaces
+const port = process.env.PORT || 3000;
+app.listen(port, "0.0.0.0", () => {
+  console.log(`Servidor corriendo en el puerto ${port}`);
+});
+```
+
+**Para variables de entorno:**
+
+- Verifique que todas las variables de entorno necesarias estén definidas
+- Revise las cadenas de conexión a la base de datos
+- Asegúrese de que los secretos estén correctamente montados
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de usuario._

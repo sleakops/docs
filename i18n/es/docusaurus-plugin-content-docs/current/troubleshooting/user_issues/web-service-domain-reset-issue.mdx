@@ -1,0 +1,114 @@
+---
+sidebar_position: 3
+title: "Restablecimiento del Dominio del Servicio Web Durante la Actualización de Réplicas"
+description: "Problema donde el nombre de dominio se restablece al nombre del proyecto al editar réplicas del servicio web"
+date: "2025-02-20"
+category: "workload"
+tags: ["webservice", "domain", "replicas", "frontend", "configuration"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Restablecimiento del Dominio del Servicio Web Durante la Actualización de Réplicas
+
+**Fecha:** 20 de febrero de 2025  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** ServicioWeb, Dominio, Réplicas, Frontend, Configuración
+
+## Descripción del Problema
+
+**Contexto:** Al editar la configuración de un Servicio Web para modificar el número de réplicas, el nombre de dominio cambia inesperadamente del dominio de producción actual al nombre predeterminado del proyecto, causando posible tiempo de inactividad.
+
+**Síntomas Observados:**
+
+- El nombre de dominio se restablece al nombre del proyecto al editar el Servicio Web
+- Ocurre al hacer cambios simples como actualizaciones del conteo de réplicas
+- Causa tiempo de inactividad temporal del sitio web si no se detecta inmediatamente
+- El frontend muestra el nombre del proyecto en lugar del dominio de producción actual
+
+**Configuración Relevante:**
+
+- Componente: Configuración del Servicio Web
+- Acción: Edición del conteo de réplicas
+- Comportamiento esperado: El dominio debe permanecer sin cambios
+- Comportamiento real: El dominio se restablece al nombre del proyecto
+
+**Condiciones de Error:**
+
+- Ocurre durante el proceso de edición del Servicio Web
+- Sucede al modificar cualquier parámetro del Servicio Web
+- Resulta en cambios no deseados en el dominio
+- Puede causar interrupción del servicio
+
+## Solución Detallada
+
+<TroubleshootingItem id="immediate-workaround" summary="Solución inmediata para prevenir tiempo de inactividad">
+
+Para evitar cambios accidentales en el dominio al editar Servicios Web:
+
+1. **Verifique siempre el campo de dominio** antes de guardar los cambios
+2. **Compruebe que el dominio coincida con su URL de producción actual**
+3. **Si el dominio se ha restablecido, corríjalo manualmente** a su dominio de producción
+4. **Guarde la configuración** solo después de verificar todos los campos
+
+**Importante:** Siempre revise el campo de dominio incluso cuando realice cambios no relacionados como ajustes en el conteo de réplicas.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="current-behavior" summary="Entendiendo el comportamiento actual">
+
+Actualmente, el formulario de edición del Servicio Web puede mostrar el nombre del proyecto como dominio predeterminado en lugar de preservar el dominio de producción existente. Este es un problema conocido del frontend que puede causar:
+
+- Cambios inesperados en el dominio
+- Interrupciones del servicio
+- Necesidad de corrección manual del dominio
+- Posible tiempo de inactividad si no se detecta inmediatamente
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Mejores prácticas al editar Servicios Web">
+
+Para minimizar riesgos al editar Servicios Web:
+
+1. **Revise todos los campos** antes de guardar, no solo los que planeaba cambiar
+2. **Anote su dominio actual** antes de comenzar el proceso de edición
+3. **Realice cambios durante ventanas de mantenimiento** cuando sea posible
+4. **Tenga monitoreo activo** para detectar rápidamente cambios en el dominio
+5. **Considere hacer cambios en lotes pequeños** para limitar el impacto
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-setup" summary="Configuración de monitoreo para detectar cambios en el dominio">
+
+Para detectar rápidamente si su dominio ha sido cambiado accidentalmente:
+
+1. **Configure monitoreo externo** para sus URLs de producción
+2. **Configure alertas** para cambios en la respuesta HTTP
+3. **Monitoree la resolución DNS** de sus dominios
+4. **Use chequeos de salud** que verifiquen que el servicio correcto está respondiendo
+
+```bash
+# Ejemplo de script de monitoreo
+curl -f https://su-dominio-de-produccion.com/health || echo "Problema detectado en el dominio"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="recovery-steps" summary="Pasos para recuperarse de un cambio accidental de dominio">
+
+Si ha cambiado el dominio accidentalmente:
+
+1. **Edite el Servicio Web nuevamente de inmediato**
+2. **Corrija el campo de dominio** a su dominio de producción
+3. **Guarde la configuración**
+4. **Espere a que se complete el despliegue**
+5. **Verifique que el servicio sea accesible** en la URL correcta
+6. **Confirme que todo el tráfico se enrute correctamente**
+
+El proceso de recuperación típicamente toma unos minutos para que los cambios se propaguen.
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 20 de febrero de 2025 basada en una consulta real de usuario._

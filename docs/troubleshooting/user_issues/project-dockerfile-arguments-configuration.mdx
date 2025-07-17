@@ -1,0 +1,184 @@
+---
+sidebar_position: 3
+title: "Dockerfile Arguments Configuration Error"
+description: "Solution for configuring Dockerfile arguments in SleakOps projects"
+date: "2025-03-11"
+category: "project"
+tags: ["dockerfile", "arguments", "configuration", "deployment"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Dockerfile Arguments Configuration Error
+
+**Date:** March 11, 2025  
+**Category:** Project  
+**Tags:** Dockerfile, Arguments, Configuration, Deployment
+
+## Problem Description
+
+**Context:** User encounters issues when creating a production project in SleakOps, specifically related to Dockerfile arguments configuration and project creation workflow.
+
+**Observed Symptoms:**
+
+- Cannot add Dockerfile arguments during project creation
+- Project creation fails in production environment
+- Interface prevents argument configuration before project exists
+- Error persists despite Dockerfile being present in the correct branch
+
+**Relevant Configuration:**
+
+- Branch: `sleakops-master` (production branch)
+- Environment: Production
+- Dockerfile: Present in repository
+- Arguments: Required by Dockerfile but cannot be configured
+
+**Error Conditions:**
+
+- Error occurs during project creation to production environment
+- Arguments cannot be declared before project creation
+- Issue resolved by SleakOps team intervention
+- Problem identified as platform-side issue
+
+## Detailed Solution
+
+<TroubleshootingItem id="dockerfile-arguments-location" summary="Where to configure Dockerfile arguments">
+
+In SleakOps, Dockerfile arguments (ARG) should be configured in the **Project Configuration** section, not in Variable Groups:
+
+1. Go to your **Project Settings**
+2. Navigate to **Build Configuration**
+3. Look for **Dockerfile Arguments** section
+4. Add your arguments there before deployment
+
+**Important:** Dockerfile arguments are different from runtime environment variables:
+
+- **Dockerfile Arguments (ARG)**: Used during image build process
+- **Variable Groups**: Used for runtime environment variables
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="project-creation-workflow" summary="Correct project creation workflow">
+
+To properly create a project with Dockerfile arguments:
+
+1. **Ensure Dockerfile is in the correct branch**
+
+   - Verify the Dockerfile exists in your production branch (`sleakops-master`)
+   - Confirm all changes are merged from development branches
+
+2. **Create the project first**
+
+   - Create the project without arguments initially
+   - This allows access to configuration options
+
+3. **Configure arguments after creation**
+
+   - Go to Project Settings → Build Configuration
+   - Add required Dockerfile arguments
+   - Save configuration
+
+4. **Redeploy with arguments**
+   - Trigger a new deployment
+   - Arguments will be passed during build process
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="branch-verification" summary="Verify branch and Dockerfile presence">
+
+Before creating a production project, verify:
+
+```bash
+# Check if Dockerfile exists in production branch
+git checkout sleakops-master
+ls -la | grep Dockerfile
+
+# Verify branch is up to date
+git pull origin sleakops-master
+
+# Check if all necessary changes are merged
+git log --oneline -10
+```
+
+In SleakOps interface:
+
+1. Go to **Repository Settings**
+2. Verify **Production Branch** is set to `sleakops-master`
+3. Confirm **Dockerfile Path** is correct (usually `./Dockerfile`)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Troubleshooting deployment issues">
+
+If you encounter similar issues:
+
+1. **Check build logs**
+
+   - Go to **Deployments** → **Build Logs**
+   - Look for specific error messages
+   - Verify if Dockerfile is found
+
+2. **Verify repository access**
+
+   - Ensure SleakOps has access to the repository
+   - Check if branch permissions are correct
+
+3. **Contact support if needed**
+   - Platform-side issues may require team intervention
+   - Provide specific error messages and screenshots
+   - Include branch and repository information
+
+**Example Dockerfile with arguments:**
+
+```dockerfile
+FROM node:16-alpine
+
+# Declare build arguments
+ARG NODE_ENV=production
+ARG API_URL
+ARG DATABASE_URL
+
+# Use arguments during build
+ENV NODE_ENV=$NODE_ENV
+ENV API_URL=$API_URL
+ENV DATABASE_URL=$DATABASE_URL
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-tips" summary="Prevention and best practices">
+
+To avoid similar issues in the future:
+
+1. **Always test in staging first**
+
+   - Create and test projects in staging environment
+   - Verify all configurations work before production
+
+2. **Document your arguments**
+
+   - Keep a list of required Dockerfile arguments
+   - Document their purpose and expected values
+
+3. **Use consistent branch naming**
+
+   - Maintain clear branch naming conventions
+   - Ensure production branch is always up to date
+
+4. **Regular branch synchronization**
+   - Regularly merge changes to production branch
+   - Keep development and production branches in sync
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on March 11, 2025 based on a real user query._

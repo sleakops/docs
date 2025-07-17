@@ -1,0 +1,138 @@
+---
+sidebar_position: 15
+title: "Installing KEDA in SleakOps Kubernetes Clusters"
+description: "Complete guide to install and configure KEDA for autoscaling workloads in SleakOps clusters"
+date: "2025-02-13"
+category: "cluster"
+tags: ["keda", "autoscaling", "kubernetes", "workload", "scheduler"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Installing KEDA in SleakOps Kubernetes Clusters
+
+**Date:** February 13, 2025  
+**Category:** Cluster  
+**Tags:** KEDA, Autoscaling, Kubernetes, Workload, Scheduler
+
+## Problem Description
+
+**Context:** Users need to implement advanced autoscaling capabilities in their SleakOps Kubernetes clusters, including the ability to scale workloads to zero and schedule workload scaling based on time or events. KEDA (Kubernetes Event-driven Autoscaling) provides these capabilities but is not natively supported in SleakOps yet.
+
+**Observed Symptoms:**
+
+- Need to manually start/stop workloads to save resources
+- Requirement for scheduled scaling (e.g., API services that only run during business hours)
+- Lack of event-driven autoscaling capabilities
+- Need for cost optimization through workload scheduling
+
+**Relevant Configuration:**
+
+- Platform: SleakOps Kubernetes clusters
+- KEDA version: Latest stable (2.11+)
+- Kubernetes version: Compatible with SleakOps clusters
+- Workload types: Web Services and Workers
+
+**Error Conditions:**
+
+- Manual resource management is time-consuming
+- Resources running 24/7 when only needed during specific hours
+- No native scheduling capabilities in SleakOps for workload scaling
+
+## Detailed Solution
+
+<TroubleshootingItem id="keda-overview" summary="What is KEDA and why use it?">
+
+KEDA (Kubernetes Event-driven Autoscaling) is a single-purpose and lightweight component that can be added to any Kubernetes cluster. It provides:
+
+- **Scale to Zero**: Scale deployments down to zero replicas when not needed
+- **Event-driven Scaling**: Scale based on various metrics and events
+- **Cron-based Scaling**: Schedule scaling operations based on time
+- **Multiple Scalers**: Support for various data sources (queues, databases, HTTP, etc.)
+
+This is particularly useful for:
+
+- Cost optimization by stopping unused services
+- Scheduled workloads (batch jobs, APIs with specific usage patterns)
+- Event-driven microservices
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="installation-helm" summary="Installing KEDA using Helm">
+
+The recommended way to install KEDA in your SleakOps cluster is using Helm:
+
+```bash
+# Add the KEDA Helm repository
+helm repo add kedacore https://kedacore.github.io/charts
+helm repo update
+
+# Install KEDA in the keda namespace
+helm install keda kedacore/keda --namespace keda --create-namespace
+
+# Verify the installation
+kubectl get pods -n keda
+```
+
+Expected output:
+
+```
+NAME                                      READY   STATUS    RESTARTS   AGE
+keda-admission-webhooks-xxx               1/1     Running   0          2m
+keda-operator-xxx                         1/1     Running   0          2m
+keda-operator-metrics-apiserver-xxx       1/1     Running   0          2m
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="installation-kubectl" summary="Installing KEDA using kubectl (alternative method)">
+
+Alternatively, you can install KEDA using kubectl:
+
+```bash
+# Install KEDA
+kubectl apply -f https://github.com/kedacore/keda/releases/download/v2.11.2/keda-2.11.2.yaml
+
+# Verify the installation
+kubectl get pods -n keda
+```
+
+**Note**: Replace `v2.11.2` with the latest version available.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cron-scaler-example" summary="Configuring Cron-based Scaling for Scheduled Workloads">
+
+To implement scheduled scaling (start/stop workloads at specific times), use the Cron scaler:
+
+```yaml
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: api-service-scheduler
+  namespace: your-namespace
+spec:
+  scaleTargetRef:
+    name: your-api-deployment # Replace with your deployment name
+  minReplicaCount: 0 # Scale to zero when not needed
+  maxReplicaCount: 3 # Maximum replicas during active hours
+  triggers:
+    - type: cron
+      metadata:
+        timezone: America/Argentina/Buenos_Aires # Adjust to your timezone
+        start: "0 8 * * 1-5" # Start at 8 AM, Monday to Friday
+        end: "0 18 * * 1-5" # Stop at 6 PM, Monday to Friday
+        desiredReplicas: "2" # Number of replicas during active hours
+```
+
+Apply the configuration:
+
+```bash
+kubectl apply -f scaled-object.yaml
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-scaling" summary="Manual Start/Stop using KEDA ScaledObjects">
+
+For manual control over workload scaling

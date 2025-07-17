@@ -1,0 +1,256 @@
+---
+sidebar_position: 3
+title: "Fallos de Aplicación y Problemas de Memoria en Producción"
+description: "Resolución de fallos de aplicación, problemas de memoria y errores 502 en entornos SleakOps"
+date: "2024-06-09"
+category: "workload"
+tags:
+  ["memoria", "fallos", "error-502", "producción", "resolución-de-problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Fallos de Aplicación y Problemas de Memoria en Producción
+
+**Fecha:** 9 de junio de 2024  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** Memoria, Fallos, Error 502, Producción, Resolución de Problemas
+
+## Descripción del Problema
+
+**Contexto:** Aplicaciones desplegadas en SleakOps que experimentan fallos y problemas de conectividad tanto en entornos de desarrollo como de producción, con errores específicos relacionados con la memoria que causan interrupciones del servicio.
+
+**Síntomas Observados:**
+
+- El entorno de desarrollo no inicia correctamente
+- La aplicación en producción falla después del despliegue
+- Errores 502 Bad Gateway al acceder a la aplicación
+- Errores relacionados con memoria en los registros de la aplicación
+- La funcionalidad de reenvío de puertos no funciona correctamente
+- Problemas de resolución DNS para algunos subdominios
+
+**Configuración Relevante:**
+
+- Entorno: Desarrollo y producción
+- Aplicación: Aplicación web basada en monorepositorio
+- Ubicación del error: Línea 805 en los logs (problema de memoria)
+- Host: app.takenos.com
+- Servicio: web-app con endpoints tRPC
+
+**Condiciones de Error:**
+
+- Fallos ocurren durante el despliegue a producción
+- Agotamiento de memoria en ubicaciones específicas del código
+- Problemas intermitentes de conectividad
+- La aplicación parece saludable en Kubernetes pero devuelve errores
+
+## Solución Detallada
+
+<TroubleshootingItem id="memory-diagnosis" summary="Diagnóstico de Problemas de Memoria">
+
+Cuando tu aplicación falla debido a problemas de memoria, sigue estos pasos:
+
+1. **Verifica los límites actuales de memoria:**
+
+   ```bash
+   kubectl describe pod <nombre-del-pod> -n <namespace>
+   ```
+
+2. **Monitorea el uso de memoria:**
+
+   ```bash
+   kubectl top pod <nombre-del-pod> -n <namespace>
+   ```
+
+3. **Revisa los registros de la aplicación en busca de errores de memoria:**
+   ```bash
+   kubectl logs <nombre-del-pod> -n <namespace> --tail=100
+   ```
+
+Busca errores como:
+
+- "Out of memory"
+- "JavaScript heap out of memory"
+- "Cannot allocate memory"
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="increase-memory-limits" summary="Incrementar Límites de Memoria">
+
+Para aumentar los límites de memoria de tu aplicación en SleakOps:
+
+1. **Accede a la configuración de tu proyecto**
+2. **Navega hasta la carga de trabajo afectada (servicio web)**
+3. **Ve a Configuración Avanzada → Recursos**
+4. **Incrementa los límites de memoria:**
+
+```yaml
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "2Gi" # Incrementa este valor
+    cpu: "1000m"
+```
+
+**Incrementos recomendados de memoria:**
+
+- Para aplicaciones Node.js: Comienza con 2Gi, aumenta a 4Gi si es necesario
+- Para aplicaciones Java: Comienza con 4Gi, aumenta a 8Gi si es necesario
+- Para aplicaciones Python: Comienza con 1Gi, aumenta a 2Gi si es necesario
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="502-error-troubleshooting" summary="Resolución de Errores 502 Bad Gateway">
+
+Cuando experimentes errores 502 a pesar de que los pods parecen saludables:
+
+1. **Verifica la salud del pod:**
+
+   ```bash
+   kubectl get pods -n <namespace>
+   kubectl describe pod <nombre-del-pod> -n <namespace>
+   ```
+
+2. **Revisa los endpoints del servicio:**
+
+   ```bash
+   kubectl get endpoints -n <namespace>
+   ```
+
+3. **Prueba la conectividad directa al pod:**
+
+   ```bash
+   kubectl port-forward pod/<nombre-del-pod> 8080:8080 -n <namespace>
+   curl http://localhost:8080/health
+   ```
+
+4. **Verifica la configuración del ingress:**
+   ```bash
+   kubectl describe ingress <nombre-ingress> -n <namespace>
+   ```
+
+**Causas comunes:**
+
+- La aplicación no escucha en el puerto correcto
+- Fallos en los endpoints de chequeo de salud
+- Errores internos de la aplicación no reflejados en el estado del pod
+- Configuración incorrecta del ingress
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dns-ingress-verification" summary="Verificación de DNS e Ingress">
+
+Para verificar la configuración de DNS e ingress:
+
+1. **Comprueba la resolución DNS:**
+
+   ```bash
+   dig A tu-dominio.com
+   nslookup tu-dominio.com
+   ```
+
+2. **Verifica el estado del balanceador de carga:**
+
+   ```bash
+   kubectl get svc -n <namespace>
+   kubectl describe svc <nombre-servicio> -n <namespace>
+   ```
+
+3. **Revisa los logs del controlador ingress:**
+
+   ```bash
+   kubectl logs -n ingress-nginx deployment/ingress-nginx-controller
+   ```
+
+4. **Prueba el acceso directo al balanceador de carga:**
+   ```bash
+   curl -H "Host: tu-dominio.com" http://<ip-balanceador-carga>
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="production-deployment-best-practices" summary="Buenas Prácticas para Despliegues en Producción">
+
+Para prevenir fallos durante los despliegues en producción:
+
+1. **Implementa chequeos de salud adecuados:**
+
+   ```yaml
+   livenessProbe:
+     httpGet:
+       path: /health
+       port: 8080
+     initialDelaySeconds: 30
+     periodSeconds: 10
+
+   readinessProbe:
+     httpGet:
+       path: /ready
+       port: 8080
+     initialDelaySeconds: 5
+     periodSeconds: 5
+   ```
+
+2. **Usa estrategia de despliegue rolling update:**
+
+   ```yaml
+   strategy:
+     type: RollingUpdate
+     rollingUpdate:
+       maxUnavailable: 1
+       maxSurge: 1
+   ```
+
+3. **Establece límites de recursos apropiados:**
+
+   - Siempre configura tanto requests como limits
+   - Monitorea el uso real y ajusta según sea necesario
+   - Deja margen para picos de tráfico
+
+4. **Prueba primero en entorno staging:**
+   - Despliega en desarrollo/staging antes de producción
+   - Realiza pruebas de carga para verificar uso de memoria
+   - Monitorea posibles fugas de memoria con el tiempo
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="emergency-recovery" summary="Pasos para Recuperación de Emergencia">
+
+Si tu aplicación en producción está caída:
+
+1. **Rollback inmediato:**
+
+   ```bash
+   kubectl rollout undo deployment/<nombre-despliegue> -n <namespace>
+   ```
+
+2. **Escala réplicas temporalmente:**
+
+   ```bash
+   kubectl scale deployment <nombre-despliegue> --replicas=3 -n <namespace>
+   ```
+
+3. **Revisa cambios recientes:**
+
+   ```bash
+   kubectl rollout history deployment/<nombre-despliegue> -n <namespace>
+   ```
+
+4. **Monitorea la recuperación:**
+
+   ```bash
+   kubectl get pods -n <namespace> -w
+   ```
+
+5. **Verifica que la aplicación responde:**
+   ```bash
+   curl -I https://tu-dominio.com
+   ```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 9 de junio de 2024 basada en una consulta real de usuario._

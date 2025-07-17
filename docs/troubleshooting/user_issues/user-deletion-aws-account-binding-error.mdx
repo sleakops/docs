@@ -1,0 +1,197 @@
+---
+sidebar_position: 3
+title: "User Deletion Error Due to AWS Account Binding"
+description: "Solution for user deletion issues when bound to AWS accounts"
+date: "2024-01-15"
+category: "user"
+tags:
+  ["user-management", "aws", "deletion", "account-binding", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# User Deletion Error Due to AWS Account Binding
+
+**Date:** January 15, 2024  
+**Category:** User  
+**Tags:** User Management, AWS, Deletion, Account Binding, Troubleshooting
+
+## Problem Description
+
+**Context:** Users attempting to delete a user account from the SleakOps platform encounter errors when the user is bound to an AWS account. The deletion process fails, leaving the user in a pending state that prevents recreation.
+
+**Observed Symptoms:**
+
+- User appears with error status in the interface
+- Deletion process fails to complete
+- User remains in pending state after attempted deletion
+- Cannot recreate user with same credentials
+- Error is related to AWS account binding
+
+**Relevant Configuration:**
+
+- User has active AWS account binding
+- User deletion attempted through SleakOps interface
+- User shows error status before deletion attempt
+- Platform: SleakOps user management system
+
+**Error Conditions:**
+
+- Error occurs during user deletion process
+- User has existing AWS account associations
+- Deletion leaves user in inconsistent state
+- Prevents user recreation with same identity
+
+## Detailed Solution
+
+<TroubleshootingItem id="understanding-aws-binding" summary="Understanding AWS Account Binding Issues">
+
+When a user is bound to an AWS account in SleakOps, several resources may be associated:
+
+- IAM roles and policies
+- Service accounts in EKS clusters
+- VPC and networking configurations
+- Resource access permissions
+
+These bindings must be properly cleaned up before user deletion can complete successfully.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="pre-deletion-steps" summary="Steps Before Deleting AWS-Bound Users">
+
+Before attempting to delete a user with AWS account binding:
+
+1. **Check Active Resources**:
+
+   - Navigate to User Management → User Details
+   - Review "AWS Resources" tab
+   - Document any active clusters or projects
+
+2. **Remove AWS Associations**:
+
+   ```bash
+   # Remove user from all projects first
+   sleakops project remove-user --user-email user@example.com --all-projects
+
+   # Unbind AWS account
+   sleakops user unbind-aws --user-email user@example.com
+   ```
+
+3. **Verify Clean State**:
+   - Ensure no active clusters are assigned to the user
+   - Confirm no pending AWS operations
+   - Check that IAM roles are properly cleaned up
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="safe-deletion-process" summary="Safe User Deletion Process">
+
+To safely delete a user with AWS account binding:
+
+1. **Preparation Phase**:
+
+   ```bash
+   # List user's active resources
+   sleakops user list-resources --user-email user@example.com
+
+   # Remove from all projects
+   sleakops project remove-user --user-email user@example.com --all-projects
+   ```
+
+2. **AWS Cleanup Phase**:
+
+   ```bash
+   # Unbind AWS account
+   sleakops user unbind-aws --user-email user@example.com --force-cleanup
+
+   # Wait for cleanup completion
+   sleakops user check-cleanup-status --user-email user@example.com
+   ```
+
+3. **Final Deletion**:
+   ```bash
+   # Delete user after cleanup
+   sleakops user delete --user-email user@example.com --confirm
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="recovery-from-failed-deletion" summary="Recovering from Failed Deletion">
+
+If a user is stuck in pending deletion state:
+
+1. **Check Deletion Status**:
+
+   ```bash
+   sleakops user status --user-email user@example.com
+   ```
+
+2. **Force Cleanup** (Admin only):
+
+   ```bash
+   # Admin command to force cleanup
+   sleakops admin user force-cleanup --user-email user@example.com
+
+   # Complete the deletion
+   sleakops admin user complete-deletion --user-email user@example.com
+   ```
+
+3. **Manual AWS Cleanup** (if needed):
+   - Go to AWS IAM Console
+   - Remove any remaining roles with prefix `sleakops-user-{user-id}`
+   - Clean up any orphaned service accounts in EKS clusters
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="recreating-user" summary="Recreating User After Cleanup">
+
+Once cleanup is complete, to recreate the user:
+
+1. **Verify Clean State**:
+
+   ```bash
+   sleakops user check --email user@example.com
+   # Should return "User not found"
+   ```
+
+2. **Create New User**:
+
+   ```bash
+   sleakops user create --email user@example.com --name "User Name" --role member
+   ```
+
+3. **Rebind AWS Account** (if needed):
+   ```bash
+   sleakops user bind-aws --user-email user@example.com --aws-account-id 123456789012
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-best-practices" summary="Prevention Best Practices">
+
+To avoid future user deletion issues:
+
+1. **Regular Cleanup**:
+
+   - Remove users from projects before deletion
+   - Unbind AWS accounts when no longer needed
+   - Monitor user resource usage regularly
+
+2. **Proper Workflow**:
+
+   ```bash
+   # Recommended deletion workflow
+   sleakops user prepare-deletion --user-email user@example.com
+   sleakops user confirm-deletion --user-email user@example.com
+   ```
+
+3. **Monitoring**:
+   - Set up alerts for failed user operations
+   - Regular audits of user-AWS bindings
+   - Document user resource associations
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

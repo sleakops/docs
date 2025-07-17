@@ -1,0 +1,234 @@
+---
+sidebar_position: 3
+title: "Problemas de Despliegue de Hooks de Migración"
+description: "Solución de problemas de tiempos de espera en despliegues y fallos de hooks de migración en SleakOps"
+date: "2024-12-11"
+category: "proyecto"
+tags:
+  [
+    "despliegue",
+    "migración",
+    "hooks",
+    "solución de problemas",
+    "tiempo de espera",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de Despliegue de Hooks de Migración
+
+**Fecha:** 11 de diciembre de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Despliegue, Migración, Hooks, Solución de problemas, Tiempo de espera
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios experimentan tiempos de espera en el despliegue cuando los hooks de migración no se completan con éxito, causando que los despliegues permanezcan en estado "STALLED" indefinidamente.
+
+**Síntomas Observados:**
+
+- El despliegue muestra error de tiempo de espera después de 30 minutos
+- El pod del hook de migración nunca alcanza el estado "Succeeded"
+- El despliegue permanece en estado "STALLED"
+- Los errores de migración no son visibles en los logs del despliegue
+- La ejecución manual de migraciones en el pod muestra resultados diferentes a la ejecución del hook
+
+**Configuración Relevante:**
+
+- Plataforma: sistema de despliegue SleakOps
+- Tipo de hook: hooks de migración de base de datos
+- Método de despliegue: Jobs de Kubernetes
+- Visibilidad de logs: reporte limitado de errores en logs de despliegue
+
+**Condiciones de Error:**
+
+- El hook de migración falla pero no reporta error explícito
+- La migración de base de datos encuentra violaciones de restricciones
+- La ejecución del hook no termina correctamente con códigos de estado
+- Los logs de los hooks de migración no aparecen en stdout
+
+## Solución Detallada
+
+<TroubleshootingItem id="hook-status-diagnosis" summary="Diagnóstico del estado del hook de migración">
+
+Para verificar si tu hook de migración es la causa del tiempo de espera en el despliegue:
+
+1. **Revisa el estado del pod del hook** en el clúster:
+
+   ```bash
+   kubectl get pods -l job-name=migration-hook
+   kubectl describe pod <nombre-del-pod-de-migracion>
+   ```
+
+2. **Busca el estado de finalización del hook**:
+
+   - El hook debería mostrar estado `Completed`
+   - Si está en `Running`, la migración nunca terminó
+   - Si muestra `Failed`, revisa los logs del pod
+
+3. **Verifica los logs del hook**:
+   ```bash
+   kubectl logs <nombre-del-pod-de-migracion>
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-migration-debugging" summary="Ejecución manual de migraciones para depuración">
+
+Cuando los logs del hook no muestran el error real, ejecuta las migraciones manualmente:
+
+1. **Accede al pod de la aplicación**:
+
+   ```bash
+   kubectl exec -it <nombre-del-pod-app> -- /bin/bash
+   ```
+
+2. **Ejecuta las migraciones manualmente**:
+
+   ```bash
+   # Para aplicaciones Rails
+   bundle exec rails db:migrate
+
+   # Para aplicaciones Django
+   python manage.py migrate
+
+   # Para aplicaciones Node.js
+   npm run migrate
+   ```
+
+3. **Revisa errores específicos**:
+   - Violaciones de restricciones de base de datos
+   - Columnas o tablas faltantes
+   - Conflictos de tipos de datos
+   - Violaciones de restricción NOT NULL
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-migration-errors" summary="Errores comunes en migraciones y soluciones">
+
+**Violaciones de restricción NOT NULL:**
+
+```sql
+-- Error: Intento de agregar columna NOT NULL a tabla con datos existentes
+-- Solución: Agregar columna como nullable primero, luego actualizar valores
+ALTER TABLE users ADD COLUMN email VARCHAR(255);
+UPDATE users SET email = 'default@example.com' WHERE email IS NULL;
+ALTER TABLE users ALTER COLUMN email SET NOT NULL;
+```
+
+**Conflictos de tipo de datos:**
+
+```sql
+-- Error: No se puede cambiar el tipo de columna con datos existentes
+-- Solución: Crear nueva columna, migrar datos, eliminar columna antigua
+ALTER TABLE products ADD COLUMN price_new DECIMAL(10,2);
+UPDATE products SET price_new = CAST(price AS DECIMAL(10,2));
+ALTER TABLE products DROP COLUMN price;
+ALTER TABLE products RENAME COLUMN price_new TO price;
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="hook-exit-codes" summary="Asegurando códigos de salida correctos en hooks">
+
+Asegúrate de que tus scripts de migración terminen correctamente:
+
+**Para scripts shell:**
+
+```bash
+#!/bin/bash
+set -e  # Salir ante cualquier error
+
+# Ejecuta tus migraciones
+echo "Ejecutando migraciones de base de datos..."
+bundle exec rails db:migrate
+
+# Salida explícita de éxito
+echo "Migraciones completadas con éxito"
+exit 0
+```
+
+**Para scripts Python:**
+
+```python
+import sys
+import subprocess
+
+try:
+    # Ejecutar comando de migración
+    result = subprocess.run(['python', 'manage.py', 'migrate'],
+                          check=True, capture_output=True, text=True)
+    print("Migraciones completadas con éxito")
+    sys.exit(0)
+except subprocess.CalledProcessError as e:
+    print(f"Migración fallida: {e.stderr}")
+    sys.exit(1)
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="improving-hook-logging" summary="Mejorando el registro de logs de hooks de migración">
+
+Para obtener mejor visibilidad de fallos en hooks de migración:
+
+1. **Agrega logging detallado a tus scripts de migración**:
+
+   ```bash
+   #!/bin/bash
+   echo "[$(date)] Iniciando migraciones de base de datos"
+   echo "[$(date)] Estado actual de la base de datos:"
+   # Añade aquí chequeos del estado de la base de datos
+
+   echo "[$(date)] Ejecutando migraciones..."
+   bundle exec rails db:migrate 2>&1 | tee /tmp/migration.log
+
+   if [ ${PIPESTATUS[0]} -eq 0 ]; then
+       echo "[$(date)] Migraciones completadas con éxito"
+       exit 0
+   else
+       echo "[$(date)] Fallo en migraciones"
+       cat /tmp/migration.log
+       exit 1
+   fi
+   ```
+
+2. **Asegura que toda la salida vaya a stdout/stderr**:
+   - Redirige toda la salida de comandos a stdout
+   - Usa `2>&1` para capturar stderr
+   - Evita escribir logs solo en archivos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="recovery-steps" summary="Pasos de recuperación para despliegues atascados">
+
+Cuando un despliegue está atascado debido a hooks de migración fallidos:
+
+1. **Elimina el pod de migración fallido**:
+
+   ```bash
+   kubectl delete pod <nombre-del-pod-de-migracion>
+   ```
+
+2. **Soluciona el problema subyacente de la migración**:
+
+   - Resuelve manualmente conflictos en la base de datos
+   - Actualiza los scripts de migración si es necesario
+   - Prueba las migraciones en un entorno de staging
+
+3. **Reintenta el despliegue**:
+
+   - El hook se recreará automáticamente
+   - Monitorea el estado del nuevo pod del hook
+   - Revisa los logs para confirmar finalización exitosa
+
+4. **Si los problemas persisten**:
+   - Considera deshabilitar temporalmente el hook de migración
+   - Ejecuta las migraciones manualmente después del despliegue
+   - Actualiza la configuración del hook para hacerlo más resiliente
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 11 de diciembre de 2024 basada en una consulta real de usuario._

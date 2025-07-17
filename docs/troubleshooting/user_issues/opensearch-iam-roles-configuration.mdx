@@ -1,0 +1,72 @@
+---
+sidebar_position: 3
+title: "OpenSearch IAM Roles Configuration"
+description: "How to configure IAM roles for OpenSearch in SleakOps"
+date: "2025-02-05"
+category: "dependency"
+tags: ["opensearch", "iam", "aws", "roles", "permissions"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# OpenSearch IAM Roles Configuration
+
+**Date:** February 5, 2025  
+**Category:** Dependency  
+**Tags:** OpenSearch, IAM, AWS, Roles, Permissions
+
+## Problem Description
+
+**Context:** User is setting up an OpenSearch service in SleakOps and has questions about whether IAM roles are required for proper access configuration.
+
+**Observed Symptoms:**
+
+- Uncertainty about IAM role requirements for OpenSearch
+- Questions about access configuration after service creation
+- Need to understand permission structure for OpenSearch in AWS
+
+**Relevant Configuration:**
+
+- Service type: OpenSearch
+- Instance type: t3.medium.search
+- Platform: AWS
+- Access method: To be determined
+
+**Error Conditions:**
+
+- Potential access issues if IAM roles are not properly configured
+- Service may be created but inaccessible without proper permissions
+- Applications may fail to connect to OpenSearch without correct IAM setup
+
+## Detailed Solution
+
+<TroubleshootingItem id="iam-requirements" summary="Do I need IAM roles for OpenSearch?">
+
+Yes, OpenSearch in AWS typically requires IAM roles for secure access. The specific requirements depend on your access method:
+
+**For VPC-based access (recommended):**
+
+- IAM roles are required for applications to access the OpenSearch cluster
+- Fine-grained access control can be configured
+
+**For public access:**
+
+- IAM policies can be used alongside IP-based restrictions
+- Less secure but simpler for development environments
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="automatic-configuration" summary="How SleakOps handles IAM for OpenSearch">
+
+SleakOps automatically configures basic IAM roles for OpenSearch:
+
+1. **Service Role**: Created automatically for the OpenSearch service itself
+2. **Access Role**: Generated for applications within your cluster to access OpenSearch
+3. **Master User**: Configured with administrative permissions
+
+**What's configured automatically:**
+
+```json
+{
+  "Version": "2012-10-17"
+```

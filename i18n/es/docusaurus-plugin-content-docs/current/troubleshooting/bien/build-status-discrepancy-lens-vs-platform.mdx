@@ -1,0 +1,169 @@
+---
+sidebar_position: 3
+title: "Discrepancia en el Estado de Construcción Entre la Plataforma y Lens"
+description: "Solución para el estado de construcción que aparece como 'creando' en la plataforma mientras Lens muestra una finalización exitosa"
+date: "2024-01-15"
+category: "proyecto"
+tags: ["construcción", "despliegue", "lens", "estado", "solución de problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Discrepancia en el Estado de Construcción Entre la Plataforma y Lens
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Construcción, Despliegue, Lens, Estado, Solución de Problemas
+
+## Descripción del Problema
+
+**Contexto:** El usuario experimenta una discrepancia entre el estado de construcción mostrado en la plataforma SleakOps y lo que se observa en Lens (IDE de Kubernetes). La plataforma muestra la construcción atascada en estado "creando" mientras que Lens indica que la construcción se completó con éxito.
+
+**Síntomas Observados:**
+
+- Estado de construcción atascado en "creando" en la plataforma SleakOps
+- Lens muestra que la construcción se completó exitosamente
+- Problema de sincronización del estado entre la interfaz de la plataforma y el estado real de Kubernetes
+- La construcción parece estar funcionando a pesar del estado mostrado en la plataforma
+
+**Configuración Relevante:**
+
+- Entorno: Producción
+- Plataforma: SleakOps
+- Herramienta de monitoreo: Lens
+- Proceso de construcción: Parece completarse con éxito en el clúster
+
+**Condiciones de Error:**
+
+- La discrepancia de estado ocurre durante el proceso de construcción
+- La interfaz de la plataforma no refleja el estado real de Kubernetes
+- El problema persiste incluso después de la finalización exitosa de la construcción
+- Puede afectar la visibilidad del flujo de trabajo de despliegue
+
+## Solución Detallada
+
+<TroubleshootingItem id="status-verification" summary="Verificar el estado real de la construcción">
+
+Para confirmar el estado real de su construcción:
+
+1. **Verifique directamente los recursos de Kubernetes:**
+
+   ```bash
+   kubectl get pods -n <su-namespace>
+   kubectl get deployments -n <su-namespace>
+   kubectl describe deployment <su-despliegue>
+   ```
+
+2. **En Lens:**
+
+   - Navegue a Workloads → Deployments
+   - Revise el estado de su aplicación
+   - Verifique la preparación y estado de ejecución de los pods
+
+3. **Revise los logs de construcción:**
+   ```bash
+   kubectl logs -f deployment/<su-despliegue>
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="platform-refresh" summary="Forzar actualización del estado en la plataforma">
+
+Para resolver el problema de sincronización del estado:
+
+1. **Refresque el panel de SleakOps:**
+
+   - Refresque el navegador con un hard refresh (Ctrl+F5 o Cmd+Shift+R)
+   - Limpie la caché del navegador si es necesario
+
+2. **Dispare una sincronización de estado:**
+
+   - Navegue a su proyecto en SleakOps
+   - Haga clic en "Actualizar Estado" si está disponible
+   - O realice una actualización menor de configuración para forzar la sincronización
+
+3. **Revise los logs de la plataforma:**
+   - Contacte soporte para verificar si existen problemas de sincronización en el controlador
+   - La plataforma puede necesitar reconciliar el estado real del clúster
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-causes" summary="Causas comunes de discrepancia de estado">
+
+Este problema típicamente ocurre debido a:
+
+1. **Retrasos en la sincronización del controlador:**
+
+   - El controlador de la plataforma puede estar experimentando demoras
+   - Problemas de conectividad de red entre la plataforma y el clúster
+
+2. **Problemas con webhooks o procesamiento de eventos:**
+
+   - Eventos de Kubernetes que no llegan correctamente a la plataforma
+   - Acumulación en la cola de procesamiento de eventos
+
+3. **Caché del estado de recursos:**
+
+   - La plataforma puede estar mostrando un estado en caché
+   - El estado real del clúster ha avanzado más allá de la versión en caché
+
+4. **Limitación de tasa en la API:**
+   - La plataforma puede estar limitada en la tasa de consultas al estado del clúster
+   - Esto causa actualizaciones de estado retrasadas
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-actions" summary="Acciones inmediatas a tomar">
+
+Si su construcción está realmente funcionando (confirmado vía Lens):
+
+1. **Continúe con su flujo de trabajo:**
+
+   - La aplicación probablemente esté funcionando correctamente
+   - El estado en la plataforma eventualmente se sincronizará
+
+2. **Monitoree la salud de la aplicación:**
+
+   ```bash
+   # Verifique los endpoints de la aplicación
+   kubectl get svc -n <su-namespace>
+
+   # Pruebe la conectividad de la aplicación
+   kubectl port-forward svc/<su-servicio> 8080:80
+   ```
+
+3. **Documente el problema:**
+   - Tome capturas de pantalla tanto del estado en la plataforma como en Lens
+   - Anote la marca de tiempo cuando se observó la discrepancia
+   - Esto ayuda al equipo de soporte a investigar la causa raíz
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention" summary="Prevención de futuras ocurrencias">
+
+Para minimizar problemas de discrepancia de estado:
+
+1. **Use múltiples herramientas de monitoreo:**
+
+   - No dependa únicamente de la interfaz de la plataforma
+   - Mantenga Lens o kubectl a mano para verificación
+
+2. **Configure alertas de monitoreo:**
+
+   - Configure alertas basadas en el estado real de pods/despliegues
+   - Use Prometheus/Grafana para monitoreo independiente
+
+3. **Actualizaciones regulares de la plataforma:**
+
+   - Asegúrese de que la plataforma SleakOps esté actualizada a la última versión
+   - Las actualizaciones suelen incluir mejoras en la sincronización
+
+4. **Reporte problemas de estado puntualmente:**
+   - El reporte temprano ayuda a identificar patrones
+   - Ayuda al equipo de plataforma a mejorar la sincronización
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de un usuario._

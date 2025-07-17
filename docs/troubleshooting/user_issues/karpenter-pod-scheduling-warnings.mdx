@@ -1,0 +1,238 @@
+---
+sidebar_position: 3
+title: "Karpenter Pod Scheduling Warnings and Node Provisioning"
+description: "Understanding Karpenter warnings when pods cannot be scheduled and how node provisioning works"
+date: "2024-04-17"
+category: "cluster"
+tags:
+  [
+    "karpenter",
+    "pod-scheduling",
+    "node-provisioning",
+    "warnings",
+    "troubleshooting",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Karpenter Pod Scheduling Warnings and Node Provisioning
+
+**Date:** April 17, 2024  
+**Category:** Cluster  
+**Tags:** Karpenter, Pod Scheduling, Node Provisioning, Warnings, Troubleshooting
+
+## Problem Description
+
+**Context:** Users experience pod scheduling warnings in production environments when using Karpenter for node autoscaling, potentially causing 502 errors and service disruptions.
+
+**Observed Symptoms:**
+
+- Pods show "running" status but display scheduling warnings
+- Intermittent 502 errors affecting end users
+- Warning messages appear when no nodes are available for pod placement
+- Service disruptions during node provisioning periods
+
+**Relevant Configuration:**
+
+- Environment: Production
+- Autoscaler: Karpenter
+- Pod status: Running with warnings
+- Node provisioning: Automatic
+
+**Error Conditions:**
+
+- Warnings appear when cluster lacks available nodes for new pods
+- Occurs during peak traffic or scaling events
+- May correlate with user-facing 502 errors
+- Temporary condition during node provisioning process
+
+## Detailed Solution
+
+<TroubleshootingItem id="understanding-warnings" summary="Understanding Karpenter scheduling warnings">
+
+When you see pod scheduling warnings with Karpenter, this is typically normal behavior:
+
+1. **Warning trigger**: The alert appears when no existing nodes have sufficient resources for new pods
+2. **Automatic response**: Karpenter detects this condition and begins provisioning new nodes
+3. **Temporary state**: This is a transitional period, not a permanent error
+4. **Resolution time**: The process usually takes 2-3 minutes to complete
+
+The warning indicates Karpenter is working correctly, not that there's a problem.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="node-provisioning-process" summary="How Karpenter node provisioning works">
+
+Karpenter's node provisioning follows this sequence:
+
+1. **Detection**: Karpenter identifies unschedulable pods
+2. **Instance selection**: Chooses appropriate EC2 instance type based on requirements
+3. **Instance launch**: Requests new EC2 instance from AWS
+4. **Node initialization**: Instance boots and installs necessary components
+5. **Cluster registration**: New node joins the Kubernetes cluster
+6. **Pod scheduling**: Pending pods are scheduled to the new node
+
+**Timeline**: This entire process typically takes 2-3 minutes.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-node-creation" summary="How to monitor node creation during warnings">
+
+When you see scheduling warnings, you can monitor the node provisioning process:
+
+**In SleakOps Dashboard:**
+
+1. Navigate to **Cluster** → **Nodes**
+2. Look for nodes with status "Creating" or "Pending"
+3. Monitor the node list for new additions
+
+**Using kubectl:**
+
+```bash
+# Watch nodes being created
+kubectl get nodes -w
+
+# Check Karpenter logs
+kubectl logs -n karpenter -l app.kubernetes.io/name=karpenter
+
+# View pending pods
+kubectl get pods --field-selector=status.phase=Pending
+```
+
+**Expected behavior:** You should see new nodes appearing within 2-3 minutes of the warning.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="correlation-with-502-errors" summary="Relationship between scheduling warnings and 502 errors">
+
+The correlation between pod scheduling warnings and 502 errors can occur when:
+
+1. **Resource exhaustion**: Existing pods consume all available resources
+2. **Scaling delay**: New requests arrive during the 2-3 minute provisioning window
+3. **Load balancer behavior**: Some requests may fail while new capacity comes online
+
+**Mitigation strategies:**
+
+- Configure appropriate resource requests and limits
+- Implement proper health checks and readiness probes
+- Consider pre-scaling for predictable traffic patterns
+- Use Horizontal Pod Autoscaler (HPA) alongside Karpenter
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="optimization-recommendations" summary="Optimizing Karpenter for reduced warnings">
+
+To minimize scheduling warnings and improve response times:
+
+**1. Configure Karpenter NodePool properly:**
+
+```yaml
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
+metadata:
+  name: default
+spec:
+  template:
+    spec:
+      requirements:
+        - key: kubernetes.io/arch
+          operator: In
+          values: ["amd64"]
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["spot", "on-demand"]
+      nodeClassRef:
+        apiVersion: karpenter.k8s.aws/v1beta1
+        kind: EC2NodeClass
+        name: default
+  disruption:
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 30s
+```
+
+**2. Set appropriate resource requests:**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+```
+
+**3. Use Horizontal Pod Autoscaler:**
+
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: app-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: app
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-persistent-issues" summary="Troubleshooting persistent scheduling issues">
+
+If scheduling warnings persist or 502 errors continue:
+
+**1. Check Karpenter configuration:**
+
+```bash
+# Verify Karpenter is running
+kubectl get pods -n karpenter
+
+# Check Karpenter events
+kubectl get events -n karpenter --sort-by='.lastTimestamp'
+```
+
+**2. Verify AWS permissions:**
+
+- Ensure Karpenter has proper IAM permissions
+- Check EC2 service quotas and limits
+- Verify subnet and security group configurations
+
+**3. Monitor resource utilization:**
+
+```bash
+# Check node resource usage
+kubectl top nodes
+
+# Check pod resource usage
+kubectl top pods --all-namespaces
+```
+
+**4. Review application configuration:**
+
+- Verify resource requests match actual usage
+- Check readiness and liveness probes
+- Ensure proper graceful shutdown handling
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on April 17, 2024 based on a real user query._

@@ -1,0 +1,165 @@
+---
+sidebar_position: 3
+title: "Web Service Alias Configuration"
+description: "How to create and manage aliases for web services in SleakOps"
+date: "2024-12-19"
+category: "workload"
+tags: ["webservice", "alias", "configuration", "networking"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Web Service Alias Configuration
+
+**Date:** December 19, 2024  
+**Category:** Workload  
+**Tags:** Web Service, Alias, Configuration, Networking
+
+## Problem Description
+
+**Context:** Users need to create custom domain aliases for their web services in SleakOps to provide alternative URLs or custom domain names for accessing their applications.
+
+**Observed Symptoms:**
+
+- Need for custom domain names for web services
+- Requirement to access services through multiple URLs
+- Desire to use branded or user-friendly domain names
+- Need for load balancing across multiple endpoints
+
+**Relevant Configuration:**
+
+- Web service deployment in SleakOps
+- Custom domain names or subdomains
+- DNS configuration requirements
+- SSL/TLS certificate management
+
+**Error Conditions:**
+
+- Default service URLs may not meet branding requirements
+- Multiple access points needed for the same service
+- Custom domain routing requirements
+
+## Detailed Solution
+
+<TroubleshootingItem id="alias-creation" summary="How to create aliases for web services">
+
+To create aliases for your web services in SleakOps:
+
+1. **Navigate to Web Service Details**:
+
+   - Go to your project dashboard
+   - Select the web service you want to configure
+   - Click on the web service name to access its details
+
+2. **Access Alias Configuration**:
+
+   - In the web service detail page, look for the "Aliases" or "Networking" section
+   - Click on "Add Alias" or similar button
+
+3. **Configure the Alias**:
+   - Enter your custom domain name (e.g., `api.mycompany.com`)
+   - Select the appropriate protocol (HTTP/HTTPS)
+   - Configure any additional routing rules if needed
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dns-configuration" summary="DNS configuration requirements">
+
+Before creating an alias, ensure your DNS is properly configured:
+
+1. **CNAME Record**: Create a CNAME record pointing your custom domain to the SleakOps service endpoint
+2. **A Record**: Alternatively, use an A record pointing to the service IP address
+3. **Verification**: Ensure DNS propagation is complete before testing
+
+```bash
+# Example DNS configuration
+# CNAME record
+api.mycompany.com.    IN    CNAME    your-service.sleakops.io.
+
+# Or A record
+api.mycompany.com.    IN    A        192.168.1.100
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="ssl-certificates" summary="SSL certificate management">
+
+For HTTPS aliases, SleakOps can automatically manage SSL certificates:
+
+1. **Automatic Certificates**: SleakOps can automatically provision Let's Encrypt certificates
+2. **Custom Certificates**: Upload your own SSL certificates if required
+3. **Certificate Renewal**: Automatic renewal is handled by the platform
+
+**Steps to enable HTTPS**:
+
+- Enable SSL/TLS in the alias configuration
+- Choose between automatic or custom certificate
+- Verify certificate installation after creation
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="multiple-aliases" summary="Managing multiple aliases">
+
+You can create multiple aliases for the same web service:
+
+1. **Different Domains**: Point multiple domains to the same service
+2. **Subdomain Routing**: Use different subdomains for different purposes
+3. **Environment-specific**: Create aliases for different environments
+
+**Example use cases**:
+
+- `api.mycompany.com` - Production API
+- `api-staging.mycompany.com` - Staging environment
+- `v1.api.mycompany.com` - Version-specific endpoint
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Common troubleshooting steps">
+
+If your alias is not working properly:
+
+1. **DNS Propagation**: Wait for DNS changes to propagate (up to 48 hours)
+2. **Certificate Issues**: Check SSL certificate status and validity
+3. **Firewall Rules**: Ensure no firewall rules are blocking the traffic
+4. **Service Health**: Verify the underlying web service is running correctly
+
+**Verification commands**:
+
+```bash
+# Check DNS resolution
+nslookup api.mycompany.com
+
+# Test HTTP connectivity
+curl -I http://api.mycompany.com
+
+# Test HTTPS connectivity
+curl -I https://api.mycompany.com
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Best practices for alias configuration">
+
+**Naming Conventions**:
+
+- Use descriptive subdomain names
+- Follow consistent naming patterns
+- Consider environment prefixes (prod-, staging-, dev-)
+
+**Security Considerations**:
+
+- Always use HTTPS for production services
+- Implement proper certificate management
+- Consider using wildcard certificates for multiple subdomains
+
+**Performance Optimization**:
+
+- Use CDN integration when available
+- Configure appropriate caching headers
+- Monitor alias performance and usage
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

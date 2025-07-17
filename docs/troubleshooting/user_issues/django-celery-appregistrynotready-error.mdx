@@ -1,0 +1,212 @@
+---
+sidebar_position: 3
+title: "Django Celery AppRegistryNotReady Error"
+description: "Solution for Django AppRegistryNotReady error when running Celery cron jobs"
+date: "2024-12-26"
+category: "workload"
+tags: ["django", "celery", "cron", "appregistrynotready", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Django Celery AppRegistryNotReady Error
+
+**Date:** December 26, 2024  
+**Category:** Workload  
+**Tags:** Django, Celery, Cron, AppRegistryNotReady, Troubleshooting
+
+## Problem Description
+
+**Context:** User is experiencing errors when running Celery cron jobs in a Django application deployed on SleakOps platform.
+
+**Observed Symptoms:**
+
+- `django.core.exceptions.AppRegistryNotReady: Apps aren't loaded yet.` error
+- Error occurs when using `celery -A (App) call function` command
+- Cron jobs fail to execute properly
+- Application appears to not be fully initialized when Celery tasks run
+
+**Relevant Configuration:**
+
+- Framework: Django with Celery
+- Task execution: Cron jobs
+- Command format: `celery -A (App) call function`
+- Platform: SleakOps
+
+**Error Conditions:**
+
+- Error occurs during Celery task execution
+- Happens specifically with cron job scheduling
+- Django apps are not properly loaded when task runs
+- May be related to Django settings configuration
+
+## Detailed Solution
+
+<TroubleshootingItem id="django-setup-verification" summary="Verify Django setup in Celery configuration">
+
+Ensure Django is properly initialized before Celery starts:
+
+```python
+# celery.py
+import os
+from celery import Celery
+from django.conf import settings
+
+# Set the default Django settings module
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'your_project.settings')
+
+# Initialize Django
+import django
+django.setup()
+
+app = Celery('your_project')
+app.config_from_object('django.conf:settings', namespace='CELERY')
+app.autodiscover_tasks()
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="installed-apps-check" summary="Verify INSTALLED_APPS configuration">
+
+Check your Django `settings.py` to ensure all required apps are included:
+
+```python
+# settings.py
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+
+    # Third-party apps
+    'celery',
+    'django_celery_beat',  # If using periodic tasks
+    'django_celery_results',  # If storing results in Django DB
+
+    # Your apps
+    'your_app_name',
+    # Add any missing apps here
+]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="task-definition-fix" summary="Proper task definition and execution">
+
+Ensure your Celery tasks are properly defined:
+
+```python
+# tasks.py
+from celery import shared_task
+from django.apps import apps
+
+@shared_task
+def your_cron_task():
+    # Ensure Django is ready
+    if not apps.ready:
+        import django
+        django.setup()
+
+    # Your task logic here
+    return "Task completed"
+```
+
+For manual task execution, use:
+
+```bash
+# Instead of: celery -A your_project call your_app.tasks.your_task
+# Use:
+celery -A your_project worker --loglevel=info
+
+# Or for one-time execution:
+python manage.py shell -c "from your_app.tasks import your_task; your_task.delay()"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="environment-variables" summary="Check environment variables and settings">
+
+Verify that Django settings are properly loaded:
+
+```python
+# In your task or celery.py
+import os
+print(f"DJANGO_SETTINGS_MODULE: {os.environ.get('DJANGO_SETTINGS_MODULE')}")
+
+from django.conf import settings
+print(f"Settings configured: {settings.configured}")
+print(f"Installed apps: {settings.INSTALLED_APPS}")
+```
+
+In SleakOps, ensure your environment variables are set:
+
+```yaml
+# In your deployment configuration
+environment:
+  DJANGO_SETTINGS_MODULE: "your_project.settings"
+  CELERY_BROKER_URL: "redis://redis:6379/0"
+  CELERY_RESULT_BACKEND: "redis://redis:6379/0"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-specific-config" summary="SleakOps specific configuration">
+
+For SleakOps deployments, ensure your worker configuration is correct:
+
+```yaml
+# sleakops.yaml or similar configuration
+workloads:
+  - name: celery-worker
+    type: worker
+    image: your-django-app
+    command: ["celery", "-A", "your_project", "worker", "--loglevel=info"]
+    environment:
+      DJANGO_SETTINGS_MODULE: "your_project.settings"
+
+  - name: celery-beat
+    type: worker
+    image: your-django-app
+    command: ["celery", "-A", "your_project", "beat", "--loglevel=info"]
+    environment:
+      DJANGO_SETTINGS_MODULE: "your_project.settings"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="debugging-steps" summary="Debugging and testing steps">
+
+To debug the issue:
+
+1. **Test locally first:**
+
+   ```bash
+   # Set environment variable
+   export DJANGO_SETTINGS_MODULE=your_project.settings
+
+   # Test Django setup
+   python -c "import django; django.setup(); print('Django setup successful')"
+
+   # Test Celery task
+   python manage.py shell -c "from your_app.tasks import your_task; print(your_task())"
+   ```
+
+2. **Check Celery worker logs:**
+
+   ```bash
+   kubectl logs -f deployment/celery-worker
+   ```
+
+3. **Verify Redis/Broker connection:**
+   ```python
+   from celery import current_app
+   print(current_app.control.inspect().stats())
+   ```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 26, 2024 based on a real user query._

@@ -1,0 +1,147 @@
+---
+sidebar_position: 3
+title: "Deployment Missing Tolerations After Nodepool Changes"
+description: "Solution for pods that can't schedule after nodepool modifications"
+date: "2025-03-05"
+category: "cluster"
+tags: ["nodepool", "tolerations", "deployment", "scheduling", "kubernetes"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Deployment Missing Tolerations After Nodepool Changes
+
+**Date:** March 5, 2025  
+**Category:** Cluster  
+**Tags:** Nodepool, Tolerations, Deployment, Scheduling, Kubernetes
+
+## Problem Description
+
+**Context:** After cluster upgrades or nodepool modifications, existing deployments may lose the ability to schedule pods on available nodes due to missing tolerations.
+
+**Observed Symptoms:**
+
+- Pods remain in Pending state despite available nodes
+- Deployments that were previously working cannot schedule
+- New nodepools are created but pods don't use them
+- Error messages about pod scheduling failures
+
+**Relevant Configuration:**
+
+- Multiple nodepools in cluster (e.g., production and development)
+- Different node types: on-demand and spot instances
+- Deployments scaled to 0 and then scaled back up
+- Recent cluster upgrades or nodepool changes
+
+**Error Conditions:**
+
+- Occurs after removing old default nodepools
+- Happens when deployments haven't been updated after nodepool changes
+- Affects deployments that were scaled down during nodepool transitions
+- Problem persists until tolerations are manually updated
+
+## Detailed Solution
+
+<TroubleshootingItem id="root-cause-analysis" summary="Understanding the root cause">
+
+This issue typically occurs when:
+
+1. **Default nodepool removal**: The original default nodepool is removed during cluster upgrades
+2. **Missing tolerations**: Existing deployments don't have the correct tolerations for new nodepools
+3. **Stale configurations**: Deployments retain old scheduling configurations that no longer match available nodes
+
+Kubernetes requires pods to have matching tolerations for nodes with taints, which are commonly used to separate different types of workloads (production vs development, on-demand vs spot instances).
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-solution" summary="Fix through SleakOps interface">
+
+The easiest way to resolve this issue is through the SleakOps platform:
+
+1. **Navigate to your service** in the SleakOps dashboard
+2. **Click "Edit"** on the affected deployment
+3. **Don't modify any values** - keep everything as is
+4. **Click "Deploy"** to trigger a new deployment
+
+This process will:
+
+- Automatically add the correct tolerations
+- Update the deployment configuration
+- Allow pods to schedule on the appropriate nodepools
+
+```bash
+# The system will automatically add tolerations like:
+tolerationsː
+- key: "node-type"
+  operator: "Equal"
+  value: "spot"
+  effect: "NoSchedule"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-verification" summary="Verify nodepool configuration">
+
+To understand your nodepool setup:
+
+1. **Check available nodepools**:
+
+   ```bash
+   kubectl get nodes --show-labels
+   ```
+
+2. **Verify node taints**:
+
+   ```bash
+   kubectl describe nodes | grep -A5 -B5 Taints
+   ```
+
+3. **Check pod scheduling status**:
+   ```bash
+   kubectl describe pod <pod-name> | grep -A10 Events
+   ```
+
+Common taint configurations:
+
+- Production nodes: `node-type=ondemand:NoSchedule`
+- Development nodes: `node-type=spot:NoSchedule`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="multiple-deployments" summary="Handling multiple affected deployments">
+
+If you have multiple deployments affected:
+
+1. **Identify all affected services** in SleakOps dashboard
+2. **Repeat the edit/deploy process** for each service
+3. **Prioritize critical services** first
+4. **Monitor pod scheduling** after each update
+
+For services that were scaled to 0:
+
+1. First apply the fix (edit without changes + deploy)
+2. Then scale up the deployment as needed
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-tips" summary="Preventing future occurrences">
+
+To avoid this issue in the future:
+
+1. **Plan nodepool changes**: Coordinate with your SleakOps team before major changes
+2. **Update deployments proactively**: When nodepools change, update affected deployments
+3. **Use consistent tainting strategies**: Maintain consistent node labeling and tainting
+4. **Monitor after upgrades**: Check deployment status after cluster upgrades
+
+**Best practices:**
+
+- Keep deployment configurations updated
+- Test scaling operations after nodepool changes
+- Document your nodepool taint strategy
+- Set up monitoring for pod scheduling failures
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on March 5, 2025 based on a real user query._

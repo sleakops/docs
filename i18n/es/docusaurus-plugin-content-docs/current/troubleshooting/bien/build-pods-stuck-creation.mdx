@@ -1,0 +1,183 @@
+---
+sidebar_position: 3
+title: "Pods de Build Atascados en Estado de Creación"
+description: "Solución para builds que se quedan atascados con pods que nunca completan la creación"
+date: "2025-03-22"
+category: "proyecto"
+tags: ["build", "pods", "despliegue", "solución de problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Pods de Build Atascados en Estado de Creación
+
+**Fecha:** 22 de marzo de 2025  
+**Categoría:** Proyecto  
+**Etiquetas:** Build, Pods, Despliegue, Solución de problemas
+
+## Descripción del Problema
+
+**Contexto:** El usuario experimenta builds que permanecen atascados en un estado incompleto, con pods que nunca terminan de crearse y que no son visibles en la interfaz.
+
+**Síntomas Observados:**
+
+- Los builds parecen "fallados" o atascados
+- Los pods no son visibles en la interfaz
+- Los pods nunca completan su proceso de creación
+- El problema persiste durante períodos prolongados (más de 12 horas)
+- El proceso de build parece congelado
+
+**Configuración Relevante:**
+
+- Plataforma: SleakOps
+- Sistema de build: Builds basados en Kubernetes
+- Duración: Períodos extendidos sin resolución
+- Interfaz de usuario: Pods no aparecen en el panel de control
+
+**Condiciones de Error:**
+
+- Builds iniciados pero nunca completados
+- El proceso de creación del pod se queda colgado indefinidamente
+- No hay progreso visible en el estado del build
+- El problema requiere intervención manual para resolverse
+
+## Solución Detallada
+
+<TroubleshootingItem id="initial-diagnosis" summary="Diagnóstico de pods de build atascados">
+
+Cuando los builds se quedan atascados y los pods no aparecen, esto típicamente indica:
+
+1. **Restricciones de recursos**: Recursos insuficientes en el clúster para programar los pods
+2. **Problemas al descargar imágenes**: Problemas al obtener las imágenes de contenedor
+3. **Problemas de programación en nodos**: Los pods no pueden asignarse a nodos disponibles
+4. **Problemas con volúmenes persistentes**: Problemas de almacenamiento que impiden el inicio del pod
+5. **Conectividad de red**: Problemas con la red del clúster
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-troubleshooting" summary="Pasos inmediatos para solución de problemas">
+
+Para diagnosticar y resolver pods de build atascados:
+
+**Paso 1: Verificar recursos del clúster**
+
+```bash
+# Ver recursos de los nodos
+kubectl top nodes
+
+# Ver estado de pods en el namespace de build
+kubectl get pods -n <build-namespace> --show-labels
+
+# Describir pods atascados para información detallada
+kubectl describe pod <pod-name> -n <build-namespace>
+```
+
+**Paso 2: Verificar pods pendientes**
+
+```bash
+# Listar todos los pods pendientes
+kubectl get pods --all-namespaces --field-selector=status.phase=Pending
+
+# Ver eventos para problemas de programación
+kubectl get events --sort-by=.metadata.creationTimestamp
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-solutions" summary="Soluciones comunes para builds atascados">
+
+**Solución 1: Reiniciar builds atascados**
+
+En el panel de SleakOps:
+
+1. Navegar a **Proyectos** → **Tu Proyecto**
+2. Ir a la sección **Builds**
+3. Encontrar el build atascado
+4. Hacer clic en **Cancelar Build**
+5. Iniciar un nuevo build
+
+**Solución 2: Limpiar caché de build**
+
+Si los builds se quedan atascados de forma recurrente:
+
+1. Ir a **Configuración del Proyecto**
+2. Navegar a **Configuración de Build**
+3. Habilitar la opción **"Limpiar caché de build"**
+4. Disparar un nuevo build
+
+**Solución 3: Verificar límites de recursos**
+
+Verifica la asignación de recursos de tu proyecto:
+
+```yaml
+# Ejemplo de configuración de recursos
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "500m"
+  limits:
+    memory: "1Gi"
+    cpu: "1000m"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-measures" summary="Prevención de problemas futuros de build">
+
+**Buenas prácticas para evitar builds atascados:**
+
+1. **Monitorear uso de recursos**:
+
+   - Revisar regularmente el consumo de recursos del clúster
+   - Establecer solicitudes y límites de recursos adecuados
+   - Monitorear la longitud de la cola de builds
+
+2. **Optimizar configuración de build**:
+
+   - Usar imágenes base más pequeñas cuando sea posible
+   - Implementar estrategias adecuadas de caché de build
+   - Configurar tiempos de espera razonables para builds
+
+3. **Mantenimiento regular**:
+   - Limpiar builds antiguos periódicamente
+   - Monitorear y limpiar imágenes Docker no usadas
+   - Mantener los entornos de build actualizados
+
+**Ejemplo de configuración de build:**
+
+```yaml
+build:
+  timeout: 30m
+  resources:
+    requests:
+      memory: 1Gi
+      cpu: 500m
+  cache:
+    enabled: true
+    ttl: 24h
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="escalation-process" summary="Cuándo contactar al soporte">
+
+Contacta al soporte de SleakOps si:
+
+- Los builds permanecen atascados después de intentar las soluciones anteriores
+- Múltiples proyectos se ven afectados simultáneamente
+- El problema persiste por más de 2 horas
+- Observas problemas de recursos a nivel de clúster
+
+**Información para proporcionar al contactar soporte:**
+
+- Nombre del proyecto y ID de build
+- Duración del problema
+- Cambios recientes en la configuración de build
+- Capturas de pantalla del estado atascado del build
+- Mensajes de error de los logs de build
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 22 de marzo de 2025 basada en una consulta real de usuario._

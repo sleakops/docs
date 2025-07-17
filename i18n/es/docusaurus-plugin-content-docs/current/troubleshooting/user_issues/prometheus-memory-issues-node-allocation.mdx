@@ -1,0 +1,218 @@
+---
+sidebar_position: 3
+title: "Problemas de Memoria en Prometheus y Asignación de Nodos"
+description: "Solución para fallos del pod de Prometheus debido a limitaciones de memoria y asignación dinámica de nodos"
+date: "2024-12-19"
+category: "cluster"
+tags: ["prometheus", "memoria", "monitorización", "grafana", "asignacion-nodos"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de Memoria en Prometheus y Asignación de Nodos
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Clúster  
+**Etiquetas:** Prometheus, Memoria, Monitorización, Grafana, Asignación de Nodos
+
+## Descripción del Problema
+
+**Contexto:** Los pods de Prometheus en los clústeres SleakOps experimentan fallos debido a limitaciones de memoria cuando se asignan a nodos con recursos insuficientes, causando que los paneles de monitorización y la recopilación de métricas no funcionen.
+
+**Síntomas Observados:**
+
+- Fallos del pod de Prometheus por agotamiento de memoria
+- Los paneles de Grafana no muestran datos o se vuelven inaccesibles
+- No se recopilan ni almacenan métricas
+- El contenedor de Prometheus muestra estado amarillo (estado de advertencia)
+- La funcionalidad de monitorización está completamente interrumpida
+
+**Configuración Relevante:**
+
+- Prometheus tiene requisitos dinámicos de memoria
+- La asignación de nodos es dinámica y puede colocar Prometheus en nodos subdimensionados
+- Grafana depende de Prometheus para los datos de métricas
+- Loki puede verse afectado por las mismas limitaciones de recursos del nodo
+
+**Condiciones de Error:**
+
+- Ocurre cuando Prometheus se programa en nodos con memoria insuficiente
+- El problema es intermitente debido a la asignación dinámica de nodos
+- Afecta todas las funciones de monitorización y observabilidad
+- Puede reaparecer conforme cambia la disponibilidad de nodos por escalado del clúster
+
+## Solución Detallada
+
+<TroubleshootingItem id="immediate-fix" summary="Solución inmediata: Configurar afinidad de nodo para Prometheus">
+
+La solución inmediata consiste en configurar Prometheus para que siempre se programe en nodos con recursos suficientes:
+
+1. **Accede a la configuración de tu clúster**
+2. **Modifica el despliegue de Prometheus** para incluir reglas de afinidad de nodo
+3. **Asegura que Prometheus apunte a nodos más grandes** con memoria adecuada
+
+```yaml
+# Ejemplo de configuración de afinidad de nodo para Prometheus
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+spec:
+  template:
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node.kubernetes.io/instance-type
+                    operator: In
+                    values:
+                      - "m5.large"
+                      - "m5.xlarge"
+                      - "c5.large"
+                      - "c5.xlarge"
+```
+
+Esto evita que Prometheus se programe en nodos más pequeños que no pueden manejar sus requisitos de memoria.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verify-recovery" summary="Cómo verificar la recuperación de la monitorización">
+
+Después de aplicar la solución, verifica que la monitorización funcione correctamente:
+
+1. **Revisa el estado del pod de Prometheus**:
+
+   ```bash
+   kubectl get pods -n monitoring | grep prometheus
+   ```
+
+   El pod debe mostrar estado `Running` con todos los contenedores en verde.
+
+2. **Verifica los paneles de Grafana**:
+
+   - **Logs del contenedor (Loki)**: Comprueba si hay datos de logs disponibles
+   - **Computación y RAM (Prometheus)**: Verifica que las métricas se estén recopilando
+   - **Tráfico de red (Prometheus)**: Confirma que las métricas de red se actualizan
+
+3. **Prueba la funcionalidad del panel**:
+   - Accede a la interfaz de Grafana
+   - Navega por diferentes paneles
+   - Confirma que los datos se muestran con marcas de tiempo recientes
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-prometheus-health" summary="Monitorizar la salud del contenedor Prometheus">
+
+Para identificar cuándo Prometheus está experimentando problemas:
+
+1. **Indicadores visuales en el panel de SleakOps**:
+
+   - Busca contenedores amarillos (estado de advertencia)
+   - Revisa contenedores rojos (estado fallido)
+   - Monitorea gráficos de uso de recursos
+
+2. **Monitorización por línea de comandos**:
+
+   ```bash
+   # Revisa uso de recursos del pod Prometheus
+   kubectl top pod -n monitoring | grep prometheus
+
+   # Revisa eventos del pod por problemas de memoria
+   kubectl describe pod <nombre-pod-prometheus> -n monitoring
+
+   # Monitorea logs del pod para errores de memoria
+   kubectl logs <nombre-pod-prometheus> -n monitoring
+   ```
+
+3. **Configura alertas** para reinicios del pod de Prometheus o picos en uso de memoria.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="resource-requirements" summary="Configurar requisitos adecuados de recursos">
+
+Establece solicitudes y límites apropiados de recursos para Prometheus:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+spec:
+  template:
+    spec:
+      containers:
+        - name: prometheus
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "500m"
+            limits:
+              memory: "4Gi"
+              cpu: "1000m"
+```
+
+**Directrices para dimensionar recursos**:
+
+- **Clústeres pequeños** (< 50 pods): solicitud de 2Gi de memoria, límite de 4Gi
+- **Clústeres medianos** (50-200 pods): solicitud de 4Gi de memoria, límite de 8Gi
+- **Clústeres grandes** (> 200 pods): solicitud de 8Gi de memoria, límite de 16Gi
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-strategies" summary="Estrategias de prevención a largo plazo">
+
+Para evitar que este problema se repita:
+
+1. **Implementa taints y tolerations en los nodos**:
+
+   ```yaml
+   # Taint a los nodos para cargas de monitorización
+   kubectl taint nodes <nombre-nodo> monitoring=true:NoSchedule
+
+   # Añade toleration al despliegue de Prometheus
+   tolerations:
+   - key: "monitoring"
+     operator: "Equal"
+     value: "true"
+     effect: "NoSchedule"
+   ```
+
+2. **Usa pools de nodos dedicados** para componentes de monitorización
+3. **Implementa autoscaling del clúster** con requisitos mínimos de nodos
+4. **Configura alertas de monitorización** para agotamiento de recursos
+5. **Planificación regular de capacidad** basada en el crecimiento del clúster
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Pasos adicionales para resolución de problemas">
+
+Si el problema persiste después de aplicar la solución inicial:
+
+1. **Revisa la capacidad de los nodos del clúster**:
+
+   ```bash
+   kubectl describe nodes | grep -A 5 "Allocated resources"
+   ```
+
+2. **Verifica la configuración de Prometheus**:
+
+   - Revisa intervalos de scrape y políticas de retención
+   - Revisa configuración de descubrimiento de objetivos
+   - Valida configuración de almacenamiento
+
+3. **Examina eventos del clúster**:
+
+   ```bash
+   kubectl get events --sort-by=.metadata.creationTimestamp
+   ```
+
+4. **Considera federación de Prometheus** para clústeres muy grandes
+5. **Implementa fragmentación (sharding) de Prometheus** si una sola instancia no puede manejar la carga
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de usuario._

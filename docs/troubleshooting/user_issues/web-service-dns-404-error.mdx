@@ -1,0 +1,206 @@
+---
+sidebar_position: 3
+title: "Web Service DNS 404 Error"
+description: "Solution for web service returning 404 error despite pod running correctly"
+date: "2024-01-15"
+category: "workload"
+tags: ["webservice", "dns", "404", "troubleshooting", "networking"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Web Service DNS 404 Error
+
+**Date:** January 15, 2024  
+**Category:** Workload  
+**Tags:** Web Service, DNS, 404, Troubleshooting, Networking
+
+## Problem Description
+
+**Context:** User creates a new web service in production environment with DNS registration. The pod is running correctly and responds to port forwarding, but accessing the URL returns a 404 error.
+
+**Observed Symptoms:**
+
+- Pod is running correctly in Kubernetes (visible in Lens)
+- Port forwarding to the pod works properly
+- DNS URL returns 404 error: "This [service-name].[domain].com page can't be found"
+- Error indicates the webpage wasn't found, not that the IP couldn't be resolved
+- Browser shows: "No webpage was found for the web address"
+
+**Relevant Configuration:**
+
+- Environment: Production
+- Service type: Web service
+- DNS registration: Configured
+- Pod status: Running and responding
+- Load balancer: Recently had issues (mentioned as resolved)
+
+**Error Conditions:**
+
+- Error occurs when accessing the public URL
+- Pod responds correctly to direct port forwarding
+- DNS resolution appears to work (no IP resolution error)
+- 404 error suggests routing or ingress configuration issue
+
+## Detailed Solution
+
+<TroubleshootingItem id="initial-diagnosis" summary="Diagnose the routing issue">
+
+When a pod works with port forwarding but returns 404 via DNS, the issue is typically in the ingress/routing layer:
+
+1. **Ingress Controller**: The ingress may not be properly configured
+2. **Service Configuration**: The Kubernetes service might not be correctly exposing the pod
+3. **Load Balancer**: Recent load balancer issues might have affected routing rules
+4. **Path Routing**: The ingress might be expecting a different path or host configuration
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verify-service" summary="Verify Kubernetes Service configuration">
+
+Check if the Kubernetes Service is properly configured:
+
+```bash
+# Check if the service exists and has endpoints
+kubectl get svc -n [namespace]
+kubectl describe svc [service-name] -n [namespace]
+
+# Verify endpoints are populated
+kubectl get endpoints [service-name] -n [namespace]
+```
+
+The service should:
+
+- Have the correct selector matching your pod labels
+- Show endpoints pointing to your pod IP
+- Use the correct port configuration
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="check-ingress" summary="Verify Ingress configuration">
+
+Check the ingress configuration in SleakOps:
+
+1. **In SleakOps Dashboard**:
+
+   - Go to your project → Web Services
+   - Check the DNS configuration
+   - Verify the path and host settings
+
+2. **In Kubernetes**:
+
+```bash
+# Check ingress resources
+kubectl get ingress -n [namespace]
+kubectl describe ingress [ingress-name] -n [namespace]
+```
+
+3. **Common Issues**:
+   - Incorrect host configuration
+   - Missing or wrong path rules
+   - Backend service name mismatch
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="load-balancer-check" summary="Verify Load Balancer status">
+
+Since there were recent load balancer issues:
+
+1. **Check Load Balancer Health**:
+
+```bash
+# Check if load balancer is receiving traffic
+kubectl get svc -n ingress-nginx
+kubectl logs -n ingress-nginx deployment/ingress-nginx-controller
+```
+
+2. **Verify DNS Propagation**:
+
+```bash
+# Check if DNS is resolving to the correct IP
+nslookup [your-domain].com
+dig [your-domain].com
+```
+
+3. **Test Load Balancer Directly**:
+   - Get the load balancer IP
+   - Test with curl using Host header:
+
+```bash
+curl -H "Host: [your-domain].com" http://[load-balancer-ip]/
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-solutions" summary="Common solutions">
+
+**Solution 1: Recreate the DNS registration**
+
+1. In SleakOps, remove the DNS configuration
+2. Wait 2-3 minutes
+3. Re-add the DNS configuration
+
+**Solution 2: Check application path configuration**
+
+```yaml
+# Ensure your application is serving on the correct path
+# If your app serves on /app, configure ingress accordingly
+path: /
+pathType: Prefix
+```
+
+**Solution 3: Verify application is listening on correct port**
+
+```bash
+# Port forward and check what port the app is actually using
+kubectl port-forward pod/[pod-name] 8080:8080
+# Test different ports if 8080 doesn't work
+```
+
+**Solution 4: Check for recent changes**
+If this worked before, check:
+
+- Recent deployments that might have changed the application
+- Load balancer configuration changes
+- DNS or ingress rule modifications
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Step-by-step troubleshooting">
+
+1. **Verify pod is healthy**:
+
+```bash
+kubectl get pods -n [namespace]
+kubectl logs [pod-name] -n [namespace]
+```
+
+2. **Test service connectivity**:
+
+```bash
+# From within the cluster
+kubectl run test-pod --image=curlimages/curl -it --rm -- sh
+# Inside the pod:
+curl http://[service-name].[namespace].svc.cluster.local:[port]
+```
+
+3. **Check ingress logs**:
+
+```bash
+kubectl logs -n ingress-nginx deployment/ingress-nginx-controller | grep [your-domain]
+```
+
+4. **Validate ingress rules**:
+
+```bash
+kubectl get ingress [ingress-name] -o yaml
+```
+
+5. **Test with different paths**:
+   - Try accessing `https://[domain].com/health` or other known endpoints
+   - Check if the application has a specific base path requirement
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

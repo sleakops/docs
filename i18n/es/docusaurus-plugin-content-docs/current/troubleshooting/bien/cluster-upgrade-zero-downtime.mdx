@@ -1,0 +1,172 @@
+---
+sidebar_position: 3
+title: "Actualización de Clúster Kubernetes sin Tiempo de Inactividad"
+description: "Cómo realizar actualizaciones de clúster en SleakOps sin interrupción del servicio"
+date: "2025-02-19"
+category: "clúster"
+tags:
+  [
+    "actualización",
+    "kubernetes",
+    "tiempo de inactividad",
+    "mantenimiento",
+    "producción",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Actualización de Clúster Kubernetes sin Tiempo de Inactividad
+
+**Fecha:** 19 de febrero de 2025  
+**Categoría:** Clúster  
+**Etiquetas:** Actualización, Kubernetes, Tiempo de inactividad, Mantenimiento, Producción
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios necesitan actualizar sus clústeres Kubernetes en SleakOps pero están preocupados por el posible tiempo de inactividad durante horas críticas de negocio, especialmente en períodos de alto tráfico o en operaciones de fin de mes.
+
+**Síntomas Observados:**
+
+- Preocupación por la interrupción del servicio durante las actualizaciones del clúster
+- Necesidad de programar actualizaciones en horas de bajo tráfico
+- Incertidumbre sobre el proceso de actualización y su impacto
+- Preguntas sobre capacidades de actualización de autoservicio
+
+**Configuración Relevante:**
+
+- Clústeres de producción con múltiples réplicas
+- Servicios web y workers con requisitos de alta disponibilidad
+- Operaciones críticas de negocio en ventanas horarias específicas
+- Políticas de despliegue configuradas para actualizaciones continuas
+
+**Condiciones de Error:**
+
+- Riesgo de tiempo de inactividad durante horas críticas de negocio
+- Potencial degradación del servicio durante el proceso de actualización
+- Necesidad de soporte inmediato si surgen problemas durante la actualización
+
+## Solución Detallada
+
+<TroubleshootingItem id="zero-downtime-theory" summary="Entendiendo las Actualizaciones sin Tiempo de Inactividad">
+
+SleakOps implementa actualizaciones de clúster sin tiempo de inactividad mediante:
+
+1. **Actualizaciones Graduales de Nodos**: Los nodos se rotan progresivamente, no todos a la vez
+2. **Políticas de Despliegue**: El 33% de cada despliegue debe permanecer activo durante las actualizaciones
+3. **Distribución de Pods**: Los servicios se distribuyen en múltiples nodos
+4. **Verificaciones de Salud**: Monitorización continua asegura la disponibilidad del servicio
+
+**Requisitos para Cero Tiempo de Inactividad:**
+
+- Clúster en modo producción
+- Al menos 2 réplicas por servicio web o worker
+- Asignación adecuada de recursos y reglas de anti-afinidad de pods
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="self-service-upgrade" summary="Cómo Realizar Actualizaciones de Autoservicio">
+
+Para ejecutar la actualización tú mismo:
+
+1. **Accede a la Consola**: Ve a la página de configuración de tu clúster
+2. **Navega a Configuración General**: Encuentra la sección de actualización
+3. **Revisa Detalles de la Actualización**: Verifica la versión objetivo y los cambios
+4. **Inicia la Actualización**: Haz clic en el botón de actualización cuando estés listo
+
+**Ruta en la Consola:**
+
+```
+Consola SleakOps → Clústeres → [Tu Clúster] → Configuración → Configuración General
+```
+
+**Buenas Prácticas:**
+
+- Programar durante horas de bajo tráfico (se recomienda temprano en la mañana)
+- Notificar a tu equipo antes de comenzar
+- Monitorear los logs de la aplicación durante el proceso
+- Tener un plan de reversión listo si es necesario
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="upgrade-monitoring" summary="Monitoreo Durante las Actualizaciones">
+
+Durante el proceso de actualización, monitorea:
+
+1. **Salud de la Aplicación**: Revisa los endpoints de tu aplicación
+2. **Estado de los Pods**: Asegúrate que los pods se estén recreando correctamente
+3. **Uso de Recursos**: Monitorea CPU y memoria durante la transición
+4. **Logs**: Observa cualquier mensaje de error en los logs de la aplicación
+
+**Indicadores Clave de Actualización Exitosa:**
+
+- Todos los pods muestran estado "Running"
+- Los endpoints de la aplicación responden normalmente
+- No hay picos de error en los paneles de monitoreo
+- Las conexiones a base de datos permanecen estables
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="timing-considerations" summary="Cuándo Programar Actualizaciones">
+
+**Horario Recomendado:**
+
+- Horas tempranas de la mañana (2-6 AM hora local)
+- Fines de semana o ventanas de mantenimiento
+- Evitar fin de mes o períodos de alto tráfico
+- Considerar zonas horarias para aplicaciones globales
+
+**Lista de Verificación Pre-Actualización:**
+
+- [ ] Verificar que el clúster tenga múltiples réplicas
+- [ ] Comprobar que los despliegues recientes de la aplicación estén estables
+- [ ] Asegurar que el monitoreo esté activo
+- [ ] Notificar a los miembros relevantes del equipo
+- [ ] Planificar soporte inmediato si es necesario
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="support-availability" summary="Soporte Durante las Actualizaciones">
+
+SleakOps proporciona:
+
+1. **Soporte Prioritario**: Prioridad el mismo día para problemas relacionados con la actualización
+2. **Monitoreo Proactivo**: El equipo monitorea actualizaciones críticas
+3. **Respuesta Inmediata**: Resolución rápida para cualquier problema
+4. **Validación Post-Actualización**: Verificación de que todos los servicios estén saludables
+
+**Cuándo Contactar Soporte:**
+
+- Si la actualización tarda más de lo esperado
+- Aparecen errores en la aplicación durante la actualización
+- Los pods no se reinician correctamente
+- Degradación del rendimiento después de la actualización
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="rollback-procedures" summary="Procedimientos de Reversión y Recuperación">
+
+Si ocurren problemas durante la actualización:
+
+1. **Acciones Inmediatas**:
+
+   - Contactar soporte de SleakOps inmediatamente
+   - Documentar cualquier mensaje de error
+   - Evitar intervenciones manuales a menos que se indique
+
+2. **Proceso de Reversión**:
+
+   - SleakOps puede iniciar la reversión si es necesario
+   - Las aplicaciones serán restauradas a versiones previas
+   - La integridad de los datos se mantiene en todo momento
+
+3. **Post-Incidencia**:
+   - Análisis de causa raíz proporcionado
+   - Recomendaciones para futuras actualizaciones
+   - Programar reintento con precauciones adicionales
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 19 de febrero de 2025 basada en una consulta real de usuario._

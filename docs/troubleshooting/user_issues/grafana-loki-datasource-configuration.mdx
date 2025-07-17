@@ -1,0 +1,203 @@
+---
+sidebar_position: 3
+title: "Grafana Loki Datasource Configuration Issue"
+description: "Solution for Loki datasource not being added to Grafana automatically"
+date: "2024-11-15"
+category: "dependency"
+tags: ["grafana", "loki", "datasource", "monitoring", "logs"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Grafana Loki Datasource Configuration Issue
+
+**Date:** November 15, 2024  
+**Category:** Dependency  
+**Tags:** Grafana, Loki, Datasource, Monitoring, Logs
+
+## Problem Description
+
+**Context:** Users experience issues with Grafana not displaying logs properly due to Loki datasource not being automatically configured during SleakOps deployment.
+
+**Observed Symptoms:**
+
+- Grafana dashboard loads but shows no log data
+- Loki datasource missing from Grafana configuration
+- Log queries return empty results
+- Stream filter defaults to 'stderr' but shows no data
+
+**Relevant Configuration:**
+
+- Monitoring stack: Grafana + Loki
+- Default stream filter: `stderr`
+- Loki components: `loki-read` pod
+- Authentication: Grafana admin user required
+
+**Error Conditions:**
+
+- Occurs during initial SleakOps deployment
+- Loki datasource addition fails silently
+- Requires manual intervention to resolve
+- May need pod restarts to function properly
+
+## Detailed Solution
+
+<TroubleshootingItem id="verify-loki-datasource" summary="Verify Loki datasource configuration">
+
+To check if Loki datasource is properly configured in Grafana:
+
+1. **Access Grafana dashboard**
+
+   - Use the admin credentials provided by SleakOps
+   - Navigate to **Configuration** → **Data Sources**
+
+2. **Check for Loki datasource**
+
+   - Look for a datasource named "Loki" or similar
+   - Verify the URL points to your Loki service
+   - Test the connection using the "Save & Test" button
+
+3. **Expected Loki URL format:**
+   ```
+   http://loki-gateway.monitoring.svc.cluster.local:80
+   ```
+   or
+   ```
+   http://loki-read.monitoring.svc.cluster.local:3100
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-datasource-addition" summary="Manually add Loki datasource">
+
+If the Loki datasource is missing, add it manually:
+
+1. **In Grafana, go to Configuration → Data Sources**
+2. **Click "Add data source"**
+3. **Select "Loki" from the list**
+4. **Configure the datasource:**
+
+   - **Name:** `Loki`
+   - **URL:** `http://loki-gateway.monitoring.svc.cluster.local:80`
+   - **Access:** `Server (default)`
+
+5. **Save and test the connection**
+
+```yaml
+# Example datasource configuration
+apiVersion: 1
+datasources:
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki-gateway.monitoring.svc.cluster.local:80
+    isDefault: false
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="restart-loki-components" summary="Restart Loki components if needed">
+
+If Loki datasource exists but doesn't work properly:
+
+1. **Restart loki-read pod:**
+
+   ```bash
+   kubectl delete pod -l app=loki-read -n monitoring
+   ```
+
+2. **Check pod status:**
+
+   ```bash
+   kubectl get pods -n monitoring | grep loki
+   ```
+
+3. **Verify Loki logs:**
+
+   ```bash
+   kubectl logs -l app=loki-read -n monitoring
+   ```
+
+4. **Test Loki API directly:**
+   ```bash
+   kubectl port-forward svc/loki-gateway 3100:80 -n monitoring
+   curl http://localhost:3100/ready
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="configure-log-queries" summary="Configure log queries and filters">
+
+Once Loki datasource is working:
+
+1. **Understanding stream filters:**
+
+   - Default filter searches for `stderr` streams
+   - Change to `stdout` to see application logs
+   - Use `{stream="stderr"}` or `{stream="stdout"}` in queries
+
+2. **Common LogQL queries:**
+
+   ```logql
+   # All stderr logs
+   {stream="stderr"}
+
+   # All stdout logs
+   {stream="stdout"}
+
+   # Logs from specific namespace
+   {namespace="default"}
+
+   # Logs from specific pod
+   {pod="my-app-12345"}
+
+   # Combined filters
+   {namespace="default", stream="stderr"}
+   ```
+
+3. **Adjust time range:**
+   - Use Grafana's time picker
+   - Start with "Last 1 hour" for testing
+   - Expand range if no logs appear
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-tips" summary="Additional troubleshooting tips">
+
+**If logs still don't appear:**
+
+1. **Check if applications are generating logs:**
+
+   ```bash
+   kubectl logs <pod-name> -n <namespace>
+   ```
+
+2. **Verify Loki is receiving logs:**
+
+   ```bash
+   # Check Loki ingester logs
+   kubectl logs -l app=loki-write -n monitoring
+   ```
+
+3. **Restart Grafana if needed:**
+
+   ```bash
+   kubectl delete pod -l app.kubernetes.io/name=grafana -n monitoring
+   ```
+
+4. **Check Grafana logs:**
+   ```bash
+   kubectl logs -l app.kubernetes.io/name=grafana -n monitoring
+   ```
+
+**Prevention for future deployments:**
+
+- This issue is being addressed in upcoming SleakOps versions
+- Automatic datasource configuration will be implemented
+- Manual verification steps will be documented in deployment guides
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on November 15, 2024 based on a real user query._

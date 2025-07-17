@@ -1,0 +1,155 @@
+---
+sidebar_position: 3
+title: "Error de Creación de Proyecto con Nombres de Ramas que Contienen Caracteres Especiales"
+description: "Solución para errores de validación de nombres de ramas al crear proyectos desde repositorios"
+date: "2025-02-19"
+category: "proyecto"
+tags: ["proyecto", "repositorio", "rama", "validación", "git"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Error de Creación de Proyecto con Nombres de Ramas que Contienen Caracteres Especiales
+
+**Fecha:** 19 de febrero de 2025  
+**Categoría:** Proyecto  
+**Etiquetas:** Proyecto, Repositorio, Rama, Validación, Git
+
+## Descripción del Problema
+
+**Contexto:** El usuario intenta crear un nuevo proyecto en SleakOps basado en un repositorio Git pero encuentra errores de validación cuando el nombre de la rama contiene caracteres especiales o patrones de nombres específicos.
+
+**Síntomas Observados:**
+
+- Error en la interfaz al intentar crear un proyecto desde un repositorio
+- El error ocurre específicamente con nombres de ramas que contienen barras diagonales (/)
+- Formato del nombre de rama: `feature/SITE-1` genera error de validación
+- El proceso de creación del proyecto falla en el paso de selección de rama
+
+**Configuración Relevante:**
+
+- Nombre de rama: `feature/SITE-1`
+- Acción: Creación de nuevo proyecto desde repositorio
+- Plataforma: Interfaz web de SleakOps
+- Tipo de repositorio: Repositorio Git
+
+**Condiciones de Error:**
+
+- El error aparece durante el asistente de creación de proyecto
+- Ocurre cuando los nombres de ramas contienen barras diagonales (`/`)
+- El error de validación impide completar la creación del proyecto
+- El problema afecta la selección de rama en la interfaz
+
+## Solución Detallada
+
+<TroubleshootingItem id="immediate-workaround" summary="Solución temporal inmediata">
+
+Mientras el equipo de SleakOps trabaja en corregir el problema de validación, puedes usar esta solución temporal:
+
+1. **Cambia temporalmente el nombre de la rama** en tu repositorio:
+
+   - Renombra `feature/SITE-1` a algo como `feature-SITE-1` o `featureSITE1`
+   - Usa solo caracteres alfanuméricos y guiones/guiones bajos
+
+2. **Crea el proyecto** con la rama renombrada
+
+3. **Usa especificación manual de compilación** cuando sea necesario:
+   - Durante el proceso de compilación, puedes especificar manualmente el nombre original de la rama
+   - Esto te permite trabajar con la estructura original de tus ramas
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-build-process" summary="Cómo especificar la rama manualmente durante la compilación">
+
+Cuando necesites compilar desde tu rama original:
+
+1. Ve a la sección **Build** de tu proyecto
+2. Selecciona la opción **Manual Build**
+3. En la configuración de compilación, especifica manualmente el nombre de la rama:
+   ```
+   Branch: feature/SITE-1
+   ```
+4. Procede con el proceso de compilación
+
+**Nota:** Esta solución funciona para compilaciones manuales pero no funcionará para integración continua hasta que se implemente la corrección en la plataforma.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="branch-naming-best-practices" summary="Buenas prácticas para nombrar ramas en SleakOps">
+
+Para evitar problemas similares en el futuro, considera estas convenciones para nombrar ramas:
+
+**Formatos recomendados:**
+
+- `feature-SITE-1`
+- `feature_SITE_1`
+- `featureSITE1`
+- `site1-feature`
+
+**Evita estos caracteres en los nombres de ramas:**
+
+- Barras diagonales (`/`)
+- Caracteres especiales que puedan causar problemas de codificación URL
+- Espacios u otros caracteres de espacio en blanco
+
+**Nombres de ramas Git que funcionan bien con SleakOps:**
+
+```bash
+# Buenas prácticas
+git checkout -b feature-user-authentication
+git checkout -b bugfix-login-error
+git checkout -b hotfix-security-patch
+
+# Evitar estos patrones
+git checkout -b feature/user-authentication
+git checkout -b bug/fix-login
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="continuous-integration-considerations" summary="Limitaciones de la Integración Continua">
+
+**Limitaciones actuales:**
+
+- La integración continua no funcionará con la solución temporal
+- Las compilaciones automatizadas fallarán hasta que se despliegue la corrección en la plataforma
+- Se requiere intervención manual para cada compilación
+
+**Cuando la corrección esté disponible:**
+
+- Se soportarán nombres de ramas con barras diagonales
+- La integración continua retomará su funcionamiento normal
+- No serán necesarios cambios en la configuración existente del proyecto
+
+**Cronograma:**
+
+- El equipo de SleakOps ha añadido este problema a su backlog
+- La prioridad de la corrección depende del calendario de despliegue y las necesidades de los usuarios
+- Contacta al soporte si necesitas que esto se resuelva antes del despliegue en producción
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-git-workflow" summary="Flujo de trabajo Git alternativo">
+
+Si usas frecuentemente ramas de características con barras diagonales, considera este flujo de trabajo:
+
+1. **Mantén tus ramas de desarrollo** con el nombre original
+2. **Crea ramas de despliegue** con nombres compatibles con SleakOps:
+
+   ```bash
+   # Tu rama de desarrollo
+   git checkout feature/SITE-1
+
+   # Crear rama de despliegue
+   git checkout -b deploy-SITE-1
+   git push origin deploy-SITE-1
+   ```
+
+3. **Usa las ramas de despliegue** para proyectos en SleakOps
+4. **Fusiona los cambios** de las ramas de características a las ramas de despliegue según sea necesario
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 19 de febrero de 2025 basada en una consulta real de usuario._

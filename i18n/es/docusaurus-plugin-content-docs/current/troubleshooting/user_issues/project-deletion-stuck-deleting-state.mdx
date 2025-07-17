@@ -1,0 +1,117 @@
+---
+sidebar_position: 3
+title: "Proyecto Atrapado en Estado de Eliminación"
+description: "Solución para proyectos que permanecen en estado 'eliminando' después de la eliminación"
+date: "2024-12-19"
+category: "proyecto"
+tags: ["proyecto", "eliminación", "solución de problemas", "ui"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Proyecto Atrapado en Estado de Eliminación
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Proyecto, Eliminación, Solución de problemas, UI
+
+## Descripción del Problema
+
+**Contexto:** El usuario intenta eliminar un proyecto a través de la interfaz de la plataforma SleakOps, pero el proyecto permanece visible en la vista de Proyectos con un estado "eliminando" indefinidamente.
+
+**Síntomas observados:**
+
+- El proyecto parece eliminarse con éxito
+- El proyecto sigue visible en la lista de Proyectos
+- El estado del proyecto muestra "eliminando" de forma permanente
+- La interfaz no refleja la finalización real de la eliminación
+
+**Configuración relevante:**
+
+- Nombre del proyecto: Puede afectar a cualquier proyecto
+- Plataforma: Interfaz web de SleakOps
+- Acción: Eliminación de proyecto a través de la UI
+
+**Condiciones de error:**
+
+- Ocurre después de iniciar la eliminación del proyecto
+- El estado permanece en "eliminando" indefinidamente
+- Los recursos del proyecto pueden estar realmente eliminados pero el estado de la UI persiste
+- Refrescar no resuelve el estado
+
+## Solución Detallada
+
+<TroubleshootingItem id="understanding-issue" summary="Entendiendo el proceso de eliminación">
+
+Cuando eliminas un proyecto en SleakOps, el sistema realiza varias operaciones de limpieza:
+
+1. **Limpieza de recursos**: Elimina todos los recursos en la nube asociados (clústeres, almacenamiento, etc.)
+2. **Limpieza de base de datos**: Elimina los registros del proyecto de la base de datos de la plataforma
+3. **Actualización del estado de la UI**: Actualiza la interfaz para reflejar la eliminación
+
+A veces, la actualización del estado en la UI puede retrasarse respecto a la limpieza real de recursos, causando que el estado "eliminando" persista.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-steps" summary="Pasos inmediatos para solución de problemas">
+
+Si tu proyecto está atrapado en estado "eliminando":
+
+1. **Espera a que termine**: Proyectos grandes pueden tardar entre 10 y 15 minutos en eliminarse completamente
+2. **Refresca la página**: Usa Ctrl+F5 (o Cmd+Shift+R en Mac) para un refresco completo
+3. **Limpia la caché del navegador**: Borra la caché y las cookies para el dominio de SleakOps
+4. **Verifica en modo incógnito/privado**: Abre SleakOps en una ventana incógnito para verificar el estado
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Verificar el estado real de la eliminación">
+
+Para confirmar si tu proyecto fue realmente eliminado:
+
+1. **Revisa la consola del proveedor de la nube**:
+
+   - AWS: Verifica que no queden recursos en tu cuenta
+   - Azure: Comprueba que los grupos de recursos estén eliminados
+   - GCP: Confirma que los recursos del proyecto estén limpiados
+
+2. **Intenta crear un nuevo proyecto** con el mismo nombre:
+
+   - Si tiene éxito, el proyecto antiguo fue realmente eliminado
+   - Si falla por conflicto de nombre, el proyecto puede seguir existiendo
+
+3. **Contacta soporte** si el problema persiste después de 30 minutos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-tips" summary="Prevención y mejores prácticas">
+
+Para evitar este problema en el futuro:
+
+1. **Asegura una conexión estable**: Mantén una conexión a internet estable durante la eliminación
+2. **No cierres el navegador**: Mantén la pestaña del navegador abierta hasta que la eliminación finalice
+3. **Elimina en horas de baja carga**: Realiza eliminaciones cuando la carga del sistema sea menor
+4. **Monitorea la limpieza de recursos**: Revisa la consola de tu proveedor en la nube para confirmar la limpieza
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="when-to-contact-support" summary="Cuándo contactar soporte">
+
+Contacta al soporte de SleakOps si:
+
+- El proyecto permanece en estado "eliminando" por más de 30 minutos
+- Los recursos en la nube no se están limpiando
+- No puedes crear un nuevo proyecto con el mismo nombre
+- El proyecto reaparece después de parecer eliminado
+
+Proporciona esta información al contactar soporte:
+
+- Nombre del proyecto
+- Hora en que se inició la eliminación
+- Capturas de pantalla del estado actual
+- Cualquier mensaje de error recibido
+
+</TroubleshootingItem>
+
+---
+
+_Este FAQ fue generado automáticamente el 19 de diciembre de 2024 basado en una consulta real de un usuario._

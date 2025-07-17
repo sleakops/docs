@@ -1,0 +1,199 @@
+---
+sidebar_position: 3
+title: "GitHub Actions Automatic Deployment Setup"
+description: "How to configure automatic deployments with GitHub Actions in SleakOps"
+date: "2024-12-17"
+category: "project"
+tags: ["github-actions", "ci-cd", "deployment", "automation"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# GitHub Actions Automatic Deployment Setup
+
+**Date:** December 17, 2024  
+**Category:** Project  
+**Tags:** GitHub Actions, CI/CD, Deployment, Automation
+
+## Problem Description
+
+**Context:** User wants to configure automatic deployments that trigger when pushing code to a GitHub repository using SleakOps platform.
+
+**Observed Symptoms:**
+
+- Need to set up CI/CD pipeline for automatic deployments
+- Want deployments to trigger on Git push events
+- Looking for integration between GitHub and SleakOps
+- Need guidance on GitHub Actions configuration
+
+**Relevant Configuration:**
+
+- Platform: SleakOps
+- Version Control: GitHub
+- CI/CD Tool: GitHub Actions
+- Deployment Target: SleakOps managed infrastructure
+
+**Error Conditions:**
+
+- Manual deployment process currently in use
+- No automated pipeline configured
+- Need to establish connection between GitHub and SleakOps
+
+## Detailed Solution
+
+<TroubleshootingItem id="sleakops-cli-setup" summary="Setting up SleakOps CLI for CI/CD">
+
+SleakOps provides a CLI tool specifically designed for CI/CD integration. You can find the complete documentation at: https://docs.sleakops.com/cli
+
+The CLI allows you to:
+
+- Deploy applications automatically
+- Manage deployments from CI/CD pipelines
+- Integrate with various CI/CD platforms including GitHub Actions
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="github-actions-configuration" summary="Generating GitHub Actions configuration from SleakOps console">
+
+To generate the GitHub Actions workflow file:
+
+1. **Access SleakOps Console**
+
+   - Log into your SleakOps dashboard
+   - Navigate to your project
+
+2. **Generate CI/CD Configuration**
+
+   - Look for the CI/CD or GitHub Actions section
+   - The console will provide a pre-configured workflow file
+   - This file includes all necessary steps for deployment
+
+3. **Download Configuration**
+   - Copy the generated workflow file
+   - Note the required secret keys that will be displayed
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="workflow-file-setup" summary="Setting up the GitHub Actions workflow file">
+
+Once you have the workflow file from SleakOps console:
+
+1. **Create Workflow Directory**
+
+   ```bash
+   mkdir -p .github/workflows
+   ```
+
+2. **Add Workflow File**
+
+   - Create a new file: `.github/workflows/deploy.yml`
+   - Paste the configuration provided by SleakOps console
+
+3. **Basic Workflow Structure**
+
+   ```yaml
+   name: Deploy to SleakOps
+
+   on:
+     push:
+       branches: [main, master]
+
+   jobs:
+     deploy:
+       runs-on: ubuntu-latest
+       steps:
+         - uses: actions/checkout@v3
+         - name: Deploy to SleakOps
+           run: |
+             # SleakOps CLI commands will be here
+           env:
+             SLEAKOPS_TOKEN: ${{ secrets.SLEAKOPS_TOKEN }}
+             SLEAKOPS_PROJECT_ID: ${{ secrets.SLEAKOPS_PROJECT_ID }}
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="secrets-configuration" summary="Configuring GitHub Secrets">
+
+To set up the required secrets in GitHub:
+
+1. **Access Repository Settings**
+
+   - Go to your GitHub repository
+   - Click on **Settings** tab
+   - Navigate to **Secrets and variables** → **Actions**
+
+2. **Add Required Secrets**
+   The SleakOps console will show you the exact secrets needed, typically:
+
+   - `SLEAKOPS_TOKEN`: Your SleakOps API token
+   - `SLEAKOPS_PROJECT_ID`: Your project identifier
+   - Any additional environment-specific secrets
+
+3. **Create New Secret**
+   - Click **New repository secret**
+   - Enter the secret name exactly as shown in SleakOps console
+   - Paste the corresponding value
+   - Click **Add secret**
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="testing-deployment" summary="Testing the automatic deployment">
+
+To verify your setup works correctly:
+
+1. **Make a Test Commit**
+
+   ```bash
+   git add .
+   git commit -m "Test automatic deployment"
+   git push origin main
+   ```
+
+2. **Monitor GitHub Actions**
+
+   - Go to your repository's **Actions** tab
+   - Watch the workflow execution
+   - Check for any errors in the logs
+
+3. **Verify Deployment**
+   - Check SleakOps console for deployment status
+   - Verify your application is updated
+   - Test the deployed application
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Common troubleshooting steps">
+
+If the deployment fails:
+
+1. **Check Secrets**
+
+   - Verify all required secrets are configured
+   - Ensure secret names match exactly
+   - Check that tokens haven't expired
+
+2. **Review Workflow Logs**
+
+   - Check GitHub Actions logs for specific errors
+   - Look for authentication or permission issues
+   - Verify CLI commands are executing correctly
+
+3. **Validate SleakOps Configuration**
+
+   - Ensure your SleakOps project is properly configured
+   - Check that the CLI has necessary permissions
+   - Verify project ID is correct
+
+4. **Test CLI Locally**
+   ```bash
+   # Install SleakOps CLI locally to test
+   npm install -g @sleakops/cli
+   sleakops deploy --help
+   ```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 17, 2024 based on a real user query._

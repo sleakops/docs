@@ -1,0 +1,233 @@
+---
+sidebar_position: 3
+title: "Problemas de Integridad de Datos en la Migración de Bases de Datos"
+description: "Solución de problemas por transferencia incompleta de datos durante migraciones de bases de datos"
+date: "2024-12-19"
+category: "dependency"
+tags:
+  ["base de datos", "migración", "integridad de datos", "solución de problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de Integridad de Datos en la Migración de Bases de Datos
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Dependencia  
+**Etiquetas:** Base de datos, Migración, Integridad de datos, Solución de problemas
+
+## Descripción del Problema
+
+**Contexto:** Durante los procesos de migración de bases de datos en producción en SleakOps, los usuarios pueden experimentar problemas donde la migración finaliza sin errores pero la integridad de los datos se ve comprometida.
+
+**Síntomas observados:**
+
+- El proceso de migración finaliza exitosamente sin mensajes de error
+- Falta de datos recientes en la base de datos destino
+- Algunas tablas aparecen incompletas después de la migración
+- Inconsistencias de datos entre las bases de datos origen y destino
+
+**Configuración relevante:**
+
+- Tipo de migración: Migración de base de datos en producción
+- Entorno: Transferencia de producción a producción
+- Herramienta de migración: Utilidades de migración de base de datos de SleakOps
+- Tipo de base de datos: No especificado (PostgreSQL/MySQL/etc.)
+
+**Condiciones de error:**
+
+- La migración parece exitosa pero falla la validación de datos
+- No se transfieren los registros más recientes
+- Ocurren transferencias incompletas de tablas de forma esporádica
+- No hay mensajes de error explícitos durante el proceso de migración
+
+## Solución Detallada
+
+<TroubleshootingItem id="pre-migration-validation" summary="Validación de datos previa a la migración">
+
+Antes de iniciar cualquier migración de base de datos, realice estos pasos de validación:
+
+1. **Verificación del conteo de registros**:
+
+   ```sql
+   -- Verificar el total de registros en la base de datos origen
+   SELECT table_name,
+          (xpath('/row/cnt/text()', xml_count))[1]::text::int as row_count
+   FROM (
+     SELECT table_name,
+            query_to_xml(format('select count(*) as cnt from %I.%I',
+                               table_schema, table_name), false, true, '') as xml_count
+     FROM information_schema.tables
+     WHERE table_schema = 'public'
+   ) t;
+   ```
+
+2. **Identificar las marcas de tiempo más recientes**:
+
+   ```sql
+   -- Encontrar los registros más recientes por tabla
+   SELECT table_name, MAX(created_at) as latest_record
+   FROM your_table_name
+   GROUP BY table_name;
+   ```
+
+3. **Crear lista de verificación para la migración**:
+   - Documentar los conteos actuales de registros
+   - Anotar las marcas de tiempo más recientes
+   - Identificar tablas críticas
+   - Planificar consultas de validación
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="migration-troubleshooting" summary="Solución de problemas para migraciones incompletas">
+
+Cuando las migraciones finalizan pero faltan datos:
+
+1. **Revisar los registros de migración**:
+
+   ```bash
+   # Revisar los logs de migración de SleakOps
+   kubectl logs -n sleakops-system deployment/migration-controller
+
+   # Buscar patrones específicos
+   grep -i "error\|warning\|timeout" migration.log
+   ```
+
+2. **Verificar tiempos de espera de conexión**:
+
+   - La conexión a la base de datos puede agotar el tiempo durante transferencias grandes
+   - Comprobar la estabilidad de la red entre origen y destino
+   - Revisar la configuración del pool de conexiones de la base de datos
+
+3. **Problemas con aislamiento de transacciones**:
+   ```sql
+   -- Verificar transacciones de larga duración
+   SELECT pid, now() - pg_stat_activity.query_start AS duration, query
+   FROM pg_stat_activity
+   WHERE (now() - pg_stat_activity.query_start) > interval '5 minutes';
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="data-consistency-checks" summary="Validación de consistencia de datos post-migración">
+
+Después de la migración, realice estos pasos de validación:
+
+1. **Comparación del conteo de registros**:
+
+   ```bash
+   # Script para comparar conteos de registros
+   #!/bin/bash
+
+   SOURCE_DB="source_connection_string"
+   TARGET_DB="target_connection_string"
+
+   for table in $(psql $SOURCE_DB -t -c "SELECT tablename FROM pg_tables WHERE schemaname='public';"); do
+     source_count=$(psql $SOURCE_DB -t -c "SELECT COUNT(*) FROM $table;")
+     target_count=$(psql $TARGET_DB -t -c "SELECT COUNT(*) FROM $table;")
+
+     if [ "$source_count" != "$target_count" ]; then
+       echo "DESCUADRE: $table - Origen: $source_count, Destino: $target_count"
+     fi
+   done
+   ```
+
+2. **Verificación de frescura de datos**:
+
+   ```sql
+   -- Comprobar si se migraron datos recientes
+   SELECT table_name,
+          MAX(created_at) as latest_migrated,
+          NOW() - MAX(created_at) as data_age
+   FROM (
+     -- Unión de todas las tablas con columnas de marca de tiempo
+     SELECT 'users' as table_name, created_at FROM users
+     UNION ALL
+     SELECT 'orders' as table_name, created_at FROM orders
+     -- Agregar otras tablas según sea necesario
+   ) combined
+   GROUP BY table_name;
+   ```
+
+3. **Verificación de integridad referencial**:
+   ```sql
+   -- Verificar relaciones de claves foráneas
+   SELECT conname, conrelid::regclass, confrelid::regclass
+   FROM pg_constraint
+   WHERE contype = 'f'
+   AND NOT EXISTS (
+     SELECT 1 FROM pg_constraint c2
+     WHERE c2.conname = pg_constraint.conname
+     AND c2.connamespace != pg_constraint.connamespace
+   );
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="recovery-strategies" summary="Estrategias de recuperación para migraciones incompletas">
+
+Si se detectan problemas de integridad de datos:
+
+1. **Sincronización incremental de datos**:
+
+   ```sql
+   -- Sincronizar registros recientes faltantes
+   INSERT INTO target_table
+   SELECT * FROM source_table
+   WHERE created_at > (SELECT MAX(created_at) FROM target_table)
+   ON CONFLICT (id) DO UPDATE SET
+     column1 = EXCLUDED.column1,
+     updated_at = EXCLUDED.updated_at;
+   ```
+
+2. **Re-migración específica por tabla**:
+
+   ```bash
+   # Re-migrar tablas específicas
+   pg_dump source_db -t table_name | psql target_db
+   ```
+
+3. **Configuración de recuperación punto en el tiempo**:
+
+   - Habilitar archivado WAL antes de futuras migraciones
+   - Crear snapshots de la base de datos antes de la migración
+   - Implementar verificación automatizada de respaldos
+
+4. **Procedimiento de reversión de migración**:
+
+   ```bash
+   # Restaurar desde respaldo previo a la migración
+   pg_restore -d target_database backup_file.dump
+
+   # Verificar la restauración
+   psql target_database -c "SELECT COUNT(*) FROM critical_table;"
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-best-practices" summary="Prevención y mejores prácticas">
+
+Para prevenir futuros problemas de integridad de datos en migraciones:
+
+1. **Implementar pruebas de migración**:
+
+   - Siempre probar migraciones primero en entorno de staging
+   - Usar snapshots de datos de producción para pruebas
+   - Validar integridad de datos en el entorno de pruebas
+
+2. **Configurar monitoreo**:
+   ```yaml
+   # Configuración de monitoreo de SleakOps
+   apiVersion: v1
+   kind: ConfigMap
+   metadata:
+     name: migration-monitoring
+   data:
+     config.yaml: |
+       checks:
+         - name: validacion_conteo_registros
+           query: "SELECT COUNT(*) FROM critical_table"
+           expected_min: 1000
+         - name: frescura_de_datos
+           query: "SELECT MAX(create"
+   ```

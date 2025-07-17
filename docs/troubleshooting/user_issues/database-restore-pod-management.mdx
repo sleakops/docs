@@ -1,0 +1,232 @@
+---
+sidebar_position: 3
+title: "Database Restore Pod Management"
+description: "Managing long-running database restore pods and their impact on deployments"
+date: "2025-03-26"
+category: "dependency"
+tags: ["database", "restore", "pod", "deployment", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Database Restore Pod Management
+
+**Date:** March 26, 2025  
+**Category:** Dependency  
+**Tags:** Database, Restore, Pod, Deployment, Troubleshooting
+
+## Problem Description
+
+**Context:** Users experience deployment issues when database restore pods are running for extended periods, causing conflicts with build and deployment processes in SleakOps.
+
+**Observed Symptoms:**
+
+- Build timeouts occurring while `restoredb` pod is running
+- Deployment failures due to conflicting database operations
+- Long-running restore pods (running for days)
+- Build processes failing to complete successfully
+- Multiple replica sets appearing for web services
+
+**Relevant Configuration:**
+
+- Pod type: `restoredb` (database restore operation)
+- Duration: Running for multiple days (3-4 days)
+- Impact: Affects build and deployment pipeline
+- Platform: SleakOps Kubernetes environment
+
+**Error Conditions:**
+
+- Build timeouts when restore pod is active
+- Deployment pipeline blocked by ongoing restore operations
+- Resource conflicts between restore and application pods
+- Inability to scale down restore pods when not needed
+
+## Detailed Solution
+
+<TroubleshootingItem id="understanding-restore-conflicts" summary="Why restore pods cause deployment issues">
+
+Database restore pods can interfere with normal deployment operations because:
+
+1. **Resource Lock**: The restore process may lock database resources needed by the application
+2. **Network Conflicts**: Database connections may be monopolized by the restore operation
+3. **Memory/CPU Usage**: Long-running restore operations consume cluster resources
+4. **State Conflicts**: Application pods may fail health checks while database is being restored
+
+This is why builds and deployments often fail while a restore pod is running.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="checking-restore-status" summary="How to check restore pod status">
+
+To monitor your restore pod status:
+
+**Using SleakOps Dashboard:**
+
+1. Go to **Workloads** → **Jobs**
+2. Look for `restoredb` or similar restore jobs
+3. Check the **Status** and **Duration** columns
+
+**Using Lens or kubectl:**
+
+```bash
+# List all pods with restore in the name
+kubectl get pods | grep restore
+
+# Check specific restore pod logs
+kubectl logs <restoredb-pod-name> -f
+
+# Check pod details and status
+kubectl describe pod <restoredb-pod-name>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="managing-restore-pods" summary="How to manage restore pods safely">
+
+**When you need the restore pod later:**
+
+If you plan to use the restore functionality soon (like tomorrow morning), you can temporarily scale down:
+
+```bash
+# Scale down the restore job (if it's a deployment)
+kubectl scale deployment restoredb --replicas=0
+
+# Or delete the specific pod (if it's a standalone pod)
+kubectl delete pod <restoredb-pod-name>
+```
+
+**When you want to stop it completely:**
+
+```bash
+# Delete the job entirely
+kubectl delete job <restoredb-job-name>
+
+# Or through SleakOps dashboard
+# Go to Workloads → Jobs → Delete the restore job
+```
+
+**Important:** Always ensure the restore operation is complete or can be safely interrupted before stopping it.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="scheduling-restore-operations" summary="Best practices for scheduling restores">
+
+To avoid conflicts with regular operations:
+
+**1. Schedule during maintenance windows:**
+
+- Plan restores during low-traffic periods
+- Coordinate with deployment schedules
+- Notify team members about planned restore operations
+
+**2. Use separate environments:**
+
+- Perform restores in staging first
+- Test the restore process before production
+- Keep production deployments separate from restore operations
+
+**3. Monitor resource usage:**
+
+```yaml
+# Example resource limits for restore jobs
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: database-restore
+spec:
+  template:
+    spec:
+      containers:
+        - name: restore
+          resources:
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-deployment-issues" summary="Fixing deployment issues caused by restore pods">
+
+**If builds are timing out:**
+
+1. **Check if restore is still needed:**
+
+   - Verify the restore operation status
+   - Determine if it can be safely stopped
+
+2. **Temporary solution:**
+
+   ```bash
+   # Stop the restore pod temporarily
+   kubectl delete pod <restoredb-pod-name>
+
+   # Retry your build
+   # The restore can be restarted later if needed
+   ```
+
+3. **Long-term solution:**
+   - Schedule restores during maintenance windows
+   - Use separate database instances for restore testing
+   - Implement restore job timeouts
+
+**If you see multiple replica sets:**
+
+This is normal during deployments but can indicate issues:
+
+```bash
+# Check replica set status
+kubectl get rs
+
+# Clean up old replica sets if needed
+kubectl delete rs <old-replicaset-name>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="preventing-future-conflicts" summary="Preventing restore-deployment conflicts">
+
+**1. Implement proper job management:**
+
+```yaml
+# Add activeDeadlineSeconds to prevent infinite running
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: database-restore
+spec:
+  activeDeadlineSeconds: 3600 # 1 hour timeout
+  backoffLimit: 3
+  template:
+    # ... rest of job spec
+```
+
+**2. Use resource quotas:**
+
+```yaml
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: restore-quota
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: 4Gi
+    limits.cpu: "4"
+    limits.memory: 8Gi
+```
+
+**3. Set up monitoring alerts:**
+
+- Alert when restore jobs run longer than expected
+- Monitor resource usage during restore operations
+- Set up notifications for failed deployments
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on March 26, 2025 based on a real user query._

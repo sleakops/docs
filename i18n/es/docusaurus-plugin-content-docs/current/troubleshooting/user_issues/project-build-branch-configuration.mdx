@@ -1,0 +1,160 @@
+---
+sidebar_position: 3
+title: "Configuración de la Rama de Construcción en Proyectos"
+description: "Comprendiendo cómo SleakOps maneja la selección de ramas durante los procesos de construcción"
+date: "2024-07-23"
+category: "proyecto"
+tags: ["construcción", "rama", "git", "configuración"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Configuración de la Rama de Construcción en Proyectos
+
+**Fecha:** 23 de julio de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Construcción, Rama, Git, Configuración
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios necesitan entender cómo SleakOps determina qué rama de Git usar durante el proceso de construcción cuando no se especifica una rama concreta en la configuración de construcción.
+
+**Síntomas Observados:**
+
+- Incertidumbre sobre qué rama se usa cuando no se especifica explícitamente
+- Las construcciones pueden usar ramas inesperadas
+- Necesidad de aclarar el comportamiento de la rama por defecto
+
+**Configuración Relevante:**
+
+- Configuración de rama por defecto del proyecto
+- Configuración de construcción sin especificación explícita de rama
+- Configuración del repositorio Git
+
+**Condiciones de Error:**
+
+- Construcciones usando una rama incorrecta cuando las expectativas difieren
+- Confusión acerca de la lógica de selección de ramas
+
+## Solución Detallada
+
+<TroubleshootingItem id="default-branch-behavior" summary="Cómo SleakOps selecciona las ramas para las construcciones">
+
+Cuando no se define una rama específica en la configuración de construcción, SleakOps sigue este comportamiento:
+
+**Selección de Rama por Defecto:**
+
+- El proceso de construcción usa automáticamente la **rama por defecto definida en la configuración del proyecto**
+- Esto asegura un comportamiento consistente en todas las construcciones dentro del proyecto
+- La rama por defecto del proyecto tiene prioridad sobre las ramas por defecto del repositorio
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="configure-project-branch" summary="Configurando la rama por defecto del proyecto">
+
+Para configurar o verificar la rama por defecto de tu proyecto:
+
+1. Navega a la **Configuración del Proyecto**
+2. Ve a la sección de **Código Fuente** o **Repositorio**
+3. Busca la configuración de **Rama por Defecto**
+4. Establécela en la rama que prefieras (por ejemplo, `main`, `master`, `develop`)
+
+```yaml
+# Ejemplo de configuración del proyecto
+project:
+  name: "mi-aplicacion"
+  repository:
+    url: "https://github.com/company/my-app"
+    default_branch: "main" # Esta rama se usará cuando no se especifique otra
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="override-branch" summary="Sobrescribiendo la rama para construcciones específicas">
+
+Puedes sobrescribir la rama por defecto para construcciones específicas:
+
+**Construcciones Manuales:**
+
+1. Ve a la sección de **Construcción** en tu proyecto
+2. Haz clic en **Nueva Construcción** o **Disparar Construcción**
+3. Especifica la rama deseada en el campo de rama
+
+**Construcciones Automatizadas:**
+
+```yaml
+# En tu configuración de construcción
+build:
+  trigger:
+    branch: "feature/nueva-funcionalidad" # Sobrescribe la rama por defecto
+  steps:
+    - name: "build"
+      command: "npm run build"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Mejores prácticas para la gestión de ramas">
+
+**Prácticas Recomendadas:**
+
+1. **Establecer ramas por defecto claras**: Usa `main` o `master` como rama por defecto de tu proyecto
+2. **Documentar la estrategia de ramas**: Asegúrate de que los miembros del equipo entiendan el modelo de ramas
+3. **Usar ramas específicas para cada entorno**:
+   - `main` para construcciones de producción
+   - `develop` para construcciones de preproducción
+   - Ramas de características para pruebas
+
+**Ejemplo de Configuración de Entornos:**
+
+```yaml
+environments:
+  production:
+    branch: "main"
+    auto_deploy: true
+  staging:
+    branch: "develop"
+    auto_deploy: true
+  development:
+    branch: "*" # Permite cualquier rama
+    auto_deploy: false
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Solución de problemas en la selección de ramas">
+
+**Problemas Comunes y Soluciones:**
+
+1. **Se está construyendo la rama equivocada:**
+
+   - Verifica la configuración de la rama por defecto del proyecto
+   - Asegúrate de que la configuración de construcción no tenga especificaciones de rama conflictivas
+
+2. **La construcción falla porque no se encuentra la rama:**
+
+   - Asegúrate de que la rama especificada exista en el repositorio
+   - Verifica la ortografía y sensibilidad a mayúsculas/minúsculas del nombre de la rama
+
+3. **Comportamiento inconsistente en la construcción:**
+   - Revisa todas las configuraciones de construcción para ajustes explícitos de rama
+   - Estandariza los nombres de las ramas en todos los entornos
+
+**Pasos de Verificación:**
+
+```bash
+# Ver configuración actual del proyecto
+sleakops project show <nombre-del-proyecto>
+
+# Listar ramas disponibles
+sleakops project branches <nombre-del-proyecto>
+
+# Ver historial de construcciones con información de ramas
+sleakops builds list --project <nombre-del-proyecto> --show-branches
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de un usuario._

@@ -1,0 +1,174 @@
+---
+sidebar_position: 15
+title: "Configuración de Trabajos Cron en SleakOps"
+description: "Cómo configurar expresiones cron para cargas de trabajo programadas en SleakOps"
+date: "2024-08-15"
+category: "workload"
+tags: ["cron", "programación", "carga de trabajo", "configuración"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Configuración de Trabajos Cron en SleakOps
+
+**Fecha:** 15 de agosto de 2024  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** Cron, Programación, Carga de trabajo, Configuración
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios necesitan configurar expresiones cron para cargas de trabajo programadas en SleakOps, pero pueden no tener acceso directo a un campo de texto para ingresar la expresión cron en la versión actual de la plataforma.
+
+**Síntomas Observados:**
+
+- Necesidad de configurar trabajos programados con requisitos de tiempo específicos
+- Opciones limitadas en la interfaz para la configuración de expresiones cron
+- Requisito de patrones de programación personalizados más allá de los preajustes básicos
+
+**Configuración Relevante:**
+
+- Tipo de carga de trabajo: trabajos programados/trabajos cron
+- Plataforma: gestión de cargas de trabajo en SleakOps
+- Requisitos de programación: expresiones cron personalizadas
+
+**Condiciones de Error:**
+
+- Dificultad para configurar patrones de programación complejos
+- Opciones limitadas de programación en la interfaz actual
+- Necesidad de control preciso del tiempo
+
+## Solución Detallada
+
+<TroubleshootingItem id="current-cron-setup" summary="Cómo configurar trabajos cron en la versión actual de SleakOps">
+
+Actualmente, puedes configurar trabajos cron en SleakOps a través de la interfaz de configuración de cargas de trabajo:
+
+1. **Navega a Cargas de Trabajo** en tu proyecto SleakOps
+2. **Crea o Edita** una carga de trabajo
+3. **Selecciona Tipo de Carga de Trabajo**: Elige "Trabajo Cron" o "Tarea Programada"
+4. **Configura el Horario**: Usa las opciones de programación disponibles
+
+**Métodos de programación disponibles:**
+
+- Intervalos predefinidos (cada hora, diario, semanal)
+- Selección de tiempo personalizada mediante componentes de la interfaz
+- Configuración avanzada mediante editor YAML
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="yaml-cron-configuration" summary="Uso de YAML para configuración avanzada de cron">
+
+Para expresiones cron complejas, puedes usar el editor YAML:
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mi-trabajo-programado
+spec:
+  schedule: "0 2 * * 1-5" # Ejecutar a las 2 AM, de lunes a viernes
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: mi-contenedor
+              image: mi-app:latest
+              command: ["/bin/sh"]
+              args: ["-c", "echo 'Ejecutando tarea programada'"]
+          restartPolicy: OnFailure
+```
+
+**Patrones comunes de expresiones cron:**
+
+- `0 0 * * *` - Diario a medianoche
+- `0 */6 * * *` - Cada 6 horas
+- `0 9 * * 1-5` - Días laborables a las 9 AM
+- `*/15 * * * *` - Cada 15 minutos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cron-expression-builder" summary="Comprendiendo el formato de expresiones cron">
+
+Las expresiones cron en Kubernetes siguen este formato:
+
+```
+┌───────────── minuto (0 - 59)
+│ ┌───────────── hora (0 - 23)
+│ │ ┌───────────── día del mes (1 - 31)
+│ │ │ ┌───────────── mes (1 - 12)
+│ │ │ │ ┌───────────── día de la semana (0 - 6) (domingo a sábado)
+│ │ │ │ │
+│ │ │ │ │
+* * * * *
+```
+
+**Caracteres especiales:**
+
+- `*` - Cualquier valor
+- `,` - Separador de lista de valores
+- `-` - Rango de valores
+- `/` - Valores por paso
+- `?` - Sin valor específico (solo día del mes/semana)
+
+**Ejemplos:**
+
+- `0 0 1 * *` - Primer día de cada mes a medianoche
+- `0 */2 * * *` - Cada 2 horas
+- `0 9-17 * * 1-5` - Cada hora de 9 AM a 5 PM, de lunes a viernes
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="upcoming-features" summary="Mejoras próximas en la configuración de cron">
+
+**Configuración Mejorada de Cron (Próximamente):**
+
+El equipo de SleakOps está trabajando en funciones mejoradas para la configuración de trabajos cron:
+
+1. **Entrada Directa de Expresión Cron**: Un campo de texto dedicado para ingresar expresiones cron directamente
+2. **Constructor Visual de Cron**: Interfaz interactiva para construir expresiones cron
+3. **Validación de Expresiones**: Validación en tiempo real de la sintaxis cron
+4. **Vista Previa de Programación**: Representación visual de cuándo se ejecutarán los trabajos
+
+**Soluciones Temporales Actuales:**
+
+- Usa el editor YAML para expresiones complejas
+- Consulta generadores de expresiones cron en línea
+- Prueba las expresiones primero en entornos de desarrollo
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-cron" summary="Solución de problemas de trabajos cron">
+
+**Problemas comunes y soluciones:**
+
+1. **El trabajo no se ejecuta en los horarios esperados:**
+
+   - Verifica la configuración de zona horaria en tu clúster
+   - Revisa la sintaxis de la expresión cron
+   - Consulta el historial de trabajos en el panel de SleakOps
+
+2. **Los trabajos no completan:**
+
+   - Revisa límites y solicitudes de recursos
+   - Consulta los registros del contenedor
+   - Verifica la disponibilidad y permisos de la imagen
+
+3. **Monitoreo de trabajos cron:**
+
+   ```bash
+   # Ver estado de trabajos cron
+   kubectl get cronjobs
+
+   # Ver historial de ejecución de trabajos
+   kubectl get jobs
+
+   # Ver registros de un trabajo específico
+   kubectl logs job/mi-trabajo-programado-1234567890
+   ```
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 15 de enero de 2025 basada en una consulta real de usuario._

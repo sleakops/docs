@@ -1,0 +1,227 @@
+---
+sidebar_position: 3
+title: "Problemas con la extensión pgvector de PostgreSQL en Alpine vs Debian"
+description: "Solución para problemas de compatibilidad de la extensión pgvector entre imágenes de PostgreSQL Alpine y Debian"
+date: "2024-04-24"
+category: "dependencia"
+tags:
+  ["postgresql", "pgvector", "alpine", "debian", "extensiones", "base de datos"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas con la extensión pgvector de PostgreSQL en Alpine vs Debian
+
+**Fecha:** 24 de abril de 2024  
+**Categoría:** Dependencia  
+**Etiquetas:** PostgreSQL, pgvector, Alpine, Debian, Extensiones, Base de datos
+
+## Descripción del problema
+
+**Contexto:** El usuario está implementando la extensión pgvector para PostgreSQL en su entorno SleakOps. La extensión funciona correctamente en los entornos de producción y staging, pero falla en el entorno local de desarrollo.
+
+**Síntomas observados:**
+
+- La extensión pgvector se instala correctamente en producción y staging
+- El entorno local de desarrollo no puede instalar ni usar la extensión pgvector
+- Comportamiento inconsistente entre entornos
+- Errores relacionados con la extensión en la instancia local de PostgreSQL
+
+**Configuración relevante:**
+
+- Entorno local: `postgres:14-alpine`
+- Producción/Staging: `postgres:14` (basado en Debian)
+- Extensión: pgvector para búsqueda de similitud vectorial
+- Plataforma: SleakOps con dependencia de PostgreSQL
+
+**Condiciones de error:**
+
+- El error ocurre al intentar instalar la extensión pgvector localmente
+- El problema aparece solo en imágenes de PostgreSQL basadas en Alpine
+- Funciona correctamente en imágenes basadas en Debian
+- Inconsistencia de entorno entre local y producción
+
+## Solución detallada
+
+<TroubleshootingItem id="alpine-debian-difference" summary="Entendiendo las imágenes de PostgreSQL Alpine vs Debian">
+
+La diferencia clave entre las imágenes de PostgreSQL:
+
+- **postgres:14-alpine**: Basada en Alpine Linux, imagen mínima con musl libc
+- **postgres:14**: Basada en Debian, incluye glibc y más herramientas de desarrollo
+
+Las imágenes Alpine son más pequeñas pero pueden carecer de ciertas librerías y herramientas de compilación necesarias para extensiones de PostgreSQL como pgvector.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="switch-to-debian" summary="Cambiar el entorno local a la imagen Debian">
+
+Para mantener la consistencia del entorno, actualice su configuración local de PostgreSQL:
+
+**En docker-compose.yml o equivalente:**
+
+```yaml
+services:
+  postgres:
+    image: postgres:14 # Cambiado de postgres:14-alpine
+    environment:
+      POSTGRES_DB: tu_base_de_datos
+      POSTGRES_USER: tu_usuario
+      POSTGRES_PASSWORD: tu_contraseña
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+```
+
+**En la configuración de dependencias de SleakOps:**
+
+```yaml
+dependencies:
+  postgres:
+    image: postgres:14
+    version: "14"
+    extensions:
+      - pgvector
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="install-pgvector" summary="Instalación de la extensión pgvector">
+
+Después de cambiar a la imagen Debian, instala pgvector:
+
+**Método 1: Usando comandos SQL**
+
+```sql
+-- Conéctate a tu base de datos
+\c tu_base_de_datos
+
+-- Crea la extensión
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- Verifica la instalación
+\dx vector
+```
+
+**Método 2: Usando un script de inicialización**
+
+Crea un script de inicialización:
+
+```sql
+-- init-pgvector.sql
+CREATE EXTENSION IF NOT EXISTS vector;
+```
+
+Móntalo en tu contenedor:
+
+```yaml
+volumes:
+  - ./init-pgvector.sql:/docker-entrypoint-initdb.d/init-pgvector.sql
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verify-installation" summary="Verificar la instalación de pgvector">
+
+Para confirmar que pgvector funciona correctamente:
+
+```sql
+-- Verifica si la extensión está instalada
+SELECT * FROM pg_extension WHERE extname = 'vector';
+
+-- Prueba la funcionalidad vectorial
+CREATE TABLE test_vectors (
+    id SERIAL PRIMARY KEY,
+    embedding vector(3)
+);
+
+-- Inserta datos de prueba
+INSERT INTO test_vectors (embedding) VALUES ('[1,2,3]');
+INSERT INTO test_vectors (embedding) VALUES ('[4,5,6]');
+
+-- Prueba la búsqueda por similitud
+SELECT id, embedding, embedding <-> '[1,2,3]' AS distancia
+FROM test_vectors
+ORDER BY distancia;
+
+-- Limpia la prueba
+DROP TABLE test_vectors;
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Solución de problemas comunes">
+
+**Si pgvector aún no funciona después de cambiar a Debian:**
+
+1. **Verifica la compatibilidad de la versión de PostgreSQL:**
+
+   ```bash
+   docker exec -it tu_contenedor_postgres psql -U tu_usuario -c "SELECT version();"
+   ```
+
+2. **Instala pgvector manualmente si es necesario:**
+
+   ```bash
+   # Conéctate al contenedor
+   docker exec -it tu_contenedor_postgres bash
+
+   # Instala dependencias
+   apt-get update
+   apt-get install -y postgresql-14-pgvector
+   ```
+
+3. **Reinicia el servicio de PostgreSQL:**
+
+   ```bash
+   docker restart tu_contenedor_postgres
+   ```
+
+4. **Verifica la disponibilidad de la extensión:**
+   ```sql
+   SELECT * FROM pg_available_extensions WHERE name = 'vector';
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="environment-consistency" summary="Mantener la consistencia del entorno">
+
+Para prevenir futuras inconsistencias en el entorno:
+
+**1. Usa imágenes base idénticas:**
+
+```yaml
+# Usa la misma imagen en todos los entornos
+postgres:
+  image: postgres:14 # No postgres:14-alpine
+```
+
+**2. Documenta las dependencias:**
+
+```yaml
+# Crea un archivo dependencies.yml
+postgres:
+  version: "14"
+  image: postgres:14
+  extensions:
+    - pgvector
+    - uuid-ossp
+  required_packages:
+    - postgresql-14-pgvector
+```
+
+**3. Usa scripts de inicialización:**
+
+```bash
+# Crea init-extensions.sql
+#!/bin/bash
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2025 basada en una consulta real de un usuario._

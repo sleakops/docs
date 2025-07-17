@@ -1,0 +1,173 @@
+---
+sidebar_position: 15
+title: "Infrastructure Architecture Diagrams"
+description: "Understanding SleakOps infrastructure architecture and request flow"
+date: "2024-12-19"
+category: "general"
+tags: ["architecture", "infrastructure", "diagrams", "networking", "vpc"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Infrastructure Architecture Diagrams
+
+**Date:** December 19, 2024  
+**Category:** General  
+**Tags:** Architecture, Infrastructure, Diagrams, Networking, VPC
+
+## Problem Description
+
+**Context:** Users need to understand the infrastructure architecture created by SleakOps when deploying applications, including how requests flow from users to applications and the relationship between different components.
+
+**Observed Symptoms:**
+
+- Lack of detailed infrastructure architecture diagrams
+- Difficulty understanding request flow from browser to application
+- Unclear component relationships within the VPC
+- Generic diagrams that don't show real component details
+
+**Relevant Configuration:**
+
+- SleakOps deployed applications
+- Load balancers and DNS configuration
+- VPC and networking components
+- Multiple application deployments
+
+**Error Conditions:**
+
+- Missing detailed architectural documentation
+- Inadequate visual representation of infrastructure components
+- Unclear boundaries between internal and external components
+
+## Detailed Solution
+
+<TroubleshootingItem id="architecture-overview" summary="SleakOps Infrastructure Architecture Overview">
+
+SleakOps creates a comprehensive infrastructure architecture when deploying applications. Here's the typical architecture:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Internet                                 │
+└─────────────────────┬───────────────────────────────────────────┘
+                      │
+┌─────────────────────┴───────────────────────────────────────────┐
+│                    DNS (Route 53)                              │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │  app1.yourdomain.com → ALB                              │    │
+│  │  app2.yourdomain.com → ALB                              │    │
+│  └─────────────────────────────────────────────────────────┘    │
+└─────────────────────┬───────────────────────────────────────────┘
+                      │
+┌─────────────────────┴───────────────────────────────────────────┐
+│                Application Load Balancer (ALB)                 │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │  SSL Termination                                        │    │
+│  │  Path-based routing                                     │    │
+│  │  Health checks                                          │    │
+│  └─────────────────────────────────────────────────────────┘    │
+└─────────────────────┬───────────────────────────────────────────┘
+                      │
+┌─────────────────────┴───────────────────────────────────────────┐
+│                        VPC                                      │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │              EKS Cluster                                │    │
+│  │  ┌─────────────────┐  ┌─────────────────┐              │    │
+│  │  │   Node Group 1  │  │   Node Group 2  │              │    │
+│  │  │  ┌───────────┐  │  │  ┌───────────┐  │              │    │
+│  │  │  │   Pod 1   │  │  │  │   Pod 3   │  │              │    │
+│  │  │  │   Pod 2   │  │  │  │   Pod 4   │  │              │    │
+│  │  │  └───────────┘  │  │  └───────────┘  │              │    │
+│  │  └─────────────────┘  └─────────────────┘              │    │
+│  └─────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="request-flow" summary="Request Flow from Browser to Application">
+
+Here's how a user request flows through the SleakOps infrastructure:
+
+**1. DNS Resolution**
+
+- User enters `app.yourdomain.com` in browser
+- DNS (Route 53) resolves to Application Load Balancer IP
+
+**2. Load Balancer Processing**
+
+- Request hits ALB (outside VPC)
+- SSL termination occurs at ALB
+- ALB performs health checks on targets
+- Routes request based on path/host rules
+
+**3. VPC Entry**
+
+- Request enters VPC through ALB target groups
+- Traffic flows to EKS cluster nodes
+
+**4. Kubernetes Processing**
+
+- Request reaches Kubernetes Service
+- Service load balances to healthy Pods
+- Application processes the request
+
+**5. Response Path**
+
+- Application sends response back through same path
+- ALB handles SSL encryption for response
+- Response reaches user's browser
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant DNS
+    participant ALB
+    participant EKS
+    participant App
+
+    User->>DNS: app.domain.com
+    DNS->>User: ALB IP
+    User->>ALB: HTTPS Request
+    ALB->>EKS: HTTP Request (VPC)
+    EKS->>App: Forward to Pod
+    App->>EKS: Response
+    EKS->>ALB: Response
+    ALB->>User: HTTPS Response
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="component-details" summary="Detailed Component Breakdown">
+
+**Outside VPC:**
+
+- **Route 53 DNS**: Domain name resolution
+- **Application Load Balancer**: SSL termination, routing, health checks
+- **Internet Gateway**: VPC internet access
+
+**Inside VPC:**
+
+- **EKS Cluster**: Managed Kubernetes control plane
+- **Node Groups**: EC2 instances running Kubernetes nodes
+- **Pods**: Application containers
+- **Services**: Kubernetes load balancing
+- **Ingress Controllers**: Route external traffic to services
+
+**Networking Components:**
+
+- **Public Subnets**: ALB and NAT Gateways
+- **Private Subnets**: EKS nodes and Pods
+- **Security Groups**: Firewall rules
+- **NACLs**: Subnet-level access control
+
+**Storage & Data:**
+
+- **EBS Volumes**: Persistent storage for Pods
+- **RDS/Database**: If configured
+- **S3 Buckets**: Object storage
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="multi-app-architecture" summary="Multiple Applications Architecture">
+
+When deploying multiple applications

@@ -1,0 +1,205 @@
+---
+sidebar_position: 3
+title: "VPN Connection Issues with Cluster Addons"
+description: "Troubleshooting VPN connectivity problems preventing access to cluster addons and development environments"
+date: "2024-12-19"
+category: "user"
+tags: ["vpn", "connection", "addons", "troubleshooting", "lens"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# VPN Connection Issues with Cluster Addons
+
+**Date:** December 19, 2024  
+**Category:** User  
+**Tags:** VPN, Connection, Addons, Troubleshooting, Lens
+
+## Problem Description
+
+**Context:** User experiences connectivity issues with development cluster addons and Lens after working on a new project, while production services remain accessible.
+
+**Observed Symptoms:**
+
+- Cannot access any development cluster addons
+- Unable to connect to development cluster via Lens
+- Loss of access to new project (n8n)
+- Production services (Grafana, Loki) remain accessible
+- Issues started in the morning (France timezone)
+
+**Relevant Configuration:**
+
+- Environment: Development cluster vs Production cluster
+- Tools affected: Cluster addons, Lens, project workloads
+- Geographic location: France
+- VPN: Standard SleakOps VPN connection
+
+**Error Conditions:**
+
+- Selective connectivity loss (dev accessible, prod not)
+- Coincides with new project work
+- Persists despite VPN reconnection and DNS clearing
+- Affects multiple services simultaneously
+
+## Detailed Solution
+
+<TroubleshootingItem id="initial-diagnosis" summary="Understanding selective connectivity issues">
+
+When you can access production services but not development cluster addons, this typically indicates:
+
+1. **Network segmentation**: Development and production environments use different network routes
+2. **VPN routing tables**: Your VPN client may have outdated or incomplete routing information
+3. **DNS resolution**: Development cluster DNS entries may not be resolving correctly
+4. **Authentication tokens**: Your kubeconfig or access tokens for development may have expired
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="vpn-troubleshooting" summary="Advanced VPN troubleshooting steps">
+
+Beyond basic VPN reconnection, try these steps:
+
+1. **Complete VPN reset**:
+
+   ```bash
+   # Disconnect VPN completely
+   # Clear VPN client cache/settings
+   # Restart VPN client application
+   # Reconnect with fresh configuration
+   ```
+
+2. **Verify routing tables**:
+
+   ```bash
+   # On Windows
+   route print
+
+   # On macOS/Linux
+   netstat -rn
+   ```
+
+3. **Test specific endpoints**:
+
+   ```bash
+   # Test development cluster API
+   curl -k https://your-dev-cluster-api-endpoint/version
+
+   # Test addon endpoints
+   nslookup your-addon-domain.sleakops.com
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="lens-specific-fixes" summary="Lens connectivity troubleshooting">
+
+For Lens connection issues:
+
+1. **Refresh cluster configuration**:
+
+   - Open Lens
+   - Go to cluster settings
+   - Click "Refresh" or "Reconnect"
+   - Verify kubeconfig path is correct
+
+2. **Update kubeconfig**:
+
+   ```bash
+   # Download fresh kubeconfig from SleakOps
+   sleakops cluster kubeconfig --cluster development
+
+   # Or update existing config
+   kubectl config use-context development
+   kubectl cluster-info
+   ```
+
+3. **Clear Lens cache**:
+   - Close Lens completely
+   - Clear application cache (location varies by OS)
+   - Restart Lens
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="project-access-recovery" summary="Recovering access to new projects">
+
+If you lost access to a newly created project:
+
+1. **Verify project permissions**:
+
+   - Check if project deployment completed successfully
+   - Confirm your user has proper access rights
+   - Verify project is in "Running" state in SleakOps dashboard
+
+2. **Check project networking**:
+
+   ```bash
+   # Verify project endpoints are accessible
+   nslookup your-project-url.sleakops.com
+
+   # Test direct connectivity
+   curl -I https://your-project-url.sleakops.com
+   ```
+
+3. **Re-sync project configuration**:
+   - Go to SleakOps dashboard
+   - Navigate to your project
+   - Click "Sync" or "Refresh configuration"
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="environment-specific-issues" summary="Development vs Production environment differences">
+
+When production works but development doesn't:
+
+1. **Check environment status**:
+
+   - Verify development cluster is healthy in SleakOps dashboard
+   - Look for any maintenance notifications
+   - Check if there are ongoing deployments
+
+2. **Network configuration differences**:
+
+   - Development clusters may use different IP ranges
+   - VPN split-tunneling might affect development routes
+   - Firewall rules may differ between environments
+
+3. **Authentication scope**:
+   - Your tokens might have different scopes for dev vs prod
+   - Development access might require additional permissions
+   - Check if your user role includes development cluster access
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="escalation-steps" summary="When to escalate and what information to provide">
+
+If these steps don't resolve the issue, escalate with this information:
+
+1. **Network diagnostics**:
+
+   ```bash
+   # Collect routing information
+   route print > routing_info.txt
+
+   # DNS resolution tests
+   nslookup grafana.prod.sleakops.com
+   nslookup your-addon.dev.sleakops.com
+
+   # Connectivity tests
+   traceroute your-dev-cluster-endpoint
+   ```
+
+2. **Timeline information**:
+
+   - Exact time when issues started
+   - Last successful connection time
+   - Any recent changes or new project creation
+
+3. **Environment details**:
+   - Operating system and version
+   - VPN client version
+   - Lens version
+   - Geographic location/timezone
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

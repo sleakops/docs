@@ -1,0 +1,216 @@
+---
+sidebar_position: 3
+title: "Metrics Loss During Node Failures in Kubernetes Clusters"
+description: "Understanding and preventing metrics loss when nodes fail or are replaced in Kubernetes clusters"
+date: "2024-06-26"
+category: "cluster"
+tags: ["monitoring", "metrics", "node-failure", "prometheus", "persistence"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Metrics Loss During Node Failures in Kubernetes Clusters
+
+**Date:** June 26, 2024  
+**Category:** Cluster  
+**Tags:** Monitoring, Metrics, Node Failure, Prometheus, Persistence
+
+## Problem Description
+
+**Context:** Users experience loss of monitoring metrics when Kubernetes nodes fail or are replaced during deployments, affecting historical data availability for analysis and troubleshooting.
+
+**Observed Symptoms:**
+
+- Metrics disappear when nodes crash or are terminated
+- Historical monitoring data becomes unavailable
+- Gaps in metric continuity during node replacements
+- Loss of performance data during deployments
+
+**Relevant Configuration:**
+
+- Metrics retention: 2 hours local storage before S3 persistence
+- Instance types: On-demand instances (less prone to failures)
+- Storage backend: S3 for long-term metric storage
+- Monitoring stack: Prometheus-based metrics collection
+
+**Error Conditions:**
+
+- Node failures during the 2-hour local retention window
+- Deployments that replace nodes before metrics are persisted
+- Unexpected node terminations due to infrastructure issues
+- Network issues preventing metric persistence to S3
+
+## Detailed Solution
+
+<TroubleshootingItem id="understanding-metric-persistence" summary="Understanding the current metrics persistence model">
+
+The current metrics architecture works as follows:
+
+1. **Local Storage Phase**: Metrics are stored locally on each node for 2 hours
+2. **Persistence Phase**: After 2 hours, metrics are automatically persisted to S3
+3. **Risk Window**: If a node fails within the 2-hour window, metrics are lost
+
+This design optimizes for:
+
+- Reduced network traffic costs
+- Following official tool recommendations
+- Balancing performance with storage costs
+
+```yaml
+# Current configuration example
+prometheus:
+  retention:
+    local: "2h"
+    remote_write:
+      interval: "2h"
+      destination: "s3://metrics-bucket"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deployment-impact" summary="Impact of deployments on metrics retention">
+
+During deployments, metrics loss can occur when:
+
+1. **Rolling Updates**: Old nodes are terminated before metrics are persisted
+2. **Node Replacement**: New nodes replace old ones within the 2-hour window
+3. **Scaling Operations**: Nodes are removed during scale-down operations
+
+**Deployment vs. Node Failure Scenarios:**
+
+- **Planned Deployments**: Metrics may be lost if deployment occurs within 2-hour window
+- **Unplanned Failures**: Less common with on-demand instances but still possible
+- **Infrastructure Issues**: Network problems, AWS service disruptions
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-mitigation" summary="Immediate mitigation strategies">
+
+While waiting for platform improvements, consider these approaches:
+
+**1. Timing Deployments**
+
+```bash
+# Check last metric persistence time
+kubectl get configmap prometheus-config -o yaml | grep last_persist
+
+# Wait for next persistence cycle before deploying
+echo "Waiting for metrics persistence..."
+sleep 7200  # 2 hours
+```
+
+**2. Manual Metric Backup**
+
+```bash
+# Export current metrics before deployment
+kubectl port-forward svc/prometheus 9090:9090
+curl -G 'http://localhost:9090/api/v1/query_range' \
+  --data-urlencode 'query=up' \
+  --data-urlencode 'start=2024-06-26T00:00:00Z' \
+  --data-urlencode 'end=2024-06-26T23:59:59Z' \
+  --data-urlencode 'step=60s' > metrics_backup.json
+```
+
+**3. Monitoring Deployment Impact**
+
+```bash
+# Monitor node replacement during deployment
+kubectl get events --field-selector reason=NodeReady -w
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="platform-roadmap" summary="Platform improvements in development">
+
+The SleakOps team is actively working on solutions to prevent metrics loss:
+
+**Planned Improvements:**
+
+1. **Persistent Volume Claims**: Store metrics in persistent storage
+2. **Faster Persistence**: Reduce the 2-hour window to minimize risk
+3. **Graceful Node Shutdown**: Ensure metrics are saved before node termination
+4. **Redundant Storage**: Multiple copies of metrics across nodes
+
+**Timeline:**
+
+- These improvements are on the product roadmap
+- Updates will be communicated as they become available
+- No specific ETA provided yet
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-best-practices" summary="Best practices for metric reliability">
+
+**1. Deployment Scheduling**
+
+- Schedule deployments after metric persistence cycles
+- Monitor metric persistence status before deployments
+- Use maintenance windows for critical deployments
+
+**2. Monitoring Setup**
+
+```yaml
+# Add alerts for metric persistence issues
+groups:
+  - name: metrics.rules
+    rules:
+      - alert: MetricsPersistenceDelay
+        expr: time() - prometheus_tsdb_last_successful_snapshot_timestamp > 7200
+        for: 5m
+        annotations:
+          summary: "Metrics persistence is delayed"
+```
+
+**3. Documentation**
+
+- Document deployment procedures that account for metrics
+- Train team members on metric persistence windows
+- Create runbooks for metric recovery procedures
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Alternative monitoring approaches">
+
+For critical environments requiring zero metric loss:
+
+**1. External Monitoring**
+
+- Use external monitoring services (DataDog, New Relic)
+- Implement push-based metrics to external systems
+- Set up redundant monitoring infrastructure
+
+**2. Custom Persistence**
+
+```yaml
+# Custom sidecar for immediate persistence
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: metrics-backup
+spec:
+  template:
+    spec:
+      containers:
+        - name: backup
+          image: prom/prometheus:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              while true; do
+                promtool query instant 'up' | aws s3 cp - s3://backup-metrics/$(date +%s).json
+                sleep 300
+              done
+```
+
+**3. High-Availability Setup**
+
+- Deploy Prometheus in HA mode
+- Use Thanos for long-term storage
+- Implement cross-region metric replication
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on 12/19/2024 based on a real user query._

@@ -1,0 +1,182 @@
+---
+sidebar_position: 3
+title: "Production Deployment Failure with New Relic pkg_resources Warning"
+description: "Solution for deployment failures caused by New Relic pkg_resources deprecation warning"
+date: "2024-12-11"
+category: "project"
+tags:
+  ["deployment", "build", "newrelic", "python", "pkg_resources", "setuptools"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Production Deployment Failure with New Relic pkg_resources Warning
+
+**Date:** December 11, 2024  
+**Category:** Project  
+**Tags:** Deployment, Build, NewRelic, Python, pkg_resources, Setuptools
+
+## Problem Description
+
+**Context:** User attempts to deploy a Python project to production using SleakOps CLI but encounters build failures related to New Relic's use of deprecated pkg_resources API.
+
+**Observed Symptoms:**
+
+- Build process starts normally but fails with "Something went wrong" message
+- UserWarning about pkg_resources being deprecated appears in diagnostics
+- Build gets stuck in "Building project..." loop before failing
+- Deployment to production environment fails completely
+
+**Relevant Configuration:**
+
+- Project: `api-mecubro`
+- Branch: `master`
+- Python version: `3.9`
+- New Relic integration enabled
+- Command used: `sleakops build -p api-mecubro -b master -w`
+
+**Error Conditions:**
+
+- Error occurs during production deployment build process
+- Warning originates from `/usr/local/lib/python3.9/site-packages/newrelic/config.py:4555`
+- pkg_resources deprecation warning suggests pinning Setuptools<81
+- Build failure prevents successful deployment
+
+## Detailed Solution
+
+<TroubleshootingItem id="immediate-fix" summary="Immediate fix: Pin Setuptools version">
+
+The quickest solution is to pin the Setuptools version in your project's requirements:
+
+1. **Add to requirements.txt**:
+
+```txt
+setuptools<81
+```
+
+2. **Or add to pyproject.toml** (if using):
+
+```toml
+[build-system]
+requires = ["setuptools<81", "wheel"]
+```
+
+3. **Rebuild the project**:
+
+```bash
+sleakops build -p api-mecubro -b master -w
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-solution" summary="Dockerfile-based solution">
+
+If you have control over the Dockerfile, you can pin Setuptools during the build process:
+
+```dockerfile
+# Before installing other dependencies
+RUN pip install "setuptools<81"
+
+# Then install your requirements
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+```
+
+Or install it alongside other dependencies:
+
+```dockerfile
+RUN pip install "setuptools<81" -r requirements.txt
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="newrelic-update" summary="Update New Relic agent (recommended long-term solution)">
+
+The best long-term solution is to update the New Relic Python agent to a version that doesn't use pkg_resources:
+
+1. **Check current New Relic version**:
+
+```bash
+pip show newrelic
+```
+
+2. **Update to latest version**:
+
+```txt
+# In requirements.txt
+newrelic>=9.0.0
+```
+
+3. **Verify compatibility** with your Python version and application
+
+4. **Test thoroughly** in a development environment before deploying to production
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="environment-variables" summary="Alternative: Suppress warnings via environment variables">
+
+As a temporary workaround, you can suppress the specific warning:
+
+1. **Add environment variable in your deployment configuration**:
+
+```bash
+export PYTHONWARNINGS="ignore::UserWarning:pkg_resources"
+```
+
+2. **Or add to your application's environment variables**:
+
+```yaml
+# In your SleakOps project configuration
+environment:
+  PYTHONWARNINGS: "ignore::UserWarning:pkg_resources"
+```
+
+**Note**: This only suppresses the warning but doesn't fix the underlying issue.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Verification and testing steps">
+
+After implementing any solution:
+
+1. **Test the build locally** (if possible):
+
+```bash
+sleakops build -p api-mecubro -b master -w
+```
+
+2. **Monitor the build logs** for the warning message
+
+3. **Verify New Relic functionality** after deployment:
+
+   - Check that metrics are being collected
+   - Verify APM data is appearing in New Relic dashboard
+   - Test error tracking functionality
+
+4. **Check application performance** to ensure no regressions
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention" summary="Prevention for future projects">
+
+To prevent this issue in new projects:
+
+1. **Use modern dependency management**:
+
+   - Use `pyproject.toml` instead of `setup.py` when possible
+   - Pin critical dependencies including build tools
+
+2. **Regular dependency updates**:
+
+   - Keep New Relic agent updated
+   - Monitor deprecation warnings in CI/CD
+
+3. **Build environment consistency**:
+   - Use specific Python and package versions
+   - Test builds in environments similar to production
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 11, 2024 based on a real user query._

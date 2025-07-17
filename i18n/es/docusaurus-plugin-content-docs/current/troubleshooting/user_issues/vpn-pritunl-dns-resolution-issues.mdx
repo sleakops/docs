@@ -1,0 +1,222 @@
+---
+sidebar_position: 3
+title: "Problemas de Resolución DNS en Pritunl VPN"
+description: "Solución de problemas de resolución DNS con conexiones VPN Pritunl"
+date: "2024-01-15"
+category: "usuario"
+tags: ["vpn", "pritunl", "dns", "redes", "solución-de-problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de Resolución DNS en Pritunl VPN
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Usuario  
+**Etiquetas:** VPN, Pritunl, DNS, Redes, Solución de problemas
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios experimentan problemas intermitentes de resolución DNS al conectarse a la infraestructura de SleakOps mediante VPN Pritunl desde diferentes ubicaciones y sistemas operativos.
+
+**Síntomas Observados:**
+
+- La conexión VPN Pritunl funciona de forma intermitente
+- La resolución DNS falla en algunos sistemas operativos
+- Los problemas varían según la ubicación geográfica
+- El problema aparece de forma inconsistente en distintos sistemas cliente
+
+**Configuración Relevante:**
+
+- Cliente VPN: Pritunl
+- Ubicaciones de conexión: Múltiples IPs en Argentina
+- Servidor DNS de producción: 10.130.0.2
+- Afecta múltiples sistemas operativos
+
+**Condiciones de Error:**
+
+- Fallos esporádicos en la resolución DNS
+- Problema varía según sistema operativo
+- Problemas al conectar desde distintas ubicaciones geográficas
+- Comportamiento inconsistente en intentos de conexión
+
+## Solución Detallada
+
+<TroubleshootingItem id="pritunl-reset-options" summary="Restablecer DNS y Red en Pritunl">
+
+El primer paso para solucionar es restablecer las configuraciones DNS y de red de Pritunl:
+
+**Pasos para restablecer:**
+
+1. Abre tu cliente Pritunl
+2. Ve a **Configuración** o **Preferencias**
+3. Busca **Opciones Avanzadas** o **Configuración de Red**
+4. Haz clic en **Restablecer DNS**
+5. Haz clic en **Restablecer Red**
+6. Reinicia el cliente Pritunl
+7. Reconéctate a tu perfil VPN
+
+**Qué hace esto:**
+
+- Limpia las entradas DNS en caché
+- Restablece las configuraciones de interfaces de red
+- Fuerza una configuración nueva del resolvedor DNS
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-dns-configuration" summary="Configurar Servidor DNS de Producción">
+
+Si el restablecimiento no resuelve el problema, configura manualmente el servidor DNS de producción:
+
+**Agregar servidor DNS 10.130.0.2:**
+
+**En Windows:**
+
+1. Ve a **Centro de redes y recursos compartidos**
+2. Haz clic en tu conexión de red activa
+3. Haz clic en **Propiedades**
+4. Selecciona **Protocolo de Internet versión 4 (TCP/IPv4)**
+5. Haz clic en **Propiedades**
+6. Selecciona **Usar las siguientes direcciones de servidor DNS**
+7. Añade `10.130.0.2` como DNS primario
+8. Haz clic en **Aceptar**
+
+**En macOS:**
+
+1. Ve a **Preferencias del Sistema** → **Red**
+2. Selecciona tu conexión de red
+3. Haz clic en **Avanzado**
+4. Ve a la pestaña **DNS**
+5. Haz clic en **+** y agrega `10.130.0.2`
+6. Haz clic en **Aceptar**
+
+**En Linux:**
+
+```bash
+# Editar resolv.conf
+sudo nano /etc/resolv.conf
+
+# Añadir esta línea al principio
+nameserver 10.130.0.2
+
+# O usar systemd-resolved
+sudo systemctl edit systemd-resolved
+
+# Añadir:
+[Resolve]
+DNS=10.130.0.2
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="pritunl-profile-dns" summary="Configurar DNS en Perfil de Pritunl">
+
+También puedes configurar el DNS directamente en tu perfil de conexión Pritunl:
+
+1. Abre el cliente Pritunl
+2. Busca tu perfil de conexión
+3. Haz clic en el **icono de engranaje** o **Editar**
+4. Busca **Configuración DNS** o **Avanzado**
+5. Añade `10.130.0.2` a la lista de servidores DNS
+6. Guarda el perfil
+7. Reconéctate
+
+**Método alternativo:**
+
+```bash
+# Si usas Pritunl desde línea de comandos
+pritunl-client add [archivo-perfil]
+pritunl-client start [id-perfil] --dns 10.130.0.2
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="os-specific-troubleshooting" summary="Soluciones Específicas por Sistema Operativo">
+
+**Windows:**
+
+- Deshabilitar IPv6 si no es necesario: `netsh interface ipv6 set global randomizeidentifiers=disabled`
+- Vaciar caché DNS: `ipconfig /flushdns`
+- Restablecer Winsock: `netsh winsock reset`
+
+**macOS:**
+
+- Vaciar caché DNS: `sudo dscacheutil -flushcache`
+- Restablecer configuración de red: `sudo ifconfig en0 down && sudo ifconfig en0 up`
+
+**Linux:**
+
+- Reiniciar NetworkManager: `sudo systemctl restart NetworkManager`
+- Vaciar caché DNS: `sudo systemd-resolve --flush-caches`
+- Verificar resolución DNS: `nslookup [dominio] 10.130.0.2`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="geographic-considerations" summary="Consideraciones por Ubicación Geográfica">
+
+Para usuarios que se conectan desde distintas ubicaciones en Argentina:
+
+**Optimización de Conexión:**
+
+1. Elige la ubicación del servidor Pritunl más cercana
+2. Prueba diferentes protocolos de conexión (UDP vs TCP)
+3. Ajusta el tamaño MTU si es necesario:
+
+   ```bash
+   # Probar MTU óptimo
+   ping -f -l 1472 [ip-servidor]
+
+   # Configurar MTU en Pritunl
+   # Añadir al perfil: tun-mtu 1500
+   ```
+
+**Pruebas de Calidad de Red:**
+
+```bash
+# Probar velocidad de resolución DNS
+dig @10.130.0.2 [tu-dominio]
+
+# Probar calidad de conexión
+ping -c 10 10.130.0.2
+
+# Rastrear ruta para identificar problemas
+traceroute 10.130.0.2
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Verificar Resolución DNS">
+
+Después de aplicar las soluciones, verifica que la resolución DNS funcione correctamente:
+
+**Comandos de prueba:**
+
+```bash
+# Probar resolución DNS
+nslookup google.com 10.130.0.2
+dig @10.130.0.2 tu-dominio-interno.com
+
+# Probar servicios internos
+ping servicio-interno.sleakops.local
+curl -I https://tu-api.sleakops.com
+
+# Verificar servidores DNS actuales
+# En Linux/macOS:
+cat /etc/resolv.conf
+
+# En Windows:
+ipconfig /all | findstr "DNS Servers"
+```
+
+**Resultados esperados:**
+
+- Las consultas DNS deben resolverse rápidamente
+- Los dominios internos deben ser accesibles
+- No debe haber errores de tiempo de espera
+- Resolución consistente en múltiples intentos
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

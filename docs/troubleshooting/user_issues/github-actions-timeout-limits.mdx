@@ -1,0 +1,207 @@
+---
+sidebar_position: 3
+title: "GitHub Actions Timeout and Monthly Limits"
+description: "Solution for GitHub Actions deployments timing out and exceeding monthly limits"
+date: "2024-01-15"
+category: "project"
+tags: ["github-actions", "deployment", "timeout", "ci-cd", "limits"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# GitHub Actions Timeout and Monthly Limits
+
+**Date:** January 15, 2024  
+**Category:** Project  
+**Tags:** GitHub Actions, Deployment, Timeout, CI/CD, Limits
+
+## Problem Description
+
+**Context:** Users experience deployment failures when using GitHub Actions for CI/CD, with builds taking significantly longer than expected and potentially exceeding GitHub's monthly usage limits.
+
+**Observed Symptoms:**
+
+- Deployments that normally take 10-14 minutes are running for 45+ minutes
+- GitHub Actions jobs failing after 8 seconds on push
+- Multiple deployments getting stuck in "running" state
+- CI/CD pipeline failures without clear error messages
+
+**Relevant Configuration:**
+
+- Platform: GitHub Actions integration with SleakOps
+- Normal deployment time: 10-14 minutes
+- Observed deployment time: 45+ minutes
+- Project type: Web application deployment
+
+**Error Conditions:**
+
+- Error occurs immediately after git push (within 8 seconds)
+- Multiple deployments running simultaneously
+- Monthly GitHub Actions limits potentially exceeded
+- CI.yml configuration appears correct
+
+## Detailed Solution
+
+<TroubleshootingItem id="github-limits-check" summary="Check GitHub Actions usage and limits">
+
+To verify if you've exceeded GitHub Actions limits:
+
+1. Go to your **GitHub Organization Settings**
+2. Navigate to **Settings** → **Billing**
+3. Check the **Actions & Packages** section
+4. Review:
+   - Minutes used this month
+   - Available minutes remaining
+   - Current plan limits
+
+**Free Plan Limits:**
+
+- 2,000 minutes/month for private repositories
+- Unlimited for public repositories
+
+**Paid Plan Limits:**
+
+- Varies by plan (Pro: 3,000 min/month, Team: 10,000 min/month)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-alternative" summary="Use SleakOps native build and deploy">
+
+Instead of relying on GitHub Actions, you can use SleakOps' native build and deployment system:
+
+1. **Access SleakOps Dashboard**
+2. Navigate to your project
+3. Go to **Build & Deploy** section
+4. Configure **Direct Deploy** from SleakOps:
+
+```yaml
+# Example SleakOps deployment configuration
+build:
+  strategy: "sleakops-native"
+  timeout: "15m"
+
+deploy:
+  auto_deploy: true
+  branch: "dev"
+  environment: "development"
+```
+
+**Benefits:**
+
+- No GitHub Actions minute consumption
+- More reliable build times
+- Better integration with SleakOps features
+- Detailed build logs and monitoring
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="optimize-github-actions" summary="Optimize existing GitHub Actions workflow">
+
+If you prefer to continue using GitHub Actions, optimize your workflow:
+
+```yaml
+# .github/workflows/ci.yml
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [dev, main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20 # Set explicit timeout
+
+    steps:
+      - uses: actions/checkout@v3
+
+      # Use caching to reduce build time
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+
+      # Optimize Docker builds
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-setup" summary="Set up monitoring and alerts">
+
+To prevent future issues, implement monitoring:
+
+**1. GitHub Actions Monitoring:**
+
+```yaml
+# Add to your workflow
+- name: Notify on long builds
+  if: ${{ job.status == 'failure' || job.duration > 1200 }}
+  uses: 8398a7/action-slack@v3
+  with:
+    status: custom
+    custom_payload: |
+      {
+        text: "Build taking longer than expected: ${{ job.duration }}s"
+      }
+```
+
+**2. SleakOps Monitoring:**
+
+- Enable build time alerts in SleakOps dashboard
+- Set up notifications for builds exceeding 15 minutes
+- Monitor resource usage trends
+
+**3. Usage Tracking:**
+
+- Weekly review of GitHub Actions usage
+- Set up alerts when approaching 80% of monthly limit
+- Consider upgrading GitHub plan if consistently hitting limits
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-immediate" summary="Immediate troubleshooting steps">
+
+For immediate resolution:
+
+**1. Cancel Running Actions:**
+
+```bash
+# Using GitHub CLI
+gh run list --status in_progress
+gh run cancel [RUN_ID]
+```
+
+**2. Check Workflow Status:**
+
+- Go to **Actions** tab in your repository
+- Cancel any stuck workflows
+- Review logs for specific error messages
+
+**3. Temporary Workaround:**
+
+- Disable GitHub Actions temporarily
+- Use SleakOps manual deployment
+- Re-enable once limits reset (monthly)
+
+**4. Emergency Deployment:**
+If you need immediate deployment:
+
+1. Access SleakOps dashboard
+2. Go to project → **Manual Deploy**
+3. Select branch and environment
+4. Deploy directly through SleakOps
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

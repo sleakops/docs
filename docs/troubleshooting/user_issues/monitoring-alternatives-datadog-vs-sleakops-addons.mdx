@@ -1,0 +1,208 @@
+---
+sidebar_position: 3
+title: "Monitoring Alternatives: DataDog vs SleakOps Addons"
+description: "Comparison between DataDog and SleakOps native monitoring addons for application metrics and telemetry"
+date: "2024-03-25"
+category: "dependency"
+tags:
+  ["monitoring", "datadog", "grafana", "loki", "otel", "telemetry", "metrics"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Monitoring Alternatives: DataDog vs SleakOps Addons
+
+**Date:** March 25, 2024  
+**Category:** Dependency  
+**Tags:** Monitoring, DataDog, Grafana, Loki, OTEL, Telemetry, Metrics
+
+## Problem Description
+
+**Context:** Users migrating from external monitoring solutions like DataDog need to understand the available monitoring options in SleakOps and how to implement application-level metrics collection for business KPIs and performance monitoring.
+
+**Observed Symptoms:**
+
+- Loss of DataDog monitoring capabilities after migration to SleakOps
+- Need for application-level metrics collection for business KPIs
+- Uncertainty about available monitoring alternatives in SleakOps
+- Questions about cost implications of different monitoring solutions
+
+**Relevant Configuration:**
+
+- Application uses OpenTelemetry for metrics export
+- Previous DataDog configuration with API keys and collectors
+- Spring Boot application with metrics management configuration
+- Need for custom application tags and environment-specific metrics
+
+**Error Conditions:**
+
+- Missing monitoring infrastructure after platform migration
+- Inability to track business performance metrics
+- Lack of visibility into application performance
+
+## Detailed Solution
+
+<TroubleshootingItem id="sleakops-monitoring-addons" summary="SleakOps Native Monitoring Stack">
+
+SleakOps provides a comprehensive monitoring stack through native addons:
+
+**Loki (Log Management):**
+
+- Persists logs from all cluster components
+- Includes both application logs and controller logs
+- Provides centralized log aggregation and search
+
+**Grafana (Metrics and Visualization):**
+
+- Collects and persists CPU, Memory, Network, and I/O metrics
+- Monitors all cluster components and applications
+- Provides customizable dashboards and alerting
+
+**OpenTelemetry (APM - Beta):**
+
+- Application Performance Monitoring using open standards
+- Currently in beta with expanding metric capabilities
+- Compatible with existing OpenTelemetry instrumentation
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="datadog-cost-considerations" summary="DataDog Cost Analysis and Alternatives">
+
+**DataDog Cost Structure:**
+
+- Charges per instance in the cluster
+- Variable costs as cluster scales up/down
+- Difficult to predict and control expenses
+
+**Alternative: New Relic**
+
+- Pricing based on users and data ingestion
+- Free tier includes 100GB of data and 1 user
+- More predictable cost structure
+- Can be used free for small teams
+
+**Cost Comparison:**
+
+```
+DataDog: $15-23/host/month (variable with cluster size)
+New Relic: $0-99/user/month (predictable, free tier available)
+SleakOps Addons: Included in platform cost
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="datadog-integration-setup" summary="Adding DataDog to SleakOps Cluster">
+
+If you decide to continue with DataDog, you can add it as a custom dependency:
+
+**1. Add DataDog Agent to Docker Image:**
+
+```dockerfile
+# Add to your application Dockerfile
+FROM your-base-image
+
+# Install DataDog agent
+RUN curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh | bash
+
+# Copy your application
+COPY . /app
+
+# Configure DataDog environment variables
+ENV DD_API_KEY=${DATADOG_API_KEY}
+ENV DD_SITE="datadoghq.com"
+ENV DD_LOGS_ENABLED=true
+ENV DD_APM_ENABLED=true
+```
+
+**2. Configure Application Properties:**
+
+```yaml
+management:
+  metrics:
+    export:
+      datadog:
+        api-key: ${DATADOG_API_KEY}
+        application-key: ${DATADOG_APPLICATION_KEY}
+        uri: https://api.datadoghq.com
+        enabled: ${DATADOG_TOGGLE}
+        api-host: ${DATADOG_COLLECTOR_HOST}
+        port: ${DATADOG_COLLECTOR_PORT}
+        tags:
+          appId: ${spring.application.name}
+          env: ${DATADOG_ENVIRONMENT}
+          host: ${spring.cloud.client.hostname}
+        security:
+          enabled: false
+```
+
+**3. Set Environment Variables in SleakOps:**
+
+- `DATADOG_API_KEY`: Your DataDog API key
+- `DATADOG_APPLICATION_KEY`: Your DataDog application key
+- `DATADOG_TOGGLE`: Enable/disable DataDog (true/false)
+- `DATADOG_ENVIRONMENT`: Environment name (prod, staging, dev)
+- `DATADOG_COLLECTOR_HOST`: DataDog collector endpoint
+- `DATADOG_COLLECTOR_PORT`: Collector port (usually 8125)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="opentelemetry-migration" summary="Migrating to OpenTelemetry with SleakOps">
+
+Since your application already uses OpenTelemetry, you can easily integrate with SleakOps OTEL addon:
+
+**1. Enable OTEL Addon in SleakOps:**
+
+- Navigate to Cluster Settings → Addons
+- Enable "OpenTelemetry (Beta)"
+- Configure OTEL collector endpoint
+
+**2. Update Application Configuration:**
+
+```yaml
+management:
+  metrics:
+    export:
+      otlp:
+        endpoint: http://otel-collector:4317
+        protocol: grpc
+        headers:
+          authorization: Bearer ${OTEL_TOKEN}
+  tracing:
+    enabled: true
+    sampling:
+      probability: 1.0
+```
+
+**3. Custom Metrics Configuration:**
+
+```java
+@Component
+public class BusinessMetrics {
+    private final MeterRegistry meterRegistry;
+    private final Counter orderCounter;
+    private final Timer processTimer;
+
+    public BusinessMetrics(MeterRegistry meterRegistry) {
+        this.meterRegistry = meterRegistry;
+        this.orderCounter = Counter.builder("business.orders.total")
+            .description("Total orders processed")
+            .tag("env", "${ENVIRONMENT}")
+            .register(meterRegistry);
+        this.processTimer = Timer.builder("business.process.duration")
+            .description("Business process duration")
+            .register(meterRegistry);
+    }
+}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-comparison" summary="Feature Comparison: DataDog vs SleakOps vs New Relic">
+
+| Feature                       | DataDog       | SleakOps Addons  | New Relic       |
+| ----------------------------- | ------------- | ---------------- | --------------- |
+| **Cost Model**                | Per instance  | Included         | Per user + data |
+| **Free Tier**                 | 14-day trial  | Included         | 100GB + 1 user  |
+| **APM**                       | Full featured | Beta (expanding) | Full featured   |
+| **Log Management**            | Yes           | Yes (Loki)       | Yes             |
+| **Infrastructure Monitoring** | Yes           | Yes (Graf        |

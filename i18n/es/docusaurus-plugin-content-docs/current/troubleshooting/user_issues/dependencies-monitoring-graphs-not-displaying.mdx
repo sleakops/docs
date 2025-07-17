@@ -1,0 +1,128 @@
+---
+sidebar_position: 3
+title: "Gráficos de Monitoreo de Dependencias No Se Muestran"
+description: "Solución para gráficos de monitoreo de RDS y OpenSearch que aparecen vacíos o no cargan correctamente"
+date: "2025-01-22"
+category: "dependency"
+tags: ["monitoreo", "rds", "opensearch", "gráficos", "dependencias"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Gráficos de Monitoreo de Dependencias No Se Muestran
+
+**Fecha:** 22 de enero de 2025  
+**Categoría:** Dependencia  
+**Etiquetas:** Monitoreo, RDS, OpenSearch, Gráficos, Dependencias
+
+## Descripción del Problema
+
+**Contexto:** Al acceder a la sección de monitoreo para dependencias (RDS, OpenSearch, etc.) en SleakOps, la página de monitoreo carga pero los gráficos de uso no muestran datos o permanecen vacíos.
+
+**Síntomas Observados:**
+
+- La página de monitoreo carga correctamente
+- Los gráficos aparecen vacíos o sin datos
+- El problema afecta tanto a dependencias RDS como OpenSearch
+- El problema ocurre específicamente con dependencias antiguas
+
+**Configuración Relevante:**
+
+- Tipo de dependencia: RDS, OpenSearch
+- Monitoreo: Activado
+- Dependencias creadas antes de una actualización específica de la plataforma
+- Visualización de gráficos: Vacía/blanca
+
+**Condiciones de Error:**
+
+- Ocurre en dependencias creadas antes de que se implementara el almacenamiento de variables de monitoreo
+- Afecta múltiples tipos de dependencia (RDS, OpenSearch)
+- La recolección de datos de monitoreo funciona pero la visualización falla
+- El problema es consistente en las dependencias afectadas
+
+## Solución Detallada
+
+<TroubleshootingItem id="root-cause" summary="Entendiendo la causa raíz">
+
+Este problema ocurre debido a una variable faltante en la base de datos de la plataforma que es necesaria para la visualización de gráficos de monitoreo. Cuando se crearon ciertas dependencias, esta variable de monitoreo no se almacenó, causando que los gráficos no muestren datos aunque el sistema de monitoreo esté recopilando métricas.
+
+El problema afecta específicamente a:
+
+- Dependencias creadas antes de que se implementara el almacenamiento de la variable de monitoreo
+- Dependencias tanto de RDS como de OpenSearch
+- Cualquier dependencia que dependa de esta configuración específica de monitoreo
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-workaround" summary="Opciones de solución temporal inmediata">
+
+Mientras se espera la corrección en la plataforma, puedes probar estas soluciones temporales:
+
+1. **Consultar directamente CloudWatch**: Accede a tu consola de AWS CloudWatch para ver las métricas de RDS y OpenSearch directamente
+2. **Usar AWS CLI**: Consulta las métricas usando comandos AWS CLI:
+
+```bash
+# Para métricas de RDS
+aws cloudwatch get-metric-statistics \
+  --namespace AWS/RDS \
+  --metric-name CPUUtilization \
+  --dimensions Name=DBInstanceIdentifier,Value=tu-instancia-db \
+  --start-time 2025-01-22T00:00:00Z \
+  --end-time 2025-01-22T23:59:59Z \
+  --period 3600 \
+  --statistics Average
+
+# Para métricas de OpenSearch
+aws cloudwatch get-metric-statistics \
+  --namespace AWS/ES \
+  --metric-name CPUUtilization \
+  --dimensions Name=DomainName,Value=tu-dominio,Name=ClientId,Value=tu-id-cuenta \
+  --start-time 2025-01-22T00:00:00Z \
+  --end-time 2025-01-22T23:59:59Z \
+  --period 3600 \
+  --statistics Average
+```
+
+3. **Configurar monitoreo temporal**: Crea dashboards personalizados en CloudWatch para las dependencias afectadas
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="platform-fix" summary="Corrección en la plataforma en progreso">
+
+El equipo de SleakOps está trabajando en una solución integral que:
+
+1. **Identifique todas las dependencias afectadas**: Escanear la base de datos para dependencias que carecen de la variable de monitoreo
+2. **Complete las variables faltantes**: Agregar la configuración de monitoreo requerida a las dependencias existentes
+3. **Prevenga futuras ocurrencias**: Asegurar que todas las nuevas dependencias incluyan la variable de monitoreo desde su creación
+
+**Cronograma esperado**: La corrección se está implementando como una solución completa en lugar de parches individuales para asegurar que todos los usuarios afectados se beneficien simultáneamente.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Cómo verificar si tu dependencia está afectada">
+
+Para verificar si tus dependencias están afectadas por este problema:
+
+1. **Navega a Dependencias** en tu panel de SleakOps
+2. **Selecciona tu dependencia RDS o OpenSearch**
+3. **Ve a la pestaña de Monitoreo**
+4. **Verifica si los gráficos muestran datos**:
+   - Si los gráficos están vacíos pero la página carga → Estás afectado por este problema
+   - Si los gráficos muestran datos → Tu dependencia funciona correctamente
+   - Si la página no carga → Podría ser un problema diferente
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention" summary="Previniendo este problema en nuevas dependencias">
+
+Para nuevas dependencias creadas después de la corrección en la plataforma:
+
+1. **Verifica la configuración del monitoreo**: Después de crear una nueva dependencia, comprueba que los gráficos de monitoreo muestren datos en 5-10 minutos
+2. **Prueba diferentes rangos de tiempo**: Asegúrate de que los gráficos funcionen para distintos períodos (1 hora, 24 horas, 7 días)
+3. **Contacta soporte temprano**: Si las nuevas dependencias presentan este problema, repórtalo de inmediato ya que podría indicar que la corrección necesita ajustes
+
+</TroubleshootingItem>
+
+---
+
+_Este FAQ fue generado automáticamente el 22 de enero de 2025 basado en una consulta real de usuario._

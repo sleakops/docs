@@ -1,0 +1,181 @@
+---
+sidebar_position: 3
+title: "Grafana Prometheus DataSource Configuration"
+description: "How to configure Prometheus datasource in Grafana within SleakOps platform"
+date: "2024-12-11"
+category: "dependency"
+tags: ["grafana", "prometheus", "monitoring", "datasource", "thanos"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Grafana Prometheus DataSource Configuration
+
+**Date:** December 11, 2024  
+**Category:** Dependency  
+**Tags:** Grafana, Prometheus, Monitoring, DataSource, Thanos
+
+## Problem Description
+
+**Context:** Users attempting to configure Prometheus as a data source in Grafana within the SleakOps platform encounter connection issues and are unaware of pre-configured data sources.
+
+**Observed Symptoms:**
+
+- Unable to connect to Prometheus from Grafana interface
+- Manual Prometheus configuration attempts fail
+- Users create duplicate data sources unnecessarily
+- Connection timeouts when testing Prometheus data source
+
+**Relevant Configuration:**
+
+- Grafana is accessible via VPN connection
+- Prometheus is installed within the Kubernetes cluster
+- Default data sources are pre-configured by SleakOps
+- Thanos is used as a proxy for long-term storage in S3
+
+**Error Conditions:**
+
+- Data source test connection fails
+- Prometheus endpoint not reachable from Grafana
+- Users attempt manual configuration instead of using defaults
+
+## Detailed Solution
+
+<TroubleshootingItem id="default-datasource" summary="Use the pre-configured Prometheus data source">
+
+SleakOps automatically configures a Prometheus data source in Grafana. **You don't need to create a new one manually.**
+
+**Steps to use the default data source:**
+
+1. Access Grafana through your SleakOps VPN connection
+2. Go to **Configuration** → **Data Sources**
+3. Look for the existing data source named **"Prometheus"**
+4. This data source is already configured and ready to use
+
+**Key benefits of the default configuration:**
+
+- Pre-configured with correct endpoints
+- Integrated with Thanos for long-term metric storage
+- Works with all default SleakOps dashboards
+- No manual configuration required
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="thanos-integration" summary="Understanding Thanos integration">
+
+The default Prometheus data source uses **Thanos** as a target instead of connecting directly to Prometheus:
+
+**What is Thanos?**
+
+- A highly available Prometheus setup with long-term storage capabilities
+- Stores metrics in AWS S3 for extended retention
+- Provides the same query interface as Prometheus
+- Enables historical data analysis beyond Prometheus's local retention
+
+**Configuration details:**
+
+```yaml
+# Default data source configuration (managed by SleakOps)
+name: Prometheus
+type: prometheus
+url: http://thanos-query:9090
+access: proxy
+isDefault: true
+```
+
+**Why use Thanos instead of direct Prometheus?**
+
+- Extended metric retention (stored in S3)
+- Better performance for historical queries
+- High availability setup
+- Seamless integration with SleakOps monitoring stack
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-connection" summary="Troubleshooting connection issues">
+
+If you're experiencing connection issues with Grafana:
+
+**1. Verify VPN connection:**
+
+```bash
+# Check if you can reach Grafana
+curl -I https://grafana.your-project.sleakops.com
+```
+
+**2. Check data source status:**
+
+- Go to **Configuration** → **Data Sources**
+- Click on the **"Prometheus"** data source
+- Click **"Save & Test"** to verify connectivity
+
+**3. Common connection problems:**
+
+- **VPN not connected**: Ensure you're connected to the SleakOps VPN
+- **Ingress not ready**: Wait a few minutes after cluster creation
+- **DNS resolution**: Clear browser cache and try again
+
+**4. Alternative access methods:**
+
+```bash
+# Port-forward to access Grafana directly (if VPN issues persist)
+kubectl port-forward svc/grafana 3000:80 -n monitoring
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="custom-datasources" summary="When to create custom data sources">
+
+**You should only create custom data sources if:**
+
+1. **External Prometheus instances**: Connecting to Prometheus outside your cluster
+2. **Different retention policies**: Need different query timeouts or intervals
+3. **Custom integrations**: Specific monitoring tools or external services
+4. **Development/testing**: Separate data sources for different environments
+
+**If creating custom data sources:**
+
+```yaml
+# Example custom Prometheus configuration
+name: prometheus-custom
+type: prometheus
+url: http://prometheus-server.monitoring.svc.cluster.local:80
+access: proxy
+timeout: 60s
+```
+
+**Best practices:**
+
+- Use descriptive names (e.g., "prometheus-dev", "prometheus-external")
+- Test connectivity before saving
+- Document the purpose of custom data sources
+- Avoid duplicating the default configuration
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dashboard-compatibility" summary="Dashboard compatibility with data sources">
+
+**Default SleakOps dashboards:**
+
+- Are configured to use the default "Prometheus" data source
+- Work automatically without modification
+- Include cluster metrics, application metrics, and infrastructure monitoring
+
+**If using custom data sources:**
+
+- You may need to modify dashboard queries
+- Update data source references in dashboard JSON
+- Test all panels to ensure data is displayed correctly
+
+**Recommended approach:**
+
+1. Start with the default "Prometheus" data source
+2. Explore available dashboards and metrics
+3. Only create custom data sources when specifically needed
+4. Keep the default data source as your primary monitoring source
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 11, 2024 based on a real user query._

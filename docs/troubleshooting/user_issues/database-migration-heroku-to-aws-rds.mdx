@@ -1,0 +1,79 @@
+---
+sidebar_position: 3
+title: "Database Migration from Heroku to AWS RDS"
+description: "Complete guide for migrating PostgreSQL databases from Heroku to AWS RDS using DMS and pg_restore"
+date: "2024-12-19"
+category: "dependency"
+tags: ["database", "migration", "heroku", "aws", "rds", "postgresql", "dms"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Database Migration from Heroku to AWS RDS
+
+**Date:** December 19, 2024  
+**Category:** Dependency  
+**Tags:** Database, Migration, Heroku, AWS, RDS, PostgreSQL, DMS
+
+## Problem Description
+
+**Context:** Users need to migrate large PostgreSQL databases from Heroku to AWS RDS through SleakOps platform, dealing with incomplete dumps and size discrepancies between source and restored databases.
+
+**Observed Symptoms:**
+
+- Heroku dump restoration results in smaller database size (94GB vs 385GB production)
+- Standard curl-based dump download may be incomplete
+- Need for external database access for migration tools
+- Requirement for AWS DMS setup to complete migration
+
+**Relevant Configuration:**
+
+- Source: Heroku PostgreSQL database (385GB)
+- Target: AWS RDS PostgreSQL
+- Restored dump size: 94GB (incomplete)
+- Migration method: pg_restore with --jobs=8 --no-owner --no-acl
+
+**Error Conditions:**
+
+- Incomplete data transfer using standard Heroku dump methods
+- Size mismatch indicating data loss during migration
+- Need for continuous replication to catch up missing data
+
+## Detailed Solution
+
+<TroubleshootingItem id="heroku-dump-limitations" summary="Understanding Heroku dump limitations">
+
+Heroku's standard dump process may not capture all data due to:
+
+1. **Timeout limitations**: Large databases may timeout during dump generation
+2. **Active transactions**: Data written during dump creation might be missed
+3. **Compression issues**: Some data types may not compress/decompress properly
+4. **Connection limits**: Heroku may limit long-running dump operations
+
+**Verification steps:**
+
+```bash
+# Check table row counts in both databases
+psql -h heroku-host -c "SELECT schemaname,tablename,n_tup_ins-n_tup_del as rowcount FROM pg_stat_user_tables ORDER BY rowcount DESC;"
+psql -h rds-host -c "SELECT schemaname,tablename,n_tup_ins-n_tup_del as rowcount FROM pg_stat_user_tables ORDER BY rowcount DESC;"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="aws-dms-setup" summary="Setting up AWS DMS for continuous migration">
+
+AWS Database Migration Service (DMS) can handle large database migrations with minimal downtime:
+
+**Prerequisites:**
+
+1. Create DMS replication instance
+2. Configure source endpoint (Heroku PostgreSQL)
+3. Configure target endpoint (AWS RDS)
+4. Set up external database access
+
+**DMS Configuration:**
+
+```json
+{
+  "replication-instance-class": "dms.t3.large"
+```

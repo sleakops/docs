@@ -1,0 +1,203 @@
+---
+sidebar_position: 3
+title: "WebSocket Mixed Content Error - WSS Protocol Required"
+description: "Solution for WebSocket mixed content error when connecting from HTTPS to WS endpoint"
+date: "2024-12-18"
+category: "general"
+tags: ["websocket", "https", "ssl", "mixed-content", "security"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# WebSocket Mixed Content Error - WSS Protocol Required
+
+**Date:** December 18, 2024  
+**Category:** General  
+**Tags:** WebSocket, HTTPS, SSL, Mixed Content, Security
+
+## Problem Description
+
+**Context:** When attempting to establish a WebSocket connection from an HTTPS webpage to a WebSocket endpoint using the `ws://` protocol, browsers block the connection due to mixed content security policies.
+
+**Observed Symptoms:**
+
+- Mixed Content error in browser console
+- WebSocket connection fails to establish
+- Error message: "This request has been blocked; this endpoint must be available over WSS"
+- Connection attempt from HTTPS page to `ws://` endpoint is rejected
+
+**Relevant Configuration:**
+
+- Frontend served over: HTTPS
+- WebSocket endpoint protocol: `ws://` (insecure)
+- Browser security policy: Mixed content blocking enabled
+- WebSocket URL format: `ws://domain/ws/path/?token=...`
+
+**Error Conditions:**
+
+- Error occurs when HTTPS page tries to connect to `ws://` endpoint
+- Modern browsers enforce mixed content policies
+- Connection is blocked before establishment
+- Issue affects all secure contexts (HTTPS pages)
+
+## Detailed Solution
+
+<TroubleshootingItem id="protocol-change" summary="Change WebSocket protocol to WSS">
+
+The primary solution is to use the secure WebSocket protocol (`wss://`) instead of the insecure protocol (`ws://`):
+
+**Before (causes error):**
+
+```javascript
+const websocket = new WebSocket("ws://apiqa.simplee.cl/ws/lead/?token=...");
+```
+
+**After (correct):**
+
+```javascript
+const websocket = new WebSocket("wss://apiqa.simplee.cl/ws/lead/?token=...");
+```
+
+This change ensures that:
+
+- The connection uses SSL/TLS encryption
+- Browser mixed content policies are satisfied
+- Communication remains secure end-to-end
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="server-configuration" summary="Ensure server supports WSS">
+
+Verify that your WebSocket server is configured to handle secure connections:
+
+**For Node.js applications:**
+
+```javascript
+const https = require("https");
+const WebSocket = require("ws");
+const fs = require("fs");
+
+const server = https.createServer({
+  cert: fs.readFileSync("path/to/cert.pem"),
+  key: fs.readFileSync("path/to/key.pem"),
+});
+
+const wss = new WebSocket.Server({ server });
+```
+
+**For reverse proxy (Nginx):**
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name apiqa.simplee.cl;
+
+    ssl_certificate /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+
+    location /ws/ {
+        proxy_pass http://backend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+    }
+}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dynamic-protocol" summary="Dynamic protocol selection">
+
+For applications that need to work in both HTTP and HTTPS environments, use dynamic protocol selection:
+
+```javascript
+function getWebSocketURL(path) {
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const host = window.location.host;
+  return `${protocol}//${host}${path}`;
+}
+
+// Usage
+const wsUrl = getWebSocketURL("/ws/lead/?token=...");
+const websocket = new WebSocket(wsUrl);
+```
+
+Or use relative URLs that automatically inherit the page's protocol:
+
+```javascript
+// This automatically uses wss:// on HTTPS pages and ws:// on HTTP pages
+const websocket = new WebSocket(
+  `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${
+    window.location.host
+  }/ws/lead/?token=...`
+);
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Troubleshooting steps">
+
+If you're still experiencing issues after changing to `wss://`:
+
+1. **Verify SSL certificate:**
+
+   ```bash
+   openssl s_client -connect apiqa.simplee.cl:443 -servername apiqa.simplee.cl
+   ```
+
+2. **Test WebSocket endpoint:**
+
+   ```bash
+   # Using websocat tool
+   websocat wss://apiqa.simplee.cl/ws/lead/
+   ```
+
+3. **Check browser developer tools:**
+
+   - Open Network tab
+   - Look for WebSocket connections
+   - Check for SSL/TLS errors
+
+4. **Common issues:**
+   - Self-signed certificates (use valid SSL certificate)
+   - Port blocking (ensure port 443 is open)
+   - Firewall rules (allow WSS traffic)
+   - Load balancer configuration (ensure WebSocket support)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="security-considerations" summary="Security best practices">
+
+When implementing WSS connections:
+
+1. **Always use WSS in production:**
+
+   - Never use `ws://` in production environments
+   - Encrypt all WebSocket communication
+
+2. **Validate SSL certificates:**
+
+   - Use certificates from trusted CAs
+   - Avoid self-signed certificates in production
+
+3. **Implement proper authentication:**
+
+   ```javascript
+   const token = getAuthToken(); // Your auth mechanism
+   const websocket = new WebSocket(`wss://api.domain.com/ws/?token=${token}`);
+   ```
+
+4. **Handle connection errors gracefully:**
+   ```javascript
+   websocket.onerror = function (error) {
+     console.error("WebSocket error:", error);
+     // Implement reconnection logic
+   };
+   ```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 18, 2024 based on a real user query._

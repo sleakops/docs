@@ -1,0 +1,81 @@
+---
+sidebar_position: 3
+title: "Migración de Base de Datos de Heroku a AWS RDS"
+description: "Guía completa para migrar bases de datos PostgreSQL de Heroku a AWS RDS usando DMS y pg_restore"
+date: "2024-12-19"
+category: "dependency"
+tags:
+  ["base de datos", "migración", "heroku", "aws", "rds", "postgresql", "dms"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Migración de Base de Datos de Heroku a AWS RDS
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Dependencia  
+**Etiquetas:** Base de datos, Migración, Heroku, AWS, RDS, PostgreSQL, DMS
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios necesitan migrar grandes bases de datos PostgreSQL desde Heroku a AWS RDS a través de la plataforma SleakOps, enfrentando volcados incompletos y discrepancias de tamaño entre la base de datos de origen y la restaurada.
+
+**Síntomas Observados:**
+
+- La restauración del volcado de Heroku resulta en un tamaño de base de datos menor (94GB vs 385GB en producción)
+- La descarga estándar del volcado mediante curl puede estar incompleta
+- Necesidad de acceso externo a la base de datos para herramientas de migración
+- Requerimiento de configuración de AWS DMS para completar la migración
+
+**Configuración Relevante:**
+
+- Origen: Base de datos PostgreSQL en Heroku (385GB)
+- Destino: AWS RDS PostgreSQL
+- Tamaño del volcado restaurado: 94GB (incompleto)
+- Método de migración: pg_restore con --jobs=8 --no-owner --no-acl
+
+**Condiciones de Error:**
+
+- Transferencia de datos incompleta usando métodos estándar de volcado de Heroku
+- Desajuste de tamaño que indica pérdida de datos durante la migración
+- Necesidad de replicación continua para sincronizar datos faltantes
+
+## Solución Detallada
+
+<TroubleshootingItem id="heroku-dump-limitations" summary="Entendiendo las limitaciones del volcado de Heroku">
+
+El proceso estándar de volcado de Heroku puede no capturar todos los datos debido a:
+
+1. **Limitaciones de tiempo de espera:** Bases de datos grandes pueden agotarse durante la generación del volcado
+2. **Transacciones activas:** Datos escritos durante la creación del volcado podrían perderse
+3. **Problemas de compresión:** Algunos tipos de datos pueden no comprimirse/descomprimirse correctamente
+4. **Límites de conexión:** Heroku puede limitar operaciones de volcado que duren mucho tiempo
+
+**Pasos de verificación:**
+
+```bash
+# Verificar el conteo de filas en ambas bases de datos
+psql -h heroku-host -c "SELECT schemaname,tablename,n_tup_ins-n_tup_del as rowcount FROM pg_stat_user_tables ORDER BY rowcount DESC;"
+psql -h rds-host -c "SELECT schemaname,tablename,n_tup_ins-n_tup_del as rowcount FROM pg_stat_user_tables ORDER BY rowcount DESC;"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="aws-dms-setup" summary="Configurando AWS DMS para migración continua">
+
+El servicio de migración de bases de datos de AWS (DMS) puede manejar migraciones de bases de datos grandes con tiempo de inactividad mínimo:
+
+**Requisitos previos:**
+
+1. Crear instancia de replicación DMS
+2. Configurar endpoint de origen (PostgreSQL en Heroku)
+3. Configurar endpoint de destino (AWS RDS)
+4. Establecer acceso externo a la base de datos
+
+**Configuración de DMS:**
+
+```json
+{
+  "replication-instance-class": "dms.t3.large"
+}
+```

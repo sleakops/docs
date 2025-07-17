@@ -1,0 +1,232 @@
+---
+sidebar_position: 3
+title: "Database Migration Data Integrity Issues"
+description: "Troubleshooting incomplete data transfer during database migrations"
+date: "2024-12-19"
+category: "dependency"
+tags: ["database", "migration", "data-integrity", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Database Migration Data Integrity Issues
+
+**Date:** December 19, 2024  
+**Category:** Dependency  
+**Tags:** Database, Migration, Data Integrity, Troubleshooting
+
+## Problem Description
+
+**Context:** During production database migration processes in SleakOps, users may experience issues where the migration completes without errors but the data integrity is compromised.
+
+**Observed Symptoms:**
+
+- Migration process completes successfully without error messages
+- Recent data is missing from the target database
+- Some tables appear incomplete after migration
+- Data inconsistencies between source and destination databases
+
+**Relevant Configuration:**
+
+- Migration type: Production database migration
+- Environment: Production to production transfer
+- Migration tool: SleakOps database migration utilities
+- Database type: Not specified (PostgreSQL/MySQL/etc.)
+
+**Error Conditions:**
+
+- Migration appears successful but data validation fails
+- Most recent records are not transferred
+- Incomplete table transfers occur sporadically
+- No explicit error messages during migration process
+
+## Detailed Solution
+
+<TroubleshootingItem id="pre-migration-validation" summary="Pre-migration data validation">
+
+Before starting any database migration, perform these validation steps:
+
+1. **Record count verification**:
+
+   ```sql
+   -- Check total records in source database
+   SELECT table_name,
+          (xpath('/row/cnt/text()', xml_count))[1]::text::int as row_count
+   FROM (
+     SELECT table_name,
+            query_to_xml(format('select count(*) as cnt from %I.%I',
+                               table_schema, table_name), false, true, '') as xml_count
+     FROM information_schema.tables
+     WHERE table_schema = 'public'
+   ) t;
+   ```
+
+2. **Identify latest timestamps**:
+
+   ```sql
+   -- Find most recent records per table
+   SELECT table_name, MAX(created_at) as latest_record
+   FROM your_table_name
+   GROUP BY table_name;
+   ```
+
+3. **Create migration checklist**:
+   - Document current record counts
+   - Note latest timestamps
+   - Identify critical tables
+   - Plan validation queries
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="migration-troubleshooting" summary="Troubleshooting incomplete migrations">
+
+When migrations complete but data is missing:
+
+1. **Check migration logs**:
+
+   ```bash
+   # Review SleakOps migration logs
+   kubectl logs -n sleakops-system deployment/migration-controller
+
+   # Look for specific patterns
+   grep -i "error\|warning\|timeout" migration.log
+   ```
+
+2. **Verify connection timeouts**:
+
+   - Database connection may timeout during large transfers
+   - Check network stability between source and destination
+   - Review database connection pool settings
+
+3. **Transaction isolation issues**:
+   ```sql
+   -- Check for long-running transactions
+   SELECT pid, now() - pg_stat_activity.query_start AS duration, query
+   FROM pg_stat_activity
+   WHERE (now() - pg_stat_activity.query_start) > interval '5 minutes';
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="data-consistency-checks" summary="Post-migration data consistency validation">
+
+After migration, perform these validation steps:
+
+1. **Record count comparison**:
+
+   ```bash
+   # Script to compare record counts
+   #!/bin/bash
+
+   SOURCE_DB="source_connection_string"
+   TARGET_DB="target_connection_string"
+
+   for table in $(psql $SOURCE_DB -t -c "SELECT tablename FROM pg_tables WHERE schemaname='public';"); do
+     source_count=$(psql $SOURCE_DB -t -c "SELECT COUNT(*) FROM $table;")
+     target_count=$(psql $TARGET_DB -t -c "SELECT COUNT(*) FROM $table;")
+
+     if [ "$source_count" != "$target_count" ]; then
+       echo "MISMATCH: $table - Source: $source_count, Target: $target_count"
+     fi
+   done
+   ```
+
+2. **Data freshness verification**:
+
+   ```sql
+   -- Check if recent data was migrated
+   SELECT table_name,
+          MAX(created_at) as latest_migrated,
+          NOW() - MAX(created_at) as data_age
+   FROM (
+     -- Union all tables with timestamp columns
+     SELECT 'users' as table_name, created_at FROM users
+     UNION ALL
+     SELECT 'orders' as table_name, created_at FROM orders
+     -- Add other tables as needed
+   ) combined
+   GROUP BY table_name;
+   ```
+
+3. **Referential integrity check**:
+   ```sql
+   -- Verify foreign key relationships
+   SELECT conname, conrelid::regclass, confrelid::regclass
+   FROM pg_constraint
+   WHERE contype = 'f'
+   AND NOT EXISTS (
+     SELECT 1 FROM pg_constraint c2
+     WHERE c2.conname = pg_constraint.conname
+     AND c2.connamespace != pg_constraint.connamespace
+   );
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="recovery-strategies" summary="Recovery strategies for incomplete migrations">
+
+If data integrity issues are detected:
+
+1. **Incremental data sync**:
+
+   ```sql
+   -- Sync missing recent records
+   INSERT INTO target_table
+   SELECT * FROM source_table
+   WHERE created_at > (SELECT MAX(created_at) FROM target_table)
+   ON CONFLICT (id) DO UPDATE SET
+     column1 = EXCLUDED.column1,
+     updated_at = EXCLUDED.updated_at;
+   ```
+
+2. **Table-specific re-migration**:
+
+   ```bash
+   # Re-migrate specific tables
+   pg_dump source_db -t table_name | psql target_db
+   ```
+
+3. **Point-in-time recovery setup**:
+
+   - Enable WAL archiving before future migrations
+   - Create database snapshots before migration
+   - Implement automated backup verification
+
+4. **Migration rollback procedure**:
+
+   ```bash
+   # Restore from pre-migration backup
+   pg_restore -d target_database backup_file.dump
+
+   # Verify restoration
+   psql target_database -c "SELECT COUNT(*) FROM critical_table;"
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-best-practices" summary="Prevention and best practices">
+
+To prevent future migration data integrity issues:
+
+1. **Implement migration testing**:
+
+   - Always test migrations on staging environment first
+   - Use production data snapshots for testing
+   - Validate data integrity in test environment
+
+2. **Set up monitoring**:
+   ```yaml
+   # SleakOps monitoring configuration
+   apiVersion: v1
+   kind: ConfigMap
+   metadata:
+     name: migration-monitoring
+   data:
+     config.yaml: |
+       checks:
+         - name: record_count_validation
+           query: "SELECT COUNT(*) FROM critical_table"
+           expected_min: 1000
+         - name: data_freshness
+           query: "SELECT MAX(create
+   ```

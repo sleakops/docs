@@ -1,0 +1,222 @@
+---
+sidebar_position: 15
+title: "502 Bad Gateway Error with NestJS Application"
+description: "Solution for 502 Bad Gateway errors when NestJS pods are running but API endpoints are unreachable"
+date: "2025-01-15"
+category: "workload"
+tags: ["502", "bad-gateway", "nestjs", "api", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# 502 Bad Gateway Error with NestJS Application
+
+**Date:** January 15, 2025  
+**Category:** Workload  
+**Tags:** 502, Bad Gateway, NestJS, API, Troubleshooting
+
+## Problem Description
+
+**Context:** User has a NestJS application deployed in Kubernetes that shows normal startup logs and appears to be running correctly, but API endpoints return 502 Bad Gateway errors.
+
+**Observed Symptoms:**
+
+- Pods are running and show normal NestJS startup logs
+- Application modules initialize successfully (TypeORM, Config, Logger, etc.)
+- Routes are mapped correctly (`/health`, `/session`)
+- API requests return `502 Bad Gateway` error
+- Both GET and POST requests fail
+
+**Relevant Configuration:**
+
+- Application: NestJS with TypeORM
+- Service name: `rattlesnake-develop`
+- Pod count: 2 pods running
+- Routes: `/health` (GET), `/session` (POST)
+
+**Error Conditions:**
+
+- Error occurs after successful application startup
+- Affects all API endpoints
+- Happens despite pods showing as healthy in Kubernetes
+- Problem resolved by generating a new deployment
+
+## Detailed Solution
+
+<TroubleshootingItem id="initial-diagnosis" summary="Understanding 502 Bad Gateway in Kubernetes">
+
+A 502 Bad Gateway error in Kubernetes typically indicates that the ingress controller or service can reach the pod, but the pod is not responding correctly to HTTP requests. Common causes include:
+
+1. **Port mismatch**: Application listening on different port than service expects
+2. **Health check failures**: Readiness/liveness probes failing
+3. **Application not fully ready**: App appears started but HTTP server not listening
+4. **Service selector issues**: Service not routing to correct pods
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="port-verification" summary="Verify application port configuration">
+
+Check if your NestJS application is listening on the correct port:
+
+```typescript
+// In your main.ts file
+import { NestFactory } from "@nestjs/core";
+import { AppModule } from "./app.module";
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  const port = process.env.PORT || 3000;
+  await app.listen(port, "0.0.0.0"); // Important: bind to 0.0.0.0
+  console.log(`Application is running on: ${await app.getUrl()}`);
+}
+bootstrap();
+```
+
+Ensure your Kubernetes service matches this port:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: rattlesnake-develop
+spec:
+  selector:
+    app: rattlesnake-develop
+  ports:
+    - port: 80
+      targetPort: 3000 # Should match your app port
+      protocol: TCP
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="health-checks" summary="Configure proper health checks">
+
+Add proper health check endpoints and configure Kubernetes probes:
+
+```typescript
+// Add to your app controller
+@Get('/health')
+getHealth() {
+  return {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  };
+}
+
+@Get('/ready')
+getReadiness() {
+  // Add any readiness checks (database connection, etc.)
+  return { status: 'ready' };
+}
+```
+
+Configure Kubernetes probes:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rattlesnake-develop
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          image: your-image
+          ports:
+            - containerPort: 3000
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="service-debugging" summary="Debug service and endpoint connectivity">
+
+Use these commands to debug the connection:
+
+```bash
+# Check if pods are ready
+kubectl get pods -l app=rattlesnake-develop
+
+# Check service endpoints
+kubectl get endpoints rattlesnake-develop
+
+# Test direct pod connectivity
+kubectl port-forward pod/rattlesnake-develop-xxx 3000:3000
+# Then test: curl http://localhost:3000/health
+
+# Check service connectivity
+kubectl port-forward service/rattlesnake-develop 8080:80
+# Then test: curl http://localhost:8080/health
+
+# Check pod logs for HTTP server startup
+kubectl logs -f deployment/rattlesnake-develop
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="nestjs-specific-fixes" summary="NestJS-specific configuration fixes">
+
+Ensure your NestJS application is properly configured for containerized environments:
+
+```typescript
+// Enable graceful shutdown
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  // Enable shutdown hooks
+  app.enableShutdownHooks();
+
+  // Configure CORS if needed
+  app.enableCors();
+
+  // Global prefix (optional)
+  app.setGlobalPrefix("api");
+
+  // Bind to all interfaces
+  await app.listen(process.env.PORT || 3000, "0.0.0.0");
+}
+```
+
+Check your database configuration for container environments:
+
+```typescript
+// TypeORM configuration
+@Module({
+  imports: [
+    TypeOrmModule.forRootAsync({
+      useFactory: () => ({
+        type: "postgres",
+        host: process.env.DB_HOST,
+        port: parseInt(process.env.DB_PORT) || 5432,
+        username: process.env.DB_USERNAME,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+        synchronize: false, // Never true in production
+        retryAttempts: 3,
+        retryDelay: 3000,
+      }),
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deployment-solution" summary="Force new deployment (immediate fix)">
+
+If you need an immediate fix

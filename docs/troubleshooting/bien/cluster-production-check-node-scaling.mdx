@@ -1,0 +1,217 @@
+---
+sidebar_position: 3
+title: "Production Check Node Scaling and Resource Changes"
+description: "Understanding node scaling and resource changes when enabling Production Check in SleakOps clusters"
+date: "2024-11-20"
+category: "cluster"
+tags: ["production", "scaling", "karpenter", "nodes", "taints", "availability"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Production Check Node Scaling and Resource Changes
+
+**Date:** November 20, 2024  
+**Category:** Cluster  
+**Tags:** Production, Scaling, Karpenter, Nodes, Taints, Availability
+
+## Problem Description
+
+**Context:** User enabled the "Production" check on their SleakOps cluster and configured an on-demand node pool, but noticed significant increases in node count and infrastructure resource usage.
+
+**Observed Symptoms:**
+
+- Node count increased significantly after enabling Production check
+- 7 total nodes with 4 assigned to infrastructure (non-application workloads)
+- All nodes now have taints applied (previously only non-container nodes had taints)
+- Higher resource consumption and billing costs
+- Infrastructure workloads separated from application workloads
+
+**Relevant Configuration:**
+
+- Production check: Enabled
+- Node pool type: On-demand instances only
+- SleakOps version: 1.7.0 (with taint changes)
+- Karpenter: Enabled with consolidation policies
+- High availability setup: Multi-AZ deployment
+
+**Error Conditions:**
+
+- Increased operational costs due to more nodes
+- Resource over-provisioning in some workloads
+- Confusion about infrastructure vs application node allocation
+
+## Detailed Solution
+
+<TroubleshootingItem id="production-check-changes" summary="What the Production Check does">
+
+When you enable the Production check in SleakOps, the following changes are automatically applied to increase cluster availability:
+
+**Node Infrastructure Changes:**
+
+- Adds an additional node to the core node group in a different availability zone
+- Ensures multi-AZ redundancy for critical cluster components
+- Separates infrastructure workloads from application workloads using taints
+
+**Critical System Redundancy:**
+
+- Adds redundancy to critical cluster systems like Karpenter and ALB Controller
+- Results in more pods running for infrastructure components
+- Ensures high availability for cluster management services
+
+**Application Protection:**
+
+- Adds Pod Disruption Budgets (PDBs) to deployments
+- Prevents Karpenter's consolidation policies from impacting running services
+- Protects against node rotation affecting application availability
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="taint-changes-v17" summary="Understanding taint changes in version 1.7.0">
+
+Starting with SleakOps version 1.7.0, the platform implements a taint-based workload separation strategy:
+
+**Infrastructure Workloads:**
+
+- Run on dedicated nodes with specific taints
+- Use Graviton instances (more cost-effective)
+- Handle cluster management, monitoring, and logging components
+
+**Application Workloads:**
+
+- Run on separate nodes without infrastructure taints
+- Use standard instance types optimized for your applications
+- Isolated from infrastructure resource competition
+
+**Cost Impact:**
+
+- Infrastructure nodes use cheaper Graviton instances
+- Application nodes maintain performance characteristics
+- Overall cost may be similar despite more nodes
+
+```yaml
+# Example taint configuration
+infrastructure_nodes:
+  taints:
+    - key: "sleakops.com/infrastructure"
+      value: "true"
+      effect: "NoSchedule"
+  instance_types: ["t4g.medium", "t4g.large"] # Graviton instances
+
+application_nodes:
+  taints: [] # No taints for application workloads
+  instance_types: ["t3.medium", "t3.large"] # Standard instances
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="resource-optimization" summary="Optimizing resource allocation">
+
+To optimize your cluster resources after enabling Production check:
+
+**Memory Optimization:**
+
+- Review memory requests vs actual usage
+- Example: Worker jobs using 2GB peak but requesting 8GB total
+- Adjust resource requests to match actual consumption
+
+```yaml
+# Before optimization
+resources:
+  requests:
+    memory: "2Gi"
+    cpu: "500m"
+  limits:
+    memory: "4Gi"
+    cpu: "1000m"
+
+# After optimization based on actual usage
+resources:
+  requests:
+    memory: "512Mi"  # Reduced based on actual usage
+    cpu: "250m"
+  limits:
+    memory: "2Gi"    # More realistic limit
+    cpu: "500m"
+```
+
+**Infrastructure Component Tuning:**
+
+- Grafana resource requirements can be optimized
+- Loki storage and memory allocation can be adjusted
+- Anti-affinity rules may need correction for specific use cases
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="karpenter-cost-optimization" summary="How Karpenter optimizes costs">
+
+Karpenter automatically optimizes instance selection and consolidation:
+
+**Instance Selection:**
+
+- Always selects the cheapest instances that meet workload requirements
+- Considers spot vs on-demand pricing when spot is enabled
+- Balances performance requirements with cost
+
+**Consolidation Policy:**
+
+- Automatically consolidates workloads when possible
+- Respects Pod Disruption Budgets (PDBs) to maintain availability
+- May not always result in fewer instances, but ensures cost efficiency
+
+**Availability vs Cost Trade-off:**
+
+- Production check prioritizes availability over cost
+- On-demand instances increase billing but provide stability
+- Multi-AZ deployment ensures resilience but requires more resources
+
+```yaml
+# Karpenter NodePool configuration for cost optimization
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
+metadata:
+  name: cost-optimized
+spec:
+  requirements:
+    - key: "karpenter.sh/capacity-type"
+      operator: In
+      values: ["spot", "on-demand"] # Prefer spot when available
+    - key: "node.kubernetes.io/instance-type"
+      operator: In
+      values: ["t3.medium", "t3.large", "t4g.medium", "t4g.large"]
+  disruption:
+    consolidationPolicy: WhenUnderutilized
+    consolidateAfter: 30s
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-recommendations" summary="Monitoring and next steps">
+
+To better understand and optimize your cluster:
+
+**Resource Monitoring:**
+
+- Use Grafana dashboards to monitor actual vs requested resources
+- Track node utilization across different node groups
+- Monitor cost trends after Production check enablement
+
+**Optimization Actions:**
+
+1. Review and adjust resource requests for all workloads
+2. Consider enabling spot instances for non-critical workloads
+3. Monitor PDB configurations to ensure they're not too restrictive
+4. Regular review of Karpenter consolidation metrics
+
+**Expected Outcomes:**
+
+- Higher availability and resilience
+- More predictable performance
+- Optimized resource utilization over time
+- Better separation of concerns between infrastructure and applications
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on November 20, 2024 based on a real user query._

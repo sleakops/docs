@@ -1,0 +1,210 @@
+---
+sidebar_position: 3
+title: "Domain NS Delegation Replication Issues"
+description: "Troubleshooting NS record delegation and replication problems with domain providers"
+date: "2024-01-15"
+category: "general"
+tags: ["domain", "dns", "ns-records", "delegation", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Domain NS Delegation Replication Issues
+
+**Date:** January 15, 2024  
+**Category:** General  
+**Tags:** Domain, DNS, NS Records, Delegation, Troubleshooting
+
+## Problem Description
+
+**Context:** User is attempting to configure a custom domain (ordenapp.com.ar) in SleakOps but encounters NS (Name Server) delegation replication failures with their domain provider (DonWeb).
+
+**Observed Symptoms:**
+
+- NS delegation configuration failing at domain provider level
+- Replication issues with delegated name servers
+- Domain not resolving properly to SleakOps infrastructure
+- Provider (DonWeb) acknowledging the technical issue
+
+**Relevant Configuration:**
+
+- Domain: ordenapp.com.ar (Argentine domain)
+- Domain Provider: DonWeb
+- Target Platform: SleakOps
+- DNS Configuration: NS delegation setup
+
+**Error Conditions:**
+
+- NS record replication fails at provider level
+- Domain delegation not propagating correctly
+- Issue occurs during initial domain configuration
+- Provider confirms technical problem on their end
+
+## Detailed Solution
+
+<TroubleshootingItem id="understanding-ns-delegation" summary="Understanding NS delegation process">
+
+NS (Name Server) delegation is the process where your domain provider points your domain to external name servers (in this case, SleakOps' DNS servers).
+
+The process involves:
+
+1. **SleakOps provides NS records** (e.g., ns1.sleakops.com, ns2.sleakops.com)
+2. **You configure these at your domain provider** (DonWeb)
+3. **Provider replicates the changes** to root DNS servers
+4. **DNS propagation occurs globally** (24-48 hours)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-troubleshooting" summary="Immediate troubleshooting steps">
+
+While waiting for provider resolution:
+
+1. **Verify NS records in SleakOps:**
+
+   - Go to your project settings
+   - Check the "Custom Domain" section
+   - Note down the provided NS records
+
+2. **Check current DNS status:**
+
+   ```bash
+   # Check current NS records
+   dig NS ordenapp.com.ar
+
+   # Check if domain resolves
+   nslookup ordenapp.com.ar
+   ```
+
+3. **Verify provider configuration:**
+   - Log into DonWeb control panel
+   - Confirm NS records are correctly entered
+   - Check for any error messages or warnings
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="provider-communication" summary="Working with domain provider">
+
+When dealing with provider issues:
+
+1. **Document the problem clearly:**
+
+   - Provide exact NS records from SleakOps
+   - Include screenshots of configuration
+   - Note any error messages
+
+2. **Request specific technical details:**
+
+   - Ask for replication logs
+   - Request timeline for resolution
+   - Get confirmation of NS record acceptance
+
+3. **Escalate if necessary:**
+   - Request technical support escalation
+   - Ask to speak with DNS/domain specialists
+   - Consider temporary workarounds
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Alternative solutions and workarounds">
+
+If provider issues persist:
+
+1. **Subdomain delegation:**
+
+   ```
+   # Instead of ordenapp.com.ar, use:
+   app.ordenapp.com.ar
+   ```
+
+   Configure only the subdomain with SleakOps NS records.
+
+2. **CNAME approach (if supported):**
+
+   ```
+   # Create CNAME record pointing to SleakOps
+   www.ordenapp.com.ar CNAME your-app.sleakops.io
+   ```
+
+3. **Transfer domain to different provider:**
+
+   - Consider providers with better DNS management
+   - Popular options: Cloudflare, Route53, Namecheap
+
+4. **Use SleakOps subdomain temporarily:**
+   ```
+   # Use provided subdomain while resolving
+   your-app.sleakops.io
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-after-resolution" summary="Verification steps after provider fixes the issue">
+
+Once the provider resolves the replication issue:
+
+1. **Check DNS propagation:**
+
+   ```bash
+   # Check NS records globally
+   dig +trace NS ordenapp.com.ar
+
+   # Verify from different locations
+   nslookup ordenapp.com.ar 8.8.8.8
+   nslookup ordenapp.com.ar 1.1.1.1
+   ```
+
+2. **Test domain resolution:**
+
+   ```bash
+   # Test HTTP resolution
+   curl -I http://ordenapp.com.ar
+
+   # Test HTTPS if configured
+   curl -I https://ordenapp.com.ar
+   ```
+
+3. **Monitor propagation:**
+
+   - Use online tools like whatsmydns.net
+   - Check from multiple global locations
+   - Allow 24-48 hours for full propagation
+
+4. **Update SleakOps configuration:**
+   - Confirm domain status in SleakOps dashboard
+   - Test SSL certificate generation
+   - Verify application accessibility
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-future-issues" summary="Preventing future DNS issues">
+
+To avoid similar problems:
+
+1. **Choose reliable DNS providers:**
+
+   - Research provider DNS reliability
+   - Check support quality and response times
+   - Consider managed DNS services
+
+2. **Document DNS configurations:**
+
+   - Keep records of all NS configurations
+   - Screenshot important settings
+   - Maintain contact information for technical support
+
+3. **Test in staging first:**
+
+   - Use test subdomains before production
+   - Verify DNS changes in non-critical environments
+   - Have rollback plans ready
+
+4. **Monitor DNS health:**
+   - Set up monitoring for domain resolution
+   - Use tools like UptimeRobot or Pingdom
+   - Configure alerts for DNS failures
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

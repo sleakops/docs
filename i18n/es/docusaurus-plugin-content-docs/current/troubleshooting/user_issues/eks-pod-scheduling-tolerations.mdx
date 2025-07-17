@@ -1,0 +1,229 @@
+---
+sidebar_position: 3
+title: "Problemas de programación de pods en EKS con instancias spot"
+description: "Solución para pods que no se programan en nodepools de instancias spot en EKS"
+date: "2025-02-21"
+category: "cluster"
+tags: ["eks", "programación", "tolerancias", "instancias-spot", "karpenter"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de programación de pods en EKS con instancias spot
+
+**Fecha:** 21 de febrero de 2025  
+**Categoría:** Clúster  
+**Etiquetas:** EKS, Programación, Tolerancias, Instancias Spot, Karpenter
+
+## Descripción del problema
+
+**Contexto:** Después de actualizar a una versión más reciente de EKS en SleakOps, los pods (como Elasticsearch) no se programan correctamente en nodepools de instancias spot debido a la falta de configuración de tolerancias.
+
+**Síntomas observados:**
+
+- Pods que no arrancan o permanecen en estado Pendiente
+- Errores de programación relacionados con taints en nodos
+- Aplicaciones que no se despliegan en nodepools de instancias spot
+- Fallos en la programación de pods tras actualizaciones de versión de EKS
+
+**Configuración relevante:**
+
+- Clúster EKS con nodepools de instancias spot
+- Nombre del nodepool: `spot-amd64`
+- Provisión de nodos gestionada por Karpenter
+- Clave del taint: `karpenter.sh/nodepool`
+
+**Condiciones de error:**
+
+- Ocurre después de actualizaciones de versión de EKS
+- Afecta despliegues sin tolerancias adecuadas
+- Impacta despliegues directos con kubectl y aplicaciones gestionadas con Helm
+
+## Solución detallada
+
+<TroubleshootingItem id="understanding-tolerations" summary="Entendiendo el requisito de tolerancias">
+
+Con versiones más recientes de EKS y Karpenter, los nodepools de instancias spot se taintan automáticamente para evitar que cargas de trabajo regulares se programen en ellos a menos que se configuren explícitamente. Esto asegura mejor gestión de recursos y optimización de costos.
+
+El taint aplicado es:
+
+```yaml
+key: karpenter.sh/nodepool
+value: spot-amd64
+effect: NoSchedule
+```
+
+Los pods necesitan tolerancias que coincidan para poder programarse en estos nodos.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="direct-deployment-fix" summary="Añadiendo tolerancias a despliegues directos">
+
+Si desplegaste tu aplicación directamente usando `kubectl apply`, añade las siguientes tolerancias a tu YAML de despliegue:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasticsearch
+spec:
+  template:
+    spec:
+      tolerations:
+        - key: karpenter.sh/nodepool
+          operator: Equal
+          value: spot-amd64
+          effect: NoSchedule
+      containers:
+        - name: elasticsearch
+          image: elasticsearch:7.17.0
+          # ... resto de la configuración de tu contenedor
+```
+
+Aplica la configuración actualizada:
+
+```bash
+kubectl apply -f tu-despliegue.yaml
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="helm-deployment-fix" summary="Añadiendo tolerancias a despliegues con Helm">
+
+Si tu aplicación fue desplegada usando Helm, debes actualizar el archivo values o pasar las tolerancias como parámetros:
+
+**Opción 1: Actualizar values.yaml**
+
+```yaml
+# values.yaml
+tolerations:
+  - key: karpenter.sh/nodepool
+    operator: Equal
+    value: spot-amd64
+    effect: NoSchedule
+```
+
+**Opción 2: Pasar tolerancias durante helm install/upgrade**
+
+```bash
+helm upgrade elasticsearch elastic/elasticsearch \
+  --set tolerations[0].key=karpenter.sh/nodepool \
+  --set tolerations[0].operator=Equal \
+  --set tolerations[0].value=spot-amd64 \
+  --set tolerations[0].effect=NoSchedule
+```
+
+**Opción 3: Crear un archivo de valores personalizado**
+
+```yaml
+# custom-tolerations.yaml
+tolerations:
+  - key: karpenter.sh/nodepool
+    operator: Equal
+    value: spot-amd64
+    effect: NoSchedule
+```
+
+Luego aplica:
+
+```bash
+helm upgrade elasticsearch elastic/elasticsearch -f custom-tolerations.yaml
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Verificando la solución">
+
+Después de aplicar las tolerancias, verifica que tus pods se estén programando correctamente:
+
+1. **Revisar estado de los pods:**
+
+```bash
+kubectl get pods -l app=elasticsearch
+```
+
+2. **Verificar programación del pod:**
+
+```bash
+kubectl describe pod <nombre-pod>
+```
+
+3. **Comprobar en qué nodo está corriendo el pod:**
+
+```bash
+kubectl get pods -o wide
+```
+
+4. **Verificar que el nodo pertenece al nodepool spot:**
+
+```bash
+kubectl describe node <nombre-nodo> | grep -i taint
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="multiple-nodepools" summary="Manejo de múltiples nodepools">
+
+Si tienes múltiples nodepools spot o quieres permitir programación tanto en instancias spot como on-demand, puedes añadir múltiples tolerancias:
+
+```yaml
+tolerations:
+  - key: karpenter.sh/nodepool
+    operator: Equal
+    value: spot-amd64
+    effect: NoSchedule
+  - key: karpenter.sh/nodepool
+    operator: Equal
+    value: spot-arm64
+    effect: NoSchedule
+  - key: karpenter.sh/nodepool
+    operator: Equal
+    value: on-demand
+    effect: NoSchedule
+```
+
+Alternativamente, usa el operador `Exists` para tolerar cualquier nodepool:
+
+```yaml
+tolerations:
+  - key: karpenter.sh/nodepool
+    operator: Exists
+    effect: NoSchedule
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-tips" summary="Prevención y mejores prácticas">
+
+**Mejores prácticas:**
+
+1. **Incluye siempre tolerancias en tus plantillas de despliegue** cuando uses instancias spot
+2. **Utiliza charts de Helm con tolerancias configurables** para una gestión más sencilla
+3. **Prueba los despliegues después de actualizaciones de EKS** para asegurar compatibilidad
+4. **Documenta la configuración de tus nodepools** para referencia del equipo
+
+**Plantilla para futuros despliegues:**
+
+```yaml
+# deployment-template.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.name }}
+spec:
+  template:
+    spec:
+      tolerations:
+      {{- if .Values.tolerations }}
+      {{- toYaml .Values.tolerations | nindent 6 }}
+      {{- end }}
+      containers:
+      - name: {{ .Values.name }}
+        # ... configuración del contenedor
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 21 de febrero de 2025 basada en una consulta real de usuario._

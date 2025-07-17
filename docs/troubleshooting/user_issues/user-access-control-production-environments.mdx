@@ -1,0 +1,89 @@
+---
+sidebar_position: 3
+title: "User Access Control in Production Environments"
+description: "How to manage user permissions and access control for production resources in SleakOps"
+date: "2024-02-17"
+category: "user"
+tags: ["access-control", "iam", "permissions", "production", "security"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# User Access Control in Production Environments
+
+**Date:** February 17, 2024  
+**Category:** User  
+**Tags:** Access Control, IAM, Permissions, Production, Security
+
+## Problem Description
+
+**Context:** Organizations need to implement granular access control when using a single cluster for multiple environments (development, staging, production) while restricting production access to specific team members.
+
+**Observed Symptoms:**
+
+- Need to limit production environment access to only 2 team members
+- Developers require access to development and staging resources only
+- Uncertainty about what resources different user roles can access
+- Questions about S3 bucket and database manipulation permissions
+
+**Relevant Configuration:**
+
+- Single cluster hosting multiple environments
+- Production, development, and staging environments in same AWS account
+- Need for role-based access control (Viewer, Editor, Admin)
+- AWS IAM integration with SleakOps
+
+**Error Conditions:**
+
+- Risk of unauthorized access to production resources
+- Potential data manipulation by users with excessive permissions
+- Lack of proper environment segregation
+
+## Detailed Solution
+
+<TroubleshootingItem id="viewer-role-permissions" summary="Understanding Viewer Role Permissions">
+
+The **Viewer** role in SleakOps has three main access requirements:
+
+1. **AWS Account Access**: Users get the [ReadOnlyAccess](https://docs.aws.amazon.com/aws-managed-policy/latest/reference/ReadOnlyAccess.html) AWS managed policy
+2. **VPN Access**: Required to access internal resources
+3. **SleakOps Platform Access**: Access to the SleakOps interface
+
+**What Viewer role CAN do:**
+
+- View VariableGroups in SleakOps
+- Access RDS and other dependencies through VPN
+- View cluster resources and configurations
+- Access database connection details from VariableGroups or cluster secrets
+
+**What Viewer role CANNOT do:**
+
+- Edit objects in S3 through AWS console (requires Editor role)
+- Modify VariableGroups (requires Editor role)
+- Make changes to cluster configurations
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="access-strategies" summary="Recommended Access Control Strategies">
+
+### Strategy 1: VPN-Only Access
+
+For developers who only need database access:
+
+```yaml
+Access Level: VPN Only
+Permissions:
+  - Connect to development/staging databases
+  - No AWS console access
+  - No SleakOps platform access
+Implementation: Share database credentials directly
+```
+
+### Strategy 2: Custom IAM Role
+
+Create a custom "Developer" role in production account:
+
+```json
+{
+  "Version": "2012-10-17"
+```

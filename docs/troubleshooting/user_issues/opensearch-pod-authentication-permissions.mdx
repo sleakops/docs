@@ -1,0 +1,72 @@
+---
+sidebar_position: 3
+title: "OpenSearch Pod Authentication and Permission Issues"
+description: "Troubleshooting OpenSearch connectivity and authorization errors from Kubernetes pods"
+date: "2025-02-19"
+category: "dependency"
+tags: ["opensearch", "authentication", "permissions", "aws", "iam", "pod"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# OpenSearch Pod Authentication and Permission Issues
+
+**Date:** February 19, 2025  
+**Category:** Dependency  
+**Tags:** OpenSearch, Authentication, Permissions, AWS, IAM, Pod
+
+## Problem Description
+
+**Context:** User attempts to connect to an OpenSearch cluster from a Kubernetes pod but encounters authorization errors despite expecting automatic permission configuration.
+
+**Observed Symptoms:**
+
+- Authorization error when making curl requests to OpenSearch URL from within a pod
+- Connection fails despite OpenSearch dependency being configured in SleakOps
+- Similar to S3 permission issues - credentials are found but lack adequate permissions
+
+**Relevant Configuration:**
+
+- OpenSearch dependency configured in SleakOps
+- Pod running in Kubernetes cluster
+- AWS-hosted infrastructure
+- IAM roles and policies expected to be auto-configured
+
+**Error Conditions:**
+
+- Error occurs when making HTTP requests to OpenSearch from pod
+- Authorization failure despite dependency configuration
+- Problem persists across different connection attempts
+- Similar pattern to S3 permission issues
+
+## Detailed Solution
+
+<TroubleshootingItem id="verify-authentication" summary="Verify current authentication method">
+
+First, determine how your pod is currently authenticating with AWS:
+
+1. **Install AWS CLI in your pod**:
+
+   ```bash
+   # If not already installed
+   curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+   unzip awscliv2.zip
+   sudo ./aws/install
+   ```
+
+2. **Check current identity**:
+   ```bash
+   aws sts get-caller-identity
+   ```
+
+This will show you:
+
+- Whether you're using pod identity or environment credentials
+- The actual IAM role being assumed
+- Account and user information
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="opensearch-permissions" summary="Required OpenSearch permissions">
+
+For OpenSearch access

@@ -1,0 +1,205 @@
+---
+sidebar_position: 3
+title: "Gunicorn Timeout Configuration with Kubernetes Readiness Probes"
+description: "How to configure Gunicorn timeouts without causing readiness probe failures in SleakOps"
+date: "2025-01-15"
+category: "workload"
+tags: ["gunicorn", "timeout", "readiness-probe", "python", "healthcheck"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Gunicorn Timeout Configuration with Kubernetes Readiness Probes
+
+**Date:** January 15, 2025  
+**Category:** Workload  
+**Tags:** Gunicorn, Timeout, Readiness Probe, Python, Healthcheck
+
+## Problem Description
+
+**Context:** When configuring Gunicorn with a custom timeout setting in SleakOps, pods fail to start properly due to readiness probe failures, even though the application works fine without the timeout configuration.
+
+**Observed Symptoms:**
+
+- Pods show as "Not Ready" when Gunicorn timeout is configured
+- Readiness probe failures prevent pods from receiving traffic
+- Application works correctly when timeout parameter is removed
+- API requests are taking longer than expected (20-30 seconds)
+
+**Relevant Configuration:**
+
+- Gunicorn command with timeout: `gunicorn --bind 0.0.0.0:8000 --timeout 10 backend:app`
+- Framework: Python with Gunicorn WSGI server
+- Deployment: Kubernetes pods in SleakOps platform
+- Desired timeout: 5-10 seconds for API requests
+
+**Error Conditions:**
+
+- Pods fail readiness checks when `--timeout` parameter is added to Gunicorn
+- Issue occurs during pod startup and health checking
+- Problem persists until timeout configuration is removed
+
+## Detailed Solution
+
+<TroubleshootingItem id="understanding-conflict" summary="Understanding the Gunicorn-Kubernetes conflict">
+
+The issue occurs because:
+
+1. **Gunicorn timeout** kills worker processes that take longer than specified time
+2. **Kubernetes readiness probe** expects consistent responses from the health endpoint
+3. When Gunicorn kills workers due to timeout, health checks may fail intermittently
+4. Failed readiness probes prevent the pod from being marked as "Ready"
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="readiness-probe-configuration" summary="Configure readiness probe settings">
+
+In SleakOps, adjust the readiness probe configuration:
+
+1. Go to your **Workload** configuration
+2. Edit the **Healthcheck** settings
+3. Click on **Advanced Options**
+4. Configure the following parameters:
+
+```yaml
+readinessProbe:
+  httpGet:
+    path: /health # Your health endpoint
+    port: 8000
+  initialDelaySeconds: 30 # Wait before first check
+  periodSeconds: 10 # Check every 10 seconds
+  timeoutSeconds: 5 # Timeout for each check
+  successThreshold: 1 # Consecutive successes needed
+  failureThreshold: 5 # Consecutive failures before marking as failed
+```
+
+**Key adjustments:**
+
+- Increase `failureThreshold` to allow more tolerance
+- Increase `timeoutSeconds` to match or exceed your Gunicorn timeout
+- Adjust `periodSeconds` to reduce check frequency
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="gunicorn-optimization" summary="Optimize Gunicorn configuration">
+
+For better compatibility with Kubernetes, use this Gunicorn configuration:
+
+```bash
+# Recommended Gunicorn command
+newrelic-admin run-program gunicorn \
+  --bind 0.0.0.0:8000 \
+  --limit-request-line 0 \
+  --max-requests 3000 \
+  --max-requests-jitter 200 \
+  --timeout 30 \
+  --keep-alive 5 \
+  --worker-class sync \
+  --workers 4 \
+  backend:app
+```
+
+**Important parameters:**
+
+- `--timeout 30`: Set higher than your expected request time
+- `--keep-alive 5`: Maintain connections for health checks
+- `--workers 4`: Multiple workers for redundancy
+- `--worker-class sync`: Use sync workers for predictable behavior
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="load-balancer-timeout" summary="Configure load balancer timeout">
+
+Set the load balancer timeout to handle longer requests:
+
+1. In your **Ingress** configuration
+2. Add the following annotation:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=60
+    alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=30
+spec:
+  # Your ingress configuration
+```
+
+**Timeout hierarchy:**
+
+1. Gunicorn timeout: 30 seconds (worker timeout)
+2. Load balancer timeout: 60 seconds (connection timeout)
+3. Readiness probe timeout: 5 seconds (health check timeout)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="debugging-steps" summary="Debugging and monitoring">
+
+To debug timeout issues:
+
+1. **Check pod logs:**
+
+   ```bash
+   kubectl logs -f deployment/your-app-name
+   ```
+
+2. **Monitor readiness probe:**
+
+   ```bash
+   kubectl describe pod your-pod-name
+   ```
+
+3. **Test health endpoint directly:**
+
+   ```bash
+   kubectl port-forward pod/your-pod-name 8000:8000
+   curl -v http://localhost:8000/health
+   ```
+
+4. **Temporarily disable readiness probe:**
+   - Edit deployment using Lens or kubectl
+   - Remove `readinessProbe` section temporarily
+   - Test if application responds correctly
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="performance-optimization" summary="Optimize slow API requests">
+
+To address the root cause of slow requests:
+
+1. **Identify slow endpoints:**
+
+   - Use APM tools (New Relic, as shown in your config)
+   - Add logging to measure request duration
+   - Profile database queries
+
+2. **Database optimization:**
+
+   ```python
+   # Add connection pooling
+   from sqlalchemy import create_engine
+   engine = create_engine(
+       'postgresql://...',
+       pool_size=10,
+       max_overflow=20,
+       pool_timeout=30
+   )
+   ```
+
+3. **Async processing:**
+
+   - Move long-running tasks to background jobs
+   - Use Celery or similar task queue
+   - Return immediate response with job ID
+
+4. **Caching:**
+   - Implement Redis caching for frequent queries
+   - Use HTTP caching headers
+   - Cache expensive computations
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2025 based on a real user query._

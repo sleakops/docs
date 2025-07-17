@@ -1,0 +1,195 @@
+---
+sidebar_position: 3
+title: "Problemas de Delegación de Dominio DNS entre CloudFlare y Route53"
+description: "Resolución de problemas de delegación y validación de dominio al usar proveedores DNS externos con SleakOps"
+date: "2024-12-21"
+category: "provider"
+tags: ["dns", "route53", "cloudflare", "domain-delegation", "aws"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de Delegación de Dominio DNS entre CloudFlare y Route53
+
+**Fecha:** 21 de diciembre de 2024  
+**Categoría:** Proveedor  
+**Etiquetas:** DNS, Route53, CloudFlare, Delegación de Dominio, AWS
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios experimentan problemas de validación de dominio al intentar usar SleakOps con dominios gestionados por proveedores DNS externos como CloudFlare, mientras que SleakOps espera que los dominios estén delegados a AWS Route53.
+
+**Síntomas Observados:**
+
+- La validación de dominio falla para dominios principales gestionados en CloudFlare
+- No se pueden validar alias de subdominios (por ejemplo, teams.simplee.cl)
+- La creación de certificados SSL falla con errores de validación
+- Comportamiento inconsistente donde algunos subdominios funcionan y otros no
+- Desajuste en los registros NS entre lo que SleakOps espera y la delegación real
+
+**Configuración Relevante:**
+
+- Dominio principal: Gestionado en CloudFlare
+- Proveedor DNS: Externo (CloudFlare) vs Esperado (Route53)
+- Validación SSL: Requiere delegación correcta del dominio
+- Validación SleakOps: Verifica la delegación solo una vez durante la configuración
+
+**Condiciones de Error:**
+
+- La validación del dominio falla cuando los registros NS no apuntan a Route53
+- Ocurren errores de validación del certificado SSL
+- La creación de subdominios es bloqueada debido a problemas de delegación
+- La gestión mixta de DNS causa comportamiento inconsistente
+
+## Solución Detallada
+
+<TroubleshootingItem id="understanding-dns-management" summary="Entendiendo la Gestión DNS en SleakOps">
+
+**Cómo SleakOps gestiona el DNS:**
+
+1. **Gestión Centralizada:** SleakOps centraliza toda la gestión DNS en tus cuentas AWS a través de Route53
+2. **Gestión Automática de Servicios:** Los servicios desplegados con SleakOps gestionan automáticamente sus registros DNS
+3. **Configuración Manual:** Reglas adicionales (validación de email, servicios externos) deben configurarse manualmente en Route53
+4. **Validación Única:** SleakOps valida la delegación del dominio solo una vez durante la configuración inicial
+
+**Dónde ver los registros DNS generados:**
+
+- Todos los registros DNS generados por SleakOps son visibles en la plataforma
+- Los registros incluyen todos los entornos, ejecuciones y alias que crees
+- Los registros son gestionados automáticamente para los servicios de SleakOps
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="delegation-requirements" summary="Requisitos de Delegación de Dominio">
+
+**Para un funcionamiento correcto, los dominios deben estar:**
+
+1. **Totalmente delegados a Route53:** Los registros NS del dominio principal deben apuntar a los servidores de nombres de Route53
+2. **Subdominios de dominios gestionados por SleakOps:** Deben crearse como subdominios de dominios ya delegados
+
+**Proceso de validación:**
+
+```bash
+# Verificar registros NS actuales
+dig NS simplee.cl
+
+# Comparar con servidores de nombres de Route53
+# Deben coincidir con los registros NS mostrados en la plataforma SleakOps
+```
+
+**Problemas comunes de delegación:**
+
+- Los registros NS en el registrador de dominio no coinciden con los servidores de nombres de Route53
+- Delegación parcial (algunos subdominios funcionan, otros no)
+- Proxy de CloudFlare interfiriendo con la validación
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cloudflare-migration" summary="Migración de CloudFlare a Route53">
+
+**Pasos completos para la migración:**
+
+1. **Exportar registros DNS existentes desde CloudFlare**
+
+   - Descargar todos los registros DNS existentes
+   - Documentar cualquier configuración especial
+
+2. **Crear zona alojada en Route53**
+
+   - SleakOps crea esta automáticamente cuando agregas un dominio
+   - Anotar los servidores de nombres proporcionados
+
+3. **Actualizar registrador de dominio**
+
+   ```
+   # Cambiar registros NS en el registrador de dominio a:
+   ns-xxx.awsdns-xx.com
+   ns-xxx.awsdns-xx.co.uk
+   ns-xxx.awsdns-xx.net
+   ns-xxx.awsdns-xx.org
+   ```
+
+4. **Recrear registros necesarios en Route53**
+
+   - Agregar manualmente cualquier registro DNS personalizado
+   - Configurar registros de validación de email
+   - Configurar registros de servicios externos
+
+5. **Esperar la propagación**
+   - Los cambios DNS pueden tardar hasta 48 horas en propagarse
+   - Verificar con `dig` o verificadores DNS en línea
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="ssl-certificate-issues" summary="Resolución de Validación de Certificado SSL">
+
+**Requisitos para la validación del certificado SSL:**
+
+1. **Eliminar proxy de CloudFlare:** Deshabilitar la nube naranja (proxy) en CloudFlare para los registros de validación
+2. **Delegación correcta:** Asegurar que el dominio esté correctamente delegado a Route53
+3. **Propagación DNS:** Esperar a que los cambios DNS se propaguen globalmente
+
+**Solución de problemas en la validación SSL:**
+
+```bash
+# Verificar si el dominio resuelve a los servidores de nombres correctos
+dig NS your-domain.com
+
+# Verificar registros TXT para validación SSL
+dig TXT _acme-challenge.your-domain.com
+
+# Probar resolución del dominio
+nslookup your-domain.com
+```
+
+**Soluciones comunes:**
+
+- Deshabilitar proxy de CloudFlare durante la validación del certificado
+- Asegurar que todos los registros NS apunten a Route53
+- Esperar la propagación DNS (hasta 48 horas)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="mixed-dns-management" summary="Gestión de Escenarios de DNS Mixto">
+
+**Si necesitas mantener parte del DNS en CloudFlare:**
+
+1. **Delegación de subdominios:** Delegar solo subdominios específicos a Route53
+
+   ```
+   # En CloudFlare, crear registros NS para subdominios:
+   app.yourdomain.com NS ns-xxx.awsdns-xx.com
+   app.yourdomain.com NS ns-xxx.awsdns-xx.co.uk
+   app.yourdomain.com NS ns-xxx.awsdns-xx.net
+   app.yourdomain.com NS ns-xxx.awsdns-xx.org
+   ```
+
+2. **Usar subdominios de SleakOps:** Crear todos los servicios SleakOps bajo un subdominio dedicado
+   - Ejemplo: `*.apps.yourdomain.com` gestionado por Route53
+   - El dominio principal permanece en CloudFlare
+
+**Problemas potenciales con gestión mixta:**
+
+- Pueden ocurrir errores de validación con cambios frecuentes de dominio
+- Comportamiento inconsistente entre diferentes subdominios
+- Complicaciones en la validación de certificados SSL
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-validation" summary="Solución de Problemas de Validación de Dominio">
+
+**Problemas comunes de validación:**
+
+1. **Desajuste en registros NS**
+
+```bash
+# Verificar qué registros NS están realmente configurados
+dig +short NS yourdomain.com
+
+# Comparar con los registros NS esperados por SleakOps
+# (visibles en la plataforma SleakOps)
+```
+
+2. **Retrasos en la propagación**
+
+- Usar múltiples verificadores DNS: whatsmydns.net

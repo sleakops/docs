@@ -1,0 +1,78 @@
+---
+sidebar_position: 3
+title: "Desplegando Apache Superset con el Chart Helm de Bitnami"
+description: "Guía completa para desplegar Apache Superset usando el chart Helm de Bitnami con configuraciones personalizadas y tolerancias"
+date: "2024-12-20"
+category: "carga-de-trabajo"
+tags: ["superset", "bitnami", "helm", "kubernetes", "despliegue", "tolerancias"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Desplegando Apache Superset con el Chart Helm de Bitnami
+
+**Fecha:** 20 de diciembre de 2024  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** Superset, Bitnami, Helm, Kubernetes, Despliegue, Tolerancias
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios necesitan desplegar Apache Superset usando el chart Helm de Bitnami en un clúster de Kubernetes con configuraciones específicas que incluyen tolerancias para la inicialización de la base de datos y valores personalizados.
+
+**Síntomas Observados:**
+
+- Necesidad de añadir tolerancias a los pods de inicialización de la base de datos
+- El chart de Bitnami no soporta tolerancias para contenedores init vía valores
+- Requiere un script post-render para modificar las plantillas del chart
+- Gestión compleja de la configuración para el despliegue de Superset
+
+**Configuración Relevante:**
+
+- Chart: `bitnami/superset`
+- Namespace: `superset`
+- Archivo de valores personalizados: `values-def.yaml`
+- Script post-render: `add-tolerations.sh`
+
+**Condiciones de Error:**
+
+- Los pods de inicialización de la base de datos pueden fallar al programarse sin las tolerancias adecuadas
+- Los valores estándar de Helm no proporcionan opciones de personalización suficientes
+- Se requiere modificación manual del chart para casos de uso específicos
+
+## Solución Detallada
+
+<TroubleshootingItem id="helm-repo-setup" summary="Configuración del Repositorio Helm de Bitnami">
+
+Primero, agregue y actualice el repositorio Helm de Bitnami:
+
+```bash
+# Agregar repositorio Bitnami
+helm repo add bitnami https://charts.bitnami.com/bitnami
+
+# Actualizar repositorios para obtener los charts más recientes
+helm repo update
+
+# Verificar que el repositorio fue agregado
+helm repo list
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="post-renderer-script" summary="Creación del Script Post-Render">
+
+Cree un script post-render para añadir tolerancias a los pods de inicialización de la base de datos:
+
+```bash
+#!/bin/bash
+# Archivo: add-tolerations.sh
+
+# Hacer el script ejecutable
+chmod +x add-tolerations.sh
+
+# Leer desde stdin y aplicar transformaciones
+cat <&0 | \
+# Añadir tolerancias a los jobs de init de la base de datos
+ yq eval '(.spec.template.spec.tolerations) = [
+  {
+    "key": "node-role""
+```

@@ -1,0 +1,209 @@
+---
+sidebar_position: 3
+title: "Error de Límite de Longitud de Etiqueta DNS en Kubernetes"
+description: "Solución para errores de resolución DNS debido a etiquetas que exceden los 63 caracteres"
+date: "2025-02-21"
+category: "cluster"
+tags: ["kubernetes", "dns", "service", "naming", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Error de Límite de Longitud de Etiqueta DNS en Kubernetes
+
+**Fecha:** 21 de febrero de 2025  
+**Categoría:** Clúster  
+**Etiquetas:** Kubernetes, DNS, Servicio, Nomenclatura, Solución de Problemas
+
+## Descripción del Problema
+
+**Contexto:** Al intentar resolver nombres DNS de servicios internos de Kubernetes, los usuarios encuentran fallos en la resolución DNS debido a restricciones en la longitud de las etiquetas de dominio.
+
+**Síntomas Observados:**
+
+- La resolución DNS falla con el error "not a legal IDNA2008 name"
+- El mensaje de error indica "etiqueta de dominio más larga que 63 caracteres"
+- Los servicios no pueden comunicarse internamente usando los nombres DNS generados
+- El comando `dig` no logra resolver el FQDN del servicio
+
+**Configuración Relevante:**
+
+- Nombre del servicio: Generado automáticamente por SleakOps
+- Namespace: Nombres descriptivos largos (ejemplo: `velo-contact-email-sender-production`)
+- Formato DNS: `<nombre-servicio>.<namespace>.svc.cluster.local`
+- El error ocurre cuando la longitud total de la etiqueta excede los 63 caracteres
+
+**Condiciones del Error:**
+
+- Ocurre cuando los nombres de servicio son autogenerados con prefijos largos
+- Sucede con nombres descriptivos en el namespace
+- La resolución DNS falla completamente
+- Los servicios se vuelven inalcanzables vía DNS interno
+
+## Solución Detallada
+
+<TroubleshootingItem id="dns-label-limits" summary="Entendiendo los límites de longitud de etiquetas DNS">
+
+Los nombres DNS en Kubernetes deben cumplir con las normas RFC:
+
+- **Longitud máxima de etiqueta:** 63 caracteres por etiqueta DNS
+- **Longitud total del FQDN:** máximo 253 caracteres
+- **Formato de etiqueta:** Solo letras minúsculas, números y guiones
+- **Formato FQDN del servicio:** `<nombre-servicio>.<namespace>.svc.cluster.local`
+
+En el error de ejemplo:
+
+```
+velo-contact-email-sender-production-velo-contact-email-sender-svc.velo-contact-email-sender-production.svc.cluster.local
+```
+
+La parte del nombre del servicio `velo-contact-email-sender-production-velo-contact-email-sender-svc` excede los 63 caracteres.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="identify-service-name" summary="Cómo identificar el nombre correcto del servicio">
+
+Para encontrar el nombre real del servicio en tu clúster:
+
+1. **Usando kubectl:**
+
+```bash
+kubectl get services -n velo-contact-email-sender-production
+```
+
+2. **Usando Lens (como sugirió soporte):**
+
+   - Navega al namespace específico
+   - Ve a la sección **Services**
+   - Encuentra tu servicio y anota el nombre real
+
+3. **Revisar el manifiesto del servicio:**
+   Mira el campo `metadata.name` en la definición del servicio:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: contact-email-sen-svc # Este es el nombre real del servicio
+  namespace: velo-contact-email-sender-production
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="correct-dns-format" summary="Usando el formato DNS correcto">
+
+Basado en el manifiesto del servicio proporcionado, el nombre DNS correcto debería ser:
+
+```
+contact-email-sen-svc.velo-contact-email-sender-production.svc.cluster.local
+```
+
+**Desglose del formato:**
+
+- **Nombre del servicio:** `contact-email-sen-svc` (de `metadata.name`)
+- **Namespace:** `velo-contact-email-sender-production`
+- **Sufijo de dominio:** `svc.cluster.local`
+
+**Probando la resolución:**
+
+```bash
+# Desde dentro de un pod en el clúster
+dig contact-email-sen-svc.velo-contact-email-sender-production.svc.cluster.local
+
+# O usar nslookup
+nslookup contact-email-sen-svc.velo-contact-email-sender-production.svc.cluster.local
+
+# Prueba simple de conectividad
+telnet contact-email-sen-svc.velo-contact-email-sender-production.svc.cluster.local 5001
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="short-dns-names" summary="Usando nombres DNS abreviados">
+
+Para servicios dentro del mismo namespace, puedes usar formas más cortas:
+
+1. **Mismo namespace** (recomendado):
+
+```
+contact-email-sen-svc:5001
+```
+
+2. **Cross-namespace pero mismo clúster:**
+
+```
+contact-email-sen-svc.velo-contact-email-sender-production:5001
+```
+
+3. **FQDN completo** (cuando sea necesario):
+
+```
+contact-email-sen-svc.velo-contact-email-sender-production.svc.cluster.local:5001
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-naming" summary="Buenas prácticas de nomenclatura de servicios en SleakOps">
+
+Para evitar este problema en futuras implementaciones:
+
+1. **Usar nombres de servicio más cortos** en la configuración de SleakOps
+2. **Evitar prefijos redundantes** en los nombres de servicio
+3. **Considerar la longitud del namespace** al nombrar proyectos
+4. **Probar la resolución DNS** después del despliegue
+
+**Patrón de nomenclatura recomendado:**
+
+- Proyecto: `velo-email-sender`
+- Servicio: `email-svc`
+- Resultado: `email-svc.velo-email-sender.svc.cluster.local`
+
+**Ejemplo de configuración:**
+
+```yaml
+# En la configuración de carga de trabajo de SleakOps
+name: email-sender # Mantenerlo corto y descriptivo
+type: webservice
+internal: true
+port: 5001
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Pasos para solucionar problemas de resolución DNS">
+
+Si los problemas DNS persisten, sigue estos pasos:
+
+1. **Verificar que el servicio existe:**
+
+```bash
+kubectl get svc -n velo-contact-email-sender-production
+```
+
+2. **Comprobar DNS desde dentro del clúster:**
+
+```bash
+# Obtener shell en cualquier pod
+kubectl exec -it <nombre-pod> -n <namespace> -- /bin/bash
+
+# Probar resolución DNS
+nslookup contact-email-sen-svc.velo-contact-email-sender-production.svc.cluster.local
+```
+
+3. **Verificar que CoreDNS está funcionando:**
+
+```bash
+kubectl get pods -n kube-system | grep coredns
+```
+
+4. **Revisar endpoints del servicio:**
+
+```bash
+kubectl get endpoints contact-email-sen-svc -n velo-contact-email-sender-production
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 21 de febrero de 2025 basada en una consulta real de usuario._

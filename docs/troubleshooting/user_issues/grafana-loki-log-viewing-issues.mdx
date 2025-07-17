@@ -1,0 +1,211 @@
+---
+sidebar_position: 3
+title: "Grafana Loki Log Viewing Issues"
+description: "Solutions for incomplete log viewing and timezone issues in Grafana Loki dashboard"
+date: "2025-01-15"
+category: "general"
+tags: ["grafana", "loki", "logs", "timezone", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Grafana Loki Log Viewing Issues
+
+**Date:** January 15, 2025  
+**Category:** General  
+**Tags:** Grafana, Loki, Logs, Timezone, Troubleshooting
+
+## Problem Description
+
+**Context:** Users experience issues when viewing logs in Grafana Loki dashboard, particularly with CronJob pods and services where the complete log output is not visible, making it difficult to determine if jobs completed successfully.
+
+**Observed Symptoms:**
+
+- Incomplete log display - final lines of logs not showing
+- Cannot see job completion status (success/failure)
+- Grafana dashboard freezes or shows infinite loading
+- Timeout errors when accessing Loki logs
+- Missing final "OK" or completion messages in logs
+- Issues occur both in SleakOps dashboard and Lens
+
+**Relevant Configuration:**
+
+- Platform: SleakOps with Grafana/Loki integration
+- Workload type: CronJobs and regular Pods
+- Log viewing: Through Grafana dashboard and Lens
+- Timezone: UTC vs local timezone mismatches
+
+**Error Conditions:**
+
+- Error occurs when querying logs outside specific time ranges
+- Dashboard breaks when there are gaps in log data
+- Timezone configuration causes log viewing issues
+- Query to Loki fails when time range includes periods without logs
+
+## Detailed Solution
+
+<TroubleshootingItem id="timezone-configuration" summary="Fix timezone configuration issues">
+
+The primary cause of log viewing issues is timezone mismatch between dashboards:
+
+**Solution:**
+
+1. **Set both dashboards to the same timezone**:
+
+   - Change the main dashboard timezone to **UTC 0**
+   - Or set both dashboards to **UTC-3** (local timezone)
+
+2. **How to change timezone in Grafana**:
+
+   - Go to dashboard settings (gear icon)
+   - Navigate to **General** → **Time options**
+   - Set **Timezone** to desired value
+   - Save dashboard
+
+3. **Verify time ranges match**:
+   - Ensure both log explorer and metrics dashboards use the same time range
+   - Use absolute time ranges when possible
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="time-range-filtering" summary="Proper time range filtering for logs">
+
+To avoid query failures, filter logs within valid time ranges:
+
+**Steps:**
+
+1. **Identify valid log periods**:
+
+   - First check the metrics dashboard to see when your service actually ran
+   - Note the exact time range with log activity
+
+2. **Apply conservative time filters**:
+
+   - Use the time range picker in Grafana
+   - Set **From** and **To** times to cover only periods with known log activity
+   - Avoid extending beyond the range where logs exist
+
+3. **Example time filtering**:
+   ```
+   From: 2025-01-15 14:00:00
+   To: 2025-01-15 16:00:00
+   ```
+
+**Note:** Extending the time range beyond periods with actual logs will cause the Loki query to fail.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="incomplete-logs-diagnosis" summary="Diagnosing incomplete log display">
+
+When logs appear incomplete (missing final lines):
+
+**Possible causes:**
+
+1. **Pod termination timing**: Logs may be cut off if the pod terminates before all logs are flushed
+2. **Loki ingestion delay**: There might be a delay between log generation and availability in Loki
+3. **Buffer issues**: Log buffers may not be fully flushed before pod termination
+
+**Diagnostic steps:**
+
+1. **Check pod status**:
+
+   ```bash
+   kubectl get pods -n <namespace>
+   kubectl describe pod <pod-name> -n <namespace>
+   ```
+
+2. **Verify job completion**:
+
+   ```bash
+   kubectl get jobs -n <namespace>
+   kubectl describe job <job-name> -n <namespace>
+   ```
+
+3. **Check alternative log sources**:
+   - Use `kubectl logs` directly
+   - Check Lens pod logs
+   - Verify file outputs if the service writes to files
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cronjob-exit-codes" summary="Understanding CronJob exit codes and pod status">
+
+For CronJobs, the pod status indicates job success/failure:
+
+**Pod status meanings:**
+
+- **Completed**: Job finished successfully (exit code 0)
+- **Failed**: Job failed (exit code 1 or other non-zero)
+- **Running**: Job still executing
+
+**Best practices for CronJob logging:**
+
+1. **Always include explicit completion messages**:
+
+   ```bash
+   echo "Job started at $(date)"
+   # Your job logic here
+   echo "Job completed successfully at $(date)"
+   exit 0
+   ```
+
+2. **Use proper exit codes**:
+
+   ```bash
+   # For success
+   exit 0
+
+   # For failure
+   echo "Error: Something went wrong"
+   exit 1
+   ```
+
+3. **Check job history**:
+   ```bash
+   kubectl get jobs -n <namespace> --show-labels
+   kubectl describe cronjob <cronjob-name> -n <namespace>
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="workaround-solutions" summary="Temporary workarounds while fixes are implemented">
+
+While permanent fixes are being developed:
+
+**Immediate workarounds:**
+
+1. **Use kubectl for complete logs**:
+
+   ```bash
+   kubectl logs <pod-name> -n <namespace> --tail=-1
+   ```
+
+2. **Check multiple log sources**:
+
+   - SleakOps dashboard
+   - Lens application
+   - Direct kubectl commands
+   - File outputs (if applicable)
+
+3. **Verify job completion through pod status**:
+
+   ```bash
+   kubectl get pods -n <namespace> --field-selector=status.phase=Succeeded
+   kubectl get pods -n <namespace> --field-selector=status.phase=Failed
+   ```
+
+4. **Use conservative time ranges**:
+   - Only query time periods where you know logs exist
+   - Avoid large time ranges that might include gaps
+
+**Long-term solutions in development:**
+
+- Fix for Loki query handling when log gaps exist
+- Improved timezone handling in dashboards
+- Better log buffer flushing for terminating pods
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2025 based on a real user query._

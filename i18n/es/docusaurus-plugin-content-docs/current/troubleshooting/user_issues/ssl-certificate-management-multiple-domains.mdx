@@ -1,0 +1,181 @@
+---
+sidebar_position: 3
+title: "Gestión de Certificados SSL para Múltiples Dominios"
+description: "Gestión de certificados SSL a través de regiones y múltiples subdominios en SleakOps"
+date: "2024-12-19"
+category: "proyecto"
+tags: ["ssl", "certificados", "dominios", "aws", "cloudfront", "acm"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Gestión de Certificados SSL para Múltiples Dominios
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** SSL, Certificados, Dominios, AWS, CloudFront, ACM
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios que gestionan múltiples subdominios y certificados SSL en SleakOps pueden encontrar problemas con la validación de certificados, la ubicación regional y la reutilización de certificados en diferentes alias.
+
+**Síntomas Observados:**
+
+- Certificado SSL no valida para subdominios específicos (por ejemplo, media.app.develop.domain.com)
+- El certificado funciona para algunos subdominios pero no para otros (por ejemplo, static.app.develop.domain.com funciona)
+- Certificados aparecen en regiones AWS incorrectas (us-east-1 en lugar de la región prevista)
+- Confusión sobre cuándo crear certificados individuales vs certificados comodín
+
+**Configuración Relevante:**
+
+- Múltiples subdominios bajo el mismo dominio principal
+- Certificados de AWS Certificate Manager (ACM)
+- Requisitos de distribución en CloudFront
+- Requisitos de ubicación regional de certificados
+
+**Condiciones de Error:**
+
+- Fallos en la validación de certificados para subdominios específicos
+- Certificados creados en us-east-1 cuando se esperan en otras regiones
+- Incertidumbre sobre la estrategia adecuada de gestión de certificados
+
+## Solución Detallada
+
+<TroubleshootingItem id="certificate-reuse-mechanism" summary="Cómo SleakOps maneja la reutilización de certificados">
+
+SleakOps tiene una función automática de reutilización de certificados que:
+
+- **Reutiliza certificados existentes** al agregar nuevos alias que pertenecen a un dominio ya gestionado
+- **Detecta automáticamente** si un subdominio pertenece a un dominio con certificado existente
+- **Evita certificados duplicados** para la misma jerarquía de dominio
+
+Esta función fue implementada para optimizar la gestión de certificados y reducir los límites de AWS ACM.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="regional-certificate-requirements" summary="Por qué los certificados aparecen en us-east-1">
+
+**Requisito de Certificado para CloudFront:**
+
+Los certificados en `us-east-1` son específicamente para distribuciones de CloudFront:
+
+- **URLs de contenido estático** (como `static.app.develop.domain.com`) usan CloudFront
+- **CloudFront requiere** que los certificados SSL estén en la región `us-east-1`
+- **Esto es un requisito de AWS**, no un problema de configuración de SleakOps
+
+**Distribución Regional:**
+
+- Certificados de aplicación: desplegados en la región elegida (por ejemplo, Ohio)
+- Certificados para CloudFront: siempre en `us-east-1`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="certificate-recreation-process" summary="Cómo recrear certificados de forma segura">
+
+Para solucionar problemas de validación de certificados:
+
+**Paso 1: Eliminar certificados existentes**
+
+1. Ve al panel de tu proyecto en SleakOps
+2. Navega a **Dominios y SSL**
+3. Elimina los certificados problemáticos
+4. **Importante:** Esto no romperá los servicios existentes inmediatamente
+
+**Paso 2: Recrear certificados**
+
+1. Agrega tus dominios nuevamente en SleakOps
+2. La plataforma creará automáticamente certificados optimizados
+3. SleakOps reutilizará certificados cuando sea apropiado
+
+**Paso 3: Verificar validación**
+
+1. Comprueba que todos los subdominios validen correctamente
+2. Monitorea el estado del certificado en AWS ACM
+3. Prueba todas las URLs afectadas
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="wildcard-vs-individual-certificates" summary="Estrategia de certificados comodín vs individuales">
+
+**Enfoque Recomendado:**
+
+Para dominios como `develop.domain.com` con múltiples subdominios:
+
+```
+# Configuración óptima de certificados
+Certificado 1: *.develop.domain.com, develop.domain.com
+- Cubre: app.develop.domain.com
+- Cubre: api.develop.domain.com
+- Cubre: media.develop.domain.com
+- Cubre: develop.domain.com (apex)
+
+Certificado 2: static.develop.domain.com (solo us-east-1)
+- Para distribución CloudFront
+- Debe estar en la región us-east-1
+```
+
+**Beneficios:**
+
+- Reduce la cantidad de certificados
+- Simplifica la gestión
+- Cubre todos los subdominios actuales y futuros
+- Cumple con los requisitos regionales de AWS
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-validation-issues" summary="Solución de problemas en la validación de certificados">
+
+**Problemas comunes de validación y soluciones:**
+
+**Problema 1: La validación DNS no se completa**
+
+- Verifica que los registros DNS estén configurados correctamente
+- Confirma que la propiedad del dominio esté validada en AWS
+- Asegúrate que la propagación DNS haya finalizado (puede tardar hasta 24 horas)
+
+**Problema 2: El certificado no se aplica al subdominio**
+
+- Confirma que el certificado incluya el subdominio específico
+- Revisa que el certificado comodín cubra el patrón del subdominio
+- Verifica que el certificado esté en la región correcta para el servicio
+
+**Problema 3: Regiones mixtas de certificados**
+
+- Servicios de aplicación: usar certificados en la región de despliegue
+- Servicios CloudFront: deben usar certificados en us-east-1
+- Esto es un comportamiento normal y esperado
+
+**Comandos de verificación:**
+
+```bash
+# Ver detalles del certificado
+aws acm describe-certificate --certificate-arn arn:aws:acm:region:account:certificate/cert-id
+
+# Probar conexión SSL
+openssl s_client -connect your-domain.com:443 -servername your-domain.com
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Buenas prácticas para la gestión de certificados SSL">
+
+**Planificación de tu estrategia de certificados:**
+
+1. **Agrupa dominios relacionados**: usa certificados comodín para múltiples subdominios
+2. **Entiende los requisitos regionales**: acepta que los certificados CloudFront estarán en us-east-1
+3. **Usa la automatización de SleakOps**: permite que la plataforma maneje la reutilización y optimización de certificados
+4. **Monitorea expiraciones**: configura alertas para la renovación de certificados
+5. **Documenta tu configuración**: lleva un registro de qué certificados sirven a qué dominios
+
+**Cuándo recrear certificados:**
+
+- Problemas de validación que persisten tras la propagación DNS
+- Necesidad de agregar muchos subdominios nuevos a la configuración existente
+- Consolidar múltiples certificados individuales en comodines
+- Migrar entre diferentes estructuras de dominio
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de usuario._

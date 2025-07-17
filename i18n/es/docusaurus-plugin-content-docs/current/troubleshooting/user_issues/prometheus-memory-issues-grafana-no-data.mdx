@@ -1,0 +1,220 @@
+---
+sidebar_position: 3
+title: "Problemas de Memoria en Prometheus que Causan Pérdida de Datos en Grafana"
+description: "Solución para fallos en el pod backend de Prometheus debido a RAM insuficiente que causa que Grafana no muestre datos"
+date: "2024-12-11"
+category: "dependency"
+tags: ["prometheus", "grafana", "memoria", "monitoreo", "solución de problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de Memoria en Prometheus que Causan Pérdida de Datos en Grafana
+
+**Fecha:** 11 de diciembre de 2024  
+**Categoría:** Dependencia  
+**Etiquetas:** Prometheus, Grafana, Memoria, Monitoreo, Solución de Problemas
+
+## Descripción del Problema
+
+**Contexto:** Los paneles de Grafana muestran datos vacíos o sin métricas durante varios días debido a fallos en el pod backend de Prometheus causados por asignación insuficiente de memoria.
+
+**Síntomas Observados:**
+
+- Los paneles de Grafana no muestran datos ni métricas
+- El pod backend de Prometheus falla o permanece en estado fallido
+- Falta de recolección de métricas durante períodos prolongados (días)
+- El filtro de espacio de nombres predeterminado muestra resultados vacíos en Grafana
+- El panel de Loki no muestra información de logs
+
+**Configuración Relevante:**
+
+- Límite de memoria del pod backend de Prometheus: Por debajo del umbral requerido
+- Filtro de espacio de nombres predeterminado en Grafana: 'default' (espacio de nombres vacío)
+- Periodo afectado: Múltiples días con datos faltantes
+- Requisito de memoria: Mínimo 1250Mi de RAM necesario
+
+**Condiciones de Error:**
+
+- El pod de Prometheus falla debido a OOMKilled (Falta de Memoria)
+- La recolección de métricas se detiene completamente
+- Grafana no puede recuperar datos históricos del período fallido
+- El problema persiste hasta intervención manual
+
+## Solución Detallada
+
+<TroubleshootingItem id="prometheus-memory-fix" summary="Solucionar Problemas de Memoria en Prometheus">
+
+**Solución Inmediata:**
+
+1. **Identificar el pod de Prometheus que falló:**
+
+   ```bash
+   kubectl get pods -n monitoring | grep prometheus
+   kubectl describe pod <nombre-del-pod-prometheus> -n monitoring
+   ```
+
+2. **Verificar uso y límites de memoria:**
+
+   ```bash
+   kubectl top pod <nombre-del-pod-prometheus> -n monitoring
+   kubectl get pod <nombre-del-pod-prometheus> -n monitoring -o yaml | grep -A 5 -B 5 resources
+   ```
+
+3. **Incrementar manualmente la asignación de memoria:**
+
+   ```yaml
+   # Editar el deployment de Prometheus
+   kubectl edit deployment prometheus-server -n monitoring
+
+   # Añadir o modificar la sección de recursos:
+   resources:
+     requests:
+       memory: "1250Mi"
+     limits:
+       memory: "2Gi"
+   ```
+
+4. **Reiniciar el deployment:**
+   ```bash
+   kubectl rollout restart deployment prometheus-server -n monitoring
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="grafana-namespace-fix" summary="Solucionar Problema del Espacio de Nombres Predeterminado en Grafana">
+
+**Problema:** Grafana se abre con el filtro de espacio de nombres 'default' que normalmente no contiene aplicaciones desplegadas.
+
+**Solución:**
+
+1. **Acceder al panel de Grafana**
+2. **Cambiar el filtro de espacio de nombres:**
+
+   - Buscar el desplegable de espacio de nombres (usualmente en la parte superior)
+   - Seleccionar un espacio de nombres que contenga tus aplicaciones
+   - Espacios de nombres comunes: `kube-system`, `monitoring`, `default` o los específicos de tus aplicaciones
+
+3. **Establecer un valor predeterminado significativo:**
+   - Elegir un espacio de nombres con cargas de trabajo activas
+   - Guardar el panel con el espacio de nombres correcto seleccionado
+
+**Paneles Disponibles:**
+
+- Vista general del clúster Kubernetes
+- Métricas de nodos
+- Métricas de pods
+- Paneles específicos de aplicaciones
+- Monitoreo de red
+- Métricas de almacenamiento
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="loki-logs-fix" summary="Solucionar Problemas de Recolección de Logs en Loki">
+
+**Problema:** El panel de Loki no muestra información de logs debido a fallo en el componente de lectura.
+
+**Solución:**
+
+1. **Identificar el pod de lectura de Loki:**
+
+   ```bash
+   kubectl get pods -n monitoring | grep loki-read
+   ```
+
+2. **Eliminar el pod problemático:**
+
+   ```bash
+   kubectl delete pod <nombre-del-pod-loki-read> -n monitoring
+   ```
+
+3. **Verificar la recreación automática:**
+
+   ```bash
+   kubectl get pods -n monitoring | grep loki-read
+   kubectl logs <nuevo-nombre-pod-loki-read> -n monitoring
+   ```
+
+4. **Probar la recolección de logs:**
+   - Esperar 2-3 minutos para que el pod inicie completamente
+   - Revisar el panel de Grafana Loki para nuevas entradas de logs
+   - Verificar que los logs se estén recolectando de tus aplicaciones
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevent-future-issues" summary="Prevenir Problemas de Memoria Futuros">
+
+**Configuración de Monitoreo:**
+
+1. **Configurar alertas para uso de memoria en Prometheus:**
+
+   ```yaml
+   # Ejemplo de regla de alerta
+   - alert: PrometheusHighMemoryUsage
+     expr: (container_memory_usage_bytes{pod=~"prometheus.*"} / container_spec_memory_limit_bytes{pod=~"prometheus.*"}) > 0.8
+     for: 5m
+     labels:
+       severity: warning
+     annotations:
+       summary: "Prometheus está usando mucha memoria"
+   ```
+
+2. **Monitoreo regular de memoria:**
+
+   ```bash
+   # Ver uso actual de memoria
+   kubectl top pods -n monitoring
+
+   # Monitorear en tiempo real
+   watch kubectl top pods -n monitoring
+   ```
+
+3. **Consideraciones de escalado:**
+   - A medida que el clúster crece, aumentan los requerimientos de memoria de Prometheus
+   - Monitorear el período de retención de métricas
+   - Considerar federación de Prometheus para clústeres grandes
+   - Ajustar límites de memoria según tamaño del clúster y políticas de retención
+
+**Mejoras Futuras en la Plataforma:**
+
+- Los límites de memoria serán ajustables desde la interfaz de SleakOps
+- Escalado automático basado en tamaño del clúster
+- Monitoreo proactivo y alertas para restricciones de recursos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="data-recovery" summary="Consideraciones para la Recuperación de Datos">
+
+**Notas Importantes:**
+
+- **Las métricas perdidas no se pueden recuperar:** Los datos del período en que Prometheus estuvo caído se pierden permanentemente
+- **Planificar redundancia:** Considerar configurar federación de Prometheus o almacenamiento externo para métricas críticas
+- **Estrategias de respaldo:** Implementar respaldos regulares de datos de Prometheus para entornos críticos
+
+**Mitigación para Producción:**
+
+1. **Configuración de Alta Disponibilidad:**
+
+   ```yaml
+   # Ejemplo de configuración HA para Prometheus
+   prometheus:
+     prometheusSpec:
+       replicas: 2
+       retention: 30d
+       resources:
+         requests:
+           memory: 2Gi
+         limits:
+           memory: 4Gi
+   ```
+
+2. **Almacenamiento externo:**
+   - Configurar escritura remota a TSDB externo
+   - Usar Thanos para almacenamiento a largo plazo
+   - Implementar estrategias de respaldo entre regiones
+
+</TroubleshootingItem>
+
+---
+
+_Este FAQ fue generado automáticamente el 11 de diciembre de 2024 basado en una consulta real de usuario._

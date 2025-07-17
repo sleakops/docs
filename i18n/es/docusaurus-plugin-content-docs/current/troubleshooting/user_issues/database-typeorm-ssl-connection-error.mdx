@@ -1,0 +1,234 @@
+---
+sidebar_position: 3
+title: "Error de Conexión SSL de TypeORM con RDS"
+description: "Solución para errores de conexión SSL en pg_hba.conf al conectar TypeORM a bases de datos RDS"
+date: "2024-01-15"
+category: "dependency"
+tags: ["typeorm", "rds", "ssl", "database", "postgresql"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Error de Conexión SSL de TypeORM con RDS
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Dependencia  
+**Etiquetas:** TypeORM, RDS, SSL, Base de datos, PostgreSQL
+
+## Descripción del Problema
+
+**Contexto:** El usuario experimenta problemas de conexión SSL al intentar conectar TypeORM a una base de datos PostgreSQL en RDS en ambiente de producción, mientras que la misma configuración funciona en desarrollo.
+
+**Síntomas Observados:**
+
+- Error durante la ejecución de migraciones: `no pg_hba.conf entry for host "10.130.96.232", user "postgres", database "rattlesnake", no encryption`
+- Las migraciones no se ejecutan en ambiente de producción
+- La misma configuración funciona en ambientes de desarrollo/pruebas
+- La aplicación no puede conectarse a la base de datos
+
+**Configuración Relevante:**
+
+- Base de datos: PostgreSQL en AWS RDS
+- ORM: TypeORM
+- Ambiente: Diferencia entre producción y desarrollo
+- Aplicación de SSL: RDS requiere conexiones SSL
+
+**Condiciones del Error:**
+
+- El error ocurre durante la ejecución de migraciones con TypeORM
+- Sucede cuando la aplicación intenta conectarse a la base de datos
+- Es específico del ambiente de producción
+- Relacionado con requisitos de SSL/encriptación
+
+## Solución Detallada
+
+<TroubleshootingItem id="root-cause" summary="Entendiendo la causa raíz">
+
+El error `no pg_hba.conf entry for host... no encryption` indica que:
+
+1. **RDS requiere conexiones SSL** en producción
+2. **TypeORM no está configurado** para usar SSL
+3. **Los ambientes de desarrollo** pueden tener requisitos SSL diferentes
+4. **pg_hba.conf** en RDS está configurado para rechazar conexiones no encriptadas
+
+Esta es una diferencia común de seguridad entre configuraciones de base de datos de desarrollo y producción.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="typeorm-ssl-configuration" summary="Configurar SSL en TypeORM">
+
+Agrega la configuración SSL a las opciones de conexión de TypeORM:
+
+```typescript
+// Configuración en TypeScript
+const connectionOptions: ConnectionOptions = {
+  type: "postgres",
+  host: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT || "5432"),
+  username: process.env.DB_USERNAME,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  // Agregar configuración SSL
+  ssl: {
+    rejectUnauthorized: false,
+  },
+  // ... otras opciones
+};
+```
+
+```javascript
+// Configuración en JavaScript
+module.exports = {
+  type: "postgres",
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT || 5432,
+  username: process.env.DB_USERNAME,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  ssl: {
+    rejectUnauthorized: false,
+  },
+};
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="environment-specific-config" summary="Configuración SSL específica por ambiente">
+
+Para manejar diferentes requisitos SSL según el ambiente:
+
+```typescript
+const sslConfig =
+  process.env.NODE_ENV === "production"
+    ? {
+        ssl: {
+          rejectUnauthorized: false,
+        },
+      }
+    : {};
+
+const connectionOptions: ConnectionOptions = {
+  type: "postgres",
+  host: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT || "5432"),
+  username: process.env.DB_USERNAME,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  ...sslConfig,
+  // ... otras opciones
+};
+```
+
+O usar variables de entorno:
+
+```typescript
+const connectionOptions: ConnectionOptions = {
+  // ... otra configuración
+  ssl:
+    process.env.DB_SSL_ENABLED === "true"
+      ? {
+          rejectUnauthorized:
+            process.env.DB_SSL_REJECT_UNAUTHORIZED !== "false",
+        }
+      : false,
+};
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="migration-command-ssl" summary="Ejecutar migraciones con SSL">
+
+Al ejecutar migraciones, asegúrate que la configuración del CLI de TypeORM incluya SSL:
+
+```json
+// ormconfig.json
+{
+  "type": "postgres",
+  "host": "tu-endpoint-rds",
+  "port": 5432,
+  "username": "postgres",
+  "password": "tu-contraseña",
+  "database": "tu-base-de-datos",
+  "ssl": {
+    "rejectUnauthorized": false
+  },
+  "migrations": ["src/migrations/*.ts"],
+  "cli": {
+    "migrationsDir": "src/migrations"
+  }
+}
+```
+
+Luego ejecuta las migraciones:
+
+```bash
+# Usando npm/pnpm
+pnpm typeorm migration:run
+
+# O con configuración explícita
+pnpm typeorm migration:run -f ormconfig.json
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="security-considerations" summary="Consideraciones de seguridad y alternativas">
+
+**Seguridad de la solución actual:**
+
+- `rejectUnauthorized: false` deshabilita la validación del certificado
+- Aún usa conexión encriptada (SSL/TLS)
+- Aceptable para la mayoría de escenarios de producción con RDS
+
+**Alternativas más seguras:**
+
+1. **Usar certificado CA de RDS:**
+
+```typescript
+ssl: {
+  ca: fs.readFileSync('rds-ca-2019-root.pem').toString(),
+  rejectUnauthorized: true
+}
+```
+
+2. **Modo SSL basado en ambiente:**
+
+```typescript
+ssl: {
+  mode: 'require', // o 'verify-full'
+  rejectUnauthorized: process.env.NODE_ENV === 'production'
+}
+```
+
+3. **Usar autenticación de base de datos AWS IAM** (para mayor seguridad)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Pasos adicionales para solución de problemas">
+
+Si la configuración SSL no resuelve el problema:
+
+1. **Verifica la configuración SSL de RDS:**
+
+   - Comprueba si el parámetro `rds.force_ssl` está habilitado
+   - Verifica que el grupo de seguridad permita conexiones desde tu aplicación
+
+2. **Prueba la conexión manualmente:**
+
+```bash
+psql "host=tu-endpoint-rds port=5432 dbname=tu-db user=postgres sslmode=require"
+```
+
+3. **Verifica la compatibilidad de la versión de TypeORM:**
+
+   - Asegúrate de usar una versión reciente de TypeORM
+   - Algunas versiones antiguas tenían problemas con la configuración SSL
+
+4. **Verifica las variables de entorno:**
+   - Asegúrate que todas las variables de conexión a la base de datos estén correctamente configuradas en producción
+   - Comprueba que el endpoint de la base de datos sea accesible desde tu ambiente de producción
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de un usuario._

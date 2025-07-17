@@ -1,0 +1,73 @@
+---
+sidebar_position: 3
+title: "Configuración de Roles IAM para OpenSearch"
+description: "Cómo configurar roles IAM para OpenSearch en SleakOps"
+date: "2025-02-05"
+category: "dependencia"
+tags: ["opensearch", "iam", "aws", "roles", "permisos"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Configuración de Roles IAM para OpenSearch
+
+**Fecha:** 5 de febrero de 2025  
+**Categoría:** Dependencia  
+**Etiquetas:** OpenSearch, IAM, AWS, Roles, Permisos
+
+## Descripción del Problema
+
+**Contexto:** El usuario está configurando un servicio OpenSearch en SleakOps y tiene dudas sobre si se requieren roles IAM para la configuración correcta del acceso.
+
+**Síntomas Observados:**
+
+- Incertidumbre sobre los requisitos de roles IAM para OpenSearch
+- Preguntas sobre la configuración de acceso después de la creación del servicio
+- Necesidad de entender la estructura de permisos para OpenSearch en AWS
+
+**Configuración Relevante:**
+
+- Tipo de servicio: OpenSearch
+- Tipo de instancia: t3.medium.search
+- Plataforma: AWS
+- Método de acceso: Por determinar
+
+**Condiciones de Error:**
+
+- Posibles problemas de acceso si los roles IAM no están configurados correctamente
+- El servicio puede crearse pero ser inaccesible sin los permisos adecuados
+- Las aplicaciones pueden fallar al conectar con OpenSearch sin una configuración IAM correcta
+
+## Solución Detallada
+
+<TroubleshootingItem id="iam-requirements" summary="¿Necesito roles IAM para OpenSearch?">
+
+Sí, OpenSearch en AWS normalmente requiere roles IAM para un acceso seguro. Los requisitos específicos dependen de tu método de acceso:
+
+**Para acceso basado en VPC (recomendado):**
+
+- Se requieren roles IAM para que las aplicaciones accedan al clúster de OpenSearch
+- Se puede configurar un control de acceso detallado
+
+**Para acceso público:**
+
+- Se pueden usar políticas IAM junto con restricciones basadas en IP
+- Menos seguro pero más sencillo para entornos de desarrollo
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="automatic-configuration" summary="Cómo SleakOps maneja IAM para OpenSearch">
+
+SleakOps configura automáticamente roles IAM básicos para OpenSearch:
+
+1. **Rol de Servicio**: Creado automáticamente para el propio servicio OpenSearch
+2. **Rol de Acceso**: Generado para aplicaciones dentro de tu clúster para acceder a OpenSearch
+3. **Usuario Maestro**: Configurado con permisos administrativos
+
+**Lo que se configura automáticamente:**
+
+```json
+{
+  "Version": "2012-10-17""
+}
+```

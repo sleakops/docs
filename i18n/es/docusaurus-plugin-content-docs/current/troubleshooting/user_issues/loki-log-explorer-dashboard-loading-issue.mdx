@@ -1,0 +1,197 @@
+---
+sidebar_position: 3
+title: "Problema de carga del panel de explorador de registros de Loki"
+description: "Solución para el panel de Grafana Log Explorer atascado en estado de carga"
+date: "2025-02-12"
+category: "dependency"
+tags: ["loki", "grafana", "logs", "dashboard", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problema de carga del panel de explorador de registros de Loki
+
+**Fecha:** 12 de febrero de 2025  
+**Categoría:** Dependencia  
+**Etiquetas:** Loki, Grafana, Registros, Panel, Solución de problemas
+
+## Descripción del problema
+
+**Contexto:** Los usuarios experimentan problemas con el panel Grafana Log Explorer en la plataforma SleakOps donde los registros no se cargan y la interfaz permanece atascada en un estado de carga indefinidamente.
+
+**Síntomas observados:**
+
+- El panel Log Explorer muestra un spinner de carga continuo
+- Los registros nunca aparecen en la interfaz de Grafana
+- El panel permanece sin respuesta
+- Otros paneles de Grafana pueden funcionar normalmente
+
+**Configuración relevante:**
+
+- Componente: sistema de registro Loki
+- Interfaz: panel Grafana Log Explorer
+- Pods afectados: `loki-backend` y `loki-read`
+- Plataforma: entorno Kubernetes de SleakOps
+
+**Condiciones de error:**
+
+- Ocurre específicamente con paneles relacionados con registros
+- Sucede cuando los pods `loki-backend` se reinician sin que los pods `loki-read` se reinicien
+- Resulta en una ruptura de comunicación entre los componentes de Loki
+
+## Solución detallada
+
+<TroubleshootingItem id="root-cause-analysis" summary="Entendiendo la causa raíz">
+
+Este es un problema conocido con Loki donde los pods `loki-read` pierden su capacidad de comunicarse con los pods `loki-backend` después de que el backend se reinicia. Esto crea un estado donde:
+
+- Los pods `loki-backend` están ejecutándose con nuevas configuraciones
+- Los pods `loki-read` aún intentan usar parámetros de conexión antiguos
+- El canal de comunicación entre los componentes está roto
+- Las consultas de registros no pueden procesarse, resultando en una carga infinita
+
+Este problema está siendo rastreado en el repositorio oficial de Loki en GitHub:
+
+- [Issue #14384](https://github.com/grafana/loki/issues/14384#issuecomment-2612675359)
+- [Issue #15191](https://github.com/grafana/loki/issues/15191)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-solution" summary="Solución rápida: Reiniciar los pods loki-read">
+
+La solución inmediata es reiniciar los pods `loki-read` para restablecer la comunicación con el backend:
+
+**Usando kubectl:**
+
+```bash
+# Encontrar los pods loki-read
+kubectl get pods -n <namespace> | grep loki-read
+
+# Reiniciar los pods loki-read
+kubectl delete pod <nombre-pod-loki-read> -n <namespace>
+
+# O reiniciar todos los pods loki-read a la vez
+kubectl delete pods -l app=loki-read -n <namespace>
+```
+
+**Usando la interfaz de SleakOps:**
+
+1. Navega a la gestión de tu clúster
+2. Ve a **Workloads** → **Pods**
+3. Filtra por `loki-read`
+4. Selecciona los pods y elige **Reiniciar**
+
+Los pods se reiniciarán automáticamente y restablecerán la conexión con el backend.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Verificar que la solución funciona">
+
+Después de reiniciar los pods `loki-read`:
+
+1. **Espera 2-3 minutos** para que los pods se reinicien completamente
+2. **Verifica el estado de los pods:**
+
+   ```bash
+   kubectl get pods -n <namespace> | grep loki
+   ```
+
+   Todos los pods deberían mostrar estado `Running`
+
+3. **Prueba el Log Explorer:**
+
+   - Abre el panel de Grafana
+   - Navega a Log Explorer
+   - Intenta consultar registros recientes
+   - Verifica que los registros se carguen correctamente
+
+4. **Revisa los logs de los pods si persisten los problemas:**
+   ```bash
+   kubectl logs -f <nombre-pod-loki-read> -n <namespace>
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-measures" summary="Prevención y monitoreo">
+
+Aunque este es un problema conocido de Loki que se está abordando en el proyecto original, puedes:
+
+**Monitorear el problema:**
+
+- Configurar alertas para cuando Log Explorer deje de responder
+- Monitorear eventos de reinicio de pods de Loki
+- Crear chequeos de salud para la ingesta de registros
+
+**Automatización temporal como solución:**
+
+```yaml
+# Ejemplo de script de monitoreo
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: loki-health-check
+spec:
+  schedule: "*/10 * * * *" # Cada 10 minutos
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: health-check
+              image: curlimages/curl
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  # Verificar si Loki responde
+                  if ! curl -f http://loki-gateway/ready; then
+                    echo "Loki no responde, puede necesitar intervención"
+                  fi
+          restartPolicy: OnFailure
+```
+
+**Mantente actualizado:**
+
+- Monitorea los issues de GitHub mencionados para soluciones permanentes
+- Actualiza Loki cuando se publiquen parches
+- Considera usar el modo distribuido de Loki para mejor resiliencia
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-approaches" summary="Pasos alternativos para solución de problemas">
+
+Si reiniciar los pods `loki-read` no soluciona el problema:
+
+**1. Reiniciar todos los componentes de Loki:**
+
+```bash
+# Reiniciar todos los pods de Loki
+kubectl delete pods -l app.kubernetes.io/name=loki -n <namespace>
+```
+
+**2. Revisar la configuración de Loki:**
+
+```bash
+# Ver configuración configmap de Loki
+kubectl get configmap loki-config -n <namespace> -o yaml
+```
+
+**3. Verificar conectividad de red:**
+
+```bash
+# Probar conectividad entre pods
+kubectl exec -it <pod-loki-read> -n <namespace> -- nslookup loki-backend
+```
+
+**4. Revisar limitaciones de recursos:**
+
+```bash
+# Ver si los pods están limitados en recursos
+kubectl top pods -n <namespace> | grep loki
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 12 de febrero de 2025 basada en una consulta real de un usuario._

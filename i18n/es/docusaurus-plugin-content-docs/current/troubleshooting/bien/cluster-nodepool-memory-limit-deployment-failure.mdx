@@ -1,0 +1,226 @@
+---
+sidebar_position: 3
+title: "Fallo en el Despliegue Debido a Límites de Memoria del Nodepool"
+description: "Solución para fallos en despliegues causados por que el nodepool alcanza límites de capacidad de memoria"
+date: "2024-03-13"
+category: "cluster"
+tags:
+  ["despliegue", "nodepool", "memoria", "escalado", "resolución de problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Fallo en el Despliegue Debido a Límites de Memoria del Nodepool
+
+**Fecha:** 13 de marzo de 2024  
+**Categoría:** Clúster  
+**Etiquetas:** Despliegue, Nodepool, Memoria, Escalado, Resolución de problemas
+
+## Descripción del Problema
+
+**Contexto:** El usuario experimenta fallos en despliegues en el entorno de QA donde las compilaciones y despliegues toman más de 50 minutos y eventualmente se agota el tiempo, impidiendo actualizaciones exitosas de la aplicación.
+
+**Síntomas Observados:**
+
+- Compilaciones de despliegue que tardan más de 50 minutos
+- El proceso de despliegue se detiene/se agota el tiempo antes de completarse
+- Los pods de migración no pueden ser programados
+- Las nuevas versiones de la aplicación no se despliegan
+
+**Configuración Relevante:**
+
+- Entorno: clúster de QA
+- Aplicación: servicio backend
+- Tiempo límite de despliegue: ~50 minutos
+- Nodepool: capacidad de memoria limitada
+- Pods de migración que requieren recursos adicionales
+
+**Condiciones de Error:**
+
+- El nodepool alcanza el límite de memoria al intentar añadir nuevos nodos
+- Recursos insuficientes para programar pods de migración
+- Tiempo de espera en la pipeline de despliegue debido a restricciones de recursos
+- No se pueden crear nuevos pods por límites de capacidad
+
+## Solución Detallada
+
+<TroubleshootingItem id="root-cause-analysis" summary="Comprendiendo la causa raíz">
+
+El fallo en el despliegue ocurre porque:
+
+1. **Límite de Memoria del Nodepool**: El nodepool ha alcanzado su máxima asignación de memoria
+2. **Programación de Recursos**: Kubernetes no puede programar nuevos pods (como los de migración) debido a recursos insuficientes
+3. **Dependencias del Despliegue**: El proceso de despliegue requiere recursos adicionales que no están disponibles
+4. **Planificación de Capacidad**: La configuración actual del nodepool no considera el uso máximo de recursos durante los despliegues
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-solution" summary="Solución inmediata: Incrementar la memoria del nodepool">
+
+Para resolver el problema inmediato:
+
+1. **Acceder al Panel de SleakOps**
+2. Navegar a **Gestión de Clúster** → **Nodepools**
+3. Seleccionar el nodepool afectado
+4. **Incrementar la Asignación de Memoria**:
+   - Ir a la pestaña **Configuración**
+   - Aumentar el límite de **Memoria Máxima**
+   - O aumentar el número máximo de nodos si se usa escalado basado en nodos
+5. **Aplicar Cambios** y esperar a que se provisionen los nuevos nodos
+
+```yaml
+# Ejemplo de configuración del nodepool
+nodepool_config:
+  min_nodes: 2
+  max_nodes: 8 # Incrementado desde el límite previo
+  instance_type: "t3.large" # O actualizar el tipo de instancia
+  max_memory_gb: 32 # Límite de memoria incrementado
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-resources" summary="Monitorear uso de recursos">
+
+Para prevenir problemas futuros, monitorea los recursos de tu clúster:
+
+1. **Usar el Panel de Nodepool de SleakOps**:
+
+   - Revisar gráficos de utilización de CPU/Memoria
+   - Monitorear tendencias durante los tiempos de despliegue
+   - Configurar alertas para uso alto de recursos
+
+2. **Métricas Clave a Vigilar**:
+
+   - Utilización de memoria > 80%
+   - Utilización de CPU > 70%
+   - Número de pods pendientes
+   - Capacidad del nodo vs. uso
+
+3. **Acceder a Kubecost** (si está instalado):
+   - Asegurar que la conexión VPN esté activa
+   - Navegar al panel de análisis de costos
+   - Revisar eficiencia en la asignación de recursos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deployment-optimization" summary="Optimizar el proceso de despliegue">
+
+Para mejorar la confiabilidad del despliegue:
+
+1. **Solicitudes y Límites de Recursos**:
+
+```yaml
+# Establecer solicitudes apropiadas de recursos
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "1Gi"
+    cpu: "500m"
+```
+
+2. **Estrategia de Despliegue**:
+
+```yaml
+# Usar actualizaciones continuas con gestión adecuada de recursos
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+    maxSurge: 1
+```
+
+3. **Configuración de Job de Migración**:
+
+```yaml
+# Asegurar que los jobs de migración tengan recursos adecuados
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migration-job
+spec:
+  template:
+    spec:
+      containers:
+        - name: migrate
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="capacity-planning" summary="Planificación de capacidad a largo plazo">
+
+Para una gestión sostenible del clúster:
+
+1. **Calcular Uso Máximo**:
+
+   - Recursos en operación normal
+   - Recursos adicionales durante despliegues
+   - Recursos para jobs de migración y mantenimiento
+   - Reserva para picos inesperados (20-30%)
+
+2. **Estrategia de Dimensionamiento del Nodepool**:
+
+   - **Desarrollo/QA**: 2-4 nodos con autoescalado
+   - **Producción**: mínimo 3-6 nodos con límites más altos
+   - **Considerar tipos de instancia**: balancear costo y rendimiento
+
+3. **Configuración de Autoescalado**:
+
+```yaml
+autoscaling:
+  enabled: true
+  min_nodes: 2
+  max_nodes: 10
+  target_cpu_percent: 70
+  target_memory_percent: 80
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Pasos para resolver fallos en despliegues">
+
+Cuando los despliegues fallan:
+
+1. **Verificar estado del Nodepool**:
+
+   ```bash
+   kubectl get nodes
+   kubectl describe nodes
+   ```
+
+2. **Verificar estado de los Pods**:
+
+   ```bash
+   kubectl get pods --all-namespaces
+   kubectl describe pod <nombre-pod-fallando>
+   ```
+
+3. **Verificar uso de recursos**:
+
+   ```bash
+   kubectl top nodes
+   kubectl top pods --all-namespaces
+   ```
+
+4. **Revisar eventos**:
+
+   ```bash
+   kubectl get events --sort-by=.metadata.creationTimestamp
+   ```
+
+5. **Mensajes de error comunes**:
+   - `Insufficient memory`
+   - `Insufficient cpu`
+   - `0/X nodes are available`
+   - `FailedScheduling`
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 13 de marzo de 2024 basada en una consulta real de usuario._

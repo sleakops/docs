@@ -1,0 +1,255 @@
+---
+sidebar_position: 3
+title: "Deployment Timeout During Database Migrations"
+description: "Solution for deployment failures caused by database migration timeouts in pre-deploy tasks"
+date: "2024-04-25"
+category: "project"
+tags: ["deployment", "database", "migrations", "timeout", "pre-deploy"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Deployment Timeout During Database Migrations
+
+**Date:** April 25, 2024  
+**Category:** Project  
+**Tags:** Deployment, Database, Migrations, Timeout, Pre-deploy
+
+## Problem Description
+
+**Context:** Backend service deployment fails during the pre-deploy phase when executing database migrations, causing the entire deployment process to timeout and fail.
+
+**Observed Symptoms:**
+
+- Deployment fails during pre-deploy task execution
+- Database migrations take too long to complete
+- Process terminates due to timeout limits
+- Multiple deployment attempts show similar timeout behavior
+- Secondary application errors may appear (ImportError) after timeout failures
+
+**Relevant Configuration:**
+
+- Service type: Backend application
+- Pre-deploy task: Database migrations
+- Infrastructure: Karpenter-managed nodes (no provisioning issues detected)
+- Database: Production database with potentially large datasets
+
+**Error Conditions:**
+
+- Error occurs during pre-deploy phase
+- Migrations exceed configured timeout limits
+- Problem appears consistently across deployment attempts
+- May be followed by application import errors in subsequent attempts
+
+## Detailed Solution
+
+<TroubleshootingItem id="timeout-diagnosis" summary="Diagnosing migration timeout issues">
+
+Database migration timeouts typically occur due to:
+
+1. **Large data migrations**: Operations on tables with millions of records
+2. **Schema changes**: Adding indexes or columns to large tables
+3. **Lock contention**: Migrations conflicting with active database connections
+4. **Resource constraints**: Insufficient database CPU/memory during migration
+5. **Network latency**: Slow connection between application and database
+
+To diagnose the specific cause:
+
+```bash
+# Check migration logs
+kubectl logs -f deployment/your-backend-service -c pre-deploy
+
+# Monitor database performance during migration
+# (AWS RDS example)
+aws rds describe-db-instances --db-instance-identifier your-db
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="increase-timeout" summary="Increase pre-deploy timeout limits">
+
+In SleakOps, you can configure longer timeout limits for pre-deploy tasks:
+
+1. Go to your **Project Settings**
+2. Navigate to **Deployment Configuration**
+3. Find **Pre-deploy Task Settings**
+4. Increase the **Timeout** value:
+
+```yaml
+# sleakops.yaml example
+services:
+  backend:
+    pre_deploy:
+      timeout: 1800 # 30 minutes instead of default 10 minutes
+      command: "python manage.py migrate"
+```
+
+Recommended timeout values:
+
+- Small applications: 600 seconds (10 minutes)
+- Medium applications: 1200 seconds (20 minutes)
+- Large applications: 1800+ seconds (30+ minutes)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="migration-optimization" summary="Optimize database migrations">
+
+To make migrations faster and more reliable:
+
+**1. Split large migrations:**
+
+```python
+# Instead of one large migration
+class Migration(migrations.Migration):
+    operations = [
+        # 50 operations here
+    ]
+
+# Split into smaller migrations
+class Migration001(migrations.Migration):
+    operations = [
+        # 10 operations here
+    ]
+
+class Migration002(migrations.Migration):
+    operations = [
+        # 10 more operations here
+    ]
+```
+
+**2. Use database-specific optimizations:**
+
+```python
+# PostgreSQL example - add indexes concurrently
+from django.contrib.postgres.operations import AddIndexConcurrently
+
+class Migration(migrations.Migration):
+    atomic = False  # Required for concurrent operations
+    operations = [
+        AddIndexConcurrently(
+            model_name='yourmodel',
+            index=models.Index(fields=['field_name'], name='idx_field_name'),
+        ),
+    ]
+```
+
+**3. Run heavy migrations offline:**
+
+```bash
+# For very large migrations, run manually during maintenance windows
+kubectl exec -it deployment/backend-service -- python manage.py migrate --plan
+kubectl exec -it deployment/backend-service -- python manage.py migrate app_name migration_number
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-strategies" summary="Alternative deployment strategies">
+
+If timeouts persist, consider these deployment strategies:
+
+**1. Blue-Green Deployment with Manual Migration:**
+
+```yaml
+# sleakops.yaml
+services:
+  backend:
+    deployment_strategy: blue_green
+    pre_deploy:
+      enabled: false # Disable automatic migrations
+    health_check:
+      path: /health
+      timeout: 30
+```
+
+Then run migrations manually:
+
+```bash
+# After blue environment is ready
+kubectl exec -it deployment/backend-service-blue -- python manage.py migrate
+# Switch traffic after migration completes
+```
+
+**2. Rolling Deployment with Migration Jobs:**
+
+```yaml
+# Create separate job for migrations
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migration-job
+spec:
+  template:
+    spec:
+      containers:
+        - name: migrate
+          image: your-backend-image
+          command: ["python", "manage.py", "migrate"]
+      restartPolicy: Never
+  backoffLimit: 3
+```
+
+**3. Database Connection Pooling:**
+
+```python
+# settings.py - Optimize database connections
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'CONN_MAX_AGE': 600,  # Connection pooling
+        'OPTIONS': {
+            'MAX_CONNS': 20,
+            'MIN_CONNS': 5,
+        }
+    }
+}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-prevention" summary="Monitoring and prevention">
+
+To prevent future timeout issues:
+
+**1. Monitor migration performance:**
+
+```bash
+# Add logging to migrations
+import logging
+logger = logging.getLogger(__name__)
+
+class Migration(migrations.Migration):
+    def apply_migration(self, project_state, schema_editor, collect_sql=False):
+        logger.info(f"Starting migration {self.name}")
+        start_time = time.time()
+        result = super().apply_migration(project_state, schema_editor, collect_sql)
+        duration = time.time() - start_time
+        logger.info(f"Migration {self.name} completed in {duration:.2f} seconds")
+        return result
+```
+
+**2. Set up alerts:**
+
+```yaml
+# Alert when migrations take too long
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: migration-alerts
+spec:
+  groups:
+    - name: migrations
+      rules:
+        - alert: MigrationTimeout
+          expr: increase(django_migration_duration_seconds[5m]) > 300
+          labels:
+            severity: warning
+          annotations:
+            summary: "Database migration taking too long"
+```
+
+**3. Test migrations in staging:**
+
+```bash
+# Always test with production-like data volumes
+# Use database snapshots for realistic testing\
+```

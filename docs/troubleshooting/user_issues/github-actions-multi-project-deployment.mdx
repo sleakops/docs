@@ -1,0 +1,217 @@
+---
+sidebar_position: 3
+title: "GitHub Actions Multi-Project Deployment"
+description: "Configure GitHub Actions to deploy multiple SleakOps projects automatically"
+date: "2025-01-15"
+category: "project"
+tags: ["github-actions", "ci-cd", "deployment", "automation", "sleakops-cli"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# GitHub Actions Multi-Project Deployment
+
+**Date:** January 15, 2025  
+**Category:** Project  
+**Tags:** GitHub Actions, CI/CD, Deployment, Automation, SleakOps CLI
+
+## Problem Description
+
+**Context:** User needs to configure GitHub Actions to automatically build and deploy multiple SleakOps projects when pushing to the production branch, specifically wanting to deploy both `simplee-drf-aws-cl` and `simplee-drf-aws-mx` projects simultaneously.
+
+**Observed Symptoms:**
+
+- Current CI/CD pipeline only deploys one project
+- Need to trigger multiple project deployments from a single push
+- Requirement to duplicate build and deploy commands for additional projects
+- Environment parameter confusion (using `-e main` instead of `-e dev`)
+
+**Relevant Configuration:**
+
+- Platform: GitHub Actions
+- SleakOps CLI commands: `sleakops build` and `sleakops deploy`
+- Projects: `simplee-drf-aws-cl`, `simplee-drf-aws-mx`
+- Branch trigger: `prod` branch
+- Environment: `dev` (not `main`)
+
+**Error Conditions:**
+
+- Incorrect environment parameter in deploy command
+- Single project deployment instead of multi-project
+- Need for workflow optimization for multiple projects
+
+## Detailed Solution
+
+<TroubleshootingItem id="basic-multi-project-setup" summary="Basic Multi-Project GitHub Actions Configuration">
+
+Here's how to configure GitHub Actions to deploy multiple SleakOps projects:
+
+```yaml
+name: Multi-Project CI/CD
+
+on:
+  push:
+    branches:
+      - prod
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: ["simplee-drf-aws-cl", "simplee-drf-aws-mx"]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install SleakOps CLI
+        run: pip install sleakops
+
+      - name: Run SleakOps build for ${{ matrix.project }}
+        env:
+          SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+        run: sleakops build -p ${{ matrix.project }} -b prod -w
+
+  deploy:
+    needs: [build]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: ["simplee-drf-aws-cl", "simplee-drf-aws-mx"]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install SleakOps CLI
+        run: pip install sleakops
+
+      - name: Run SleakOps deploy for ${{ matrix.project }}
+        env:
+          SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+        run: sleakops deploy -p ${{ matrix.project }} -e dev -w
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sequential-deployment" summary="Sequential Deployment Approach">
+
+If you prefer sequential deployment (one project after another), use this configuration:
+
+```yaml
+name: Sequential Multi-Project CI/CD
+
+on:
+  push:
+    branches:
+      - prod
+
+jobs:
+  build-and-deploy-cl:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install SleakOps CLI
+        run: pip install sleakops
+
+      - name: Build simplee-drf-aws-cl
+        env:
+          SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+        run: sleakops build -p simplee-drf-aws-cl -b prod -w
+
+      - name: Deploy simplee-drf-aws-cl
+        env:
+          SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+        run: sleakops deploy -p simplee-drf-aws-cl -e dev -w
+
+  build-and-deploy-mx:
+    runs-on: ubuntu-latest
+    needs: [build-and-deploy-cl]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install SleakOps CLI
+        run: pip install sleakops
+
+      - name: Build simplee-drf-aws-mx
+        env:
+          SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+        run: sleakops build -p simplee-drf-aws-mx -b prod -w
+
+      - name: Deploy simplee-drf-aws-mx
+        env:
+          SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+        run: sleakops deploy -p simplee-drf-aws-mx -e dev -w
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="environment-parameter-fix" summary="Correct Environment Parameter Usage">
+
+**Important:** The environment parameter in the deploy command should match your SleakOps environment name, not the git branch.
+
+Common mistakes:
+
+- ❌ `sleakops deploy -p project-name -e main -w`
+- ✅ `sleakops deploy -p project-name -e dev -w`
+- ✅ `sleakops deploy -p project-name -e prod -w`
+
+To verify your environment name:
+
+1. Go to your SleakOps console
+2. Navigate to your project
+3. Check the environment section
+4. Use the exact environment name in the `-e` parameter
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="advanced-configuration" summary="Advanced Configuration with Error Handling">
+
+For production environments, consider adding error handling and notifications:
+
+```yaml
+name: Production Multi-Project CI/CD
+
+on:
+  push:
+    branches:
+      - prod
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: ["simplee-drf-aws-cl", "simplee-drf-aws-mx"]
+      fail-fast: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install SleakOps CLI
+        run: pip install sleakops
+
+      - name: Build ${{ matrix.project }}
+        env:
+          SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+        run: |
+          echo "Building ${{ matrix.project }}..."
+          sleakops build -p ${{ matrix.project }} -b prod -w
+          echo "Build completed for ${{ matrix.project }}"
+
+  deploy:
+    needs: [build]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: ["simplee-drf-aws-cl", "simplee-drf-aws-mx"]
+      fail-fast: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install SleakOps CLI
+        run: pip install sle
+```

@@ -1,0 +1,174 @@
+---
+sidebar_position: 3
+title: "Kubernetes Service Name Length Limit Error"
+description: "Solution for service name exceeding 63 character limit during deployment"
+date: "2025-02-13"
+category: "project"
+tags: ["deployment", "kubernetes", "service", "naming", "helm"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Kubernetes Service Name Length Limit Error
+
+**Date:** February 13, 2025  
+**Category:** Project  
+**Tags:** Deployment, Kubernetes, Service, Naming, Helm
+
+## Problem Description
+
+**Context:** User encounters a deployment failure when trying to deploy a project with a long name in SleakOps. The automatically generated Kubernetes service name exceeds the 63-character limit imposed by Kubernetes.
+
+**Observed Symptoms:**
+
+- Deployment fails during Helm upgrade process
+- Error message: "UPGRADE FAILED: failed to create resource"
+- Service name validation error: "must be no more than 63 characters"
+- Automatically generated service names are too long
+
+**Relevant Configuration:**
+
+- Project name: `velo-contacto-email-sender`
+- Environment: `production`
+- Generated service name: `velo-contact-email-sender-production-velo-contact-email-sender-svc`
+- Character count: Over 63 characters
+
+**Error Conditions:**
+
+- Error occurs during deployment process
+- Happens with projects that have long names
+- Affects automatically generated Kubernetes resource names
+- Cannot be directly controlled by user configuration
+
+## Detailed Solution
+
+<TroubleshootingItem id="kubernetes-naming-limits" summary="Understanding Kubernetes naming limitations">
+
+Kubernetes has strict naming conventions for resources:
+
+- **Service names**: Maximum 63 characters
+- **Pod names**: Maximum 63 characters
+- **ConfigMap/Secret names**: Maximum 253 characters
+- Names must be lowercase alphanumeric with hyphens
+
+SleakOps automatically generates service names using the pattern:
+`{project-name}-{environment}-{project-name}-svc`
+
+This can easily exceed the 63-character limit with longer project names.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-workaround" summary="Immediate workaround: Shorten project name">
+
+The quickest solution is to rename your project to a shorter name:
+
+1. **Go to Project Settings** in SleakOps dashboard
+2. **Rename the project** to something shorter (e.g., `velo-email-sender`)
+3. **Redeploy** the project
+
+**Example:**
+
+```
+Original: velo-contacto-email-sender (24 chars)
+Shorter:  velo-email-sender (17 chars)
+```
+
+This would generate:
+`velo-email-sender-production-velo-email-sender-svc` (51 chars)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="custom-service-name" summary="Configure custom service name (if available)">
+
+If your project supports custom service naming, you can override the default:
+
+1. **In your project configuration**, look for service settings
+2. **Add a custom service name**:
+
+```yaml
+# sleakops.yaml or equivalent configuration
+service:
+  name: "velo-contact-svc" # Custom short name
+  type: ClusterIP
+  port: 80
+```
+
+3. **Redeploy** the project
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="helm-override" summary="Helm chart customization">
+
+If you have access to Helm chart customization:
+
+1. **Create a values override file**:
+
+```yaml
+# values-override.yaml
+service:
+  name: "velo-contact-svc"
+  fullnameOverride: "velo-contact-svc"
+  nameOverride: "contact-svc"
+```
+
+2. **Apply during deployment**:
+
+```bash
+helm upgrade --install my-release ./chart \
+  -f values-override.yaml
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Best practices for project naming">
+
+To avoid this issue in the future:
+
+**Recommended naming patterns:**
+
+- Use abbreviations: `velo-contact-sender` instead of `velo-contacto-email-sender`
+- Keep project names under 20 characters when possible
+- Use meaningful but concise names
+- Avoid redundant words
+
+**Examples of good project names:**
+
+```
+✅ velo-email-svc
+✅ contact-sender
+✅ notification-api
+✅ user-auth
+
+❌ velo-contacto-email-sender-service
+❌ my-super-long-project-name-with-details
+❌ company-department-team-project-service
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-tips" summary="Prevention and monitoring">
+
+**Before creating projects:**
+
+1. **Calculate the final service name length**:
+
+   - Project name + environment + "svc" + separators
+   - Should be under 60 characters for safety
+
+2. **Use a naming calculator**:
+
+   ```
+   {project-name}-{environment}-{project-name}-svc
+
+   Example calculation:
+   "my-project" + "-production-" + "my-project" + "-svc"
+   = 10 + 12 + 10 + 4 = 36 characters ✅
+   ```
+
+3. **Test in staging first** with the same project name
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on February 13, 2025 based on a real user query._

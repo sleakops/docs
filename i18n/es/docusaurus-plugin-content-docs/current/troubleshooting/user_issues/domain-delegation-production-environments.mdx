@@ -1,0 +1,206 @@
+---
+sidebar_position: 3
+title: "Problemas de Delegación de Dominio en Entornos de Producción"
+description: "Solución para problemas de delegación de dominio en entornos de producción"
+date: "2024-12-20"
+category: "proyecto"
+tags: ["dominio", "dns", "delegación", "producción", "entorno"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de Delegación de Dominio en Entornos de Producción
+
+**Fecha:** 20 de diciembre de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Dominio, DNS, Delegación, Producción, Entorno
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios experimentan problemas con la delegación de dominio al configurar entornos de producción en SleakOps, donde los dominios principales no se están delegando correctamente a pesar de una configuración adecuada.
+
+**Síntomas Observados:**
+
+- Los dominios principales no se delegan en entornos de producción
+- La delegación de dominio parece estar configurada pero no surte efecto
+- La propagación de DNS puede estar retrasada o incompleta
+- La gestión estándar de registros DNS puede no ser suficiente para una delegación completa del dominio
+
+**Configuración Relevante:**
+
+- Tipo de entorno: Producción
+- Tipo de dominio: Dominio principal/raíz (no subdominio)
+- Proveedor DNS: Varios registradores de dominio
+- Método de configuración: Gestión estándar de registros DNS
+
+**Condiciones de Error:**
+
+- La delegación de dominio falla a pesar de una configuración DNS correcta
+- El problema ocurre específicamente con dominios principales en producción
+- El problema puede estar relacionado con procesos de delegación específicos del registrador de dominio
+- Los retrasos en la propagación DNS pueden enmascarar el problema real
+
+## Solución Detallada
+
+<TroubleshootingItem id="dns-propagation-check" summary="Verificar el estado de propagación DNS">
+
+Primero, verifique si el problema está relacionado con retrasos en la propagación DNS:
+
+1. Use verificadores de propagación DNS en línea:
+
+   - whatsmydns.net
+   - dnschecker.org
+   - dns-lookup.com
+
+2. Revise desde diferentes ubicaciones y servidores DNS
+3. La propagación DNS puede tardar hasta 48 horas para una propagación global completa
+4. Use los comandos `dig` o `nslookup` para verificar la delegación:
+
+```bash
+# Verificar registros NS para su dominio
+dig NS su-dominio.com
+
+# Verificar desde servidores DNS específicos
+dig @8.8.8.8 NS su-dominio.com
+dig @1.1.1.1 NS su-dominio.com
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="registrar-delegation" summary="Configurar la delegación de dominio a nivel del registrador">
+
+Muchos registradores de dominio requieren que la delegación de dominio se configure mediante un proceso separado:
+
+**Para una delegación completa del dominio:**
+
+1. **Inicie sesión en el panel de control de su registrador de dominio**
+2. **Busque opciones de delegación de dominio:**
+
+   - "Delegación de Dominio"
+   - "Cambiar Servidores de Nombre"
+   - "Gestión DNS" → "Delegar Dominio"
+   - "Configuraciones Avanzadas de DNS"
+
+3. **Ubicaciones comunes específicas de registradores:**
+
+   - **GoDaddy**: Configuración de Dominio → Servidores de Nombre → Cambiar
+   - **Namecheap**: Lista de Dominios → Administrar → Servidores de Nombre
+   - **Route53**: Zonas Alojamientos → Conjunto de Registros NS
+   - **Cloudflare**: DNS → Servidores de Nombre
+
+4. **Configure los servidores de nombre proporcionados por SleakOps**
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-nameservers" summary="Obtener los servidores de nombre de SleakOps para la delegación">
+
+Para delegar su dominio a SleakOps:
+
+1. **En el Panel de Control de SleakOps:**
+
+   - Vaya a la sección **Configuración del Proyecto**
+   - Navegue a la sección **Dominios**
+   - Encuentre la información de **Servidores de Nombre**
+
+2. **Formato típico de servidores de nombre de SleakOps:**
+
+   ```
+   ns1.sleakops.com
+   ns2.sleakops.com
+   ns3.sleakops.com
+   ns4.sleakops.com
+   ```
+
+3. **Copie estos servidores de nombre exactamente como aparecen**
+4. **Configúrelos en su registrador de dominio**
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Verificar que la delegación funciona">
+
+Después de configurar la delegación de dominio:
+
+1. **Espere la propagación** (hasta 48 horas)
+
+2. **Verifique la delegación con dig:**
+
+   ```bash
+   # Debe devolver los servidores de nombre de SleakOps
+   dig NS su-dominio.com
+   ```
+
+3. **Verifique la resolución del dominio:**
+
+   ```bash
+   # Debe resolver a su entorno SleakOps
+   dig A su-dominio.com
+   ```
+
+4. **Pruebe en el navegador:**
+   - Visite su dominio directamente
+   - Verifique que el certificado SSL sea válido
+   - Compruebe que apunte a su entorno SleakOps
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-issues" summary="Problemas comunes de delegación y soluciones">
+
+**Problema 1: Gestión Mixta de DNS**
+
+- Problema: Algunos registros DNS se gestionan en el registrador, otros en SleakOps
+- Solución: Asegurar delegación completa - todo el DNS gestionado por SleakOps
+
+**Problema 2: Formato Incorrecto de Servidores de Nombre**
+
+- Problema: Servidores de nombre ingresados con puntos finales o formato incorrecto
+- Solución: Copiar los servidores de nombre exactamente como los proporciona SleakOps
+
+**Problema 3: Delegación Parcial**
+
+- Problema: Solo algunos servidores de nombre configurados
+- Solución: Configurar todos los servidores de nombre proporcionados (normalmente 2-4)
+
+**Problema 4: Caché del Registrador**
+
+- Problema: El registrador almacena en caché configuraciones DNS antiguas
+- Solución: Contactar al soporte del registrador para limpiar la caché DNS
+
+**Problema 5: Estado de Bloqueo del Dominio**
+
+- Problema: El dominio está bloqueado y previene cambios de delegación
+- Solución: Desbloquear el dominio en la configuración del registrador antes de cambiar servidores de nombre
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Pasos avanzados para solución de problemas">
+
+Si la delegación aún no funciona:
+
+1. **Contacte al soporte del registrador de dominio:**
+
+   - Explique que necesita delegar el dominio completo
+   - Proporcione los servidores de nombre de SleakOps
+   - Pregunte sobre procedimientos específicos de delegación de dominio
+
+2. **Verifique el estado del dominio:**
+
+   ```bash
+   whois su-dominio.com | grep -i status
+   ```
+
+3. **Verifique que el dominio no esté expirado o bloqueado**
+
+4. **Revise conflictos con DNSSEC:**
+
+   - Desactive DNSSEC en el registrador si está habilitado
+   - SleakOps gestionará DNSSEC después de la delegación
+
+5. **Pruebe primero con un subdominio:**
+   - Cree un subdominio de prueba (test.su-dominio.com)
+   - Verifique que SleakOps pueda gestionar subdominios correctamente
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 20 de diciembre de 2024 basada en una consulta real de un usuario._

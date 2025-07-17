@@ -1,0 +1,225 @@
+---
+sidebar_position: 3
+title: "Migración DNS de DonWeb a AWS"
+description: "Guía completa para migrar registros DNS de DonWeb a AWS Route 53"
+date: "2024-01-15"
+category: "proveedor"
+tags: ["aws", "dns", "route53", "migración", "donweb"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Migración DNS de DonWeb a AWS
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Proveedor  
+**Etiquetas:** AWS, DNS, Route 53, Migración, DonWeb
+
+## Descripción del Problema
+
+**Contexto:** El usuario necesita migrar los registros DNS del proveedor de hosting DonWeb a AWS Route 53, incluyendo la página de aterrizaje en WordPress y los servicios de correo corporativo.
+
+**Síntomas Observados:**
+
+- DNS actual gestionado por el proveedor DonWeb
+- Página de aterrizaje WordPress alojada en DonWeb
+- Servicios de correo corporativo alojados en DonWeb
+- Necesidad de consolidar todos los servicios en AWS
+- Incertidumbre sobre dónde configurar los registros DNS en AWS
+
+**Configuración Relevante:**
+
+- Proveedor actual: DonWeb
+- Servicios: sitio web WordPress + correo corporativo
+- Plataforma destino: AWS
+- Servicio DNS requerido: AWS Route 53
+
+**Condiciones de Error:**
+
+- Riesgo de interrupción del servicio durante la migración
+- Necesidad de mantener la continuidad del servicio de correo
+- El sitio WordPress debe permanecer accesible
+
+## Solución Detallada
+
+<TroubleshootingItem id="route53-setup" summary="Configuración de AWS Route 53 para la gestión DNS">
+
+AWS Route 53 es el servicio DNS donde gestionarás los registros de tu dominio:
+
+1. **Accede a la Consola de Route 53**:
+
+   - Ve a la Consola AWS → Route 53
+   - Haz clic en "Hosted zones"
+   - Haz clic en "Create hosted zone"
+
+2. **Crear Hosted Zone**:
+
+   - Ingresa el nombre de tu dominio (ejemplo: `tuempresa.com`)
+   - Selecciona "Public hosted zone"
+   - Haz clic en "Create hosted zone"
+
+3. **Anota los Servidores de Nombre**:
+   - AWS proporcionará 4 servidores de nombre
+   - Guarda estos para usarlos luego con tu registrador de dominio
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="export-dns-records" summary="Exportar registros DNS desde DonWeb">
+
+Antes de migrar, necesitas exportar tu configuración DNS actual:
+
+1. **Accede al Panel de Control de DonWeb**:
+
+   - Inicia sesión en tu cuenta DonWeb
+   - Navega a la sección de gestión DNS
+   - Busca "Zona DNS" o "Registros DNS"
+
+2. **Documenta los Registros Actuales**:
+   Crea una lista de todos los registros DNS actuales:
+
+   ```
+   Registros A:
+   - @ (dominio raíz) → DIRECCIÓN_IP
+   - www → DIRECCIÓN_IP
+
+   Registros MX (Correo):
+   - @ → mail.donweb.com (prioridad 10)
+
+   Registros CNAME:
+   - Cualquier subdominio apuntando a otros servicios
+
+   Registros TXT:
+   - Registros SPF para correo
+   - Cualquier registro de verificación
+   ```
+
+3. **Opciones de Exportación**:
+   - Busca opción "Exportar" o "Descargar"
+   - Algunos proveedores ofrecen exportación de archivo de zona
+   - Si no está disponible, documenta manualmente todos los registros
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="migrate-wordpress" summary="Migración de WordPress a AWS">
+
+Para la migración de WordPress a AWS, tienes varias opciones:
+
+**Opción 1: AWS Lightsail (Recomendado para sitios simples)**
+
+1. Crea una instancia AWS Lightsail con WordPress
+2. Migra tus archivos y base de datos de WordPress
+3. Actualiza el registro A del DNS para apuntar a la nueva IP
+
+**Opción 2: EC2 con RDS**
+
+1. Configura una instancia EC2 para el servidor web
+2. Configura RDS para la base de datos MySQL
+3. Migra archivos y base de datos de WordPress
+4. Configura grupos de seguridad y balanceador de carga
+
+**Opción 3: AWS App Runner o ECS**
+
+1. Conteneriza tu aplicación WordPress
+2. Despliega usando App Runner o ECS
+3. Utiliza RDS para la base de datos
+
+```bash
+# Ejemplo: Crear instancia Lightsail para WordPress
+aws lightsail create-instances \
+  --instance-names "wordpress-site" \
+  --availability-zone "us-east-1a" \
+  --blueprint-id "wordpress" \
+  --bundle-id "nano_2_0"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="migrate-email" summary="Migración de servicios de correo corporativo">
+
+Para la migración del correo corporativo, considera estas opciones en AWS:
+
+**Opción 1: Amazon WorkMail**
+
+1. Configura la organización Amazon WorkMail
+2. Crea cuentas de usuario
+3. Configura registros MX para apuntar a WorkMail
+4. Migra los correos existentes (si es necesario)
+
+**Opción 2: Correo de terceros con DNS en AWS**
+
+1. Elige proveedor de correo (Google Workspace, Microsoft 365)
+2. Configura registros MX en Route 53
+3. Actualiza registros SPF/DKIM
+
+**Ejemplo de configuración de registro MX:**
+
+```
+Tipo: MX
+Nombre: @ (o dejar en blanco)
+Valor: 10 inbound-smtp.us-east-1.amazonaws.com (para WorkMail)
+TTL: 300
+```
+
+**Ejemplo de registro SPF:**
+
+```
+Tipo: TXT
+Nombre: @ (o dejar en blanco)
+Valor: "v=spf1 include:amazonses.com ~all"
+TTL: 300
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dns-records-configuration" summary="Configuración de registros DNS en Route 53">
+
+Una vez que tus servicios estén listos en AWS, configura los registros DNS:
+
+1. **Registros A para el sitio web**:
+
+   ```
+   Tipo: A
+   Nombre: @ (dominio raíz)
+   Valor: TU_DIRECCIÓN_IP_AWS
+   TTL: 300
+
+   Tipo: A
+   Nombre: www
+   Valor: TU_DIRECCIÓN_IP_AWS
+   TTL: 300
+   ```
+
+2. **Registros MX para correo**:
+
+   ```
+   Tipo: MX
+   Nombre: @
+   Valor: 10 tu-servidor-correo.amazonaws.com
+   TTL: 300
+   ```
+
+3. **Registros CNAME** (si es necesario):
+
+   ```
+   Tipo: CNAME
+   Nombre: subdominio
+   Valor: objetivo.dominio.com
+   TTL: 300
+   ```
+
+4. **Registros TXT para autenticación de correo**:
+   ```
+   Tipo: TXT
+   Nombre: @
+   Valor: "v=spf1 include:amazonses.com ~all"
+   TTL: 300
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="migration-process" summary="Proceso de migración paso a paso">
+
+**Fase 1: Preparación**
+
+1. Exporta todos los registros DNS desde DonWeb
+2. Configura los servicios AWS (Lightsail/EC2 para WordPress"

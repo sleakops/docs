@@ -1,0 +1,208 @@
+---
+sidebar_position: 3
+title: "Connecting Retool to Private RDS Database"
+description: "How to connect external Retool service to private RDS database in SleakOps"
+date: "2024-08-30"
+category: "dependency"
+tags: ["retool", "rds", "database", "nlb", "private", "connection"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Connecting Retool to Private RDS Database
+
+**Date:** August 30, 2024  
+**Category:** Dependency  
+**Tags:** Retool, RDS, Database, NLB, Private, Connection
+
+## Problem Description
+
+**Context:** Users need to connect external Retool dashboards to RDS databases deployed through SleakOps. Previously, they could modify security groups to allow direct access, but SleakOps deploys RDS instances in private subnets for security.
+
+**Observed Symptoms:**
+
+- Cannot connect Retool directly to RDS database
+- RDS is deployed in private subnets without internet access
+- Security group modifications don't provide external connectivity
+- Retool requires specific IP allowlisting for connection
+
+**Relevant Configuration:**
+
+- RDS database: PostgreSQL in private subnets
+- Retool IPs to allowlist: `35.90.103.132/30`, `44.208.168.68/30`
+- SleakOps VPC with private/public subnet architecture
+- Security groups managed by SleakOps
+
+**Error Conditions:**
+
+- Connection timeouts when trying to reach RDS from Retool
+- DNS resolution may fail for private RDS endpoints
+- Port connectivity issues (typically port 5432 for PostgreSQL)
+
+## Detailed Solution
+
+<TroubleshootingItem id="architecture-overview" summary="Understanding the Architecture Challenge">
+
+SleakOps deploys RDS databases in private subnets for security best practices. This means:
+
+- **Private subnets**: No direct internet access
+- **Security isolation**: Protected from external threats
+- **VPC-only access**: Only resources within the VPC can connect
+
+To connect external services like Retool, you need to create a bridge between the private database and the internet.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="nlb-solution" summary="Recommended Solution: Network Load Balancer (NLB)">
+
+The recommended approach is to use a Network Load Balancer (NLB) as described in [Retool's documentation](https://docs.retool.com/center-of-excellence/patterns/AWS/Connect/privateresource).
+
+**Steps to implement:**
+
+1. **Create Network Load Balancer**
+
+   - Deploy in public subnets
+   - Assign Elastic IP addresses
+   - Configure for TCP traffic on port 5432
+
+2. **Configure Target Group**
+
+   - Type: IP addresses
+   - Protocol: TCP
+   - Port: 5432
+   - Target: Private IP of RDS instance
+
+3. **Update Security Groups**
+
+   - NLB security group: Allow inbound from Retool IPs
+   - RDS security group: Allow inbound from NLB
+
+4. **Configure Retool Connection**
+   - Use NLB's Elastic IP as database host
+   - Standard port 5432
+   - Same database credentials
+
+**Cost consideration:** Approximately $20 USD per month plus data transfer costs.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="security-group-config" summary="Security Group Configuration">
+
+For the NLB approach, configure security groups as follows:
+
+**NLB Security Group:**
+
+```
+Inbound Rules:
+- Type: Custom TCP
+- Port: 5432
+- Source: 35.90.103.132/30 (Retool IP range 1)
+- Source: 44.208.168.68/30 (Retool IP range 2)
+
+Outbound Rules:
+- Type: Custom TCP
+- Port: 5432
+- Destination: RDS security group ID
+```
+
+**RDS Security Group (add rule):**
+
+```
+Inbound Rules:
+- Type: PostgreSQL
+- Port: 5432
+- Source: NLB security group ID
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Alternative Solutions">
+
+If NLB is not suitable, consider these alternatives:
+
+**1. Self-hosted Retool in Cluster**
+
+- Deploy Retool directly in your Kubernetes cluster
+- Requires significant resources (16GB RAM, 8 CPUs)
+- Higher infrastructure costs but better security
+- Direct access to private resources
+
+**2. RDS Read Replica in Public Subnets**
+
+- Create read-only replica in public subnets
+- Use for reporting/dashboard purposes only
+- Maintains security of primary database
+- Additional cost for replica instance
+
+**3. VPN Connection (if supported)**
+
+- Some Retool plans support VPN connections
+- Check with Retool support for availability
+- Most secure option if available
+- May require enterprise Retool plan
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="testing-connectivity" summary="Testing Database Connectivity">
+
+To test connectivity before configuring Retool:
+
+**From your local machine with VPN:**
+
+```bash
+# Test port connectivity
+nmap -Pn -p 5432 your-rds-endpoint.amazonaws.com
+
+# Test database connection
+psql -h your-rds-endpoint.amazonaws.com -p 5432 -U username -d database_name
+```
+
+**From within the cluster:**
+
+```bash
+# Create test pod
+kubectl run postgres-client --rm -it --image=postgres:13 -- bash
+
+# Inside the pod
+psql -h your-rds-endpoint.amazonaws.com -p 5432 -U username -d database_name
+```
+
+**After NLB setup:**
+
+```bash
+# Test through NLB (from internet)
+nmap -Pn -p 5432 your-nlb-elastic-ip
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Common Troubleshooting Steps">
+
+**Connection timeouts:**
+
+- Verify security group rules are correctly configured
+- Check NLB target group health status
+- Ensure RDS is in running state
+
+**DNS resolution issues:**
+
+- Use IP addresses instead of hostnames for testing
+- Verify DNS settings in your network
+
+**Authentication failures:**
+
+- Confirm database credentials are correct
+- Check if database user has necessary permissions
+- Verify database name is correct
+
+**NLB health check failures:**
+
+- Ensure target group points to correct RDS private IP
+- Verify RDS security group allows traffic from NLB
+- Check RDS subnet routing tables
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated based on a real user query about connecting Retool to private RDS databases in SleakOps._

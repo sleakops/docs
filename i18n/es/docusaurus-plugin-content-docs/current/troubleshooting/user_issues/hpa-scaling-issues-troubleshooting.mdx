@@ -1,0 +1,224 @@
+---
+sidebar_position: 3
+title: "Problemas de Escalado HPA - Pods que No Se Reducen"
+description: "Solución de problemas de escalado HPA cuando los pods se acumulan con el tiempo"
+date: "2024-12-19"
+category: "cluster"
+tags:
+  [
+    "hpa",
+    "escalado",
+    "kubernetes",
+    "solución-de-problemas",
+    "fuga-de-memoria",
+    "cpu",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de Escalado HPA - Pods que No Se Reducen
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Clúster  
+**Etiquetas:** HPA, Escalado, Kubernetes, Solución de Problemas, Fuga de Memoria, CPU
+
+## Descripción del Problema
+
+**Contexto:** Entorno de producción experimentando un comportamiento anómalo de escalado de pods donde el Autoescalador Horizontal de Pods (HPA) crea muchos más pods de lo habitual y no logra reducir correctamente con el tiempo.
+
+**Síntomas Observados:**
+
+- Significativamente más pods en ejecución de lo normal en producción
+- Los pods se normalizan temporalmente después del despliegue pero luego se acumulan nuevamente
+- El HPA parece escalar hacia arriba pero no reduce eficazmente
+- El problema ocurre repetidamente con el tiempo, creando un efecto acumulativo de escalado
+
+**Configuración Relevante:**
+
+- Entorno: clúster Kubernetes de producción
+- Autoescalado: HPA habilitado
+- Monitoreo: Lens usado para observar conteo de pods
+- Ciclo de despliegue: Normalización temporal tras despliegues
+
+**Condiciones de Error:**
+
+- El HPA no reduce pods cuando el uso de recursos debería disminuir
+- Crecimiento acumulativo de pods con el tiempo
+- El consumo de recursos permanece alto impidiendo el escalado hacia abajo normal
+- El problema persiste a través de múltiples ciclos de despliegue
+
+## Solución Detallada
+
+<TroubleshootingItem id="root-cause-analysis" summary="Comprendiendo la causa raíz">
+
+La causa más probable es que su aplicación mantiene procesos abiertos o tiene un consumo constante de CPU/memoria que impide que el HPA reduzca normalmente. Con el tiempo, esto crea un escalado acumulativo donde los pods se siguen añadiendo pero nunca se eliminan.
+
+Causas comunes incluyen:
+
+- **Fugas de memoria**: La aplicación no libera memoria adecuadamente
+- **Procesos de larga duración**: Tareas en segundo plano que mantienen alto el uso de CPU/memoria
+- **Conexiones abiertas**: Conexiones a bases de datos o servicios externos que no se cierran
+- **Gestión de sesiones**: Sesiones de usuario de larga duración que consumen recursos
+- **Código ineficiente**: Cuellos de botella que causan uso constante de recursos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-tools" summary="Herramientas recomendadas para monitoreo y perfilado">
+
+Para identificar el problema específico, use herramientas de monitoreo del rendimiento de aplicaciones (APM):
+
+### Herramientas Recomendadas
+
+1. **Atatus**
+
+   - Monitoreo de aplicaciones en tiempo real
+   - Detección de fugas de memoria
+   - Identificación de cuellos de botella en rendimiento
+
+2. **New Relic**
+
+   - Solución APM integral
+   - Perfilado de CPU y memoria
+   - Análisis de consultas a bases de datos
+
+3. **Blackfire.io**
+   - Perfilado PHP (si aplica)
+   - Información para optimización de rendimiento
+   - Monitoreo en tiempo real
+
+Estas herramientas ayudan a identificar problemas como fugas de memoria, procesos lentos, sesiones largas o cuellos de botella en tiempo real sin necesidad de reproducir condiciones de tráfico.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="diagnostic-questions" summary="Preguntas clave para diagnóstico">
+
+Al analizar las métricas de su aplicación, enfoque en estas preguntas clave:
+
+### Patrones de Uso de CPU
+
+**Pregunta**: ¿El consumo de CPU inicia alto (alrededor del 70%) justo después del despliegue?
+
+- **Si SÍ**: Probablemente un problema de configuración de CPU
+- **Solución**: Revise y ajuste las solicitudes/límites de CPU en su despliegue
+
+```yaml
+resources:
+  requests:
+    cpu: "100m" # Ajustar según necesidades reales
+    memory: "128Mi"
+  limits:
+    cpu: "500m" # Establecer límites apropiados
+    memory: "512Mi"
+```
+
+### Patrones de Uso de Memoria
+
+**Pregunta**: ¿El consumo de memoria aumenta con el tiempo y nunca disminuye?
+
+- **Si SÍ**: Probablemente una fuga de memoria o procesos no liberados
+- **Solución**: Perfilé su aplicación para encontrar fugas de memoria
+
+### Patrones Temporales
+
+**Pregunta**: ¿El problema ocurre en momentos específicos?
+
+- **Si SÍ**: Revise logs y métricas durante esos períodos
+- **Solución**: Correlacione con lógica de negocio, tareas programadas o integraciones externas
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="hpa-configuration-check" summary="Verificar configuración del HPA">
+
+Revise la configuración de su HPA para asegurar que esté correctamente configurado:
+
+```bash
+# Ver estado actual del HPA
+kubectl get hpa
+
+# Obtener información detallada del HPA
+kubectl describe hpa <nombre-de-su-hpa>
+
+# Revisar eventos del HPA
+kubectl get events --field-selector involvedObject.kind=HorizontalPodAutoscaler
+```
+
+Asegúrese de que su HPA tenga políticas de escalado adecuadas:
+
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: su-app-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: su-app
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-actions" summary="Pasos inmediatos para solución de problemas">
+
+### Paso 1: Verificar uso actual de recursos
+
+```bash
+# Ver uso de recursos por pod
+kubectl top pods -n <su-namespace>
+
+# Ver uso de recursos por nodo
+kubectl top nodes
+```
+
+### Paso 2: Analizar logs de la aplicación
+
+```bash
+# Buscar errores relacionados con memoria
+kubectl logs <nombre-del-pod> | grep -i "memory\|oom\|killed"
+
+# Buscar fugas de conexión/recursos
+kubectl logs <nombre-del-pod> | grep -i "connection\|timeout\|leak"
+```
+
+### Paso 3: Monitorear comportamiento del HPA
+
+```bash
+# Observar decisiones de escalado del HPA en tiempo real
+kubectl get hpa -w
+
+# Revisar eventos de escalado del HPA
+kubectl describe hpa <nombre-hpa>
+```
+
+### Paso 4: Mitigación temporal
+
+Si el problema es crítico

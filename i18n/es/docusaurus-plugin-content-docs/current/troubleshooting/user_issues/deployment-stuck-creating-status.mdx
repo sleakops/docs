@@ -1,0 +1,182 @@
+---
+sidebar_position: 3
+title: "Despliegue Atascado en Estado de Creación"
+description: "Solución para despliegues que se quedan atascados durante la fase de despliegue después de una compilación exitosa"
+date: "2025-01-27"
+category: "proyecto"
+tags:
+  ["despliegue", "compilación", "solución de problemas", "atascado", "creando"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Despliegue Atascado en Estado de Creación
+
+**Fecha:** 27 de enero de 2025  
+**Categoría:** Proyecto  
+**Etiquetas:** Despliegue, Compilación, Solución de problemas, Atascado, Creando
+
+## Descripción del Problema
+
+**Contexto:** El usuario envía código a una rama y desencadena un despliegue a través de SleakOps. El proceso de compilación finaliza con éxito, pero la fase de despliegue queda atascada en estado "creando" durante períodos prolongados.
+
+**Síntomas Observados:**
+
+- El proceso de compilación finaliza con éxito
+- El despliegue permanece en estado "creando" por más de 14 minutos
+- No hay progreso visible ni mensajes de error durante la fase de despliegue
+- La aplicación puede o no desplegarse realmente a pesar del estado atascado
+- El problema ocurre de forma intermitente en ramas específicas
+
+**Configuración Relevante:**
+
+- Tipo de despliegue: `deploy_build_dev`
+- Plataforma: SleakOps
+- Estado de compilación: Exitoso
+- Estado de despliegue: Atascado en "creando"
+
+**Condiciones de Error:**
+
+- Ocurre después de la finalización exitosa de la compilación
+- La fase de despliegue se cuelga sin tiempo de espera
+- No hay mensajes de error claros en la interfaz
+- Puede requerir intervención manual para resolver
+
+## Solución Detallada
+
+<TroubleshootingItem id="immediate-troubleshooting" summary="Pasos inmediatos para solución de problemas">
+
+Cuando un despliegue se queda atascado en estado "creando":
+
+1. **Revisar los registros del despliegue**: Buscar mensajes de error en los registros del despliegue
+2. **Verificar el estado del clúster**: Asegurarse de que el clúster destino esté saludable y respondiendo
+3. **Verificar el estado de los pods**: Confirmar si los pods se están creando realmente a pesar de que la interfaz muestre "creando"
+4. **Monitorear el uso de recursos**: Comprobar si existen limitaciones de recursos (CPU, memoria, almacenamiento)
+
+```bash
+# Verificar estado de pods en el clúster
+kubectl get pods -n tu-namespace
+
+# Verificar estado del despliegue
+kubectl get deployments -n tu-namespace
+
+# Verificar eventos para detectar problemas
+kubectl get events -n tu-namespace --sort-by='.lastTimestamp'
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-causes" summary="Causas comunes y soluciones">
+
+**Limitaciones de Recursos:**
+
+- CPU o memoria insuficiente en el clúster
+- Cuota de almacenamiento excedida
+- Problemas de capacidad en los nodos
+
+**Solución:** Escalar los recursos del clúster u optimizar las solicitudes de recursos de la aplicación
+
+**Problemas con la Descarga de Imágenes:**
+
+- Imagen de contenedor no encontrada o inaccesible
+- Problemas de autenticación en el registro
+- Problemas de conectividad de red
+
+**Solución:** Verificar que la imagen exista y que las credenciales del registro sean válidas
+
+**Problemas de Configuración:**
+
+- Variables de entorno inválidas
+- Secretos o config maps faltantes
+- Configuraciones incorrectas de servicios
+
+**Solución:** Revisar y validar todos los archivos de configuración
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="platform-intervention" summary="Cuándo contactar al soporte de SleakOps">
+
+Contactar al soporte de SleakOps si:
+
+1. **El despliegue está atascado por más de 15 minutos** sin ningún progreso
+2. **El clúster parece saludable** pero los despliegues fallan consistentemente
+3. **No hay mensajes de error claros** en los registros o la interfaz
+4. **Múltiples despliegues afectados** en diferentes proyectos
+
+Al contactar al soporte, proporcionar:
+
+- Nombre del proyecto y rama
+- Marca de tiempo del despliegue
+- Cualquier mensaje de error o registro
+- Cambios recientes en infraestructura o aplicación
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-measures" summary="Prevención y mejores prácticas">
+
+**Gestión de Recursos:**
+
+```yaml
+# Establecer límites de recursos apropiados
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "256Mi"
+    cpu: "200m"
+```
+
+**Verificaciones de Salud:**
+
+```yaml
+# Configurar verificaciones de salud adecuadas
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 5
+```
+
+**Estrategia de Despliegue:**
+
+```yaml
+# Usar actualizaciones continuas para despliegues más seguros
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+    maxSurge: 1
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-recovery" summary="Pasos para recuperación manual">
+
+Si el despliegue permanece atascado:
+
+1. **Cancelar el despliegue actual** (si la opción está disponible en la interfaz)
+2. **Esperar la intervención del equipo de la plataforma** para desbloquear despliegues atascados
+3. **Reintentar el despliegue** tras confirmación del soporte
+4. **Monitorear de cerca** para detectar problemas similares en despliegues posteriores
+
+**Acciones post-resolución:**
+
+- Verificar que la aplicación esté funcionando correctamente
+- Comprobar que todos los servicios sean accesibles
+- Monitorear los registros de la aplicación para detectar problemas
+- Documentar cualquier cambio de configuración realizado
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 27 de enero de 2025 basada en una consulta real de usuario._

@@ -1,0 +1,228 @@
+---
+sidebar_position: 3
+title: "Investigación y Solución de Problemas de Alto Uso de CPU"
+description: "Guía para investigar y resolver picos de alto uso de CPU en aplicaciones contenerizadas"
+date: "2025-01-27"
+category: "workload"
+tags:
+  ["cpu", "rendimiento", "monitoreo", "solución de problemas", "contenedores"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Investigación y Solución de Problemas de Alto Uso de CPU
+
+**Fecha:** 27 de enero de 2025  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** CPU, Rendimiento, Monitoreo, Solución de problemas, Contenedores
+
+## Descripción del Problema
+
+**Contexto:** Aplicaciones contenerizadas en producción que experimentan picos inesperados en el uso de CPU que pueden afectar el rendimiento y la experiencia del usuario.
+
+**Síntomas Observados:**
+
+- Incremento súbito en la utilización de CPU
+- Degradación del rendimiento de la aplicación
+- Posibles lentitudes o tiempos de espera en el servicio
+- Alertas de consumo de recursos activadas
+
+**Configuración Relevante:**
+
+- Runtime de contenedores: Docker/containerd
+- Orquestación: Kubernetes
+- Monitoreo: Disponible a través del panel de SleakOps
+- Tipo de aplicación: Carga de trabajo en producción
+
+**Condiciones de Error:**
+
+- Picos en el uso de CPU por encima de la línea base normal
+- Impacto en la capacidad de respuesta de la aplicación
+- Escenarios potenciales de agotamiento de recursos
+
+## Solución Detallada
+
+<TroubleshootingItem id="immediate-assessment" summary="Evaluación Inmediata del Uso de CPU">
+
+Primero, identifique el alcance y la severidad del pico de CPU:
+
+1. **Verifique las métricas actuales de CPU** en el panel de SleakOps
+2. **Identifique los contenedores/pods afectados**
+3. **Determine la línea de tiempo** de cuándo comenzó el pico
+4. **Compare con las líneas base históricas**
+
+```bash
+# Ver uso actual de CPU para un contenedor específico
+kubectl top pods -n <namespace>
+
+# Obtener uso detallado de recursos
+kubectl describe pod <pod-name> -n <namespace>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="root-cause-analysis" summary="Pasos para el Análisis de la Causa Raíz">
+
+**1. Investigación a Nivel de Aplicación:**
+
+- Revise los logs de la aplicación en busca de errores o actividad inusual
+- Revise despliegues recientes o cambios de configuración
+- Identifique nuevas funcionalidades o cambios en el código
+
+```bash
+# Revisar logs de la aplicación
+kubectl logs <pod-name> -n <namespace> --tail=100
+
+# Revisar eventos recientes
+kubectl get events -n <namespace> --sort-by='.lastTimestamp'
+```
+
+**2. Análisis a Nivel de Sistema:**
+
+- Monitoree el uso de memoria (memoria alta puede causar picos de CPU)
+- Verifique patrones de I/O de disco
+- Revise patrones de tráfico de red
+
+**3. Factores Externos:**
+
+- Incremento en el tráfico o carga de usuarios
+- Problemas de rendimiento en la base de datos
+- Dependencias de servicios de terceros
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-tools" summary="Uso de las Herramientas de Monitoreo de SleakOps">
+
+**Acceso a Métricas de Rendimiento:**
+
+1. Navegue al **Panel de SleakOps**
+2. Vaya a **Monitoreo** → **Cargas de Trabajo**
+3. Seleccione su contenedor/servicio específico
+4. Revise los gráficos de **Uso de CPU** en diferentes periodos de tiempo
+
+**Métricas Clave a Monitorear:**
+
+- Porcentaje de utilización de CPU
+- Patrones de uso de memoria
+- Tiempos de solicitud/respuesta
+- Tasas de error
+- I/O de red
+
+**Configurar Alertas:**
+
+Configure alertas para incidentes futuros:
+
+- Uso de CPU > 80% por más de 5 minutos
+- Uso de memoria > 85%
+- Tiempo de respuesta > umbral aceptable
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-mitigation" summary="Estrategias de Mitigación Inmediata">
+
+**1. Escalar Recursos (Solución Rápida):**
+
+```yaml
+# Aumentar límites de CPU temporalmente
+resources:
+  limits:
+    cpu: "2000m" # Incrementar desde el límite actual
+    memory: "4Gi"
+  requests:
+    cpu: "1000m"
+    memory: "2Gi"
+```
+
+**2. Escalado Horizontal:**
+
+```bash
+# Escalar réplicas temporalmente
+kubectl scale deployment <deployment-name> --replicas=5 -n <namespace>
+```
+
+**3. Balanceo de Carga:**
+
+- Asegurar que el tráfico se distribuya equitativamente entre las instancias
+- Verificar si alguna instancia está recibiendo una carga desproporcionada
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="long-term-solutions" summary="Soluciones de Optimización a Largo Plazo">
+
+**1. Optimización de Código:**
+
+- Perfilar el código de la aplicación para identificar operaciones intensivas en CPU
+- Optimizar consultas a la base de datos
+- Implementar estrategias de caché
+- Revisar la eficiencia de los algoritmos
+
+**2. Gestión de Recursos:**
+
+```yaml
+# Implementar solicitudes y límites adecuados de recursos
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+  limits:
+    cpu: "1000m"
+    memory: "2Gi"
+```
+
+**3. Configuración de Autoescalado:**
+
+```yaml
+# Configurar Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: app-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: your-app
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-best-practices" summary="Prevención y Mejores Prácticas">
+
+**1. Configuración de Monitoreo:**
+
+- Implementar monitoreo integral para todas las métricas críticas
+- Configurar alertas proactivas antes de que los problemas sean críticos
+- Revisiones regulares de líneas base de rendimiento
+
+**2. Pruebas de Carga:**
+
+- Realizar pruebas de carga periódicas para identificar cuellos de botella
+- Probar con patrones de tráfico realistas
+- Validar comportamiento del autoescalado
+
+**3. Planificación de Recursos:**
+
+- Dimensionar correctamente los contenedores según patrones reales de uso
+- Planificar crecimiento de tráfico y variaciones estacionales
+- Revisiones regulares de planificación de capacidad
+
+**4. Prácticas de Revisión de Código:**
+
+- Incluir consideraciones de rendimiento en las revisiones de código
+- Monitorear el impacto en rendimiento de nuevos despliegues
+- Implementar despliegues graduales para cambios mayores
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 27 de enero de 2025 basada en una consulta real de usuario._

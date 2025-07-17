@@ -1,0 +1,228 @@
+---
+sidebar_position: 3
+title: "Migración de Dominio y Configuración de Dominio Personalizado"
+description: "Cómo migrar aplicaciones a nuevos dominios y configurar dominios personalizados en SleakOps"
+date: "2024-01-15"
+category: "proyecto"
+tags: ["dominio", "migración", "dns", "alias", "dominio-personalizado"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Migración de Dominio y Configuración de Dominio Personalizado
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Dominio, Migración, DNS, Alias, Dominio Personalizado
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios necesitan migrar sus aplicaciones de un dominio a otro o configurar dominios personalizados para sus despliegues en SleakOps.
+
+**Síntomas Observados:**
+
+- Necesidad de cambiar las URLs de las aplicaciones del dominio antiguo al nuevo
+- Deseo de usar un dominio recién adquirido para aplicaciones existentes
+- Requieren orientación sobre la configuración DNS para dominios personalizados
+- Necesitan entender las opciones de migración y sus implicaciones
+
+**Configuración Relevante:**
+
+- Dominio actual: `byroncode.com`
+- Nuevo dominio: `ordenapp.com.ar`
+- Aplicación: Frontend/página de aterrizaje
+- Plataforma: Entorno de ejecución de SleakOps
+
+**Condiciones de Error:**
+
+- Aplicaciones accesibles actualmente solo a través del dominio antiguo
+- Necesidad de transición sin interrupción del servicio
+- Registros DNS requieren configuración manual
+
+## Solución Detallada
+
+<TroubleshootingItem id="domain-alias-option" summary="Agregar Alias de Dominio (Solución Rápida)">
+
+Para cambios simples de URL sin una migración completa, puedes agregar un alias de dominio a tu ejecución existente:
+
+**Pasos:**
+
+1. Navega a tu ejecución en el panel de SleakOps
+2. Ve a **Configuración** → **Configuración de Dominio**
+3. Haz clic en **Agregar Alias**
+4. Ingresa tu nuevo dominio (ejemplo: `ordenapp.com.ar`)
+5. Guarda la configuración
+
+**Configuración DNS:**
+Después de crear el alias, recibirás registros DNS que deben ser añadidos manualmente en tu registrador de dominios:
+
+```
+Tipo: CNAME
+Nombre: www
+Valor: [proporcionado-por-sleakops].sleakops.io
+
+Tipo: A
+Nombre: @
+Valor: [dirección-IP-proporcionada]
+```
+
+**Beneficios:**
+
+- Implementación rápida
+- Sin interrupción del servicio
+- Mantiene la configuración existente
+- Ambos dominios funcionan simultáneamente
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="full-migration-option" summary="Migración Completa de Dominio">
+
+Para la migración completa de todos los servicios del dominio antiguo al nuevo:
+
+**Requisitos Previos:**
+
+- Coordinar con el equipo de soporte de SleakOps
+- Programar ventana de mantenimiento
+- Respaldar la configuración actual
+
+**Proceso de Migración:**
+
+1. **Planificación previa a la migración:**
+
+   - Documentar todos los servicios y configuraciones actuales
+   - Identificar dependencias
+   - Planificar estrategia de reversión
+
+2. **Configuración del dominio:**
+
+   - Actualizar dominio principal en la configuración del proyecto
+   - Reconfigurar certificados SSL
+   - Actualizar variables de entorno
+
+3. **Actualizaciones DNS:**
+
+   - Apuntar el nuevo dominio a la infraestructura de SleakOps
+   - Actualizar todos los subdominios
+   - Configurar valores TTL adecuados
+
+4. **Pruebas y validación:**
+   - Verificar que todos los servicios sean accesibles
+   - Probar validez del certificado SSL
+   - Confirmar que todas las integraciones funcionen
+
+**Nota:** Esta opción requiere coordinación con el equipo de SleakOps y puede implicar tiempo de inactividad del servicio.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="new-environment-approach" summary="Crear Nuevo Entorno con Dominio Personalizado">
+
+Con la última versión de SleakOps, puedes crear nuevos entornos con URLs personalizadas:
+
+**Cuándo usar:**
+
+- Para entornos de desarrollo
+- Cuando deseas un nuevo comienzo
+- Para probar la configuración de un nuevo dominio
+
+**Pasos:**
+
+1. Crea un nuevo entorno en SleakOps
+2. Durante la configuración, especifica tu dominio personalizado
+3. Configura los registros DNS según lo proporcionado
+4. Despliega tu aplicación en el nuevo entorno
+
+**Consideraciones:**
+
+- Las dependencias deben ser recreadas
+- Puede requerirse migración de bases de datos
+- Variables de entorno necesitan reconfiguración
+- Adecuado principalmente para entornos de desarrollo
+
+```yaml
+# Ejemplo de configuración de entorno
+environment:
+  name: "producción-nuevo-dominio"
+  domain: "ordenapp.com.ar"
+  ssl: true
+  auto_deploy: true
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dns-configuration-guide" summary="Guía de Configuración DNS">
+
+**Registros DNS Comunes para SleakOps:**
+
+```
+# Dominio raíz
+Tipo: A
+Nombre: @
+Valor: [IP proporcionada por SleakOps]
+TTL: 300
+
+# Subdominio WWW
+Tipo: CNAME
+Nombre: www
+Valor: [hostname].sleakops.io
+TTL: 300
+
+# Subdominio API (si aplica)
+Tipo: CNAME
+Nombre: api
+Valor: [api-hostname].sleakops.io
+TTL: 300
+```
+
+**Propagación DNS:**
+
+- Los cambios pueden tardar 24-48 horas en propagarse completamente
+- Usa herramientas como `dig` o verificadores DNS en línea para comprobar
+- Valores TTL bajos aceleran los cambios pero aumentan consultas DNS
+
+**Comandos de Verificación:**
+
+```bash
+# Verificar registro A
+dig ordenapp.com.ar A
+
+# Verificar registro CNAME
+dig www.ordenapp.com.ar CNAME
+
+# Verificar desde servidor DNS específico
+dig @8.8.8.8 ordenapp.com.ar
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Mejores Prácticas y Recomendaciones">
+
+**Para Entornos de Producción:**
+
+1. **Usar alias de dominio primero** - Prueba el nuevo dominio junto al antiguo
+2. **Planificar ventanas de mantenimiento** - Para migraciones completas, programar en periodos de bajo tráfico
+3. **Monitorear después de los cambios** - Vigilar problemas con certificados SSL y propagación DNS
+4. **Mantener activo el dominio antiguo** - Mantener redirecciones para SEO y experiencia de usuario
+
+**Consideraciones sobre Certificados SSL:**
+
+- SleakOps provee automáticamente certificados SSL para dominios personalizados
+- La generación del certificado puede tardar entre 5 y 10 minutos
+- Asegúrate que los registros DNS estén correctos antes del aprovisionamiento SSL
+
+**Estrategia de Reversión:**
+
+- Mantén documentados los registros DNS originales
+- Ten un plan para revertir cambios rápidamente
+- Prueba el procedimiento de reversión primero en desarrollo
+
+**Comunicación:**
+
+- Notifica a los usuarios sobre cambios de dominio con anticipación
+- Actualiza documentación y enlaces
+- Configura redirecciones adecuadas del dominio antiguo al nuevo
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

@@ -1,0 +1,167 @@
+---
+sidebar_position: 3
+title: "Cluster Manual Shutdown Requires Scheduled Feature"
+description: "Solution for manual cluster shutdown when scheduled shutdown feature is not enabled"
+date: "2024-12-12"
+category: "cluster"
+tags: ["cluster", "shutdown", "scheduled", "manual", "configuration"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Cluster Manual Shutdown Requires Scheduled Feature
+
+**Date:** December 12, 2024  
+**Category:** Cluster  
+**Tags:** Cluster, Shutdown, Scheduled, Manual, Configuration
+
+## Problem Description
+
+**Context:** Users want to manually stop their SleakOps cluster at specific times (for testing, cost optimization, etc.) but find that the manual shutdown button is not available or functional.
+
+**Observed Symptoms:**
+
+- Manual cluster shutdown button is not available in the interface
+- Cannot stop cluster manually even when needed for specific situations
+- Cluster remains active consuming resources when not needed
+- No option to pause cluster for undefined periods
+
+**Relevant Configuration:**
+
+- SleakOps cluster deployed and running
+- Scheduled Shutdown feature: Not enabled
+- Manual shutdown requirement: Immediate or flexible timing
+- Use case: Testing, development, cost optimization
+
+**Error Conditions:**
+
+- Manual shutdown not possible without scheduled feature enabled
+- Resources continue consuming costs during inactive periods
+- Cannot pause cluster for undefined time periods
+- Inflexibility for ad-hoc cluster management needs
+
+## Detailed Solution
+
+<TroubleshootingItem id="enable-scheduled-feature" summary="Enable Scheduled Shutdown Feature">
+
+To enable manual cluster shutdown, you must first activate the "Scheduled Shutdown" feature:
+
+1. Go to your **Cluster Configuration**
+2. Look for the **"Scheduled Shutdown"** option
+3. **Enable** this feature
+4. Configure basic schedule settings (can be minimal)
+
+Once enabled, this feature runs a background module that allows both scheduled and manual shutdown operations.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="configure-minimal-schedule" summary="Configure Minimal Schedule for Manual Control">
+
+You can set up a minimal schedule that gives you maximum manual control:
+
+```yaml
+# Example minimal configuration
+scheduled_shutdown:
+  enabled: true
+  schedule:
+    # Set a very permissive schedule or off-hours only
+    weekdays: []
+    weekend: []
+    timezone: "UTC"
+```
+
+**Steps:**
+
+1. Enable Scheduled Shutdown
+2. Set minimal or no automatic schedules
+3. Use manual controls as needed
+4. The feature can be disabled later if not needed
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-shutdown-process" summary="Using Manual Shutdown Once Enabled">
+
+After enabling the Scheduled Shutdown feature:
+
+1. Navigate to your cluster dashboard
+2. Look for the **shutdown/stop button** (now available)
+3. Click to manually stop the cluster
+4. Start the cluster manually when needed
+5. No predefined schedule required for manual operations
+
+**Benefits:**
+
+- Stop cluster during testing breaks
+- Pause for undefined periods
+- Resume when needed
+- Optimize costs for development environments
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="development-cluster-example" summary="Development Cluster Configuration Example">
+
+For development clusters that need flexible on/off control:
+
+```yaml
+cluster_config:
+  name: "dev-cluster"
+  scheduled_shutdown:
+    enabled: true
+    auto_schedule: false # No automatic scheduling
+    manual_control: true # Enable manual start/stop
+
+# This allows:
+# - Manual shutdown anytime
+# - Manual startup when needed
+# - No automatic operations
+# - Cost optimization for dev environments
+```
+
+**Use Cases:**
+
+- Development and testing environments
+- Clusters used sporadically
+- Cost-sensitive projects
+- Temporary project pauses
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="platform-limitation" summary="Current Platform Limitation">
+
+**Known Issue:** This requirement is currently a platform inconsistency that should be improved.
+
+**Current Behavior:**
+
+- Manual shutdown requires Scheduled Shutdown feature enabled
+- Background module must be running for shutdown capabilities
+- SleakOps runs various resources continuously by default
+
+**Expected Future Improvement:**
+
+- Manual shutdown should be available without scheduling requirements
+- More flexible cluster management options
+- Better separation between scheduled and manual operations
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="workaround-strategies" summary="Workaround Strategies">
+
+Until the platform limitation is resolved:
+
+1. **Enable Scheduled Shutdown** even if you don't need automatic scheduling
+2. **Set minimal schedules** that don't interfere with your workflow
+3. **Use manual controls** as your primary shutdown method
+4. **Document your usage patterns** to optimize future configurations
+
+**Cost Optimization Tips:**
+
+- Enable the feature immediately after cluster creation
+- Stop clusters during known inactive periods
+- Monitor resource usage to identify optimization opportunities
+- Consider multiple smaller clusters instead of one large always-on cluster
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 12, 2024 based on a real user query._

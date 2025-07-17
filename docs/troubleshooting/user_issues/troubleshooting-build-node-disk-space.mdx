@@ -1,0 +1,217 @@
+---
+sidebar_position: 3
+title: "Build Node Disk Space Issues"
+description: "Troubleshooting and resolving disk space problems on build nodes"
+date: "2024-09-10"
+category: "cluster"
+tags: ["build", "disk-space", "nodes", "troubleshooting", "storage"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Build Node Disk Space Issues
+
+**Date:** September 10, 2024  
+**Category:** Cluster  
+**Tags:** Build, Disk Space, Nodes, Troubleshooting, Storage
+
+## Problem Description
+
+**Context:** Build processes failing intermittently due to insufficient disk space on Kubernetes nodes, even after increasing node storage from 20GB to 40GB.
+
+**Observed Symptoms:**
+
+- Build processes crash intermittently due to disk space issues
+- Some builds fail while others succeed immediately after
+- Problem persists even after increasing node disk size to 40GB
+- Cluster memory usage shows approximately 60% utilization
+- Issue occurs sporadically rather than consistently
+
+**Relevant Configuration:**
+
+- Node disk size: Previously 20GB, increased to 40GB
+- Cluster memory usage: ~60%
+- Build system: Docker-based builds on Kubernetes nodes
+- Platform: SleakOps managed Kubernetes cluster
+
+**Error Conditions:**
+
+- Builds fail when nodes run out of disk space
+- Problem occurs during Docker image building process
+- Intermittent failures suggest temporary disk space exhaustion
+- Issue affects multiple builds but not consistently
+
+## Detailed Solution
+
+<TroubleshootingItem id="disk-usage-analysis" summary="Analyzing disk usage on build nodes">
+
+To identify what's consuming disk space on your build nodes:
+
+1. **SSH into the affected node** (if you have access)
+2. **Use ncdu command** to analyze disk usage:
+
+```bash
+# Install ncdu if not available
+sudo apt-get update && sudo apt-get install ncdu
+
+# Analyze disk usage starting from root
+sudo ncdu /
+
+# Focus on common problem areas
+sudo ncdu /var/lib/docker
+sudo ncdu /var/log
+sudo ncdu /tmp
+```
+
+3. **Check Docker-specific usage**:
+
+```bash
+# Check Docker system usage
+docker system df
+
+# List all containers and their sizes
+docker ps -a --size
+
+# List all images and their sizes
+docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-causes" summary="Common causes of disk space issues">
+
+Typical causes of disk space exhaustion on build nodes:
+
+1. **Docker layer accumulation**:
+
+   - Unused Docker images consuming space
+   - Intermediate build layers not being cleaned up
+   - Docker build cache growing over time
+
+2. **Log file accumulation**:
+
+   - Container logs in `/var/log/containers/`
+   - System logs in `/var/log/`
+   - Build logs not being rotated
+
+3. **Temporary files**:
+
+   - Build artifacts in `/tmp`
+   - Package manager caches
+   - Application temporary files
+
+4. **Large Docker images**:
+   - Base images that are unnecessarily large
+   - Multi-stage builds not properly optimized
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-cleanup" summary="Immediate cleanup actions">
+
+To free up disk space immediately:
+
+```bash
+# Clean up Docker system (removes unused containers, networks, images)
+docker system prune -af
+
+# Remove unused volumes
+docker volume prune -f
+
+# Clean up build cache
+docker builder prune -af
+
+# Clean up logs (be careful with this command)
+sudo journalctl --vacuum-time=7d
+sudo find /var/log -name "*.log" -type f -mtime +7 -delete
+
+# Clean up temporary files
+sudo rm -rf /tmp/*
+sudo apt-get clean
+```
+
+**Note**: Always backup important data before running cleanup commands.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="docker-optimization" summary="Optimizing Docker builds">
+
+To prevent future disk space issues, optimize your Docker builds:
+
+1. **Use multi-stage builds**:
+
+```dockerfile
+# Multi-stage build example
+FROM node:16 AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+
+FROM node:16-alpine AS runtime
+WORKDIR /app
+COPY --from=builder /app/node_modules ./node_modules
+COPY . .
+CMD ["npm", "start"]
+```
+
+2. **Use .dockerignore file**:
+
+```dockerignore
+node_modules
+.git
+.gitignore
+README.md
+.env
+.nyc_output
+coverage
+.cache
+```
+
+3. **Clean up in the same RUN command**:
+
+```dockerfile
+RUN apt-get update && \
+    apt-get install -y package-name && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-prevention" summary="Monitoring and prevention">
+
+Set up monitoring to prevent future issues:
+
+1. **Monitor disk usage**:
+
+```bash
+# Check current disk usage
+df -h
+
+# Monitor disk usage over time
+watch -n 5 'df -h'
+
+# Set up alerts for disk usage > 80%
+```
+
+2. **Implement automated cleanup**:
+
+```bash
+# Create a cleanup script
+#!/bin/bash
+# cleanup-docker.sh
+
+echo "Starting Docker cleanup..."
+docker system prune -f
+docker volume prune -f
+echo "Docker cleanup completed"
+
+# Add to crontab to run daily
+# 0 2 * * * /path/to/cleanup-docker.sh
+```
+
+3. **Configure log rotation**:
+
+```json
+{
+  "log-driver": "json-file"
+```

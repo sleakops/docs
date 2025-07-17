@@ -1,0 +1,239 @@
+---
+sidebar_position: 3
+title: "Gestión de Pods de Restauración de Base de Datos"
+description: "Gestión de pods de restauración de base de datos de larga duración y su impacto en los despliegues"
+date: "2025-03-26"
+category: "dependency"
+tags:
+  [
+    "base de datos",
+    "restauración",
+    "pod",
+    "despliegue",
+    "solución de problemas",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Gestión de Pods de Restauración de Base de Datos
+
+**Fecha:** 26 de marzo de 2025  
+**Categoría:** Dependencia  
+**Etiquetas:** Base de datos, Restauración, Pod, Despliegue, Solución de problemas
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios experimentan problemas en los despliegues cuando los pods de restauración de base de datos están en ejecución durante períodos prolongados, causando conflictos con los procesos de construcción y despliegue en SleakOps.
+
+**Síntomas Observados:**
+
+- Tiempos de espera en la construcción mientras el pod `restoredb` está en ejecución
+- Fallos en el despliegue debido a operaciones de base de datos en conflicto
+- Pods de restauración de larga duración (ejecutándose durante días)
+- Procesos de construcción que no completan exitosamente
+- Aparición de múltiples conjuntos de réplicas para servicios web
+
+**Configuración Relevante:**
+
+- Tipo de pod: `restoredb` (operación de restauración de base de datos)
+- Duración: Ejecutándose durante varios días (3-4 días)
+- Impacto: Afecta la canalización de construcción y despliegue
+- Plataforma: Entorno Kubernetes de SleakOps
+
+**Condiciones de Error:**
+
+- Tiempos de espera en la construcción cuando el pod de restauración está activo
+- Canalización de despliegue bloqueada por operaciones de restauración en curso
+- Conflictos de recursos entre pods de restauración y aplicación
+- Imposibilidad de reducir la escala de pods de restauración cuando no se necesitan
+
+## Solución Detallada
+
+<TroubleshootingItem id="understanding-restore-conflicts" summary="Por qué los pods de restauración causan problemas en el despliegue">
+
+Los pods de restauración de base de datos pueden interferir con las operaciones normales de despliegue porque:
+
+1. **Bloqueo de Recursos:** El proceso de restauración puede bloquear recursos de base de datos necesarios para la aplicación
+2. **Conflictos de Red:** Las conexiones a la base de datos pueden estar monopolizadas por la operación de restauración
+3. **Uso de Memoria/CPU:** Las operaciones de restauración de larga duración consumen recursos del clúster
+4. **Conflictos de Estado:** Los pods de aplicación pueden fallar las comprobaciones de salud mientras la base de datos se está restaurando
+
+Por eso, las construcciones y despliegues a menudo fallan mientras un pod de restauración está en ejecución.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="checking-restore-status" summary="Cómo verificar el estado del pod de restauración">
+
+Para monitorear el estado de tu pod de restauración:
+
+**Usando el Panel de SleakOps:**
+
+1. Ve a **Workloads** → **Jobs**
+2. Busca trabajos de restauración como `restoredb` o similares
+3. Revisa las columnas **Estado** y **Duración**
+
+**Usando Lens o kubectl:**
+
+```bash
+# Listar todos los pods con "restore" en el nombre
+kubectl get pods | grep restore
+
+# Ver logs específicos del pod de restauración
+kubectl logs <nombre-del-pod-restoredb> -f
+
+# Ver detalles y estado del pod
+kubectl describe pod <nombre-del-pod-restoredb>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="managing-restore-pods" summary="Cómo gestionar los pods de restauración de forma segura">
+
+**Cuando necesitas el pod de restauración más adelante:**
+
+Si planeas usar la funcionalidad de restauración pronto (por ejemplo, mañana por la mañana), puedes reducir temporalmente la escala:
+
+```bash
+# Reducir la escala del trabajo de restauración (si es un deployment)
+kubectl scale deployment restoredb --replicas=0
+
+# O eliminar el pod específico (si es un pod independiente)
+kubectl delete pod <nombre-del-pod-restoredb>
+```
+
+**Cuando quieres detenerlo completamente:**
+
+```bash
+# Eliminar el trabajo por completo
+kubectl delete job <nombre-del-job-restoredb>
+
+# O a través del panel de SleakOps
+# Ve a Workloads → Jobs → Elimina el trabajo de restauración
+```
+
+**Importante:** Siempre asegúrate de que la operación de restauración esté completa o pueda interrumpirse de forma segura antes de detenerla.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="scheduling-restore-operations" summary="Mejores prácticas para programar restauraciones">
+
+Para evitar conflictos con las operaciones regulares:
+
+**1. Programa durante ventanas de mantenimiento:**
+
+- Planifica las restauraciones durante períodos de bajo tráfico
+- Coordina con los horarios de despliegue
+- Notifica a los miembros del equipo sobre las operaciones de restauración planificadas
+
+**2. Usa entornos separados:**
+
+- Realiza las restauraciones primero en staging
+- Prueba el proceso de restauración antes de producción
+- Mantén los despliegues de producción separados de las operaciones de restauración
+
+**3. Monitorea el uso de recursos:**
+
+```yaml
+# Ejemplo de límites de recursos para trabajos de restauración
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: database-restore
+spec:
+  template:
+    spec:
+      containers:
+        - name: restore
+          resources:
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-deployment-issues" summary="Solucionar problemas de despliegue causados por pods de restauración">
+
+**Si las construcciones están agotando el tiempo de espera:**
+
+1. **Verifica si la restauración aún es necesaria:**
+
+   - Confirma el estado de la operación de restauración
+   - Determina si puede detenerse de forma segura
+
+2. **Solución temporal:**
+
+   ```bash
+   # Detener temporalmente el pod de restauración
+   kubectl delete pod <nombre-del-pod-restoredb>
+
+   # Reintenta tu construcción
+   # La restauración puede reiniciarse después si es necesario
+   ```
+
+3. **Solución a largo plazo:**
+   - Programa las restauraciones durante ventanas de mantenimiento
+   - Usa instancias de base de datos separadas para pruebas de restauración
+   - Implementa tiempos máximos para trabajos de restauración
+
+**Si ves múltiples conjuntos de réplicas:**
+
+Esto es normal durante despliegues pero puede indicar problemas:
+
+```bash
+# Ver estado de los conjuntos de réplicas
+kubectl get rs
+
+# Limpia conjuntos de réplicas antiguos si es necesario
+kubectl delete rs <nombre-del-replicaset-antiguo>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="preventing-future-conflicts" summary="Previniendo conflictos futuros entre restauración y despliegue">
+
+**1. Implementa una gestión adecuada de trabajos:**
+
+```yaml
+# Añade activeDeadlineSeconds para evitar ejecuciones infinitas
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: database-restore
+spec:
+  activeDeadlineSeconds: 3600 # Tiempo máximo de 1 hora
+  backoffLimit: 3
+  template:
+    # ... resto de la especificación del trabajo
+```
+
+**2. Usa cuotas de recursos:**
+
+```yaml
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: restore-quota
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: 4Gi
+    limits.cpu: "4"
+    limits.memory: 8Gi
+```
+
+**3. Configura alertas de monitoreo:**
+
+- Alerta cuando los trabajos de restauración duren más de lo esperado
+- Monitorea el uso de recursos durante las operaciones de restauración
+- Configura notificaciones para despliegues fallidos
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 26 de marzo de 2025 basándose en una consulta real de usuario._

@@ -1,0 +1,239 @@
+---
+sidebar_position: 1
+title: "Sitio de Producción Caído - Resolución de Emergencia"
+description: "Procedimientos de emergencia para manejar interrupciones en el sitio de producción y problemas de despliegue"
+date: "2025-01-27"
+category: "general"
+tags: ["producción", "interrupción", "despliegue", "emergencia", "resolución"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Sitio de Producción Caído - Resolución de Emergencia
+
+**Fecha:** 27 de enero de 2025  
+**Categoría:** General  
+**Etiquetas:** Producción, Interrupción, Despliegue, Emergencia, Resolución
+
+## Descripción del Problema
+
+**Contexto:** El sitio de producción está experimentando tiempo de inactividad que requiere atención inmediata y procedimientos de despliegue de emergencia a través de la plataforma SleakOps.
+
+**Síntomas Observados:**
+
+- Caída completa del sitio ("Se nos cayó el sitio")
+- Estado de sitio en construcción
+- Problemas urgentes en el entorno de producción
+- Necesidad de coordinación para despliegue de emergencia
+- Varios miembros del equipo involucrados para la resolución
+
+**Configuración Relevante:**
+
+- Entorno: Producción
+- Plataforma: SleakOps con integración Bitbucket
+- Método de despliegue: pipelines de Bitbucket
+- Coordinación de equipo: requerida para cambios en producción
+
+**Condiciones de Error:**
+
+- Sitio de producción completamente caído
+- Despliegue de emergencia necesario
+- Múltiples interesados involucrados en la resolución
+- Restauración sensible al tiempo requerida
+
+## Solución Detallada
+
+<TroubleshootingItem id="immediate-assessment" summary="Evaluación Inmediata del Sitio">
+
+Al enfrentar una interrupción en producción:
+
+1. **Verificar el alcance de la interrupción**:
+
+   - Comprobar si es una falla total del sitio o funcionalidad parcial
+   - Verificar resolución DNS y conectividad básica
+   - Revisar paneles de monitoreo para alertas
+
+2. **Recopilar información inicial**:
+
+   - Despliegues o cambios recientes
+   - Registros de errores de las aplicaciones
+   - Estado de infraestructura (pods, servicios, ingress)
+
+3. **Establecer comunicación**:
+   - Crear canal de comunicación de emergencia
+   - Notificar a todos los interesados relevantes
+   - Documentar la línea de tiempo de eventos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="emergency-deployment" summary="Procedimientos de Despliegue de Emergencia">
+
+Para despliegues de emergencia en SleakOps:
+
+1. **Coordinar con el equipo**:
+
+   ```bash
+   # Antes de cualquier despliegue en producción, asegurar coordinación del equipo
+   # Usar canales de comunicación para anunciar el despliegue
+   ```
+
+2. **Desplegar a través de SleakOps**:
+
+   - Acceder al panel de SleakOps
+   - Navegar al proyecto afectado
+   - Seleccionar el entorno de producción
+   - Elegir "Deploy" con la última versión conocida estable
+
+3. **Despliegue alternativo vía Bitbucket**:
+
+   ```yaml
+   # Si se despliega mediante pipelines de Bitbucket
+   # Asegurar que el pipeline apunte al entorno correcto
+   pipelines:
+     branches:
+       main:
+         - step:
+             name: Despliegue de Emergencia a Producción
+             script:
+               - echo "Despliegue de emergencia iniciado"
+               -  # Tus comandos de despliegue aquí
+   ```
+
+4. **Monitorear progreso del despliegue**:
+   - Observar logs de despliegue en tiempo real
+   - Monitorear chequeos de salud de la aplicación
+   - Verificar restauración del servicio
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="rollback-procedures" summary="Procedimientos de Reversión">
+
+Si el despliegue de emergencia no resuelve el problema:
+
+1. **Reversión inmediata**:
+
+   - En SleakOps: usar la función "Rollback" a la versión estable anterior
+   - Documentar la decisión y el momento de la reversión
+
+2. **Verificar éxito de la reversión**:
+
+   ```bash
+   # Verificar estado de la aplicación
+   kubectl get pods -n production
+   kubectl get services -n production
+
+   # Verificar salud de la aplicación
+   curl -I https://tu-sitio-produccion.com
+   ```
+
+3. **Acciones post-reversión**:
+   - Confirmar la funcionalidad del sitio
+   - Notificar a los interesados sobre la resolución temporal
+   - Iniciar análisis de causa raíz
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="team-coordination" summary="Coordinación del Equipo Durante Interrupciones">
+
+Coordinación efectiva durante incidentes en producción:
+
+1. **Establecer un comandante de incidente**:
+
+   - Designar a una persona para coordinar esfuerzos
+   - Todas las decisiones de despliegue deben pasar por esta persona
+   - Mantener canales de comunicación claros
+
+2. **Asignación de roles**:
+
+   - **Comandante de Incidente**: Coordinación general
+   - **Líder Técnico**: Resolución técnica directa
+   - **Comunicación**: Actualizaciones a interesados
+   - **Documentación**: Línea de tiempo y acciones tomadas
+
+3. **Protocolos de comunicación**:
+
+   - Usar videollamadas para coordinación en tiempo real
+   - Mantener actualizaciones escritas en canales compartidos
+   - Establecer intervalos regulares de actualización (cada 15-30 minutos)
+
+4. **Toma de decisiones**:
+   - Consenso rápido sobre acciones de despliegue
+   - Decisiones claras de continuar o detener
+   - Documentar todas las decisiones importantes con marca de tiempo
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="post-incident" summary="Acciones Post-Incidente">
+
+Después de resolver la interrupción en producción:
+
+1. **Verificación inmediata**:
+
+   - Pruebas integrales de funcionalidad
+   - Monitoreo de desempeño durante 1-2 horas
+   - Verificación de aceptación por usuarios
+
+2. **Documentación**:
+
+   - Línea de tiempo completa del incidente
+   - Análisis de causa raíz
+   - Acciones tomadas y sus resultados
+   - Lecciones aprendidas
+
+3. **Mejoras posteriores**:
+
+   - Revisar procedimientos de despliegue
+   - Mejorar monitoreo y alertas
+   - Actualizar procedimientos de respuesta a emergencias
+   - Programar reunión post-mortem
+
+4. **Comunicación a interesados**:
+   - Enviar notificación de resolución
+   - Proporcionar resumen breve de causa y solución
+   - Compartir cronograma para post-mortem detallado
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-measures" summary="Prevención y Preparación">
+
+Para minimizar futuras interrupciones en producción:
+
+1. **Mejores prácticas de despliegue**:
+
+   - Siempre usar entorno de staging primero
+   - Implementar despliegues blue-green
+   - Mantener procedimientos de reversión
+   - Usar feature flags para cambios riesgosos
+
+2. **Monitoreo y alertas**:
+
+   ```yaml
+   # Ejemplo de configuración de monitoreo
+   alerts:
+     - name: sitio-caido
+       condition: http_status != 200
+       duration: 1m
+       severity: critical
+       notifications:
+         - slack
+         - email
+   ```
+
+3. **Preparación para emergencias**:
+
+   - Mantener lista de contactos de emergencia actualizada
+   - Realizar simulacros regulares de recuperación ante desastres
+   - Canales de comunicación predefinidos
+   - Documentación de procedimientos de despliegue de emergencia
+
+4. **Preparación del equipo**:
+   - Capacitación cruzada en procedimientos de despliegue
+   - Permisos de acceso para miembros clave
+   - Procedimientos de escalamiento de emergencia
+   - Revisión regular de planes de respuesta a incidentes
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 27 de enero de 2025 basada en una consulta real de usuario._

@@ -1,0 +1,245 @@
+---
+sidebar_position: 3
+title: "Problemas de Ingestión de Logs en Grafana Loki"
+description: "Solución de problemas de logs faltantes y fallos del pod loki-write en Grafana"
+date: "2024-12-19"
+category: "dependencia"
+tags: ["grafana", "loki", "registro", "monitoreo", "solucion-de-problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de Ingestión de Logs en Grafana Loki
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Dependencia  
+**Etiquetas:** Grafana, Loki, Registro, Monitoreo, Solución de problemas
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios experimentan problemas con la visualización de logs en Grafana donde el pod loki-write parece incapaz de escribir y almacenar logs correctamente, resultando en entradas de logs faltantes de los servicios de la aplicación.
+
+**Síntomas Observados:**
+
+- Logs iniciales faltantes de los servicios en el panel de Grafana
+- Las entradas de logs aparecen horas después de la hora real de inicio del servicio
+- El pod loki-write presenta fallos de escritura/almacenamiento
+- Línea de tiempo de logs incompleta con huecos en el historial de logs
+- Servicios monitoreados a través de Lens muestran logs que no aparecen en Grafana
+
+**Configuración Relevante:**
+
+- Componente: Grafana con backend Loki
+- Pod afectado: `loki-write`
+- Ingestión de logs: Logs de aplicaciones en tiempo real
+- Configuración de monitoreo: Pila Grafana integrada con SleakOps
+
+**Condiciones de Error:**
+
+- Logs faltantes desde el período de inicio del servicio
+- Aparición retardada de logs (horas después de los eventos reales)
+- Ingestión inconsistente de logs entre diferentes servicios
+- El pod loki-write no puede persistir los datos de logs
+
+## Solución Detallada
+
+<TroubleshootingItem id="initial-diagnosis" summary="Diagnóstico de Problemas de Escritura en Loki">
+
+Para diagnosticar problemas del pod loki-write:
+
+1. **Verificar estado y logs del pod:**
+
+```bash
+kubectl get pods -n monitoring | grep loki-write
+kubectl logs -n monitoring loki-write-0 --tail=100
+```
+
+2. **Verificar configuración de almacenamiento:**
+
+```bash
+kubectl describe pvc -n monitoring | grep loki
+```
+
+3. **Revisar límites de recursos:**
+
+```bash
+kubectl describe pod -n monitoring loki-write-0
+```
+
+Problemas comunes incluyen:
+
+- Espacio de almacenamiento insuficiente
+- Restricciones de memoria/CPU
+- Problemas de montaje de PVC
+- Problemas de conectividad de red
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="storage-troubleshooting" summary="Resolución de Problemas de Almacenamiento">
+
+Si el almacenamiento es la causa raíz:
+
+1. **Verificar almacenamiento disponible:**
+
+```bash
+kubectl exec -n monitoring loki-write-0 -- df -h
+```
+
+2. **Verificar estado del PVC:**
+
+```bash
+kubectl get pvc -n monitoring
+kubectl describe pvc loki-storage -n monitoring
+```
+
+3. **Aumentar almacenamiento si es necesario:**
+
+```yaml
+# En tu configuración de Loki
+persistence:
+  enabled: true
+  size: 50Gi # Aumentar desde el valor predeterminado
+  storageClass: gp3
+```
+
+4. **Limpiar logs antiguos si el almacenamiento está lleno:**
+
+```bash
+# Acceder al pod loki-write
+kubectl exec -it -n monitoring loki-write-0 -- /bin/sh
+# Revisar y limpiar chunks antiguos
+ls -la /loki/chunks/
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="resource-optimization" summary="Optimización de Recursos de Loki">
+
+Para prevenir problemas de ingestión de logs relacionados con recursos:
+
+1. **Aumentar límites de memoria:**
+
+```yaml
+# Recursos del componente de escritura de Loki
+write:
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 100m
+    limits:
+      memory: 2Gi
+      cpu: 500m
+```
+
+2. **Configurar retención adecuada:**
+
+```yaml
+limits_config:
+  retention_period: 168h # 7 días
+  ingestion_rate_mb: 10
+  ingestion_burst_size_mb: 20
+```
+
+3. **Optimizar configuración de chunks:**
+
+```yaml
+chunk_store_config:
+  max_look_back_period: 168h
+schema_config:
+  configs:
+    - from: 2023-01-01
+      store: boltdb-shipper
+      object_store: s3
+      schema: v11
+      index:
+        prefix: loki_index_
+        period: 24h
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="log-ingestion-verification" summary="Verificación de la Canalización de Ingestión de Logs">
+
+Para asegurar que los logs se estén ingiriendo correctamente:
+
+1. **Verificar configuración de Promtail:**
+
+```bash
+kubectl logs -n monitoring promtail-daemonset-xxx
+```
+
+2. **Verificar envío de logs:**
+
+```bash
+# Comprobar si los logs se envían a Loki
+kubectl exec -n monitoring promtail-xxx -- wget -qO- http://localhost:3101/metrics | grep promtail_sent
+```
+
+3. **Probar API de Loki directamente:**
+
+```bash
+# Consultar Loki por logs recientes
+kubectl port-forward -n monitoring svc/loki 3100:3100
+curl -G -s "http://localhost:3100/loki/api/v1/query" --data-urlencode 'query={job="your-service"}' --data-urlencode 'start=1h'
+```
+
+4. **Verificar descubrimiento de servicios:**
+
+```bash
+# Confirmar que Promtail descubre tus pods
+kubectl exec -n monitoring promtail-xxx -- wget -qO- http://localhost:3101/targets
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="grafana-configuration" summary="Configuración de Datasource en Grafana">
+
+Asegúrate de que Grafana esté configurado correctamente para consultar Loki:
+
+1. **Verificar datasource de Loki:**
+
+   - Ir a Grafana → Configuración → Fuentes de Datos
+   - Comprobar URL de Loki: `http://loki:3100`
+   - Probar conexión
+
+2. **Configurar rangos de tiempo adecuados:**
+
+   - En los paneles de Grafana, asegurar que el rango de tiempo cubra el período esperado
+   - Verificar configuración de zona horaria
+
+3. **Optimizar el rendimiento de las consultas:**
+
+```logql
+# Usar consultas LogQL eficientes
+{namespace="your-namespace", pod=~"your-service-.*"} |= "your-search-term"
+```
+
+4. **Establecer intervalos de actualización apropiados:**
+   - Para monitoreo en tiempo real: 5-10 segundos
+   - Para análisis histórico: 1-5 minutos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-setup" summary="Configuración de Monitoreo Adecuado">
+
+Para prevenir futuros problemas de ingestión de logs:
+
+1. **Monitorear métricas de Loki:**
+
+```yaml
+# Añadir alertas para la salud de Loki
+- alert: LokiWriteErrors
+  expr: increase(loki_ingester_chunks_flushed_total{status="failed"}[5m]) > 0
+  for: 2m
+  labels:
+    severity: warning
+  annotations:
+    summary: "Errores de escritura en Loki detectados"
+```
+
+2. **Configurar monitoreo de almacenamiento:**
+
+```yaml
+- alert: LokiStorageFull
+  expr: (kubelet_volume_stats_available_bytes{persistentvolumeclaim=~".*loki.*"} / kubelet_volume_stats_capacity_bytes{"
+```

@@ -1,0 +1,176 @@
+---
+sidebar_position: 3
+title: "Variables de Entorno No Disponibles Después de la Migración"
+description: "Solución para variables de entorno que dejan de estar disponibles durante migraciones de plataforma que afectan compilaciones con argumentos predeterminados en Dockerfile"
+date: "2024-04-24"
+category: "deployment"
+tags: ["environment-variables", "migration", "dockerfile", "secrets", "build"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Variables de Entorno No Disponibles Después de la Migración
+
+**Fecha:** 24 de abril de 2024  
+**Categoría:** Despliegue  
+**Etiquetas:** Variables de Entorno, Migración, Dockerfile, Secretos, Compilación
+
+## Descripción del Problema
+
+**Contexto:** Durante migraciones de plataforma que afectan la forma en que los secretos se exponen en los entornos, las aplicaciones pueden perder acceso a las variables de entorno, afectando particularmente las compilaciones con argumentos predeterminados en Dockerfiles.
+
+**Síntomas Observados:**
+
+- Las variables de entorno dejan de estar disponibles repentinamente después del despliegue
+- Las aplicaciones fallan al conectarse a servicios externos (por ejemplo, puntos de acceso de login)
+- Variables que antes funcionaban dejan de recibirse
+- El problema afecta múltiples entornos (desarrollo, staging)
+- Ocurre después de fusionar PRs y disparar redeploys
+
+**Configuración Relevante:**
+
+- Plataforma: SleakOps en AWS
+- Entornos afectados: Desarrollo y Staging
+- Tipo de compilación: Aplicaciones frontend con compilaciones Dockerfile
+- Tipo de variables: Variables de entorno usadas para endpoints de API
+
+**Condiciones de Error:**
+
+- Ocurre durante migraciones de plataforma que afectan la exposición de secretos
+- Afecta compilaciones con argumentos predeterminados en Dockerfile
+- El problema persiste a través de múltiples despliegues
+- El problema aparece tras merges exitosos de PR y redeploys
+
+## Solución Detallada
+
+<TroubleshootingItem id="migration-impact" summary="Entendiendo el impacto de la migración en las variables de entorno">
+
+Durante migraciones de plataforma, SleakOps puede actualizar la forma en que los secretos y variables de entorno se exponen a las aplicaciones. Esto puede afectar temporalmente:
+
+- **Compilaciones Dockerfile con argumentos predeterminados**: Las variables pasadas como argumentos de build pueden no estar disponibles
+- **Variables de entorno en tiempo de ejecución**: Variables necesarias durante la ejecución de la aplicación
+- **Montaje de secretos**: Cómo los secretos se ponen a disposición de los contenedores
+
+El proceso de migración garantiza mayor seguridad y consistencia pero puede causar interrupciones temporales.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-troubleshooting" summary="Pasos inmediatos para solucionar problemas">
+
+Cuando las variables de entorno dejan de estar disponibles:
+
+1. **Verificar configuración de grupos de variables**:
+
+   - Confirmar que los grupos de variables están configurados correctamente
+   - Asegurar que las variables están asignadas a los entornos correctos
+
+2. **Revisar argumentos de build en Dockerfile**:
+
+   ```dockerfile
+   # Asegurar que las declaraciones ARG estén presentes
+   ARG API_ENDPOINT
+   ARG DATABASE_URL
+
+   # Usar variables de entorno correctamente
+   ENV API_ENDPOINT=${API_ENDPOINT}
+   ENV DATABASE_URL=${DATABASE_URL}
+   ```
+
+3. **Validar configuraciones específicas por entorno**:
+   - Comprobar que las variables están definidas para cada entorno (dev, staging, prod)
+   - Verificar que los nombres de variables coinciden exactamente entre configuración y código
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="post-migration-configuration" summary="Pasos de configuración después de la migración">
+
+Después de completar la migración:
+
+1. **Actualizar grupos de variables**:
+
+   - Revisar y actualizar asignaciones de grupos de variables
+   - Asegurar que todas las variables necesarias estén configuradas correctamente
+   - Probar la disponibilidad de variables en cada entorno
+
+2. **Redeplegar aplicaciones**:
+
+   ```bash
+   # Disparar un despliegue fresco para captar la nueva configuración de variables
+   git commit --allow-empty -m "Disparar redeploy después de la migración"
+   git push origin develop
+   ```
+
+3. **Verificar funcionalidad de la aplicación**:
+   - Probar todos los endpoints que dependen de variables de entorno
+   - Revisar logs de la aplicación para errores relacionados con variables
+   - Validar conectividad a servicios externos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-best-practices" summary="Buenas prácticas en Dockerfile para variables de entorno">
+
+Para evitar problemas en futuras migraciones:
+
+```dockerfile
+# 1. Declarar todos los argumentos de build requeridos
+ARG NODE_ENV=production
+ARG API_BASE_URL
+ARG DATABASE_URL
+
+# 2. Establecer variables de entorno desde argumentos de build
+ENV NODE_ENV=${NODE_ENV}
+ENV API_BASE_URL=${API_BASE_URL}
+ENV DATABASE_URL=${DATABASE_URL}
+
+# 3. Proveer valores por defecto cuando sea apropiado
+ENV API_TIMEOUT=${API_TIMEOUT:-30000}
+
+# 4. Validar variables críticas
+RUN test -n "$API_BASE_URL" || (echo "API_BASE_URL es requerido" && exit 1)
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-monitoring" summary="Prevención y monitoreo">
+
+Para prevenir problemas similares:
+
+1. **Configurar validación de variables de entorno**:
+
+   ```javascript
+   // Añadir validación en el inicio de la aplicación
+   const requiredVars = ["API_BASE_URL", "DATABASE_URL", "JWT_SECRET"];
+
+   requiredVars.forEach((varName) => {
+     if (!process.env[varName]) {
+       console.error(`Falta la variable de entorno requerida: ${varName}`);
+       process.exit(1);
+     }
+   });
+   ```
+
+2. **Implementar health checks**:
+
+   ```javascript
+   // Endpoint de health check para verificar configuración
+   app.get("/health", (req, res) => {
+     const config = {
+       apiEndpoint: !!process.env.API_BASE_URL,
+       databaseConnected: !!process.env.DATABASE_URL,
+       // No exponer valores reales por seguridad
+     };
+
+     res.json({ status: "ok", config });
+   });
+   ```
+
+3. **Monitorear notificaciones de despliegue**:
+   - Suscribirse a anuncios de migraciones de plataforma
+   - Probar aplicaciones inmediatamente después de actualizaciones de plataforma
+   - Mantener entornos staging que reflejen la configuración de producción
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 24 de abril de 2024 basada en una consulta real de usuario._

@@ -1,0 +1,254 @@
+---
+sidebar_position: 15
+title: "GitHub Actions Quota Management and CI/CD Optimization"
+description: "Managing GitHub Actions quotas and optimizing CI/CD pipeline efficiency in SleakOps"
+date: "2024-12-11"
+category: "project"
+tags: ["github-actions", "ci-cd", "quota", "optimization", "deployment"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# GitHub Actions Quota Management and CI/CD Optimization
+
+**Date:** December 11, 2024  
+**Category:** Project  
+**Tags:** GitHub Actions, CI/CD, Quota, Optimization, Deployment
+
+## Problem Description
+
+**Context:** Organizations using SleakOps with GitHub Actions for CI/CD pipelines may encounter quota limitations, especially when running multiple deployments across development and production environments.
+
+**Observed Symptoms:**
+
+- GitHub Actions quota consumed faster than expected
+- Deployments taking significantly longer than usual (50+ minutes)
+- Reduced number of successful builds compared to previous months
+- Unexpected quota exhaustion mid-month
+
+**Relevant Configuration:**
+
+- Multiple environments: Development and Production
+- Historical performance: ~100 builds per month previously
+- Current issue: Quota exhaustion with fewer builds
+- Deployment supervision: Manual monitoring required
+
+**Error Conditions:**
+
+- Quota exhaustion occurs earlier in the month
+- Longer deployment times consuming more minutes
+- Unsupervised deployments leading to unexpected quota usage
+
+## Detailed Solution
+
+<TroubleshootingItem id="github-quota-changes" summary="Understanding GitHub Actions Quota Changes">
+
+GitHub has made several changes to their free tier quotas over time:
+
+**Current GitHub Free Tier Limits (2024):**
+
+- **Public repositories**: Unlimited minutes
+- **Private repositories**: 2,000 minutes/month for free accounts
+- **Organization accounts**: 2,000 minutes/month (free tier)
+
+**Recent Changes:**
+
+- GitHub has not significantly reduced free quotas recently
+- However, they've improved billing granularity and monitoring
+- Usage patterns may have changed due to longer job execution times
+
+**Verification Steps:**
+
+1. Go to GitHub → Settings → Billing and plans
+2. Check "Usage this month" under Actions
+3. Review historical usage patterns
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deployment-optimization" summary="Optimizing Deployment Performance">
+
+To reduce GitHub Actions minutes consumption:
+
+**1. Optimize Build Processes:**
+
+```yaml
+# .github/workflows/deploy.yml
+name: Optimized Deploy
+on:
+  push:
+    branches: [main, develop]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Use caching to reduce build time
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+
+      # Parallel jobs for different environments
+      - name: Build and test
+        run: |
+          npm ci
+          npm run build
+          npm test
+```
+
+**2. Environment-Specific Deployments:**
+
+```yaml
+# Separate workflows for dev/prod
+strategy:
+  matrix:
+    environment: [development, production]
+steps:
+  - name: Deploy to ${{ matrix.environment }}
+    if: |
+      (matrix.environment == 'development' && github.ref == 'refs/heads/develop') ||
+      (matrix.environment == 'production' && github.ref == 'refs/heads/main')
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-setup" summary="Setting Up Deployment Monitoring">
+
+**Automated Monitoring Configuration:**
+
+1. **Slack/Teams Notifications:**
+
+```yaml
+- name: Notify deployment start
+  uses: 8398a7/action-slack@v3
+  with:
+    status: custom
+    custom_payload: |
+      {
+        text: "🚀 Deployment started for ${{ github.repository }}",
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: "Environment: ${{ matrix.environment }}\nBranch: ${{ github.ref }}"
+            }
+          }
+        ]
+      }
+```
+
+2. **Timeout Configuration:**
+
+```yaml
+jobs:
+  deploy:
+    timeout-minutes: 15 # Prevent runaway jobs
+    steps:
+      - name: Deploy with timeout
+        timeout-minutes: 10
+        run: |
+          # Your deployment commands
+```
+
+3. **SleakOps Dashboard Integration:**
+
+- Enable deployment notifications in SleakOps dashboard
+- Set up alerts for long-running deployments
+- Configure automatic rollback on timeout
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="quota-management" summary="Quota Management Strategies">
+
+**1. Usage Monitoring:**
+
+```bash
+# Check current usage via GitHub CLI
+gh api /user/settings/billing/actions
+
+# Monitor workflow runs
+gh run list --limit 50 --json status,conclusion,createdAt,name
+```
+
+**2. Cost Optimization:**
+
+- Use self-hosted runners for intensive builds
+- Implement conditional deployments
+- Cache dependencies and build artifacts
+- Use matrix strategies efficiently
+
+**3. Alternative Solutions:**
+
+```yaml
+# Conditional deployment based on changes
+name: Smart Deploy
+on:
+  push:
+    paths:
+      - "src/**"
+      - "package.json"
+      - "Dockerfile"
+
+jobs:
+  check-changes:
+    outputs:
+      should-deploy: ${{ steps.changes.outputs.src }}
+    steps:
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            src:
+              - 'src/**'
+              - 'package.json'
+
+  deploy:
+    needs: check-changes
+    if: needs.check-changes.outputs.should-deploy == 'true'
+    # ... deployment steps
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-specific" summary="SleakOps-Specific Optimizations">
+
+**1. Cluster-Specific Configurations:**
+
+- Configure separate workflows for QA and Production
+- Use SleakOps environment variables for conditional logic
+- Implement progressive deployment strategies
+
+**2. Resource Management:**
+
+```yaml
+# SleakOps optimized workflow
+env:
+  SLEAKOPS_ENV: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+
+jobs:
+  deploy:
+    steps:
+      - name: Deploy to SleakOps
+        run: |
+          # Use SleakOps CLI with optimized settings
+          sleakops deploy \
+            --environment $SLEAKOPS_ENV \
+            --timeout 300 \
+            --max-retries 2
+```
+
+**3. Monitoring Integration:**
+
+- Enable SleakOps deployment webhooks
+- Set up automated rollback policies
+- Configure resource limits for build pods
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 11, 2024 based on a real user query._

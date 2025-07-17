@@ -1,0 +1,167 @@
+---
+sidebar_position: 3
+title: "El Apagado Manual del Clúster Requiere la Función de Apagado Programado"
+description: "Solución para el apagado manual del clúster cuando la función de apagado programado no está habilitada"
+date: "2024-12-12"
+category: "cluster"
+tags: ["clúster", "apagado", "programado", "manual", "configuración"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# El Apagado Manual del Clúster Requiere la Función de Apagado Programado
+
+**Fecha:** 12 de diciembre de 2024  
+**Categoría:** Clúster  
+**Etiquetas:** Clúster, Apagado, Programado, Manual, Configuración
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios desean detener manualmente su clúster SleakOps en momentos específicos (para pruebas, optimización de costos, etc.) pero encuentran que el botón de apagado manual no está disponible o no funciona.
+
+**Síntomas Observados:**
+
+- El botón de apagado manual del clúster no está disponible en la interfaz
+- No se puede detener el clúster manualmente aun cuando es necesario para situaciones específicas
+- El clúster permanece activo consumiendo recursos cuando no se requiere
+- No hay opción para pausar el clúster por períodos indefinidos
+
+**Configuración Relevante:**
+
+- Clúster SleakOps desplegado y en ejecución
+- Función de Apagado Programado: No habilitada
+- Requisito de apagado manual: inmediato o con horario flexible
+- Caso de uso: pruebas, desarrollo, optimización de costos
+
+**Condiciones de Error:**
+
+- No es posible el apagado manual sin que la función programada esté habilitada
+- Los recursos continúan generando costos durante períodos de inactividad
+- No se puede pausar el clúster por tiempos indefinidos
+- Falta de flexibilidad para necesidades de gestión ad-hoc del clúster
+
+## Solución Detallada
+
+<TroubleshootingItem id="enable-scheduled-feature" summary="Habilitar la Función de Apagado Programado">
+
+Para habilitar el apagado manual del clúster, primero debe activar la función de "Apagado Programado":
+
+1. Vaya a la **Configuración del Clúster**
+2. Busque la opción **"Apagado Programado"**
+3. **Habilite** esta función
+4. Configure ajustes básicos del horario (pueden ser mínimos)
+
+Una vez habilitada, esta función ejecuta un módulo en segundo plano que permite operaciones tanto programadas como manuales de apagado.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="configure-minimal-schedule" summary="Configurar un Horario Mínimo para Control Manual">
+
+Puede configurar un horario mínimo que le brinde máximo control manual:
+
+```yaml
+# Ejemplo de configuración mínima
+scheduled_shutdown:
+  enabled: true
+  schedule:
+    # Establecer un horario muy permisivo o solo fuera de horas laborales
+    weekdays: []
+    weekend: []
+    timezone: "UTC"
+```
+
+**Pasos:**
+
+1. Habilite Apagado Programado
+2. Configure horarios mínimos o sin horarios automáticos
+3. Use controles manuales según necesidad
+4. La función puede deshabilitarse después si no es necesaria
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-shutdown-process" summary="Uso del Apagado Manual una vez habilitado">
+
+Después de habilitar la función de Apagado Programado:
+
+1. Navegue al panel de control de su clúster
+2. Busque el **botón de apagado/detención** (ahora disponible)
+3. Haga clic para detener manualmente el clúster
+4. Inicie el clúster manualmente cuando sea necesario
+5. No se requiere un horario predefinido para operaciones manuales
+
+**Beneficios:**
+
+- Detener el clúster durante pausas de pruebas
+- Pausar por períodos indefinidos
+- Reanudar cuando se necesite
+- Optimizar costos en entornos de desarrollo
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="development-cluster-example" summary="Ejemplo de Configuración para Clúster de Desarrollo">
+
+Para clústeres de desarrollo que requieren control flexible de encendido/apagado:
+
+```yaml
+cluster_config:
+  name: "dev-cluster"
+  scheduled_shutdown:
+    enabled: true
+    auto_schedule: false # Sin programación automática
+    manual_control: true # Habilitar inicio/detención manual
+
+# Esto permite:
+# - Apagado manual en cualquier momento
+# - Inicio manual cuando se necesite
+# - Sin operaciones automáticas
+# - Optimización de costos para entornos de desarrollo
+```
+
+**Casos de Uso:**
+
+- Entornos de desarrollo y pruebas
+- Clústeres usados esporádicamente
+- Proyectos sensibles a costos
+- Pausas temporales de proyectos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="platform-limitation" summary="Limitación Actual de la Plataforma">
+
+**Problema Conocido:** Este requisito es actualmente una inconsistencia de la plataforma que debería mejorarse.
+
+**Comportamiento Actual:**
+
+- El apagado manual requiere que la función de Apagado Programado esté habilitada
+- El módulo en segundo plano debe estar activo para capacidades de apagado
+- SleakOps ejecuta varios recursos continuamente por defecto
+
+**Mejora Esperada a Futuro:**
+
+- El apagado manual debería estar disponible sin requisitos de programación
+- Opciones más flexibles de gestión del clúster
+- Mejor separación entre operaciones programadas y manuales
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="workaround-strategies" summary="Estrategias Alternativas">
+
+Hasta que se resuelva la limitación de la plataforma:
+
+1. **Habilite Apagado Programado** aunque no necesite programación automática
+2. **Configure horarios mínimos** que no interfieran con su flujo de trabajo
+3. **Use controles manuales** como método principal de apagado
+4. **Documente sus patrones de uso** para optimizar configuraciones futuras
+
+**Consejos para Optimización de Costos:**
+
+- Habilite la función inmediatamente después de crear el clúster
+- Detenga clústeres durante períodos conocidos de inactividad
+- Monitoree el uso de recursos para identificar oportunidades de optimización
+- Considere múltiples clústeres pequeños en lugar de uno grande siempre activo
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 12 de diciembre de 2024 basada en una consulta real de usuario._

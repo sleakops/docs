@@ -1,0 +1,216 @@
+---
+sidebar_position: 3
+title: "Pod Readiness Probe Failed - Connection Refused"
+description: "Solution for pods failing readiness probes with connection refused errors"
+date: "2024-12-19"
+category: "workload"
+tags: ["pod", "readiness-probe", "connection-refused", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Pod Readiness Probe Failed - Connection Refused
+
+**Date:** December 19, 2024  
+**Category:** Workload  
+**Tags:** Pod, Readiness Probe, Connection Refused, Troubleshooting
+
+## Problem Description
+
+**Context:** After a successful build and deployment, the new pod fails to start properly and enters a restart loop. The readiness probe cannot connect to the application's health check endpoint.
+
+**Observed Symptoms:**
+
+- Pod shows "Back-off restarting failed container" status
+- Readiness probe fails with "connection refused" error
+- Container image is present on the machine
+- Build and deploy processes completed successfully
+- Application appears to not be responding to HTTP requests
+
+**Relevant Configuration:**
+
+- Health check endpoint: `/users/sign_in`
+- Application port: `3000`
+- Pod internal IP: `10.130.33.83`
+- Error: `dial tcp 10.130.33.83:3000: connect: connection refused`
+
+**Error Conditions:**
+
+- Occurs after successful build and deployment
+- Readiness probe consistently fails
+- Pod cannot reach ready state
+- Application service is not accessible
+
+## Detailed Solution
+
+<TroubleshootingItem id="initial-diagnosis" summary="Understanding the connection refused error">
+
+A "connection refused" error during readiness probe indicates that:
+
+1. **Application not started**: The HTTP server inside the container hasn't started
+2. **Wrong port**: The application is listening on a different port than expected
+3. **Application crash**: The application started but crashed before the probe
+4. **Binding issues**: The application is only binding to localhost instead of 0.0.0.0
+
+The fact that the container image is present suggests the deployment succeeded, but the application inside isn't running properly.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="check-logs" summary="Check application logs for errors">
+
+First, examine the pod logs to identify why the application isn't starting:
+
+```bash
+# Get pod logs
+kubectl logs <pod-name> -n <namespace>
+
+# For previous container instance
+kubectl logs <pod-name> -n <namespace> --previous
+
+# Follow logs in real-time
+kubectl logs <pod-name> -n <namespace> -f
+```
+
+Look for:
+
+- Application startup errors
+- Database connection failures
+- Missing environment variables
+- Port binding issues
+- Dependency failures
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verify-port-configuration" summary="Verify port configuration">
+
+Ensure your application is configured correctly:
+
+1. **Check application binding**:
+
+   ```javascript
+   // Wrong - only binds to localhost
+   app.listen(3000, "localhost");
+
+   // Correct - binds to all interfaces
+   app.listen(3000, "0.0.0.0");
+   ```
+
+2. **Verify Dockerfile EXPOSE**:
+
+   ```dockerfile
+   EXPOSE 3000
+   ```
+
+3. **Check Kubernetes service configuration**:
+   ```yaml
+   spec:
+     ports:
+       - port: 3000
+         targetPort: 3000
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="adjust-readiness-probe" summary="Adjust readiness probe configuration">
+
+If the application takes time to start, adjust the readiness probe:
+
+```yaml
+spec:
+  containers:
+    - name: app
+      readinessProbe:
+        httpGet:
+          path: /users/sign_in
+          port: 3000
+        initialDelaySeconds: 30 # Wait 30 seconds before first probe
+        periodSeconds: 10 # Check every 10 seconds
+        timeoutSeconds: 5 # 5 second timeout
+        failureThreshold: 3 # Fail after 3 consecutive failures
+        successThreshold: 1 # Success after 1 successful probe
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-health-endpoint" summary="Use a simpler health check endpoint">
+
+If `/users/sign_in` requires authentication or complex logic, create a simpler health endpoint:
+
+```javascript
+// Add a simple health check endpoint
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+```
+
+Then update your readiness probe:
+
+```yaml
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 3000
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="debugging-steps" summary="Additional debugging steps">
+
+1. **Check if the container is running**:
+
+   ```bash
+   kubectl describe pod <pod-name> -n <namespace>
+   ```
+
+2. **Execute into the container** (if it stays running):
+
+   ```bash
+   kubectl exec -it <pod-name> -n <namespace> -- /bin/bash
+   # Test if the port is listening
+   netstat -tlnp | grep 3000
+   ```
+
+3. **Test the endpoint manually**:
+
+   ```bash
+   kubectl exec -it <pod-name> -n <namespace> -- curl http://localhost:3000/users/sign_in
+   ```
+
+4. **Check resource limits**:
+   ```bash
+   kubectl top pod <pod-name> -n <namespace>
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-solutions" summary="Common solutions">
+
+**For Ruby on Rails applications:**
+
+```ruby
+# Ensure Rails binds to all interfaces
+# config/puma.rb
+bind "tcp://0.0.0.0:#{ENV.fetch('PORT', 3000)}"
+```
+
+**For Node.js applications:**
+
+```javascript
+// Ensure Express binds to all interfaces
+const port = process.env.PORT || 3000;
+app.listen(port, "0.0.0.0", () => {
+  console.log(`Server running on port ${port}`);
+});
+```
+
+**For environment variables:**
+
+- Verify all required environment variables are set
+- Check database connection strings
+- Ensure secrets are properly mounted
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

@@ -1,0 +1,184 @@
+---
+sidebar_position: 3
+title: "Variables de Entorno No Funcionan Durante la Migración de Plataforma"
+description: "Solución para variables de entorno que no llegan a las aplicaciones durante migraciones de mantenimiento en SleakOps"
+date: "2024-04-24"
+category: "proyecto"
+tags:
+  [
+    "variables-de-entorno",
+    "secretos",
+    "migración",
+    "despliegue",
+    "solución-de-problemas",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Variables de Entorno No Funcionan Durante la Migración de Plataforma
+
+**Fecha:** 24 de abril de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Variables de Entorno, Secretos, Migración, Despliegue, Solución de Problemas
+
+## Descripción del Problema
+
+**Contexto:** Durante las migraciones de mantenimiento de la plataforma SleakOps, las variables de entorno y secretos pueden volverse temporalmente inaccesibles para las aplicaciones, causando problemas en el despliegue y en tiempo de ejecución.
+
+**Síntomas Observados:**
+
+- Variables de entorno no enviadas a las aplicaciones tras compilación/despliegue
+- Variables que aparecen como indefinidas o vacías en los registros de la aplicación
+- Error al intentar editar variables en la plataforma SleakOps
+- Aplicaciones que fallan al conectar con APIs o servicios externos
+- Variables que funcionaban previamente dejan de funcionar de repente
+
+**Configuración Relevante:**
+
+- Plataforma: SleakOps
+- Afectados: Variables de entorno y secretos
+- Momento: Durante migraciones de mantenimiento
+- Impacto: Aplicaciones no pueden acceder a la configuración
+
+**Condiciones de Error:**
+
+- Ocurre durante ventanas de mantenimiento de la plataforma
+- Variables inaccesibles tras nuevas compilaciones/despliegues
+- Funcionalidad de edición deshabilitada temporalmente
+- Aplicaciones pueden apuntar a entornos incorrectos (QA en lugar de producción)
+
+## Solución Detallada
+
+<TroubleshootingItem id="understand-migration-impact" summary="Entendiendo el impacto de la migración en las variables de entorno">
+
+Durante las migraciones de mantenimiento de SleakOps:
+
+1. **Proceso de respaldo de secretos**: La plataforma crea copias de seguridad de los secretos en tu cuenta AWS
+2. **Edición temporalmente deshabilitada**: La edición de variables se desactiva durante la migración
+3. **Secretos existentes permanecen**: Las variables siguen existiendo en el clúster pero pueden no propagarse a nuevos despliegues
+4. **Impacto en compilación/despliegue**: Las nuevas compilaciones pueden no recibir variables de entorno actualizadas
+
+**Importante**: Evita iniciar nuevas compilaciones/despliegues durante migraciones activas.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-workaround" summary="Estrategias de solución inmediata">
+
+Si necesitas funcionalidad inmediata durante la migración:
+
+1. **Configuración a nivel de aplicación**: Codifica temporalmente valores críticos directamente en tu aplicación
+2. **Cambio de entorno**: Apunta desarrollo/pruebas a APIs de producción como medida temporal
+3. **Evita nuevos despliegues**: No inicies compilaciones/despliegues hasta que la migración finalice
+4. **Usa despliegues existentes en caché**: Utiliza instancias que estén corriendo y tengan las variables
+
+```javascript
+// Ejemplo: Valor alternativo codificado temporalmente
+const API_URL = process.env.API_URL || "https://api.production.example.com";
+const API_KEY = process.env.API_KEY || "clave-alternativa-para-emergencia";
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verify-variables-post-migration" summary="Verificando variables después de completar la migración">
+
+Una vez finalizada la migración:
+
+1. **Verifica disponibilidad de variables**: Confirma que todas las variables de entorno son accesibles
+2. **Prueba en proceso de compilación**: Inicia una compilación de prueba para confirmar que las variables se inyectan
+3. **Valida el inicio de la aplicación**: Asegúrate que las aplicaciones reciben toda la configuración necesaria
+4. **Monitorea los registros**: Revisa los logs de la aplicación en busca de variables faltantes
+
+```bash
+# Ejemplo: Depurar variables de entorno en tu aplicación
+console.log('Verificación de variables de entorno:');
+console.log('API_URL:', process.env.API_URL);
+console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'CONFIGURADA' : 'FALTA');
+console.log('SECRET_KEY:', process.env.SECRET_KEY ? 'CONFIGURADA' : 'FALTA');
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="edit-functionality-restoration" summary="Restauración de la funcionalidad de edición">
+
+Después de completar la migración:
+
+1. **Acceso a edición restaurado**: La funcionalidad para editar variables será reactivada
+2. **Actualiza si es necesario**: Realiza los cambios necesarios en las variables de entorno
+3. **Despliega con nuevas variables**: Inicia un nuevo despliegue para aplicar las actualizaciones
+4. **Verifica propagación**: Confirma que las variables llegan a todas las instancias de la aplicación
+
+**Pasos para verificar la funcionalidad de edición**:
+
+1. Ve a la sección de variables de entorno de tu proyecto
+2. Intenta editar una variable no crítica
+3. Guarda los cambios y despliega
+4. Verifica que el cambio se refleje en tu aplicación
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-best-practices" summary="Buenas prácticas para minimizar el impacto">
+
+Para minimizar el impacto durante futuras migraciones:
+
+1. **Monitorea anuncios de mantenimiento**: Mantente informado sobre migraciones planificadas
+2. **Implementa degradaciones elegantes**: Diseña aplicaciones para manejar variables faltantes
+3. **Usa gestión de configuración**: Implementa patrones adecuados de gestión de configuración
+4. **Programa despliegues**: Evita despliegues durante ventanas conocidas de mantenimiento
+5. **Prueba dependencias de variables**: Testea regularmente qué ocurre cuando faltan variables
+
+```javascript
+// Ejemplo: Manejo robusto de configuración
+class Config {
+  constructor() {
+    this.apiUrl = this.getRequiredEnv("API_URL");
+    this.dbUrl = this.getRequiredEnv("DATABASE_URL");
+    this.secretKey = this.getRequiredEnv("SECRET_KEY");
+  }
+
+  getRequiredEnv(key) {
+    const value = process.env[key];
+    if (!value) {
+      console.error(`Variable de entorno requerida ausente: ${key}`);
+      // Implementar fallback o degradación elegante
+      return this.getFallbackValue(key);
+    }
+    return value;
+  }
+
+  getFallbackValue(key) {
+    // Implementar lógica de fallback apropiada
+    const fallbacks = {
+      API_URL: "https://api.fallback.example.com",
+      // Añadir otros fallbacks según sea necesario
+    };
+    return fallbacks[key] || null;
+  }
+}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="communication-during-issues" summary="Comunicación y soporte durante migraciones">
+
+Cuando experimentes problemas con variables durante migraciones:
+
+1. **Contacta soporte inmediatamente**: Reporta el problema con detalles específicos
+2. **Proporciona contexto**: Incluye qué variables están afectadas y cuándo comenzó el problema
+3. **Evita múltiples despliegues**: No intentes desplegar repetidamente hasta que el problema se resuelva
+4. **Documenta soluciones temporales**: Mantén registro de cualquier arreglo provisional aplicado
+5. **Espera confirmación**: Obtén confirmación de que la migración terminó antes de reanudar operaciones normales
+
+**Información para incluir en solicitudes de soporte**:
+
+- Nombre del proyecto y entorno afectado
+- Variables específicas que no funcionan
+- Momento en que se detectó el problema
+- Mensajes de error de la plataforma
+- Capturas de pantalla de la configuración de variables si es útil
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

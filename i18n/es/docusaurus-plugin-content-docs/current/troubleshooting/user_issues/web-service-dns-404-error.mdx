@@ -1,0 +1,206 @@
+---
+sidebar_position: 3
+title: "Error 404 de DNS en Servicio Web"
+description: "Solución para servicio web que devuelve error 404 a pesar de que el pod funciona correctamente"
+date: "2024-01-15"
+category: "workload"
+tags: ["servicioweb", "dns", "404", "resolucióndeproblemas", "redes"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Error 404 de DNS en Servicio Web
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** Servicio Web, DNS, 404, Resolución de problemas, Redes
+
+## Descripción del Problema
+
+**Contexto:** El usuario crea un nuevo servicio web en entorno de producción con registro DNS. El pod funciona correctamente y responde con reenvío de puertos, pero al acceder a la URL devuelve un error 404.
+
+**Síntomas observados:**
+
+- El pod está funcionando correctamente en Kubernetes (visible en Lens)
+- El reenvío de puertos al pod funciona adecuadamente
+- La URL DNS devuelve error 404: "No se puede encontrar esta página [nombre-del-servicio].[dominio].com"
+- El error indica que la página web no fue encontrada, no que la IP no pudo resolverse
+- El navegador muestra: "No se encontró ninguna página web para esta dirección"
+
+**Configuración relevante:**
+
+- Entorno: Producción
+- Tipo de servicio: Servicio web
+- Registro DNS: Configurado
+- Estado del pod: En ejecución y responde
+- Balanceador de carga: Recientemente tuvo problemas (mencionados como resueltos)
+
+**Condiciones de error:**
+
+- El error ocurre al acceder a la URL pública
+- El pod responde correctamente al reenvío directo de puertos
+- La resolución DNS parece funcionar (sin error de resolución de IP)
+- El error 404 sugiere problema en el enrutamiento o configuración del ingress
+
+## Solución Detallada
+
+<TroubleshootingItem id="initial-diagnosis" summary="Diagnosticar el problema de enrutamiento">
+
+Cuando un pod funciona con reenvío de puertos pero devuelve 404 vía DNS, el problema suele estar en la capa de ingress/enrutamiento:
+
+1. **Controlador Ingress**: El ingress puede no estar configurado correctamente
+2. **Configuración del Servicio**: El servicio de Kubernetes podría no estar exponiendo correctamente el pod
+3. **Balanceador de Carga**: Problemas recientes en el balanceador podrían haber afectado las reglas de enrutamiento
+4. **Enrutamiento de Ruta**: El ingress podría estar esperando una ruta o configuración de host diferente
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verify-service" summary="Verificar configuración del Servicio de Kubernetes">
+
+Verifique si el Servicio de Kubernetes está configurado correctamente:
+
+```bash
+# Verificar si el servicio existe y tiene endpoints
+kubectl get svc -n [namespace]
+kubectl describe svc [nombre-del-servicio] -n [namespace]
+
+# Verificar que los endpoints estén poblados
+kubectl get endpoints [nombre-del-servicio] -n [namespace]
+```
+
+El servicio debe:
+
+- Tener el selector correcto que coincida con las etiquetas de su pod
+- Mostrar endpoints apuntando a la IP del pod
+- Usar la configuración de puerto correcta
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="check-ingress" summary="Verificar configuración del Ingress">
+
+Revise la configuración del ingress en SleakOps:
+
+1. **En el Panel de SleakOps**:
+
+   - Vaya a su proyecto → Servicios Web
+   - Verifique la configuración DNS
+   - Revise los ajustes de ruta y host
+
+2. **En Kubernetes**:
+
+```bash
+# Revisar recursos ingress
+kubectl get ingress -n [namespace]
+kubectl describe ingress [nombre-del-ingress] -n [namespace]
+```
+
+3. **Problemas comunes**:
+   - Configuración incorrecta del host
+   - Reglas de ruta faltantes o erróneas
+   - Desajuste en el nombre del servicio backend
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="load-balancer-check" summary="Verificar estado del Balanceador de Carga">
+
+Dado que hubo problemas recientes con el balanceador de carga:
+
+1. **Verificar estado del Balanceador**:
+
+```bash
+# Comprobar si el balanceador recibe tráfico
+kubectl get svc -n ingress-nginx
+kubectl logs -n ingress-nginx deployment/ingress-nginx-controller
+```
+
+2. **Verificar propagación DNS**:
+
+```bash
+# Comprobar si DNS resuelve a la IP correcta
+nslookup [su-dominio].com
+dig [su-dominio].com
+```
+
+3. **Probar balanceador directamente**:
+   - Obtener la IP del balanceador
+   - Probar con curl usando la cabecera Host:
+
+```bash
+curl -H "Host: [su-dominio].com" http://[ip-del-balanceador]/
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-solutions" summary="Soluciones comunes">
+
+**Solución 1: Recrear el registro DNS**
+
+1. En SleakOps, elimine la configuración DNS
+2. Espere 2-3 minutos
+3. Vuelva a agregar la configuración DNS
+
+**Solución 2: Verificar configuración de ruta en la aplicación**
+
+```yaml
+# Asegúrese que su aplicación sirva en la ruta correcta
+# Si su app sirve en /app, configure el ingress en consecuencia
+path: /
+pathType: Prefix
+```
+
+**Solución 3: Verificar que la aplicación escuche en el puerto correcto**
+
+```bash
+# Reenvíe puertos y verifique qué puerto usa la app realmente
+kubectl port-forward pod/[nombre-del-pod] 8080:8080
+# Pruebe con otros puertos si 8080 no funciona
+```
+
+**Solución 4: Revisar cambios recientes**
+Si esto funcionaba antes, revise:
+
+- Despliegues recientes que puedan haber modificado la aplicación
+- Cambios en la configuración del balanceador
+- Modificaciones en reglas DNS o ingress
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Pasos para resolución paso a paso">
+
+1. **Verificar que el pod esté saludable**:
+
+```bash
+kubectl get pods -n [namespace]
+kubectl logs [nombre-del-pod] -n [namespace]
+```
+
+2. **Probar conectividad del servicio**:
+
+```bash
+# Desde dentro del clúster
+kubectl run test-pod --image=curlimages/curl -it --rm -- sh
+# Dentro del pod:
+curl http://[nombre-del-servicio].[namespace].svc.cluster.local:[puerto]
+```
+
+3. **Revisar logs del ingress**:
+
+```bash
+kubectl logs -n ingress-nginx deployment/ingress-nginx-controller | grep [su-dominio]
+```
+
+4. **Validar reglas del ingress**:
+
+```bash
+kubectl get ingress [nombre-del-ingress] -o yaml
+```
+
+5. **Probar con diferentes rutas**:
+   - Intente acceder a `https://[dominio].com/health` u otros endpoints conocidos
+   - Verifique si la aplicación requiere una ruta base específica
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

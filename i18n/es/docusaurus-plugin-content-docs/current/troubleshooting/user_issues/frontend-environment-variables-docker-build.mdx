@@ -1,0 +1,179 @@
+---
+sidebar_position: 3
+title: "Variables de Entorno en Frontend que No Funcionan Durante la Construcción"
+description: "Solución para proyectos frontend que no reciben variables de entorno durante el proceso de construcción con Docker"
+date: "2024-12-23"
+category: "proyecto"
+tags:
+  [
+    "frontend",
+    "variables-de-entorno",
+    "docker",
+    "construcción",
+    "configuración",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Variables de Entorno en Frontend que No Funcionan Durante la Construcción
+
+**Fecha:** 23 de diciembre de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Frontend, Variables de Entorno, Docker, Construcción, Configuración
+
+## Descripción del Problema
+
+**Contexto:** Los proyectos frontend en SleakOps no están recibiendo variables de entorno durante el proceso de construcción, afectando múltiples aplicaciones en diferentes frameworks frontend.
+
+**Síntomas Observados:**
+
+- Las variables de entorno no están disponibles en las aplicaciones frontend
+- Variables que funcionan en otros tipos de proyectos fallan en proyectos frontend
+- El proceso de construcción finaliza con éxito pero las variables son indefinidas en tiempo de ejecución
+- El problema afecta consistentemente a múltiples aplicaciones frontend
+
+**Configuración Relevante:**
+
+- Tipo de proyecto: Aplicaciones frontend
+- Proceso de construcción: Construcciones basadas en Docker
+- Variables de entorno: Configuradas en los ajustes del proyecto SleakOps
+- Acceso a variables: Requerido durante el tiempo de construcción, no solo en tiempo de ejecución
+
+**Condiciones de Error:**
+
+- Variables indefinidas o nulas en la aplicación construida
+- Las variables de entorno funcionan en servicios backend pero no en frontend
+- El problema ocurre en diferentes frameworks frontend (React, Vue, Angular, etc.)
+- El problema persiste independientemente de las convenciones de nombres de variables
+
+## Solución Detallada
+
+<TroubleshootingItem id="root-cause" summary="Por qué los proyectos frontend necesitan configuración especial">
+
+Los proyectos frontend requieren variables de entorno durante el **proceso de construcción**, no solo en tiempo de ejecución. A diferencia de los servicios backend que pueden acceder a variables de entorno cuando el contenedor inicia, las aplicaciones frontend necesitan que estas variables estén "incrustadas" durante el paso de construcción porque:
+
+1. El código frontend se ejecuta en el navegador, no en el servidor
+2. Las variables de entorno deben incorporarse en los archivos estáticos durante la construcción
+3. El proceso de construcción necesita acceso a las variables para generar el paquete final
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="docker-args-solution" summary="Configurar Docker Args para variables en tiempo de construcción">
+
+Para solucionar este problema, debes configurar los Docker Args en los ajustes de tu proyecto:
+
+1. Ve a la lista de **Proyectos** en SleakOps
+2. Encuentra tu proyecto frontend y haz clic en **Editar**
+3. Navega a la sección de **Docker Args**
+4. Añade tus variables de entorno como argumentos de construcción
+
+**Ejemplo de configuración:**
+
+```bash
+# En la sección Docker Args
+REACT_APP_API_URL=${API_URL}
+REACT_APP_ENV=${ENVIRONMENT}
+VUE_APP_BASE_URL=${BASE_URL}
+NEXT_PUBLIC_API_KEY=${API_KEY}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-requirements" summary="Actualiza tu Dockerfile para usar argumentos de construcción">
+
+Tu Dockerfile debe estar configurado para aceptar y usar estos argumentos de construcción:
+
+```dockerfile
+# Aceptar argumentos de construcción
+ARG REACT_APP_API_URL
+ARG REACT_APP_ENV
+ARG VUE_APP_BASE_URL
+ARG NEXT_PUBLIC_API_KEY
+
+# Establecerlos como variables de entorno durante la construcción
+ENV REACT_APP_API_URL=$REACT_APP_API_URL
+ENV REACT_APP_ENV=$REACT_APP_ENV
+ENV VUE_APP_BASE_URL=$VUE_APP_BASE_URL
+ENV NEXT_PUBLIC_API_KEY=$NEXT_PUBLIC_API_KEY
+
+# Ejecutar tu comando de construcción
+RUN npm run build
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="framework-specific" summary="Nombres de variables específicos por framework">
+
+Diferentes frameworks frontend tienen convenciones específicas para nombrar las variables de entorno:
+
+**React:**
+
+- Deben comenzar con `REACT_APP_`
+- Ejemplo: `REACT_APP_API_URL`
+
+**Vue.js:**
+
+- Deben comenzar con `VUE_APP_`
+- Ejemplo: `VUE_APP_BASE_URL`
+
+**Next.js:**
+
+- Deben comenzar con `NEXT_PUBLIC_` para acceso en cliente
+- Ejemplo: `NEXT_PUBLIC_API_KEY`
+
+**Angular:**
+
+- No requiere prefijo específico, pero se usa configuración personalizada
+- Acceso a través de archivos `environment.ts`
+
+**Proyectos basados en Vite:**
+
+- Deben comenzar con `VITE_`
+- Ejemplo: `VITE_API_ENDPOINT`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification" summary="Cómo verificar que la configuración funciona">
+
+Para verificar que tus variables de entorno funcionan:
+
+1. **Revisa los logs de construcción:** Busca que las variables se establezcan durante la construcción
+2. **Consola del navegador:** Usa `console.log(process.env.REACT_APP_API_URL)` en tu código
+3. **Pestaña de red:** Verifica que las llamadas API usan las URLs correctas
+4. **Salida de construcción:** Revisa si las variables aparecen en los archivos empaquetados (ten cuidado con datos sensibles)
+
+**Ejemplo de código para prueba:**
+
+```javascript
+// Añade esto temporalmente para verificar
+console.log("Variables de entorno:", {
+  apiUrl: process.env.REACT_APP_API_URL,
+  environment: process.env.REACT_APP_ENV,
+});
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Pasos comunes para solucionar problemas">
+
+Si las variables aún no funcionan después de la configuración:
+
+1. **Revisa los nombres de las variables:** Asegúrate de que siguen las convenciones del framework
+2. **Verifica la sintaxis de Docker Args:** Asegúrate de que la sintaxis sea correcta en SleakOps
+3. **Reconstruye el proyecto:** Los cambios en Docker Args requieren una reconstrucción completa
+4. **Revisa el Dockerfile:** Asegúrate de que las declaraciones ARG y ENV estén presentes
+5. **Valida los valores de las variables:** Asegúrate de que las variables de entorno origen tengan valores
+
+**Errores comunes:**
+
+- Olvidar prefijos específicos del framework
+- No reconstruir después de cambios en la configuración
+- Faltar declaraciones ARG en el Dockerfile
+- Sintaxis incorrecta en la sustitución de variables
+
+</TroubleshootingItem>
+
+---
+
+_Este FAQ fue generado automáticamente el 23 de diciembre de 2024 basado en una consulta real de usuario._

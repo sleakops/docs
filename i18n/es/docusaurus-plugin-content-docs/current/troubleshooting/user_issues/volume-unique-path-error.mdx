@@ -1,0 +1,139 @@
+---
+sidebar_position: 3
+title: "Error de Ruta Única de Volumen Después de la Eliminación"
+description: "Solución para el error 'Ruta única' al recrear volúmenes en el mismo punto de montaje"
+date: "2025-02-11"
+category: "proyecto"
+tags: ["volumen", "almacenamiento", "error", "punto-de-montaje", "eliminación"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Error de Ruta Única de Volumen Después de la Eliminación
+
+**Fecha:** 11 de febrero de 2025  
+**Categoría:** Proyecto  
+**Etiquetas:** Volumen, Almacenamiento, Error, Punto de Montaje, Eliminación
+
+## Descripción del Problema
+
+**Contexto:** El usuario intenta recrear un volumen en el mismo punto de montaje tras eliminar un volumen previo, pero encuentra un error de "Ruta única" en la plataforma SleakOps.
+
+**Síntomas Observados:**
+
+- Error de "Ruta única" al intentar crear un nuevo volumen
+- El error ocurre en el mismo punto de montaje donde se eliminó un volumen previamente
+- El volumen parece estar correctamente eliminado desde la interfaz
+- No es posible reutilizar la misma ruta de montaje para nuevos volúmenes
+
+**Configuración Relevante:**
+
+- Proyecto: "velo-opensactions"
+- Ruta de montaje: "/opensanctions/data"
+- Volumen creado previamente y luego eliminado
+- Intento de recrear volumen en el punto de montaje idéntico
+
+**Condiciones del Error:**
+
+- El error aparece durante el proceso de creación del volumen
+- Ocurre específicamente al reutilizar rutas de montaje
+- Persiste incluso después de que la eliminación del volumen parece exitosa
+- Puede indicar una limpieza incompleta de los recursos del volumen
+
+## Solución Detallada
+
+<TroubleshootingItem id="root-cause" summary="Comprendiendo la causa raíz">
+
+El error de "Ruta única" típicamente ocurre cuando:
+
+1. **Limpieza incompleta del volumen**: El proceso de eliminación del volumen no eliminó completamente todos los recursos asociados
+2. **Reserva del punto de montaje**: El sistema aún considera la ruta de montaje como "en uso"
+3. **Retraso en la sincronización de recursos**: Existe un retraso entre la eliminación del volumen y la disponibilidad de la ruta
+4. **Referencias huérfanas**: Entradas en la base de datos o metadatos aún hacen referencia al volumen eliminado
+
+Este es un problema conocido que ha sido identificado y corregido en actualizaciones recientes de la plataforma.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-workaround" summary="Soluciones temporales inmediatas">
+
+Mientras se espera que se aplique la corrección, puede usar estas soluciones temporales:
+
+**Opción 1: Usar una ruta de montaje diferente**
+
+```bash
+# En lugar de /opensanctions/data
+# Pruebe /opensanctions/data-v2 o /opensanctions/storage
+```
+
+**Opción 2: Esperar y reintentar**
+
+- Espere 10-15 minutos después de la eliminación del volumen
+- El sistema puede eventualmente liberar la reserva de la ruta
+- Reintente la creación del volumen con la misma ruta
+
+**Opción 3: Contactar soporte para limpieza manual**
+
+- Si la ruta debe reutilizarse inmediatamente
+- El equipo de soporte puede limpiar manualmente las referencias huérfanas
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="proper-deletion" summary="Buenas prácticas para la eliminación de volúmenes">
+
+Para evitar este problema en el futuro:
+
+1. **Verificar eliminación completa**:
+
+   - Verifique que ninguna carga de trabajo esté usando aún el volumen
+   - Asegúrese de que todos los pods que usan el volumen estén detenidos
+
+2. **Esperar antes de recrear**:
+
+   - Permita de 5 a 10 minutos entre la eliminación y la recreación
+   - Esto garantiza que todos los procesos de limpieza se completen
+
+3. **Usar rutas de montaje únicas**:
+   - Considere usar marcas de tiempo o números de versión en las rutas
+   - Ejemplo: `/data/app-v1`, `/data/app-v2`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Cómo verificar que el volumen está completamente eliminado">
+
+Para confirmar que un volumen está completamente eliminado:
+
+1. **Verifique la sección de Volúmenes**:
+
+   - Vaya al panel de su proyecto
+   - Navegue a Almacenamiento → Volúmenes
+   - Verifique que el volumen no esté listado
+
+2. **Revise las configuraciones de cargas de trabajo**:
+
+   - Revise todas las cargas de trabajo en el proyecto
+   - Asegúrese de que ninguna haga referencia al volumen eliminado
+   - Busque errores de "Volumen no encontrado"
+
+3. **Monitoree recursos huérfanos**:
+   - Verifique si quedan reclamaciones de volúmenes persistentes
+   - Verifique que ninguna clase de almacenamiento siga haciendo referencia al volumen
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="platform-fix" summary="Información sobre la corrección en la plataforma">
+
+Este problema ha sido identificado y resuelto:
+
+- **Estado**: Corregido en una versión reciente de la plataforma
+- **Solución**: Proceso mejorado de limpieza de volúmenes
+- **Impacto**: Previene reservas huérfanas de rutas de montaje
+- **Despliegue**: Aplicado automáticamente a todos los proyectos
+
+Si continúa experimentando este problema después del despliegue de la corrección, por favor contacte soporte ya que podría indicar un problema subyacente diferente.
+
+</TroubleshootingItem>
+
+---
+
+_Este FAQ fue generado automáticamente el 11 de febrero de 2025 basado en una consulta real de usuario._

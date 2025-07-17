@@ -1,0 +1,203 @@
+---
+sidebar_position: 3
+title: "Error de Eliminación de Usuario Debido a la Vinculación con Cuenta AWS"
+description: "Solución para problemas de eliminación de usuarios cuando están vinculados a cuentas AWS"
+date: "2024-01-15"
+category: "usuario"
+tags:
+  [
+    "gestion-de-usuarios",
+    "aws",
+    "eliminacion",
+    "vinculacion-cuenta",
+    "resolucion-de-problemas",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Error de Eliminación de Usuario Debido a la Vinculación con Cuenta AWS
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Usuario  
+**Etiquetas:** Gestión de Usuarios, AWS, Eliminación, Vinculación de Cuenta, Resolución de Problemas
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios que intentan eliminar una cuenta de usuario en la plataforma SleakOps encuentran errores cuando el usuario está vinculado a una cuenta AWS. El proceso de eliminación falla, dejando al usuario en un estado pendiente que impide su recreación.
+
+**Síntomas Observados:**
+
+- El usuario aparece con estado de error en la interfaz
+- El proceso de eliminación no se completa
+- El usuario permanece en estado pendiente tras el intento de eliminación
+- No se puede recrear el usuario con las mismas credenciales
+- El error está relacionado con la vinculación a la cuenta AWS
+
+**Configuración Relevante:**
+
+- El usuario tiene vinculación activa con cuenta AWS
+- Se intenta eliminar el usuario a través de la interfaz de SleakOps
+- El usuario muestra estado de error antes del intento de eliminación
+- Plataforma: sistema de gestión de usuarios de SleakOps
+
+**Condiciones de Error:**
+
+- Ocurre error durante el proceso de eliminación del usuario
+- El usuario tiene asociaciones existentes con cuentas AWS
+- La eliminación deja al usuario en un estado inconsistente
+- Impide la recreación del usuario con la misma identidad
+
+## Solución Detallada
+
+<TroubleshootingItem id="understanding-aws-binding" summary="Comprendiendo los Problemas de Vinculación con Cuenta AWS">
+
+Cuando un usuario está vinculado a una cuenta AWS en SleakOps, pueden estar asociados varios recursos:
+
+- Roles y políticas IAM
+- Cuentas de servicio en clusters EKS
+- Configuraciones de VPC y redes
+- Permisos de acceso a recursos
+
+Estas vinculaciones deben limpiarse correctamente antes de que la eliminación del usuario pueda completarse con éxito.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="pre-deletion-steps" summary="Pasos Antes de Eliminar Usuarios Vinculados a AWS">
+
+Antes de intentar eliminar un usuario con vinculación a cuenta AWS:
+
+1. **Verificar Recursos Activos**:
+
+   - Navegar a Gestión de Usuarios → Detalles del Usuario
+   - Revisar la pestaña "Recursos AWS"
+   - Documentar cualquier cluster o proyecto activo
+
+2. **Eliminar Asociaciones AWS**:
+
+   ```bash
+   # Eliminar usuario de todos los proyectos primero
+   sleakops project remove-user --user-email usuario@ejemplo.com --all-projects
+
+   # Desvincular cuenta AWS
+   sleakops user unbind-aws --user-email usuario@ejemplo.com
+   ```
+
+3. **Verificar Estado Limpio**:
+   - Asegurarse de que no haya clusters activos asignados al usuario
+   - Confirmar que no existan operaciones pendientes en AWS
+   - Verificar que los roles IAM hayan sido limpiados correctamente
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="safe-deletion-process" summary="Proceso Seguro para Eliminar Usuarios">
+
+Para eliminar de forma segura un usuario vinculado a cuenta AWS:
+
+1. **Fase de Preparación**:
+
+   ```bash
+   # Listar recursos activos del usuario
+   sleakops user list-resources --user-email usuario@ejemplo.com
+
+   # Eliminar de todos los proyectos
+   sleakops project remove-user --user-email usuario@ejemplo.com --all-projects
+   ```
+
+2. **Fase de Limpieza AWS**:
+
+   ```bash
+   # Desvincular cuenta AWS
+   sleakops user unbind-aws --user-email usuario@ejemplo.com --force-cleanup
+
+   # Esperar a que la limpieza finalice
+   sleakops user check-cleanup-status --user-email usuario@ejemplo.com
+   ```
+
+3. **Eliminación Final**:
+   ```bash
+   # Eliminar usuario tras limpieza
+   sleakops user delete --user-email usuario@ejemplo.com --confirm
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="recovery-from-failed-deletion" summary="Recuperación de Eliminación Fallida">
+
+Si un usuario queda atascado en estado pendiente de eliminación:
+
+1. **Verificar Estado de Eliminación**:
+
+   ```bash
+   sleakops user status --user-email usuario@ejemplo.com
+   ```
+
+2. **Forzar Limpieza** (solo administrador):
+
+   ```bash
+   # Comando admin para forzar limpieza
+   sleakops admin user force-cleanup --user-email usuario@ejemplo.com
+
+   # Completar la eliminación
+   sleakops admin user complete-deletion --user-email usuario@ejemplo.com
+   ```
+
+3. **Limpieza Manual en AWS** (si es necesario):
+   - Acceder a la Consola AWS IAM
+   - Eliminar cualquier rol restante con prefijo `sleakops-user-{user-id}`
+   - Limpiar cuentas de servicio huérfanas en clusters EKS
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="recreating-user" summary="Recrear Usuario Después de la Limpieza">
+
+Una vez completada la limpieza, para recrear el usuario:
+
+1. **Verificar Estado Limpio**:
+
+   ```bash
+   sleakops user check --email usuario@ejemplo.com
+   # Debe devolver "Usuario no encontrado"
+   ```
+
+2. **Crear Nuevo Usuario**:
+
+   ```bash
+   sleakops user create --email usuario@ejemplo.com --name "Nombre Usuario" --role member
+   ```
+
+3. **Re-vincular Cuenta AWS** (si es necesario):
+   ```bash
+   sleakops user bind-aws --user-email usuario@ejemplo.com --aws-account-id 123456789012
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-best-practices" summary="Mejores Prácticas para la Prevención">
+
+Para evitar problemas futuros al eliminar usuarios:
+
+1. **Limpieza Regular**:
+
+   - Eliminar usuarios de proyectos antes de la eliminación
+   - Desvincular cuentas AWS cuando ya no se necesiten
+   - Monitorear regularmente el uso de recursos por usuario
+
+2. **Flujo de Trabajo Adecuado**:
+
+   ```bash
+   # Flujo recomendado para eliminación
+   sleakops user prepare-deletion --user-email usuario@ejemplo.com
+   sleakops user confirm-deletion --user-email usuario@ejemplo.com
+   ```
+
+3. **Monitoreo**:
+   - Configurar alertas para operaciones fallidas de usuarios
+   - Auditorías regulares de vinculaciones usuario-AWS
+   - Documentar asociaciones de recursos de usuario
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

@@ -1,0 +1,91 @@
+---
+sidebar_position: 3
+title: "Global Variables Update Error in SleakOps"
+description: "Solution for errors when updating global variables in SleakOps platform"
+date: "2024-03-27"
+category: "project"
+tags: ["variables", "configuration", "error", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Global Variables Update Error in SleakOps
+
+**Date:** March 27, 2024  
+**Category:** Project  
+**Tags:** Variables, Configuration, Error, Troubleshooting
+
+## Problem Description
+
+**Context:** User encounters errors when trying to update global variables through the SleakOps platform interface, preventing configuration changes from being applied.
+
+**Observed Symptoms:**
+
+- Error message appears when attempting to modify global variables
+- Configuration changes cannot be saved through the UI
+- Variables update process fails without specific error details
+- Unable to modify existing configuration settings
+
+**Relevant Configuration:**
+
+- Platform: SleakOps web interface
+- Feature: Global Variables management
+- Action: Updating existing variable values
+- Error type: Generic error during save operation
+
+**Error Conditions:**
+
+- Error occurs when saving variable changes
+- Affects global variable modifications
+- Prevents configuration updates from being applied
+- Issue persists across multiple attempts
+
+## Detailed Solution
+
+<TroubleshootingItem id="immediate-workaround" summary="Immediate workaround using Lens">
+
+While the platform issue is being investigated, you can update variables directly in the cluster:
+
+**Using Lens (Kubernetes IDE):**
+
+1. **Connect to your cluster** through Lens
+2. **Navigate to Secrets** in the left sidebar
+3. **Find the relevant secret** containing your variables
+4. **Edit the secret** by clicking the edit button
+5. **Update the variable values** in the data section
+6. **Save the changes**
+7. **Restart the deployment** to apply the new variables
+
+```bash
+# Alternative: Using kubectl
+kubectl edit secret <secret-name> -n <namespace>
+
+# After editing, restart the deployment
+kubectl rollout restart deployment <deployment-name> -n <namespace>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="kubectl-method" summary="Using kubectl command line">
+
+If you prefer using kubectl directly:
+
+**Step 1: Identify the secret**
+
+```bash
+# List secrets in your namespace
+kubectl get secrets -n <your-namespace>
+
+# Look for secrets with your application name or environment variables
+kubectl describe secret <secret-name> -n <namespace>
+```
+
+**Step 2: Update the secret**
+
+```bash
+# Edit the secret directly
+kubectl edit secret <secret-name> -n <namespace>
+
+# Or patch specific values
+kubectl patch secret <secret-name> -n <namespace> --type='json' -p='[{"op": "replace"
+```

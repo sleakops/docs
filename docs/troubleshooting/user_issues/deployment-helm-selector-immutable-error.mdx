@@ -1,0 +1,181 @@
+---
+sidebar_position: 3
+title: "Helm Deployment Selector Immutable Error"
+description: "Solution for Kubernetes deployment selector field immutable error during Helm upgrades"
+date: "2024-12-19"
+category: "workload"
+tags: ["helm", "deployment", "kubernetes", "selector", "upgrade"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Helm Deployment Selector Immutable Error
+
+**Date:** December 19, 2024  
+**Category:** Workload  
+**Tags:** Helm, Deployment, Kubernetes, Selector, Upgrade
+
+## Problem Description
+
+**Context:** User encounters deployment failure when trying to deploy a project through SleakOps platform using Helm charts.
+
+**Observed Symptoms:**
+
+- Deployment fails with "UPGRADE FAILED" error
+- Error message indicates "field is immutable" for spec.selector
+- The deployment cannot be patched due to selector label changes
+- Helm upgrade process is blocked
+
+**Relevant Configuration:**
+
+- Platform: SleakOps with Kubernetes cluster
+- Deployment tool: Helm
+- Error type: `spec.selector: Invalid value` with `field is immutable`
+- Affected resource: Kubernetes Deployment
+
+**Error Conditions:**
+
+- Error occurs during Helm upgrade process
+- Happens when deployment selector labels have been modified
+- Prevents successful deployment of updated applications
+- Typically occurs after manual changes or conflicts
+
+## Detailed Solution
+
+<TroubleshootingItem id="root-cause-analysis" summary="Understanding the root cause">
+
+The error occurs because Kubernetes Deployment's `spec.selector` field is immutable after creation. This means:
+
+1. **Selector labels cannot be changed** once a Deployment is created
+2. **Helm tries to update** the selector during upgrade
+3. **Kubernetes rejects** the change due to immutability rules
+4. **Manual modifications** or conflicts can trigger this issue
+
+The error message shows that Helm is trying to patch a deployment with different selector labels than what currently exists.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-solution" summary="Delete and recreate the deployment">
+
+The quickest solution is to delete the existing deployment and let SleakOps recreate it:
+
+**Using Lens (Kubernetes IDE):**
+
+1. Open Lens and connect to your cluster
+2. Navigate to **Workloads** → **Deployments**
+3. Find the problematic deployment (e.g., `velo-crawler-scheduler-produce-production-crawler-scheduler`)
+4. Right-click and select **Delete**
+5. Confirm the deletion
+
+**Using kubectl:**
+
+```bash
+kubectl delete deployment velo-crawler-scheduler-produce-production-crawler-scheduler -n <namespace>
+```
+
+**After deletion:**
+
+- Trigger a new deployment from SleakOps dashboard
+- Or push code to trigger CI/CD pipeline
+- The deployment will be recreated with correct selectors
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-measures" summary="Preventing future occurrences">
+
+To avoid this issue in the future:
+
+**1. Avoid manual modifications:**
+
+- Don't manually edit deployments through Lens or kubectl
+- Always use SleakOps dashboard or CI/CD for changes
+
+**2. Handle conflicts properly:**
+
+- When merge conflicts occur in Helm charts, ensure selector labels remain consistent
+- Review changes in deployment templates before merging
+
+**3. Use proper Helm practices:**
+
+```yaml
+# In your Helm template, ensure consistent labeling
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: { { include "chart.fullname" . } }
+  labels: { { - include "chart.labels" . | nindent 4 } }
+spec:
+  selector:
+    matchLabels: { { - include "chart.selectorLabels" . | nindent 6 } }
+  template:
+    metadata:
+      labels: { { - include "chart.selectorLabels" . | nindent 8 } }
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Alternative approaches if deletion is not possible">
+
+If you cannot delete the deployment immediately:
+
+**1. Scale down to zero:**
+
+```bash
+kubectl scale deployment <deployment-name> --replicas=0 -n <namespace>
+```
+
+**2. Use Helm uninstall and reinstall:**
+
+```bash
+# Uninstall the release
+helm uninstall <release-name> -n <namespace>
+
+# Reinstall from SleakOps
+# Trigger new deployment through platform
+```
+
+**3. Manual selector fix (advanced):**
+If you need to preserve the deployment, you can:
+
+- Export the current deployment YAML
+- Delete the deployment
+- Modify the YAML to match expected selectors
+- Apply the corrected version
+- Then proceed with normal SleakOps deployment
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Verifying the solution">
+
+After applying the solution:
+
+**1. Check deployment status:**
+
+```bash
+kubectl get deployments -n <namespace>
+kubectl describe deployment <deployment-name> -n <namespace>
+```
+
+**2. Verify pods are running:**
+
+```bash
+kubectl get pods -n <namespace> -l app.kubernetes.io/instance=<instance-name>
+```
+
+**3. Check application logs:**
+
+```bash
+kubectl logs -l app.kubernetes.io/instance=<instance-name> -n <namespace>
+```
+
+**4. Test application functionality:**
+
+- Verify the application is responding correctly
+- Check any health endpoints
+- Confirm expected behavior
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

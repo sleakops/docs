@@ -1,0 +1,225 @@
+---
+sidebar_position: 3
+title: "Environment Variables Not Accessible in NuxtJS Application"
+description: "Solution for environment variables not being received in NuxtJS applications deployed on SleakOps"
+date: "2024-01-15"
+category: "project"
+tags: ["nuxtjs", "environment-variables", "deployment", "configuration"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Environment Variables Not Accessible in NuxtJS Application
+
+**Date:** January 15, 2024  
+**Category:** Project  
+**Tags:** NuxtJS, Environment Variables, Deployment, Configuration
+
+## Problem Description
+
+**Context:** User has deployed a NuxtJS application on SleakOps and configured environment variables through the platform, but the application cannot access these variables at runtime.
+
+**Observed Symptoms:**
+
+- Environment variables are configured in SleakOps platform
+- Variables are not accessible within the NuxtJS application
+- Application behavior suggests missing environment configuration
+- Variables may appear as undefined or empty
+
+**Relevant Configuration:**
+
+- Framework: NuxtJS
+- Platform: SleakOps
+- Environment variables: Configured through platform interface
+- Deployment type: Container-based deployment
+
+**Error Conditions:**
+
+- Variables are not available at application runtime
+- Issue occurs after successful deployment
+- Problem persists across application restarts
+- May affect both server-side and client-side variable access
+
+## Detailed Solution
+
+<TroubleshootingItem id="nuxt-env-basics" summary="Understanding NuxtJS Environment Variables">
+
+NuxtJS has specific requirements for environment variables:
+
+1. **Server-side variables**: Available in `process.env`
+2. **Client-side variables**: Must be explicitly exposed using `publicRuntimeConfig` or `privateRuntimeConfig`
+3. **Build-time variables**: Need to be available during the build process
+
+```javascript
+// nuxt.config.js
+export default {
+  // Server-side only
+  privateRuntimeConfig: {
+    apiSecret: process.env.API_SECRET,
+  },
+  // Exposed to client-side
+  publicRuntimeConfig: {
+    apiUrl: process.env.API_URL || "https://api.example.com",
+  },
+};
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-env-config" summary="Configuring Environment Variables in SleakOps">
+
+To properly configure environment variables in SleakOps:
+
+1. **Go to your Project Settings**
+2. **Navigate to Environment Variables section**
+3. **Add variables with proper naming**:
+
+   - Use `NUXT_` prefix for automatic Nuxt recognition
+   - Example: `NUXT_API_URL`, `NUXT_DATABASE_URL`
+
+4. **Ensure variables are available at build time**:
+   - Mark critical variables as "Build Time" if they're needed during compilation
+   - Mark runtime variables as "Runtime" for application execution
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-configuration" summary="Dockerfile Configuration for Environment Variables">
+
+Ensure your Dockerfile properly handles environment variables:
+
+```dockerfile
+# Dockerfile example for NuxtJS
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+RUN npm ci --only=production
+
+# Copy source code
+COPY . .
+
+# Build the application (environment variables needed here)
+ARG NUXT_API_URL
+ARG NUXT_APP_NAME
+ENV NUXT_API_URL=$NUXT_API_URL
+ENV NUXT_APP_NAME=$NUXT_APP_NAME
+
+RUN npm run build
+
+# Expose port
+EXPOSE 3000
+
+# Start the application
+CMD ["npm", "start"]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="nuxt3-configuration" summary="Nuxt 3 Specific Configuration">
+
+For Nuxt 3 applications, use the new runtime configuration:
+
+```typescript
+// nuxt.config.ts
+export default defineNuxtConfig({
+  runtimeConfig: {
+    // Private keys (only available on server-side)
+    apiSecret: process.env.API_SECRET,
+    // Public keys (exposed to client-side)
+    public: {
+      apiUrl: process.env.NUXT_PUBLIC_API_URL || "https://api.example.com",
+      appName: process.env.NUXT_PUBLIC_APP_NAME || "My App",
+    },
+  },
+});
+```
+
+Access variables in your application:
+
+```vue
+<template>
+  <div>
+    <h1>{{ config.public.appName }}</h1>
+    <p>API URL: {{ config.public.apiUrl }}</p>
+  </div>
+</template>
+
+<script setup>
+const config = useRuntimeConfig();
+
+// Server-side API call example
+const { data } = await $fetch("/api/data", {
+  headers: {
+    Authorization: `Bearer ${config.apiSecret}`,
+  },
+});
+</script>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Troubleshooting Steps">
+
+1. **Verify variable names in SleakOps**:
+
+   - Check for typos in variable names
+   - Ensure consistent naming between platform and code
+
+2. **Check build logs**:
+
+   - Look for environment variable availability during build
+   - Verify no build-time errors related to missing variables
+
+3. **Test locally**:
+
+   ```bash
+   # Create .env file for local testing
+   NUXT_PUBLIC_API_URL=https://api.example.com
+   NUXT_PUBLIC_APP_NAME=Test App
+   API_SECRET=your-secret-key
+
+   # Run locally
+   npm run dev
+   ```
+
+4. **Debug in production**:
+   ```javascript
+   // Add temporary logging
+   console.log("Environment check:", {
+     nodeEnv: process.env.NODE_ENV,
+     apiUrl: process.env.NUXT_PUBLIC_API_URL,
+     hasSecret: !!process.env.API_SECRET,
+   });
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-solutions" summary="Common Solutions">
+
+**Solution 1: Update variable naming**
+
+- Prefix public variables with `NUXT_PUBLIC_`
+- Use consistent casing (UPPER_CASE for env vars)
+
+**Solution 2: Rebuild application**
+
+- After changing environment variables, trigger a new deployment
+- Ensure build process picks up new variables
+
+**Solution 3: Check variable scope**
+
+- Verify if variables should be build-time or runtime
+- Configure accordingly in SleakOps platform
+
+**Solution 4: Update nuxt.config**
+
+- Ensure all required variables are properly configured
+- Test both server-side and client-side access
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

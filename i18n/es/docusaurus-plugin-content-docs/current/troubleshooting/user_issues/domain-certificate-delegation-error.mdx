@@ -1,0 +1,165 @@
+---
+sidebar_position: 3
+title: "Error de Delegación de Certificado de Dominio Durante el Despliegue"
+description: "Solución para el error ACMModule DoesNotExist al desplegar con certificados de dominio"
+date: "2024-12-19"
+category: "proyecto"
+tags: ["despliegue", "dominio", "certificado", "acm", "resolución de problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Error de Delegación de Certificado de Dominio Durante el Despliegue
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Despliegue, Dominio, Certificado, ACM, Resolución de problemas
+
+## Descripción del Problema
+
+**Contexto:** El usuario experimenta una falla en el despliegue al intentar registrar un dominio de producción en SleakOps. El error ocurre durante el proceso de delegación del certificado para la gestión del dominio.
+
+**Síntomas Observados:**
+
+- El despliegue falla con error `Modules.DoesNotExist`
+- El error menciona específicamente que `ACMModule` no fue encontrado
+- El problema impide el registro del dominio para el entorno de producción
+- El error ocurre durante la generación de valores de ingress
+
+**Configuración Relevante:**
+
+- Dominio: `hub.supra.social` (dominio de producción)
+- Gestión de certificados: integración con AWS ACM
+- Proceso de despliegue: generación de valores para el Helm chart
+- Plataforma: sistema de gestión de dominios SleakOps
+
+**Condiciones del Error:**
+
+- El error ocurre durante la ejecución de `create_values_config_map`
+- Falla específicamente en `domain.acm_certificate_info(raise_exceptions=True)`
+- La consulta al ACMModule no devuelve resultados
+- Impide la finalización del proceso de despliegue
+
+## Solución Detallada
+
+<TroubleshootingItem id="certificate-delegation" summary="Re-delegar certificados a través de la consola SleakOps">
+
+Al enfrentar problemas de delegación de certificados, siga estos pasos:
+
+1. **Acceder a la Consola SleakOps**
+
+   - Navegue a su panel de proyecto
+   - Vaya a la sección **Dominios**
+
+2. **Re-delegar Certificados**
+
+   - Encuentre el dominio afectado (`hub.supra.social`)
+   - Haga clic en **Gestión de Certificados**
+   - Seleccione **Re-delegar Certificado**
+   - Siga las indicaciones de la consola para completar la delegación
+
+3. **Verificar Estado de Delegación**
+   - Compruebe que el estado del certificado aparezca como "Activo"
+   - Asegúrese de que el módulo ACM esté correctamente asociado con el dominio
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="hz-task-relaunch" summary="Relanzar tarea HZ antes del despliegue">
+
+Si la delegación del certificado falla, intente relanzar la tarea HZ (Hosted Zone):
+
+1. **Acceder a Gestión de Tareas**
+
+   - Vaya a **Infraestructura** → **Tareas**
+   - Busque tareas relacionadas con HZ
+
+2. **Relanzar Tarea HZ**
+
+   - Seleccione la tarea HZ más reciente
+   - Haga clic en **Relanzar** o **Reintentar**
+   - Espere a que la tarea finalice
+
+3. **Proceder con el Despliegue**
+   - Tras la finalización exitosa de la tarea HZ
+   - Intente desplegar nuevamente
+   - La delegación del certificado debería funcionar correctamente
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="domain-cleanup" summary="Limpiar entradas de dominios no usados">
+
+Para evitar conflictos con dominios no usados:
+
+1. **Identificar Dominios No Usados**
+
+   - Revise la lista de dominios en la consola SleakOps
+   - Identifique dominios que nunca fueron registrados correctamente
+
+2. **Eliminar Entradas No Usadas**
+
+   - Seleccione las entradas de dominios no usados (por ejemplo, dominios Disker)
+   - Haga clic en **Eliminar** o **Quitar**
+   - Confirme la eliminación
+
+3. **Verificar Estado Limpio**
+   - Asegúrese de que solo queden dominios activos y configurados correctamente
+   - Verifique que cada dominio tenga la delegación de certificado adecuada
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dns-verification" summary="Verificar configuración DNS">
+
+Antes de intentar el despliegue, verifique la configuración DNS:
+
+1. **Revisar Registros DNS**
+
+   - Verifique que los registros DNS para `supra.social` sean correctos
+   - Asegúrese de que no se hayan hecho cambios externos fuera de SleakOps
+
+2. **Validar Configuración de Subdominios**
+
+   - Compruebe que `hub.supra.social` esté configurado correctamente
+   - Verifique que la delegación del subdominio funcione
+
+3. **Probar Resolución**
+
+   ```bash
+   # Probar resolución DNS
+   nslookup hub.supra.social
+
+   # Verificar estado del certificado
+   openssl s_client -connect hub.supra.social:443 -servername hub.supra.social
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Pasos adicionales para resolución de problemas">
+
+Si el problema persiste tras la re-delegación de certificados:
+
+1. **Verificar Estado del Módulo**
+
+   - Confirme que ACMModule esté habilitado para su proyecto
+   - Contacte soporte si el módulo parece faltar
+
+2. **Revisar Cambios Recientes**
+
+   - Verifique si se hicieron cambios DNS externos
+   - Asegúrese de que no existan solicitudes de certificado en conflicto
+
+3. **Monitorear Logs de Despliegue**
+
+   - Revise los logs del despliegue para más detalles del error
+   - Busque fallos en la validación del certificado
+
+4. **Contactar Soporte**
+   - Si el problema persiste, proporcione:
+     - Nombre del dominio afectado
+     - Traza completa del error
+     - Cambios recientes realizados en DNS o certificados
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de usuario._

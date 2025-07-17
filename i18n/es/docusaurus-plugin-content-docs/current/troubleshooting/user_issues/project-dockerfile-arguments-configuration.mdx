@@ -1,0 +1,184 @@
+---
+sidebar_position: 3
+title: "Error de Configuración de Argumentos en Dockerfile"
+description: "Solución para la configuración de argumentos en Dockerfile en proyectos SleakOps"
+date: "2025-03-11"
+category: "proyecto"
+tags: ["dockerfile", "argumentos", "configuración", "despliegue"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Error de Configuración de Argumentos en Dockerfile
+
+**Fecha:** 11 de marzo de 2025  
+**Categoría:** Proyecto  
+**Etiquetas:** Dockerfile, Argumentos, Configuración, Despliegue
+
+## Descripción del Problema
+
+**Contexto:** El usuario encuentra problemas al crear un proyecto de producción en SleakOps, específicamente relacionados con la configuración de argumentos en Dockerfile y el flujo de creación del proyecto.
+
+**Síntomas Observados:**
+
+- No es posible añadir argumentos de Dockerfile durante la creación del proyecto
+- La creación del proyecto falla en el entorno de producción
+- La interfaz impide configurar argumentos antes de que el proyecto exista
+- El error persiste a pesar de que el Dockerfile está presente en la rama correcta
+
+**Configuración Relevante:**
+
+- Rama: `sleakops-master` (rama de producción)
+- Entorno: Producción
+- Dockerfile: Presente en el repositorio
+- Argumentos: Requeridos por Dockerfile pero no se pueden configurar
+
+**Condiciones del Error:**
+
+- El error ocurre durante la creación del proyecto hacia el entorno de producción
+- No se pueden declarar argumentos antes de crear el proyecto
+- El problema es resuelto mediante intervención del equipo de SleakOps
+- Se identifica como un problema del lado de la plataforma
+
+## Solución Detallada
+
+<TroubleshootingItem id="dockerfile-arguments-location" summary="Dónde configurar los argumentos de Dockerfile">
+
+En SleakOps, los argumentos de Dockerfile (ARG) deben configurarse en la sección de **Configuración del Proyecto**, no en los Grupos de Variables:
+
+1. Ve a tu **Configuración del Proyecto**
+2. Navega a **Configuración de Build**
+3. Busca la sección **Argumentos de Dockerfile**
+4. Añade tus argumentos allí antes del despliegue
+
+**Importante:** Los argumentos de Dockerfile son diferentes de las variables de entorno en tiempo de ejecución:
+
+- **Argumentos de Dockerfile (ARG):** Usados durante el proceso de construcción de la imagen
+- **Grupos de Variables:** Usados para variables de entorno en tiempo de ejecución
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="project-creation-workflow" summary="Flujo correcto para la creación del proyecto">
+
+Para crear correctamente un proyecto con argumentos de Dockerfile:
+
+1. **Asegúrate de que el Dockerfile esté en la rama correcta**
+
+   - Verifica que el Dockerfile exista en tu rama de producción (`sleakops-master`)
+   - Confirma que todos los cambios estén fusionados desde las ramas de desarrollo
+
+2. **Crea el proyecto primero**
+
+   - Crea el proyecto inicialmente sin argumentos
+   - Esto permite acceder a las opciones de configuración
+
+3. **Configura los argumentos después de la creación**
+
+   - Ve a Configuración del Proyecto → Configuración de Build
+   - Añade los argumentos de Dockerfile requeridos
+   - Guarda la configuración
+
+4. **Despliega nuevamente con los argumentos**
+   - Inicia un nuevo despliegue
+   - Los argumentos serán pasados durante el proceso de construcción
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="branch-verification" summary="Verificar rama y presencia del Dockerfile">
+
+Antes de crear un proyecto de producción, verifica:
+
+```bash
+# Verifica si el Dockerfile existe en la rama de producción
+git checkout sleakops-master
+ls -la | grep Dockerfile
+
+# Verifica que la rama esté actualizada
+git pull origin sleakops-master
+
+# Revisa si todos los cambios necesarios están fusionados
+git log --oneline -10
+```
+
+En la interfaz de SleakOps:
+
+1. Ve a **Configuración del Repositorio**
+2. Verifica que la **Rama de Producción** esté configurada como `sleakops-master`
+3. Confirma que la **Ruta del Dockerfile** sea correcta (usualmente `./Dockerfile`)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Pasos para solucionar problemas de despliegue">
+
+Si encuentras problemas similares:
+
+1. **Revisa los logs de build**
+
+   - Ve a **Despliegues** → **Logs de Build**
+   - Busca mensajes de error específicos
+   - Verifica si el Dockerfile es encontrado
+
+2. **Verifica acceso al repositorio**
+
+   - Asegúrate de que SleakOps tiene acceso al repositorio
+   - Comprueba que los permisos de la rama sean correctos
+
+3. **Contacta soporte si es necesario**
+   - Problemas del lado de la plataforma pueden requerir intervención del equipo
+   - Proporciona mensajes de error específicos y capturas de pantalla
+   - Incluye información de la rama y el repositorio
+
+**Ejemplo de Dockerfile con argumentos:**
+
+```dockerfile
+FROM node:16-alpine
+
+# Declarar argumentos de build
+ARG NODE_ENV=production
+ARG API_URL
+ARG DATABASE_URL
+
+# Usar argumentos durante el build
+ENV NODE_ENV=$NODE_ENV
+ENV API_URL=$API_URL
+ENV DATABASE_URL=$DATABASE_URL
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-tips" summary="Prevención y mejores prácticas">
+
+Para evitar problemas similares en el futuro:
+
+1. **Siempre prueba primero en staging**
+
+   - Crea y prueba proyectos en entorno staging
+   - Verifica que todas las configuraciones funcionen antes de producción
+
+2. **Documenta tus argumentos**
+
+   - Mantén una lista de los argumentos requeridos para Dockerfile
+   - Documenta su propósito y valores esperados
+
+3. **Usa nombres de ramas consistentes**
+
+   - Mantén convenciones claras para nombres de ramas
+   - Asegura que la rama de producción esté siempre actualizada
+
+4. **Sincronización regular de ramas**
+   - Fusiona cambios regularmente a la rama de producción
+   - Mantén sincronizadas las ramas de desarrollo y producción
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 11 de marzo de 2025 basada en una consulta real de usuario._

@@ -1,0 +1,147 @@
+---
+sidebar_position: 3
+title: "Grafana Loki No Carga Logs ni Opciones"
+description: "Solución para Grafana Loki cuando los dashboards y la vista de exploración no cargan opciones de logs"
+date: "2024-10-21"
+category: "dependency"
+tags: ["grafana", "loki", "logs", "monitoring", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Grafana Loki No Carga Logs ni Opciones
+
+**Fecha:** 21 de octubre de 2024  
+**Categoría:** Dependencia  
+**Etiquetas:** Grafana, Loki, Logs, Monitoreo, Solución de problemas
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios experimentan problemas con Grafana Loki donde los dashboards de logs y la vista de exploración dejan de funcionar, impidiendo el acceso a datos y opciones de logs.
+
+**Síntomas Observados:**
+
+- Grafana Loki deja de funcionar repentinamente
+- Los dashboards de logs no cargan ninguna opción
+- La vista de exploración con la fuente de datos Loki no muestra opciones disponibles
+- El estado del servicio Loki parece normal
+- El problema afecta toda la funcionalidad relacionada con logs en Grafana
+
+**Configuración Relevante:**
+
+- Servicio: Grafana con fuente de datos Loki
+- Plataforma: Entorno gestionado por SleakOps
+- Componentes afectados: Dashboards de logs y vista de exploración
+- Estado externo: El estado del servicio Loki muestra que está operativo
+
+**Condiciones de Error:**
+
+- El error ocurre de forma intermitente sin un disparador claro
+- Afecta a todos los usuarios que acceden a la funcionalidad de logs
+- El problema persiste hasta una intervención manual
+- No hay cambios evidentes en la configuración antes del problema
+
+## Solución Detallada
+
+<TroubleshootingItem id="immediate-fix" summary="Solución inmediata: Reiniciar el pod loki-read">
+
+La forma más rápida de resolver este problema es reiniciar el pod `loki-read`:
+
+**Usando kubectl:**
+
+```bash
+# Encontrar el pod loki-read
+kubectl get pods -n monitoring | grep loki-read
+
+# Reiniciar el pod eliminándolo (se recreará automáticamente)
+kubectl delete pod <nombre-del-pod-loki-read> -n monitoring
+
+# Verificar que el nuevo pod esté corriendo
+kubectl get pods -n monitoring | grep loki-read
+```
+
+**Usando el Panel de SleakOps:**
+
+1. Navega a las cargas de trabajo de tu clúster
+2. Encuentra el deployment `loki-read` en el namespace monitoring
+3. Reinicia el deployment o elimina el pod
+4. Espera a que el nuevo pod esté listo
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification" summary="Verificar que la solución funciona">
+
+Después de reiniciar el pod loki-read:
+
+1. **Espera 2-3 minutos** para que el pod se inicialice completamente
+2. **Accede a Grafana** y ve a la vista de Exploración
+3. **Selecciona Loki** como fuente de datos
+4. **Verifica si las etiquetas de logs** y las opciones ahora cargan
+5. **Prueba una consulta simple** como `{job="tu-nombre-de-app"}`
+6. **Confirma que los dashboards** muestran datos de logs nuevamente
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="root-cause" summary="Comprendiendo la causa raíz">
+
+Este problema generalmente ocurre debido a:
+
+- **Presión de memoria** en el componente loki-read
+- **Timeouts de conexión** entre Grafana y Loki
+- **Corrupción de índices** en el almacenamiento temporal de Loki
+- **Agotamiento de recursos** durante períodos de alto volumen de logs
+
+El equipo de SleakOps está trabajando en una solución permanente para evitar que este problema se repita.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention" summary="Prevención y monitoreo">
+
+Para minimizar la ocurrencia de este problema:
+
+**Monitorea el uso de recursos:**
+
+```bash
+# Revisa el uso de recursos del pod loki-read
+kubectl top pod -n monitoring | grep loki-read
+
+# Revisa los logs del pod para errores
+kubectl logs -n monitoring <nombre-del-pod-loki-read> --tail=100
+```
+
+**Configura alertas:**
+
+- Monitorea los tiempos de respuesta de consultas a Loki
+- Alerta sobre alto uso de memoria en los pods loki-read
+- Configura chequeos de salud para la conectividad de la fuente de datos Grafana
+
+**Buenas prácticas:**
+
+- Revisa regularmente las políticas de retención de logs
+- Monitorea las tasas de ingestión de logs
+- Considera el muestreo de logs para aplicaciones de alto volumen
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="escalation" summary="Cuándo escalar">
+
+Contacta al soporte de SleakOps si:
+
+- Reiniciar el pod loki-read no resuelve el problema
+- El problema se repite con frecuencia (más de una vez por semana)
+- Ves errores persistentes en los logs del pod loki-read
+- Los datos de logs parecen estar faltando o corruptos
+- La degradación del rendimiento afecta a otros componentes de monitoreo
+
+Incluye la siguiente información:
+
+- Marca de tiempo cuando comenzó el problema
+- Cualquier cambio reciente en el volumen de logs o configuración
+- Capturas de pantalla de la interfaz de Grafana mostrando el problema
+- Salida de `kubectl logs -n monitoring <nombre-del-pod-loki-read>`
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de noviembre de 2024 basada en una consulta real de usuario._

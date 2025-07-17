@@ -1,0 +1,194 @@
+---
+sidebar_position: 15
+title: "Pérdida de Datos y Recuperación de VarGroup"
+description: "Cómo manejar la pérdida de datos de VarGroup y procedimientos de recuperación en SleakOps"
+date: "2025-02-26"
+category: "proyecto"
+tags:
+  [
+    "vargroup",
+    "pérdida-de-datos",
+    "recuperación",
+    "respaldo",
+    "solución-de-problemas",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Pérdida de Datos y Recuperación de VarGroup
+
+**Fecha:** 26 de febrero de 2025  
+**Categoría:** Proyecto  
+**Etiquetas:** VarGroup, Pérdida de Datos, Recuperación, Respaldo, Solución de Problemas
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios pueden experimentar pérdida de datos en VarGroup debido a errores del sistema, eliminaciones accidentales o fallos en el despliegue. Esto puede resultar en que las variables de entorno se reviertan a versiones anteriores o se pierdan completamente.
+
+**Síntomas Observados:**
+
+- VarGroup muestra una versión antigua en lugar de la configuración más reciente
+- Variables de entorno faltantes en entornos específicos
+- Variables previamente configuradas ya no están disponibles
+- Fallos en despliegues debido a variables requeridas ausentes
+- Aparición de VarGroups duplicados en el sistema
+
+**Configuración Relevante:**
+
+- Entorno: Desarrollo, staging o producción
+- Tipo de VarGroup: Global o específico de entorno
+- Última marca temporal conocida que funcionaba
+- Permisos de usuario y niveles de acceso
+
+**Condiciones de Error:**
+
+- Pérdida de datos tras errores del sistema o mantenimiento
+- Variables que se revierten inesperadamente a versiones previas
+- Fallos en despliegues que provocan corrupción en VarGroup
+- VarGroups duplicados que causan conflictos de configuración
+
+## Solución Detallada
+
+<TroubleshootingItem id="immediate-assessment" summary="Pasos para Evaluación Inmediata">
+
+Cuando se detecte pérdida de datos en VarGroup:
+
+1. **Documentar la línea de tiempo**: Anotar cuándo se observó el problema por primera vez
+2. **Identificar entornos afectados**: Verificar qué entornos están impactados
+3. **Revisar cambios recientes**: Analizar historial de despliegues y actividades de usuarios
+4. **Verificar historial de VarGroup**: Revisar la línea de tiempo de actualizaciones en el panel de administración
+
+```bash
+# Ejemplo para revisar despliegues recientes
+kubectl get deployments -n tu-namespace --sort-by=.metadata.creationTimestamp
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="recovery-options" summary="Opciones Disponibles de Recuperación">
+
+**Opción 1: Recuperación por Plataforma (Si está disponible)**
+
+- Contactar soporte de SleakOps inmediatamente
+- Proporcionar la marca temporal exacta de la última configuración conocida buena
+- Incluir el nombre del VarGroup y el entorno afectado
+
+**Opción 2: Recreación Manual**
+
+- Recrear el VarGroup desde cero
+- Usar documentación o conocimiento del equipo para restaurar variables
+- Probar exhaustivamente en desarrollo antes de aplicar en producción
+
+**Opción 3: Recuperación desde Control de Versiones**
+
+- Si mantienes configuraciones de VarGroup en control de versiones
+- Restaurar desde tu último respaldo o commit
+- Aplicar la configuración mediante la interfaz de SleakOps
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-measures" summary="Prevención y Mejores Prácticas">
+
+**Estrategias de Respaldo:**
+
+1. **Exportar VarGroups regularmente**:
+
+   ```bash
+   # Exportar configuración actual de VarGroup
+   sleakops vargroup export --name global --environment develop > respaldo-vargroup.json
+   ```
+
+2. **Integración con Control de Versiones:**
+
+   - Almacenar configuraciones de VarGroup en repositorios Git
+   - Usar enfoques de Infraestructura como Código (IaC)
+   - Implementar respaldos automatizados
+
+3. **Documentación:**
+   - Mantener documentación actualizada de todas las variables de entorno
+   - Documentar el propósito y valores esperados de cada variable
+   - Llevar un registro de cambios de modificaciones en VarGroup
+
+**Monitoreo y Alertas:**
+
+- Configurar alertas para cambios en VarGroup
+- Monitorear fallos en despliegues que puedan indicar variables faltantes
+- Auditorías regulares de configuraciones de VarGroup
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Solución de Problemas en Despliegues Fallidos">
+
+Cuando los despliegues fallen debido a problemas con VarGroup:
+
+1. **Revisar logs de despliegue**:
+
+   ```bash
+   kubectl logs deployment/tu-app -n tu-namespace
+   ```
+
+2. **Verificar contenido de VarGroup**:
+
+   - Ingresar al panel de administración de SleakOps
+   - Navegar a la sección de VarGroups
+   - Comparar configuración actual con valores esperados
+
+3. **Probar disponibilidad de variables**:
+
+   ```bash
+   # Probar si las variables se inyectan correctamente
+   kubectl exec -it pod/tu-pod -- env | grep TU_VARIABLE
+   ```
+
+4. **Revertir si es necesario**:
+   - Usar el despliegue previo que funcionaba
+   - Restaurar VarGroup al último estado conocido bueno
+   - Realizar redeployment tras verificación
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="contact-support" summary="Cuándo Contactar Soporte">
+
+**Contactar soporte de SleakOps inmediatamente si:**
+
+- La pérdida de datos afecta entornos de producción
+- Se ven afectados múltiples VarGroups
+- El problema parece afectar toda la plataforma
+- No puedes recrear la configuración perdida
+
+**Información para proporcionar:**
+
+- Referencia del ticket (si está disponible)
+- Marca temporal exacta cuando se descubrió el problema
+- Nombres de VarGroup y entornos afectados
+- Historial reciente de despliegues
+- Mensajes de error o logs
+- Línea de tiempo de cambios o actividades recientes
+
+**Contacto de Soporte:**
+
+- Correo: support@sleakops.com
+- Incluir "Pérdida de Datos VarGroup" en el asunto
+- Usar "Responder a todos" al responder tickets de soporte
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="recovery-checklist" summary="Lista de Verificación Post-Recuperación">
+
+Después de recuperar los datos de VarGroup:
+
+- [ ] Verificar que todas las variables de entorno estén presentes
+- [ ] Probar funcionalidad de la aplicación en desarrollo
+- [ ] Ejecutar pruebas de despliegue
+- [ ] Actualizar documentación con cualquier cambio
+- [ ] Implementar medidas adicionales de respaldo
+- [ ] Revisar y mejorar monitoreo
+- [ ] Capacitar al equipo en estrategias de prevención
+- [ ] Documentar lecciones aprendidas
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 26 de febrero de 2025 basada en una consulta real de usuario._
