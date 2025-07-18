@@ -143,6 +143,358 @@ These improvements are planned for future releases to enhance the user experienc
 
 </TroubleshootingItem>
 
+<TroubleshootingItem id="job-troubleshooting" summary="Troubleshooting job execution issues">
+
+Common issues and solutions when managing jobs:
+
+1. **Jobs stuck in pending state**:
+
+```bash
+# Check job status and events
+kubectl get jobs -n your-namespace
+kubectl describe job <job-name> -n your-namespace
+
+# Look for resource constraints
+kubectl get events -n your-namespace | grep <job-name>
+```
+
+2. **Jobs failing to start**:
+
+- Verify Docker image availability and accessibility
+- Check resource quotas and limits
+- Validate environment variables and secrets
+- Ensure proper RBAC permissions
+
+3. **Jobs running indefinitely**:
+
+```yaml
+# Set appropriate timeout in job configuration
+spec:
+  activeDeadlineSeconds: 3600 # 1 hour timeout
+  backoffLimit: 3 # Maximum retries
+```
+
+4. **Job logs not showing**:
+
+```bash
+# Access logs directly via kubectl
+kubectl logs job/<job-name> -n your-namespace
+kubectl logs <pod-name> -n your-namespace
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="advanced-job-configuration" summary="Advanced job configuration options">
+
+Configure jobs for better management and monitoring:
+
+1. **Job templates with proper labeling**:
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: data-processing-job
+  labels:
+    app: data-processor
+    version: "1.0"
+    environment: production
+spec:
+  template:
+    metadata:
+      labels:
+        app: data-processor
+        job-type: scheduled
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: processor
+          image: your-app:latest
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          env:
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: OUTPUT_FORMAT
+              value: "json"
+```
+
+2. **Job monitoring configuration**:
+
+```yaml
+# Add monitoring annotations
+metadata:
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+```
+
+3. **Persistent job outputs**:
+
+```yaml
+# Mount persistent volume for job outputs
+spec:
+  template:
+    spec:
+      volumes:
+        - name: job-output
+          persistentVolumeClaim:
+            claimName: job-storage-pvc
+      containers:
+        - name: job-container
+          volumeMounts:
+            - name: job-output
+              mountPath: /output
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="job-logging-strategies" summary="Implementing comprehensive job logging">
+
+Set up robust logging for job executions:
+
+1. **Structured logging within jobs**:
+
+```python
+# Python example for job logging
+import logging
+import json
+from datetime import datetime
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+logger = logging.getLogger(__name__)
+
+def log_job_event(event_type, message, metadata=None):
+    log_entry = {
+        "timestamp": datetime.utcnow().isoformat(),
+        "event_type": event_type,
+        "message": message,
+        "metadata": metadata or {}
+    }
+    logger.info(json.dumps(log_entry))
+
+# Usage in job
+log_job_event("job_start", "Data processing job started")
+log_job_event("processing", "Processing 1000 records", {"record_count": 1000})
+log_job_event("job_complete", "Job completed successfully", {"duration": "120s"})
+```
+
+2. **External log shipping**:
+
+```yaml
+# Fluentd sidecar for log shipping
+spec:
+  template:
+    spec:
+      containers:
+        - name: main-job
+          image: your-job-image
+          volumeMounts:
+            - name: log-volume
+              mountPath: /var/log
+        - name: log-shipper
+          image: fluentd:latest
+          volumeMounts:
+            - name: log-volume
+              mountPath: /var/log
+          env:
+            - name: FLUENTD_CONF
+              value: fluent.conf
+```
+
+3. **Database logging**:
+
+```python
+# Example: Log job status to database
+import psycopg2
+from datetime import datetime
+
+def log_to_database(job_name, status, details):
+    conn = psycopg2.connect(
+        host="your-db-host",
+        database="job_logs",
+        user="user",
+        password="password"
+    )
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        INSERT INTO job_executions (job_name, status, details, timestamp)
+        VALUES (%s, %s, %s, %s)
+    """, (job_name, status, details, datetime.utcnow()))
+
+    conn.commit()
+    conn.close()
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="job-automation-scheduling" summary="Job automation and scheduling">
+
+Implement automated job management:
+
+1. **CronJob configuration**:
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cleanup-job
+spec:
+  schedule: "0 2 * * *" # Daily at 2 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: cleanup
+              image: cleanup-image:latest
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  echo "Starting cleanup at $(date)"
+                  # Cleanup logic here
+                  echo "Cleanup completed at $(date)"
+          restartPolicy: OnFailure
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+```
+
+2. **Job dependency management**:
+
+```yaml
+# Example of job that waits for another job
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: dependent-job
+spec:
+  template:
+    spec:
+      initContainers:
+        - name: wait-for-prerequisite
+          image: busybox
+          command:
+            - /bin/sh
+            - -c
+            - |
+              while ! kubectl get job prerequisite-job -o jsonpath='{.status.succeeded}' | grep -q 1; do
+                echo "Waiting for prerequisite job to complete..."
+                sleep 30
+              done
+      containers:
+        - name: main-task
+          image: your-task-image
+```
+
+3. **Job cleanup automation**:
+
+```bash
+#!/bin/bash
+# Script to cleanup old jobs automatically
+
+NAMESPACE="your-namespace"
+RETENTION_DAYS=7
+
+# Delete jobs older than retention period
+kubectl get jobs -n $NAMESPACE -o json | \
+jq -r ".items[] | select(.metadata.creationTimestamp | fromdateiso8601 < (now - ($RETENTION_DAYS * 24 * 3600))) | .metadata.name" | \
+while read job; do
+  echo "Deleting old job: $job"
+  kubectl delete job $job -n $NAMESPACE
+done
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-alerting" summary="Setting up job monitoring and alerting">
+
+Monitor job performance and set up alerts:
+
+1. **Prometheus metrics for jobs**:
+
+```yaml
+# ServiceMonitor for job metrics
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: job-metrics
+spec:
+  selector:
+    matchLabels:
+      app: job-monitoring
+  endpoints:
+    - port: metrics
+```
+
+2. **Alerting rules**:
+
+```yaml
+groups:
+  - name: job-alerts
+    rules:
+      - alert: JobFailed
+        expr: kube_job_status_failed > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Job {{ $labels.job_name }} has failed"
+          description: "Job {{ $labels.job_name }} in namespace {{ $labels.namespace }} has been failing for more than 5 minutes"
+
+      - alert: JobRunningTooLong
+        expr: time() - kube_job_status_start_time > 3600
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Job {{ $labels.job_name }} running too long"
+          description: "Job {{ $labels.job_name }} has been running for more than 1 hour"
+```
+
+3. **Dashboard configuration**:
+
+```json
+{
+  "dashboard": {
+    "title": "Job Monitoring Dashboard",
+    "panels": [
+      {
+        "title": "Job Success Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(kube_job_status_succeeded[5m]) / rate(kube_job_status_start_time[5m]) * 100"
+          }
+        ]
+      },
+      {
+        "title": "Job Duration",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "kube_job_status_completion_time - kube_job_status_start_time"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+</TroubleshootingItem>
+
 ---
 
 _This FAQ was automatically generated on February 4, 2025 based on a real user query._

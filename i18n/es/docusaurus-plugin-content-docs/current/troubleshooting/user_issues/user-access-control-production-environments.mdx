@@ -55,12 +55,53 @@ El rol **Viewer** en SleakOps tiene tres requisitos principales de acceso:
 - Acceder a RDS y otras dependencias a través de VPN
 - Ver recursos y configuraciones del clúster
 - Acceder a detalles de conexión de base de datos desde VariableGroups o secretos del clúster
+- Ver logs de aplicación a través de Grafana/Loki (si está configurado)
+- Monitorear métricas de rendimiento de aplicaciones
 
 **Lo que el rol Viewer NO PUEDE hacer:**
 
 - Editar objetos en S3 mediante la consola de AWS (requiere rol Editor)
 - Modificar VariableGroups (requiere rol Editor)
 - Realizar cambios en configuraciones del clúster
+- Ejecutar comandos kubectl directamente en producción
+- Acceder a secretos sensibles de producción
+
+**Políticas IAM aplicadas al rol Viewer:**
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:Describe*",
+        "rds:Describe*",
+        "s3:ListBucket",
+        "s3:GetObject",
+        "eks:DescribeCluster",
+        "eks:ListClusters",
+        "logs:DescribeLogGroups",
+        "logs:DescribeLogStreams",
+        "cloudwatch:GetMetricStatistics",
+        "cloudwatch:ListMetrics"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Deny",
+      "Action": [
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "rds:ModifyDBInstance",
+        "ec2:TerminateInstances",
+        "eks:UpdateClusterConfig"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
 
 </TroubleshootingItem>
 
@@ -77,14 +118,773 @@ Permisos:
   - Sin acceso a consola AWS
   - Sin acceso a plataforma SleakOps
 Implementación: Compartir credenciales de base de datos directamente
+Ventajas:
+  - Acceso mínimo y controlado
+  - Sin posibilidad de manipular recursos AWS
+  - Ideal para desarrolladores que solo necesitan datos
 ```
 
-### Estrategia 2: Rol IAM Personalizado
+### Estrategia 2: Rol IAM Personalizado "Developer"
 
 Crear un rol personalizado "Developer" en la cuenta de producción:
 
 ```json
 {
-  "Version": "2012-10-17""
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeInstances",
+        "ec2:DescribeSecurityGroups",
+        "rds:DescribeDBInstances",
+        "rds:Connect",
+        "s3:ListBucket",
+        "s3:GetObject"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": ["us-west-2", "us-east-1"]
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["s3:PutObject", "s3:DeleteObject"],
+      "Resource": ["arn:aws:s3:::dev-bucket/*", "arn:aws:s3:::staging-bucket/*"]
+    },
+    {
+      "Effect": "Deny",
+      "Action": ["s3:PutObject", "s3:DeleteObject"],
+      "Resource": ["arn:aws:s3:::prod-bucket/*"]
+    }
+  ]
 }
 ```
+
+### Estrategia 3: Segregación por Namespace Kubernetes
+
+Usar RBAC de Kubernetes para limitar acceso por namespace:
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: development
+  name: developer-role
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "configmaps", "secrets"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: developer-binding
+  namespace: development
+subjects:
+  - kind: User
+    name: developer-user
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: developer-role
+  apiGroup: rbac.authorization.k8s.io
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="production-access-control" summary="Control de Acceso Específico para Producción">
+
+**Configuración para acceso limitado a producción (solo 2 miembros del equipo):**
+
+### Paso 1: Crear Grupo IAM de Producción
+
+```json
+{
+  "GroupName": "ProductionAccess",
+  "Path": "/",
+  "PolicyDocument": {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "eks:DescribeCluster",
+          "eks:ListClusters",
+          "eks:DescribeNodegroup",
+          "eks:ListNodegroups"
+        ],
+        "Resource": "*"
+      },
+      {
+        "Effect": "Allow",
+        "Action": ["s3:*"],
+        "Resource": ["arn:aws:s3:::prod-bucket", "arn:aws:s3:::prod-bucket/*"]
+      },
+      {
+        "Effect": "Allow",
+        "Action": ["rds:*"],
+        "Resource": "arn:aws:rds:*:*:db:prod-*"
+      }
+    ]
+  }
+}
+```
+
+### Paso 2: Configurar RBAC Kubernetes para Producción
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: production-admin
+rules:
+  - apiGroups: [""]
+    resources: ["*"]
+    verbs: ["*"]
+    resourceNames: []
+  - apiGroups: ["apps", "extensions", "networking.k8s.io"]
+    resources: ["*"]
+    verbs: ["*"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: production-admin-binding
+subjects:
+  - kind: User
+    name: prod-admin-1@company.com
+    apiGroup: rbac.authorization.k8s.io
+  - kind: User
+    name: prod-admin-2@company.com
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: production-admin
+  apiGroup: rbac.authorization.k8s.io
+```
+
+### Paso 3: Configurar Acceso a SleakOps
+
+```yaml
+# Configuración en SleakOps para usuarios de producción
+Users:
+  - email: prod-admin-1@company.com
+    role: Admin
+    environments: ["production"]
+    permissions:
+      - can_deploy: true
+      - can_modify_variables: true
+      - can_access_secrets: true
+      - can_scale_resources: true
+
+  - email: prod-admin-2@company.com
+    role: Admin
+    environments: ["production"]
+    permissions:
+      - can_deploy: true
+      - can_modify_variables: true
+      - can_access_secrets: true
+      - can_scale_resources: true
+
+  - email: developer@company.com
+    role: Editor
+    environments: ["development", "staging"]
+    permissions:
+      - can_deploy: true
+      - can_modify_variables: true
+      - can_access_secrets: false
+      - can_scale_resources: false
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="environment-segregation" summary="Segregación de Entornos en el Mismo Clúster">
+
+**Implementación de segregación usando namespaces y node selectors:**
+
+### Configuración de Namespaces
+
+```yaml
+# Namespace para desarrollo
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: development
+  labels:
+    environment: dev
+    access-level: open
+  annotations:
+    scheduler.alpha.kubernetes.io/node-selector: environment=dev
+
+---
+# Namespace para staging
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: staging
+  labels:
+    environment: staging
+    access-level: restricted
+  annotations:
+    scheduler.alpha.kubernetes.io/node-selector: environment=staging
+
+---
+# Namespace para producción
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: production
+  labels:
+    environment: prod
+    access-level: highly-restricted
+  annotations:
+    scheduler.alpha.kubernetes.io/node-selector: environment=prod
+```
+
+### Network Policies para Aislamiento
+
+```yaml
+# Política de red para aislar producción
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: production-isolation
+  namespace: production
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: production
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: production
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: UDP
+          port: 53
+
+---
+# Política de red para desarrollo (más permisiva)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: development-policy
+  namespace: development
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              environment: dev
+        - namespaceSelector:
+            matchLabels:
+              environment: staging
+```
+
+### Taints y Tolerations para Nodos
+
+```yaml
+# Configuración para nodos de producción
+apiVersion: v1
+kind: Node
+metadata:
+  name: prod-node-1
+spec:
+  taints:
+    - key: environment
+      value: production
+      effect: NoSchedule
+    - key: access-level
+      value: restricted
+      effect: NoExecute
+
+---
+# Tolerations para pods de producción
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prod-app
+  namespace: production
+spec:
+  template:
+    spec:
+      tolerations:
+        - key: environment
+          operator: Equal
+          value: production
+          effect: NoSchedule
+        - key: access-level
+          operator: Equal
+          value: restricted
+          effect: NoExecute
+      nodeSelector:
+        environment: production
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="database-access-control" summary="Control de Acceso a Bases de Datos">
+
+**Configuración de acceso granular a bases de datos por entorno:**
+
+### Usuarios de Base de Datos por Entorno
+
+```sql
+-- Usuario para desarrollo (permisos completos en DB dev)
+CREATE USER 'dev_user'@'%' IDENTIFIED BY 'dev_password';
+GRANT ALL PRIVILEGES ON dev_database.* TO 'dev_user'@'%';
+
+-- Usuario para staging (permisos limitados)
+CREATE USER 'staging_user'@'%' IDENTIFIED BY 'staging_password';
+GRANT SELECT, INSERT, UPDATE, DELETE ON staging_database.* TO 'staging_user'@'%';
+
+-- Usuario para producción (solo lectura para desarrolladores)
+CREATE USER 'prod_readonly'@'%' IDENTIFIED BY 'readonly_password';
+GRANT SELECT ON prod_database.* TO 'prod_readonly'@'%';
+
+-- Usuario administrador de producción
+CREATE USER 'prod_admin'@'%' IDENTIFIED BY 'admin_password';
+GRANT ALL PRIVILEGES ON prod_database.* TO 'prod_admin'@'%';
+```
+
+### Configuración de Security Groups
+
+```json
+{
+  "SecurityGroups": [
+    {
+      "GroupName": "rds-dev-access",
+      "Description": "Access to development database",
+      "Rules": [
+        {
+          "Type": "Ingress",
+          "Protocol": "TCP",
+          "Port": 5432,
+          "Source": "sg-dev-workers"
+        },
+        {
+          "Type": "Ingress",
+          "Protocol": "TCP",
+          "Port": 5432,
+          "Source": "vpn-subnet"
+        }
+      ]
+    },
+    {
+      "GroupName": "rds-prod-access",
+      "Description": "Access to production database",
+      "Rules": [
+        {
+          "Type": "Ingress",
+          "Protocol": "TCP",
+          "Port": 5432,
+          "Source": "sg-prod-workers",
+          "Description": "Production workloads only"
+        },
+        {
+          "Type": "Ingress",
+          "Protocol": "TCP",
+          "Port": 5432,
+          "Source": "vpn-admin-subnet",
+          "Description": "Admin VPN access only"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Secretos Kubernetes por Entorno
+
+```yaml
+# Secreto para desarrollo
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-credentials
+  namespace: development
+type: Opaque
+data:
+  username: ZGV2X3VzZXI= # dev_user
+  password: ZGV2X3Bhc3N3b3Jk # dev_password
+  host: ZGV2LWRhdGFiYXNlLmludGVybmFs # dev-database.internal
+
+---
+# Secreto para producción (acceso limitado)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-credentials
+  namespace: production
+type: Opaque
+data:
+  username: cHJvZF9hZG1pbg== # prod_admin
+  password: YWRtaW5fcGFzc3dvcmQ= # admin_password
+  host: cHJvZC1kYXRhYmFzZS5pbnRlcm5hbA== # prod-database.internal
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="s3-bucket-permissions" summary="Control de Acceso a Buckets S3">
+
+**Configuración de políticas granulares para buckets S3:**
+
+### Política de Bucket para Desarrollo
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DeveloperAccess",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": [
+          "arn:aws:iam::ACCOUNT:role/DeveloperRole",
+          "arn:aws:iam::ACCOUNT:user/dev-user-1",
+          "arn:aws:iam::ACCOUNT:user/dev-user-2"
+        ]
+      },
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "s3:ListBucket"
+      ],
+      "Resource": ["arn:aws:s3:::dev-bucket", "arn:aws:s3:::dev-bucket/*"]
+    }
+  ]
+}
+```
+
+### Política de Bucket para Producción
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ProductionAdminAccess",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": [
+          "arn:aws:iam::ACCOUNT:user/prod-admin-1",
+          "arn:aws:iam::ACCOUNT:user/prod-admin-2"
+        ]
+      },
+      "Action": ["s3:*"],
+      "Resource": ["arn:aws:s3:::prod-bucket", "arn:aws:s3:::prod-bucket/*"]
+    },
+    {
+      "Sid": "DeveloperReadOnlyAccess",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::ACCOUNT:role/DeveloperRole"
+      },
+      "Action": ["s3:GetObject", "s3:ListBucket"],
+      "Resource": ["arn:aws:s3:::prod-bucket", "arn:aws:s3:::prod-bucket/*"]
+    },
+    {
+      "Sid": "DenyDeveloperWriteAccess",
+      "Effect": "Deny",
+      "Principal": {
+        "AWS": "arn:aws:iam::ACCOUNT:role/DeveloperRole"
+      },
+      "Action": ["s3:PutObject", "s3:DeleteObject", "s3:PutObjectAcl"],
+      "Resource": ["arn:aws:s3:::prod-bucket/*"]
+    }
+  ]
+}
+```
+
+### Configuración de CORS para Acceso Web
+
+```json
+{
+  "CORSRules": [
+    {
+      "AllowedHeaders": ["*"],
+      "AllowedMethods": ["GET", "HEAD"],
+      "AllowedOrigins": [
+        "https://dev-app.company.com",
+        "https://staging-app.company.com"
+      ],
+      "ExposeHeaders": ["ETag"],
+      "MaxAgeSeconds": 3000
+    },
+    {
+      "AllowedHeaders": ["*"],
+      "AllowedMethods": ["GET", "HEAD"],
+      "AllowedOrigins": ["https://app.company.com"],
+      "ExposeHeaders": ["ETag"],
+      "MaxAgeSeconds": 3000
+    }
+  ]
+}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-and-auditing" summary="Monitoreo y Auditoría de Accesos">
+
+**Configuración de logging y monitoreo para control de acceso:**
+
+### CloudTrail para Auditoría de AWS
+
+```json
+{
+  "TrailName": "access-audit-trail",
+  "S3BucketName": "audit-logs-bucket",
+  "IncludeGlobalServiceEvents": true,
+  "IsMultiRegionTrail": true,
+  "EnableLogFileValidation": true,
+  "EventSelectors": [
+    {
+      "ReadWriteType": "All",
+      "IncludeManagementEvents": true,
+      "DataResources": [
+        {
+          "Type": "AWS::S3::Object",
+          "Values": [
+            "arn:aws:s3:::prod-bucket/*",
+            "arn:aws:s3:::staging-bucket/*"
+          ]
+        },
+        {
+          "Type": "AWS::RDS::DBInstance",
+          "Values": ["*"]
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Alertas CloudWatch para Accesos Sospechosos
+
+```json
+{
+  "AlarmName": "UnauthorizedProductionAccess",
+  "AlarmDescription": "Alert on unauthorized access to production resources",
+  "MetricName": "ErrorCount",
+  "Namespace": "AWS/CloudTrail",
+  "Statistic": "Sum",
+  "Period": 300,
+  "EvaluationPeriods": 1,
+  "Threshold": 1,
+  "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+  "AlarmActions": ["arn:aws:sns:region:account:security-alerts"],
+  "MetricFilters": [
+    {
+      "FilterName": "ProductionAccessFilter",
+      "FilterPattern": "{ ($.eventName = \"AssumeRole\") && ($.responseElements.assumedRoleUser.arn = \"*prod*\") && ($.sourceIPAddress != \"10.0.0.0/8\") }"
+    }
+  ]
+}
+```
+
+### Kubernetes Audit Logging
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: audit-policy
+  namespace: kube-system
+data:
+  audit-policy.yaml: |
+    apiVersion: audit.k8s.io/v1
+    kind: Policy
+    rules:
+    # Log production namespace access at highest level
+    - level: Metadata
+      namespaces: ["production"]
+      verbs: ["get", "list", "create", "update", "patch", "delete"]
+      resources:
+      - group: ""
+        resources: ["secrets", "configmaps"]
+
+    # Log admin role usage
+    - level: Request
+      users: ["prod-admin-1@company.com", "prod-admin-2@company.com"]
+      verbs: ["create", "update", "patch", "delete"]
+
+    # Log access denials
+    - level: Metadata
+      omitStages:
+      - RequestReceived
+      resources:
+      - group: ""
+        resources: ["*"]
+      namespaces: ["production"]
+      verbs: ["*"]
+      users: ["system:anonymous"]
+```
+
+### Script de Monitoreo de Accesos
+
+```bash
+#!/bin/bash
+# Script para monitorear accesos a recursos de producción
+
+LOG_FILE="/var/log/access-monitor.log"
+ALERT_EMAIL="security@company.com"
+
+# Función para verificar accesos no autorizados a S3
+check_s3_access() {
+    echo "$(date): Verificando accesos a S3..." >> $LOG_FILE
+
+    # Buscar accesos desde IPs no corporativas
+    aws logs filter-log-events \
+        --log-group-name CloudTrail/S3DataEvents \
+        --start-time $(date -d '1 hour ago' +%s)000 \
+        --filter-pattern '{ $.sourceIPAddress != "10.0.0.0/8" && $.eventName = "GetObject" && $.requestParameters.bucketName = "prod-bucket" }' \
+        --query 'events[?sourceIPAddress]' > /tmp/s3_external_access.json
+
+    if [ -s /tmp/s3_external_access.json ]; then
+        echo "ALERTA: Acceso externo detectado a bucket de producción" | mail -s "Security Alert: S3 Access" $ALERT_EMAIL
+    fi
+}
+
+# Función para verificar accesos kubectl no autorizados
+check_k8s_access() {
+    echo "$(date): Verificando accesos kubectl..." >> $LOG_FILE
+
+    kubectl get events --all-namespaces --field-selector type=Warning \
+        --output json | jq '.items[] | select(.reason == "Forbidden" and .involvedObject.namespace == "production")' > /tmp/k8s_forbidden.json
+
+    if [ -s /tmp/k8s_forbidden.json ]; then
+        echo "ALERTA: Intento de acceso denegado a namespace de producción" | mail -s "Security Alert: K8s Access Denied" $ALERT_EMAIL
+    fi
+}
+
+# Función para verificar conexiones de base de datos
+check_db_connections() {
+    echo "$(date): Verificando conexiones de base de datos..." >> $LOG_FILE
+
+    # Verificar conexiones activas en RDS de producción
+    aws rds describe-db-log-files --db-instance-identifier prod-db-instance \
+        --query 'DescribeDBLogFiles[?contains(LogFileName, `error`)]' \
+        --output table
+}
+
+# Ejecutar verificaciones
+check_s3_access
+check_k8s_access
+check_db_connections
+
+echo "$(date): Verificación de accesos completada" >> $LOG_FILE
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="implementation-checklist" summary="Lista de Verificación para Implementación">
+
+**Pasos para implementar control de acceso granular:**
+
+### Fase 1: Preparación (Semana 1)
+
+```checklist
+□ Inventariar todos los recursos por entorno
+□ Identificar usuarios y sus necesidades de acceso
+□ Documentar flujos de trabajo actuales
+□ Crear matriz de permisos requeridos
+□ Planificar migración gradual
+```
+
+### Fase 2: Configuración IAM (Semana 2)
+
+```checklist
+□ Crear grupos IAM por rol (Developer, ProductionAdmin, Viewer)
+□ Configurar políticas IAM granulares
+□ Implementar políticas de bucket S3
+□ Configurar acceso VPN por grupos
+□ Probar accesos en entorno de staging
+```
+
+### Fase 3: Configuración Kubernetes (Semana 3)
+
+```checklist
+□ Implementar RBAC por namespace
+□ Configurar Network Policies
+□ Aplicar taints y tolerations a nodos
+□ Configurar audit logging
+□ Validar segregación de entornos
+```
+
+### Fase 4: Monitoreo y Auditoría (Semana 4)
+
+```checklist
+□ Configurar CloudTrail
+□ Implementar alertas CloudWatch
+□ Configurar logging de auditoría Kubernetes
+□ Crear dashboards de monitoreo
+□ Documentar procedimientos de respuesta a incidentes
+```
+
+### Validación Final
+
+```bash
+#!/bin/bash
+# Script de validación de control de acceso
+
+echo "=== Validación de Control de Acceso ==="
+
+# Validar que desarrolladores no pueden acceder a producción
+echo "1. Validando acceso de desarrolladores..."
+kubectl auth can-i create pods --namespace=production --as=developer@company.com
+if [ $? -eq 0 ]; then
+    echo "❌ ERROR: Desarrollador tiene acceso a producción"
+else
+    echo "✅ OK: Desarrollador no tiene acceso a producción"
+fi
+
+# Validar que solo admins pueden acceder a secretos de producción
+echo "2. Validando acceso a secretos..."
+kubectl auth can-i get secrets --namespace=production --as=prod-admin-1@company.com
+if [ $? -eq 0 ]; then
+    echo "✅ OK: Admin puede acceder a secretos de producción"
+else
+    echo "❌ ERROR: Admin no puede acceder a secretos"
+fi
+
+# Validar políticas S3
+echo "3. Validando acceso S3..."
+aws s3api head-object --bucket prod-bucket --key test-object 2>/dev/null
+if [ $? -eq 0 ]; then
+    echo "✅ OK: Acceso S3 configurado correctamente"
+else
+    echo "❌ ERROR: Problema con acceso S3"
+fi
+
+echo "=== Validación Completada ==="
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 17 de febrero de 2024 basada en una consulta real de usuario._

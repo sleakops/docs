@@ -269,4 +269,62 @@ monitoring:
 
 #### Application Services
 
-- **CPU**: Start with 2x
+- **CPU**: Start with 2x development environment CPU allocation
+- **Memory**: Start with 2x development environment memory
+- **Replicas**: Minimum 2 for high availability
+- **Storage**: Use production-grade storage classes
+
+#### Load Balancer Configuration
+
+```yaml
+# Production load balancer settings
+ingress:
+  annotations:
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-rps: "10"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+```
+
+### Security Considerations
+
+1. **Environment Variables Security**:
+
+   - Use SleakOps Variable Groups for sensitive data
+   - Never store secrets in plain text
+   - Rotate API keys and passwords regularly
+
+2. **Network Security**:
+
+   - Enable VPC private networking
+   - Configure security groups appropriately
+   - Use SSL/TLS for all communications
+
+3. **Access Control**:
+   - Limit production environment access
+   - Use role-based access control (RBAC)
+   - Enable audit logging
+
+### Monitoring and Maintenance
+
+1. **Set up monitoring alerts**:
+
+   - CPU and memory usage
+   - Application error rates
+   - Database performance metrics
+
+2. **Backup Strategy**:
+
+   - Automated daily database backups
+   - Application configuration backups
+   - Disaster recovery procedures
+
+3. **Update Procedures**:
+   - Staging deployments before production
+   - Blue-green or rolling deployment strategies
+   - Rollback procedures for failed deployments
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

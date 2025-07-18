@@ -1,0 +1,455 @@
+---
+sidebar_position: 15
+title: "Database Migration Environment Variables Configuration"
+description: "Solution for database migration issues with environment variables in SleakOps"
+date: "2024-12-11"
+category: "project"
+tags: ["database", "migration", "environment-variables", "dotnet", "postgres"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Database Migration Environment Variables Configuration
+
+**Date:** December 11, 2024  
+**Category:** Project  
+**Tags:** Database, Migration, Environment Variables, .NET, PostgreSQL
+
+## Problem Description
+
+**Context:** User encounters multiple issues when running .NET Entity Framework database migrations in SleakOps, specifically with PostgreSQL database connections and environment variable configurations.
+
+**Observed Symptoms:**
+
+- Database migration command fails due to incorrect project path
+- Database connection errors due to missing password authentication
+- Migration hooks fail to find required environment variables like `CORS_ALLOWED_ORIGINS`
+- Environment variables not accessible to migration processes
+
+**Relevant Configuration:**
+
+- Framework: .NET Entity Framework
+- Database: PostgreSQL
+- Environment: SleakOps platform
+- Variable Groups: Backend project environment variables
+- Migration command: `dotnet ef database update`
+
+**Error Conditions:**
+
+- Incorrect project path in migration command
+- Mismatched environment variable names (`POSTGRES_PASS` vs `POSTGRES_PASSWORD`)
+- Variable Groups scoped to specific services instead of global scope
+- Migration hooks unable to access required environment variables
+
+## Detailed Solution
+
+<TroubleshootingItem id="correct-migration-command" summary="Fix the database migration command path">
+
+The correct command syntax for running Entity Framework migrations is:
+
+```bash
+dotnet ef database update --project ../Netdo.Firev.WebApi/Netdo.Firev.WebApi.csproj
+```
+
+**Common mistakes:**
+
+- Typos in the project path
+- Missing or incorrect relative path references
+- Wrong project file extension or name
+
+**Verification steps:**
+
+1. Verify the project file exists at the specified path
+2. Check that the path is relative to your current working directory
+3. Ensure the `.csproj` file name matches exactly
+
+```bash
+# Verify project file exists
+ls -la ../Netdo.Firev.WebApi/Netdo.Firev.WebApi.csproj
+
+# Check working directory structure
+pwd && ls -la
+```
+
+**Alternative approaches:**
+
+```bash
+# Run from project directory
+cd Netdo.Firev.WebApi
+dotnet ef database update
+
+# Specify connection string directly
+dotnet ef database update --connection "Host=localhost;Database=mydb;Username=user;Password=pass"
+
+# Use configuration from specific environment
+dotnet ef database update --environment Production
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="environment-variable-naming" summary="Standardize environment variable names">
+
+Environment variable naming must match exactly between your application configuration and Variable Groups:
+
+**Problem:** Application expects `POSTGRES_PASSWORD` but Variable Group contains `POSTGRES_PASS`
+
+**Solution:**
+
+1. **Check your application's configuration files** (appsettings.json, appsettings.Development.json):
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=${POSTGRES_HOST};Port=${POSTGRES_PORT};Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};"
+  }
+}
+```
+
+2. **Update Variable Groups to match exactly:**
+
+```env
+# Variable Group: Backend Environment Variables
+POSTGRES_HOST=your-db-host
+POSTGRES_PORT=5432
+POSTGRES_DB=your-database-name
+POSTGRES_USER=your-username
+POSTGRES_PASSWORD=your-password  # Match this name exactly
+CORS_ALLOWED_ORIGINS=https://yourdomain.com
+```
+
+3. **Common naming patterns to standardize:**
+
+| Application Config  | Variable Group      | Status      |
+| ------------------- | ------------------- | ----------- |
+| `POSTGRES_PASSWORD` | `POSTGRES_PASS`     | ❌ Mismatch |
+| `POSTGRES_PASSWORD` | `POSTGRES_PASSWORD` | ✅ Correct  |
+| `DATABASE_URL`      | `DB_URL`            | ❌ Mismatch |
+| `DATABASE_URL`      | `DATABASE_URL`      | ✅ Correct  |
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="variable-group-scope" summary="Configure Variable Group scope correctly">
+
+Variable Groups must be accessible to the migration process. Check the scope configuration:
+
+**Problem:** Variable Groups scoped only to specific workloads
+
+**Solution:**
+
+1. **Make Variable Groups globally accessible** within the project:
+
+```yaml
+# In SleakOps Variable Group configuration
+variable_group:
+  name: "backend-env-vars"
+  scope: "project" # Not "workload-specific"
+  environment: "production"
+  variables:
+    POSTGRES_HOST: "db.example.com"
+    POSTGRES_PASSWORD: "secure-password"
+    CORS_ALLOWED_ORIGINS: "https://yourdomain.com"
+```
+
+2. **Verify Variable Group inheritance:**
+
+- Global variables: Available to all workloads in the project
+- Project variables: Available to all workloads in specific project
+- Workload variables: Only available to specific workload
+
+**Best practice:** Use project-scoped Variable Groups for database connections that multiple workloads need to access.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="migration-hooks-configuration" summary="Configure migration hooks to access environment variables">
+
+Ensure migration hooks can access the required environment variables:
+
+**Hook Configuration Example:**
+
+```yaml
+# In your workload configuration
+workload:
+  type: job
+  name: database-migration
+  image: mcr.microsoft.com/dotnet/sdk:8.0
+  command: |
+    echo "Starting database migration..."
+    echo "Database host: $POSTGRES_HOST"
+
+    # Verify all required variables are present
+    if [ -z "$POSTGRES_PASSWORD" ]; then
+      echo "Error: POSTGRES_PASSWORD not found"
+      exit 1
+    fi
+
+    if [ -z "$CORS_ALLOWED_ORIGINS" ]; then
+      echo "Error: CORS_ALLOWED_ORIGINS not found"
+      exit 1
+    fi
+
+    # Run migration
+    dotnet ef database update --project ../Netdo.Firev.WebApi/Netdo.Firev.WebApi.csproj
+
+  environment_variables:
+    # Reference Variable Groups
+    - variable_group: backend-env-vars
+    # Override or add specific variables if needed
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+```
+
+**Pre-migration variable verification script:**
+
+```bash
+#!/bin/bash
+# verify-env-vars.sh
+
+required_vars=(
+  "POSTGRES_HOST"
+  "POSTGRES_PORT"
+  "POSTGRES_DB"
+  "POSTGRES_USER"
+  "POSTGRES_PASSWORD"
+  "CORS_ALLOWED_ORIGINS"
+)
+
+echo "Verifying environment variables..."
+
+missing_vars=()
+for var in "${required_vars[@]}"; do
+  if [ -z "${!var}" ]; then
+    missing_vars+=("$var")
+  else
+    echo "✅ $var is set"
+  fi
+done
+
+if [ ${#missing_vars[@]} -ne 0 ]; then
+  echo "❌ Missing required environment variables:"
+  printf '%s\n' "${missing_vars[@]}"
+  exit 1
+fi
+
+echo "✅ All required environment variables are present"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="connection-string-configuration" summary="Configure database connection strings properly">
+
+Proper configuration of .NET Entity Framework connection strings:
+
+**1. appsettings.json configuration:**
+
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning",
+      "Microsoft.EntityFrameworkCore": "Information"
+    }
+  },
+  "AllowedHosts": "*",
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=${POSTGRES_HOST};Port=${POSTGRES_PORT:-5432};Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};Include Error Detail=true"
+  },
+  "CorsSettings": {
+    "AllowedOrigins": "${CORS_ALLOWED_ORIGINS}"
+  }
+}
+```
+
+**2. Program.cs configuration:**
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+
+// Replace environment variables in connection string
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+connectionString = Environment.ExpandEnvironmentVariables(connectionString);
+
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseNpgsql(connectionString, npgsqlOptions =>
+    {
+        npgsqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 3,
+            maxRetryDelay: TimeSpan.FromSeconds(10),
+            errorCodesToAdd: null);
+    }));
+
+// Configure CORS
+var corsOrigins = Environment.GetEnvironmentVariable("CORS_ALLOWED_ORIGINS")?.Split(',')
+    ?? new[] { "http://localhost:3000" };
+
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins(corsOrigins)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+```
+
+**3. Migration-specific connection configuration:**
+
+```bash
+# Create a migration-specific connection string
+export MIGRATION_CONNECTION_STRING="Host=${POSTGRES_HOST};Port=${POSTGRES_PORT};Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};"
+
+# Run migration with explicit connection string
+dotnet ef database update --connection "$MIGRATION_CONNECTION_STRING" --project ../Netdo.Firev.WebApi/Netdo.Firev.WebApi.csproj
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Troubleshooting and debugging migration issues">
+
+**Step 1: Verify Database Connectivity**
+
+```bash
+# Test database connection using psql
+export PGPASSWORD="$POSTGRES_PASSWORD"
+psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT version();"
+```
+
+**Step 2: Enable detailed logging**
+
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Debug",
+      "Microsoft.EntityFrameworkCore.Database.Command": "Information",
+      "Microsoft.EntityFrameworkCore.Infrastructure": "Information"
+    }
+  }
+}
+```
+
+**Step 3: Run migrations with verbose output**
+
+```bash
+# Enable verbose Entity Framework logging
+dotnet ef database update --verbose --project ../Netdo.Firev.WebApi/Netdo.Firev.WebApi.csproj
+
+# Check migration status
+dotnet ef migrations list --project ../Netdo.Firev.WebApi/Netdo.Firev.WebApi.csproj
+```
+
+**Step 4: Manual migration verification**
+
+```bash
+# Generate SQL script instead of applying directly
+dotnet ef migrations script --project ../Netdo.Firev.WebApi/Netdo.Firev.WebApi.csproj --output migration.sql
+
+# Review the generated SQL
+cat migration.sql
+
+# Apply manually if needed
+psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f migration.sql
+```
+
+**Step 5: Debug environment variables in container**
+
+```bash
+# Add debugging commands to your migration job
+echo "=== Environment Variables Debug ==="
+env | grep -E "(POSTGRES|CORS)" | sort
+echo "=== End Debug ==="
+
+# Test variable expansion
+echo "Connection would be: Host=${POSTGRES_HOST};Port=${POSTGRES_PORT};Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=***"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Best practices for database migrations in SleakOps">
+
+**1. Use dedicated migration jobs:**
+
+```yaml
+workload:
+  type: job
+  name: db-migration
+  schedule: null # Run manually or via CI/CD
+  restart_policy: Never
+  image: your-app-image:latest
+  command: |
+    # Pre-migration checks
+    ./scripts/verify-env-vars.sh
+    ./scripts/test-db-connection.sh
+
+    # Backup before migration (if needed)
+    ./scripts/backup-database.sh
+
+    # Run migration
+    dotnet ef database update --project src/YourApp.csproj
+
+    # Post-migration verification
+    ./scripts/verify-migration.sh
+```
+
+**2. Environment-specific Variable Groups:**
+
+```yaml
+# Development environment
+variable_group:
+  name: "backend-dev"
+  environment: "development"
+  variables:
+    POSTGRES_HOST: "dev-db.internal"
+    POSTGRES_DB: "app_development"
+    CORS_ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:3001"
+
+# Production environment
+variable_group:
+  name: "backend-prod"
+  environment: "production"
+  variables:
+    POSTGRES_HOST: "prod-db.internal"
+    POSTGRES_DB: "app_production"
+    CORS_ALLOWED_ORIGINS: "https://yourdomain.com"
+```
+
+**3. Migration rollback strategy:**
+
+```bash
+#!/bin/bash
+# rollback-migration.sh
+
+# Get current migration
+current_migration=$(dotnet ef migrations list --project src/YourApp.csproj --json | jq -r '.[-1].safeName')
+
+# Rollback to previous migration
+previous_migration=$(dotnet ef migrations list --project src/YourApp.csproj --json | jq -r '.[-2].safeName')
+
+echo "Rolling back from $current_migration to $previous_migration"
+dotnet ef database update "$previous_migration" --project src/YourApp.csproj
+```
+
+**4. Automated testing:**
+
+```bash
+#!/bin/bash
+# test-migration.sh
+
+# Apply migration to test database
+export POSTGRES_DB="${POSTGRES_DB}_test"
+dotnet ef database update --project src/YourApp.csproj
+
+# Run integration tests
+dotnet test --filter Category=Integration
+
+# Cleanup test database
+dropdb "${POSTGRES_DB}_test"
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 11, 2024 based on a real user query._

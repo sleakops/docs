@@ -64,6 +64,14 @@ kubectl edit secret <nombre-del-secreto> -n <namespace>
 kubectl rollout restart deployment <nombre-del-despliegue> -n <namespace>
 ```
 
+**Ventajas de usar Lens:**
+
+- Interfaz gráfica intuitiva
+- Validación automática de YAML
+- Historial de cambios visible
+- Capacidad de ver el estado en tiempo real
+- Menos propenso a errores de sintaxis
+
 </TroubleshootingItem>
 
 <TroubleshootingItem id="kubectl-method" summary="Uso de la línea de comandos kubectl">
@@ -78,6 +86,9 @@ kubectl get secrets -n <tu-namespace>
 
 # Busca secretos con el nombre de tu aplicación o variables de entorno
 kubectl describe secret <nombre-del-secreto> -n <namespace>
+
+# Ver el contenido del secreto (decodificado)
+kubectl get secret <nombre-del-secreto> -n <namespace> -o jsonpath='{.data}' | base64 -d
 ```
 
 **Paso 2: Actualizar el secreto**
@@ -87,5 +98,656 @@ kubectl describe secret <nombre-del-secreto> -n <namespace>
 kubectl edit secret <nombre-del-secreto> -n <namespace>
 
 # O aplica un parche a valores específicos
-kubectl patch secret <nombre-del-secreto> -n <namespace> --type='json' -p='[{"op": "replace""
+kubectl patch secret <nombre-del-secreto> -n <namespace> --type='json' -p='[
+  {
+    "op": "replace",
+    "path": "/data/DATABASE_URL",
+    "value": "'$(echo -n "nuevo-valor" | base64)'"
+  }
+]'
+
+# Crear un nuevo secreto desde línea de comandos
+kubectl create secret generic <nombre-del-secreto> \
+  --from-literal=API_KEY=tu-api-key \
+  --from-literal=DATABASE_URL=postgres://user:pass@host:5432/db \
+  -n <namespace> \
+  --dry-run=client -o yaml | kubectl apply -f -
 ```
+
+**Paso 3: Verificar la aplicación de cambios**
+
+```bash
+# Verificar que los cambios se aplicaron
+kubectl get secret <nombre-del-secreto> -n <namespace> -o yaml
+
+# Reiniciar el deployment para aplicar las nuevas variables
+kubectl rollout restart deployment <nombre-del-deployment> -n <namespace>
+
+# Verificar el estado del rollout
+kubectl rollout status deployment <nombre-del-deployment> -n <namespace>
+
+# Verificar las variables de entorno en el pod
+kubectl exec -it <nombre-del-pod> -n <namespace> -- env | grep <VARIABLE_NAME>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-error-causes" summary="Causas comunes de errores en variables globales">
+
+**1. Problemas de codificación base64:**
+
+Las variables en Kubernetes secrets deben estar codificadas en base64:
+
+```bash
+# Codificar correctamente
+echo -n "mi-valor-secreto" | base64
+# Output: bWktdmFsb3Itc2VjcmV0bw==
+
+# Decodificar para verificar
+echo "bWktdmFsb3Itc2VjcmV0bw==" | base64 -d
+# Output: mi-valor-secreto
+```
+
+**2. Caracteres especiales en valores:**
+
+```bash
+# Para valores con caracteres especiales, usar comillas simples
+kubectl create secret generic mi-secreto \
+  --from-literal='PASSWORD=password$with&special#chars' \
+  --dry-run=client -o yaml
+
+# O escapar apropiadamente
+kubectl create secret generic mi-secreto \
+  --from-literal="PASSWORD=password\$with\&special\#chars" \
+  --dry-run=client -o yaml
+```
+
+**3. Problemas de permisos RBAC:**
+
+```yaml
+# Verificar permisos del usuario
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: secret-manager
+  namespace: mi-namespace
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "create", "update", "patch", "delete"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: secret-manager-binding
+  namespace: mi-namespace
+subjects:
+- kind: User
+  name: mi-usuario
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: secret-manager
+  apiGroup: rbac.authorization.k8s.io
+```
+
+**4. Formato incorrecto de YAML:**
+
+```yaml
+# ❌ Incorrecto
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mi-secreto
+data:
+  DATABASE_URL: postgres://user:pass@host:5432/db  # No está en base64
+
+# ✅ Correcto
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mi-secreto
+data:
+  DATABASE_URL: cG9zdGdyZXM6Ly91c2VyOnBhc3NAaG9zdDo1NDMyL2Ri  # En base64
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-config-management" summary="Métodos alternativos de gestión de configuración">
+
+**1. Usar ConfigMaps para configuración no sensible:**
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: mi-namespace
+data:
+  # Configuración no sensible (sin codificar)
+  APP_ENV: "production"
+  LOG_LEVEL: "info"
+  API_VERSION: "v1"
+  DATABASE_POOL_SIZE: "10"
+  CACHE_TTL: "3600"
+```
+
+```bash
+# Crear ConfigMap desde línea de comandos
+kubectl create configmap app-config \
+  --from-literal=APP_ENV=production \
+  --from-literal=LOG_LEVEL=info \
+  -n mi-namespace
+
+# Actualizar ConfigMap
+kubectl patch configmap app-config -n mi-namespace --type merge -p '{
+  "data": {
+    "LOG_LEVEL": "debug",
+    "NEW_CONFIG": "new-value"
+  }
+}'
+```
+
+**2. Usar archivos de configuración:**
+
+```bash
+# Crear ConfigMap desde archivo
+echo "database:
+  host: db.example.com
+  port: 5432
+  name: myapp
+redis:
+  host: redis.example.com
+  port: 6379" > config.yaml
+
+kubectl create configmap app-config --from-file=config.yaml -n mi-namespace
+```
+
+**3. Combinando Secrets y ConfigMaps en deployments:**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mi-app
+spec:
+  template:
+    spec:
+      containers:
+      - name: app
+        image: mi-app:latest
+        env:
+        # Variables desde ConfigMap
+        - name: APP_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: APP_ENV
+        # Variables desde Secret
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: DATABASE_PASSWORD
+        # Cargar todas las variables de un ConfigMap
+        envFrom:
+        - configMapRef:
+            name: app-config
+        # Cargar todas las variables de un Secret
+        - secretRef:
+            name: app-secrets
+        # Montar archivos de configuración
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/config
+      volumes:
+      - name: config-volume
+        configMap:
+          name: app-config
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-deployment-updates" summary="Solución de problemas en actualizaciones de deployment">
+
+**1. Verificar que los pods recojan las nuevas variables:**
+
+```bash
+# Verificar el estado del deployment
+kubectl get deployment mi-app -n mi-namespace -o wide
+
+# Verificar que se inició un nuevo rollout
+kubectl rollout status deployment mi-app -n mi-namespace
+
+# Verificar los pods en ejecución
+kubectl get pods -n mi-namespace -l app=mi-app
+
+# Verificar las variables de entorno en un pod específico
+kubectl exec mi-app-pod-xxx -n mi-namespace -- env | grep DATABASE_URL
+
+# Verificar logs del pod para errores de configuración
+kubectl logs mi-app-pod-xxx -n mi-namespace
+```
+
+**2. Forzar una actualización del deployment:**
+
+```bash
+# Método 1: Reiniciar el deployment
+kubectl rollout restart deployment mi-app -n mi-namespace
+
+# Método 2: Añadir una anotación para forzar update
+kubectl patch deployment mi-app -n mi-namespace -p \
+  '{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"'$(date +%Y-%m-%dT%H:%M:%S%z)'"}}}}}'
+
+# Método 3: Cambiar la imagen (si es necesario)
+kubectl set image deployment/mi-app app=mi-app:v1.1 -n mi-namespace
+```
+
+**3. Verificar el historial de rollout:**
+
+```bash
+# Ver historial de rollouts
+kubectl rollout history deployment mi-app -n mi-namespace
+
+# Ver detalles de una revisión específica
+kubectl rollout history deployment mi-app -n mi-namespace --revision=2
+
+# Rollback a una versión anterior si hay problemas
+kubectl rollout undo deployment mi-app -n mi-namespace --to-revision=1
+```
+
+**4. Debugging avanzado:**
+
+```bash
+# Verificar eventos del namespace
+kubectl get events -n mi-namespace --sort-by=.metadata.creationTimestamp
+
+# Describir el deployment para ver errores
+kubectl describe deployment mi-app -n mi-namespace
+
+# Describir un pod específico
+kubectl describe pod mi-app-pod-xxx -n mi-namespace
+
+# Verificar el estado de los ReplicaSets
+kubectl get rs -n mi-namespace -l app=mi-app
+
+# Verificar recursos y limits
+kubectl top pods -n mi-namespace
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="validation-and-testing" summary="Validación y pruebas de configuración">
+
+**1. Script de validación de variables:**
+
+```bash
+#!/bin/bash
+# Script para validar que las variables están configuradas correctamente
+
+NAMESPACE="mi-namespace"
+APP_NAME="mi-app"
+SECRET_NAME="app-secrets"
+CONFIGMAP_NAME="app-config"
+
+echo "=== Validación de Configuración ==="
+
+# Verificar que el Secret existe
+echo "1. Verificando Secret..."
+if kubectl get secret $SECRET_NAME -n $NAMESPACE >/dev/null 2>&1; then
+    echo "✅ Secret $SECRET_NAME existe"
+    echo "Variables en Secret:"
+    kubectl get secret $SECRET_NAME -n $NAMESPACE -o jsonpath='{.data}' | jq -r 'keys[]' | sed 's/^/  - /'
+else
+    echo "❌ Secret $SECRET_NAME no encontrado"
+fi
+
+# Verificar que el ConfigMap existe
+echo -e "\n2. Verificando ConfigMap..."
+if kubectl get configmap $CONFIGMAP_NAME -n $NAMESPACE >/dev/null 2>&1; then
+    echo "✅ ConfigMap $CONFIGMAP_NAME existe"
+    echo "Variables en ConfigMap:"
+    kubectl get configmap $CONFIGMAP_NAME -n $NAMESPACE -o jsonpath='{.data}' | jq -r 'keys[]' | sed 's/^/  - /'
+else
+    echo "❌ ConfigMap $CONFIGMAP_NAME no encontrado"
+fi
+
+# Verificar que el deployment está actualizado
+echo -e "\n3. Verificando Deployment..."
+DEPLOYMENT_STATUS=$(kubectl get deployment $APP_NAME -n $NAMESPACE -o jsonpath='{.status.conditions[?(@.type=="Progressing")].status}')
+if [ "$DEPLOYMENT_STATUS" = "True" ]; then
+    echo "✅ Deployment $APP_NAME está actualizado"
+else
+    echo "❌ Deployment $APP_NAME tiene problemas"
+fi
+
+# Verificar variables en pods
+echo -e "\n4. Verificando variables en pods..."
+POD_NAME=$(kubectl get pods -n $NAMESPACE -l app=$APP_NAME -o jsonpath='{.items[0].metadata.name}')
+if [ ! -z "$POD_NAME" ]; then
+    echo "Verificando pod: $POD_NAME"
+    
+    # Verificar algunas variables clave
+    for var in DATABASE_URL API_KEY APP_ENV; do
+        if kubectl exec $POD_NAME -n $NAMESPACE -- env | grep -q "^$var="; then
+            echo "  ✅ $var está configurada"
+        else
+            echo "  ❌ $var no encontrada"
+        fi
+    done
+else
+    echo "❌ No se encontraron pods ejecutándose"
+fi
+
+echo -e "\n=== Validación Completada ==="
+```
+
+**2. Pruebas de conectividad y configuración:**
+
+```bash
+#!/bin/bash
+# Script para probar conectividad con las nuevas configuraciones
+
+NAMESPACE="mi-namespace"
+POD_NAME=$(kubectl get pods -n $NAMESPACE -l app=mi-app -o jsonpath='{.items[0].metadata.name}')
+
+echo "=== Pruebas de Conectividad ==="
+
+# Probar conexión a base de datos
+echo "1. Probando conexión a base de datos..."
+kubectl exec $POD_NAME -n $NAMESPACE -- bash -c '
+    if command -v psql &> /dev/null; then
+        psql $DATABASE_URL -c "SELECT 1;" >/dev/null 2>&1
+        if [ $? -eq 0 ]; then
+            echo "✅ Conexión a base de datos exitosa"
+        else
+            echo "❌ Error de conexión a base de datos"
+        fi
+    else
+        echo "⚠️  psql no disponible en el contenedor"
+    fi
+'
+
+# Probar conexión a Redis (si aplica)
+echo -e "\n2. Probando conexión a Redis..."
+kubectl exec $POD_NAME -n $NAMESPACE -- bash -c '
+    if command -v redis-cli &> /dev/null && [ ! -z "$REDIS_URL" ]; then
+        redis-cli -u $REDIS_URL ping >/dev/null 2>&1
+        if [ $? -eq 0 ]; then
+            echo "✅ Conexión a Redis exitosa"
+        else
+            echo "❌ Error de conexión a Redis"
+        fi
+    else
+        echo "⚠️  Redis CLI no disponible o REDIS_URL no configurada"
+    fi
+'
+
+# Probar endpoint de health check
+echo -e "\n3. Probando health check..."
+kubectl exec $POD_NAME -n $NAMESPACE -- bash -c '
+    if command -v curl &> /dev/null; then
+        curl -f http://localhost:8080/health >/dev/null 2>&1
+        if [ $? -eq 0 ]; then
+            echo "✅ Health check exitoso"
+        else
+            echo "❌ Health check falló"
+        fi
+    else
+        echo "⚠️  curl no disponible en el contenedor"
+    fi
+'
+
+echo -e "\n=== Pruebas Completadas ==="
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-best-practices" summary="Mejores prácticas para prevenir errores">
+
+**1. Versionado de configuración:**
+
+```bash
+# Usar labels para versionar configuraciones
+kubectl label secret app-secrets version=v1.2.0 -n mi-namespace
+kubectl label configmap app-config version=v1.2.0 -n mi-namespace
+
+# Crear backup antes de modificar
+kubectl get secret app-secrets -n mi-namespace -o yaml > secret-backup-$(date +%Y%m%d-%H%M%S).yaml
+kubectl get configmap app-config -n mi-namespace -o yaml > configmap-backup-$(date +%Y%m%d-%H%M%S).yaml
+```
+
+**2. Validación de configuración con dry-run:**
+
+```bash
+# Validar antes de aplicar cambios
+kubectl apply --dry-run=client -f new-secret.yaml
+kubectl apply --dry-run=server -f new-secret.yaml
+
+# Usar kubeval para validación adicional
+kubeval new-secret.yaml
+```
+
+**3. Automatización con scripts:**
+
+```bash
+#!/bin/bash
+# Script para actualización segura de variables
+
+NAMESPACE=$1
+SECRET_NAME=$2
+VARIABLE_NAME=$3
+NEW_VALUE=$4
+
+if [ -z "$4" ]; then
+    echo "Uso: $0 <namespace> <secret-name> <variable-name> <new-value>"
+    exit 1
+fi
+
+echo "=== Actualización Segura de Variable ==="
+echo "Namespace: $NAMESPACE"
+echo "Secret: $SECRET_NAME"
+echo "Variable: $VARIABLE_NAME"
+
+# Crear backup
+echo "1. Creando backup..."
+kubectl get secret $SECRET_NAME -n $NAMESPACE -o yaml > "backup-$SECRET_NAME-$(date +%Y%m%d-%H%M%S).yaml"
+
+# Verificar que el secret existe
+if ! kubectl get secret $SECRET_NAME -n $NAMESPACE >/dev/null 2>&1; then
+    echo "❌ Secret $SECRET_NAME no existe en namespace $NAMESPACE"
+    exit 1
+fi
+
+# Actualizar la variable
+echo "2. Actualizando variable..."
+kubectl patch secret $SECRET_NAME -n $NAMESPACE --type='json' -p="[
+    {
+        \"op\": \"replace\",
+        \"path\": \"/data/$VARIABLE_NAME\",
+        \"value\": \"$(echo -n "$NEW_VALUE" | base64 -w 0)\"
+    }
+]"
+
+if [ $? -eq 0 ]; then
+    echo "✅ Variable actualizada exitosamente"
+    
+    # Reiniciar deployments que usan este secret
+    echo "3. Buscando deployments que usan este secret..."
+    DEPLOYMENTS=$(kubectl get deployments -n $NAMESPACE -o json | jq -r ".items[] | select(.spec.template.spec.containers[]?.envFrom[]?.secretRef?.name == \"$SECRET_NAME\") | .metadata.name")
+    
+    for deployment in $DEPLOYMENTS; do
+        echo "Reiniciando deployment: $deployment"
+        kubectl rollout restart deployment $deployment -n $NAMESPACE
+    done
+    
+    echo "✅ Actualización completada"
+else
+    echo "❌ Error al actualizar la variable"
+    exit 1
+fi
+```
+
+**4. Monitoreo de cambios:**
+
+```yaml
+# ServiceMonitor para monitorear cambios de configuración
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: config-changes-monitor
+spec:
+  selector:
+    matchLabels:
+      app: config-monitor
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+
+---
+# Script de monitoreo
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-monitor-script
+data:
+  monitor.sh: |
+    #!/bin/bash
+    # Monitor para cambios de configuración
+    
+    while true; do
+        # Verificar última modificación de secrets
+        LAST_SECRET_CHANGE=$(kubectl get secrets -n $NAMESPACE -o json | jq -r '.items[] | .metadata.resourceVersion' | sort -n | tail -1)
+        
+        # Verificar última modificación de configmaps
+        LAST_CONFIGMAP_CHANGE=$(kubectl get configmaps -n $NAMESPACE -o json | jq -r '.items[] | .metadata.resourceVersion' | sort -n | tail -1)
+        
+        # Registrar cambios si es diferente al último check
+        if [ "$LAST_SECRET_CHANGE" != "$PREVIOUS_SECRET" ] || [ "$LAST_CONFIGMAP_CHANGE" != "$PREVIOUS_CONFIGMAP" ]; then
+            echo "$(date): Detectado cambio en configuración"
+            echo "Secret version: $LAST_SECRET_CHANGE"
+            echo "ConfigMap version: $LAST_CONFIGMAP_CHANGE"
+        fi
+        
+        PREVIOUS_SECRET=$LAST_SECRET_CHANGE
+        PREVIOUS_CONFIGMAP=$LAST_CONFIGMAP_CHANGE
+        
+        sleep 60
+    done
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="emergency-procedures" summary="Procedimientos de emergencia y rollback">
+
+**1. Rollback rápido de configuración:**
+
+```bash
+#!/bin/bash
+# Script de rollback de emergencia
+
+NAMESPACE=$1
+BACKUP_FILE=$2
+
+if [ -z "$2" ]; then
+    echo "Uso: $0 <namespace> <backup-file>"
+    echo "Backups disponibles:"
+    ls -la backup-*.yaml 2>/dev/null || echo "No se encontraron backups"
+    exit 1
+fi
+
+echo "=== ROLLBACK DE EMERGENCIA ==="
+echo "Namespace: $NAMESPACE"
+echo "Backup file: $BACKUP_FILE"
+
+# Verificar que el archivo de backup existe
+if [ ! -f "$BACKUP_FILE" ]; then
+    echo "❌ Archivo de backup no encontrado: $BACKUP_FILE"
+    exit 1
+fi
+
+# Aplicar el backup
+echo "Aplicando configuración de backup..."
+kubectl apply -f "$BACKUP_FILE" -n $NAMESPACE
+
+if [ $? -eq 0 ]; then
+    echo "✅ Configuración restaurada desde backup"
+    
+    # Reiniciar todos los deployments en el namespace
+    echo "Reiniciando deployments..."
+    kubectl get deployments -n $NAMESPACE -o name | xargs -I {} kubectl rollout restart {} -n $NAMESPACE
+    
+    echo "✅ Rollback completado"
+else
+    echo "❌ Error al aplicar el backup"
+    exit 1
+fi
+```
+
+**2. Verificación post-rollback:**
+
+```bash
+#!/bin/bash
+# Verificación después del rollback
+
+NAMESPACE=$1
+
+echo "=== VERIFICACIÓN POST-ROLLBACK ==="
+
+# Verificar que todos los deployments están saludables
+echo "1. Verificando estado de deployments..."
+kubectl get deployments -n $NAMESPACE -o wide
+
+echo -e "\n2. Verificando pods..."
+kubectl get pods -n $NAMESPACE
+
+echo -e "\n3. Verificando eventos recientes..."
+kubectl get events -n $NAMESPACE --sort-by=.metadata.creationTimestamp | tail -10
+
+echo -e "\n4. Verificando logs de aplicación..."
+for pod in $(kubectl get pods -n $NAMESPACE -o name); do
+    echo "Logs de $pod:"
+    kubectl logs $pod -n $NAMESPACE --tail=5 2>/dev/null || echo "  No se pudieron obtener logs"
+done
+
+echo -e "\n=== VERIFICACIÓN COMPLETADA ==="
+```
+
+**3. Plan de contingencia:**
+
+```markdown
+# Plan de Contingencia - Variables Globales
+
+## Escenario 1: Error en la plataforma SleakOps
+**Síntomas:** No se pueden guardar variables en la interfaz
+**Acción:** Usar kubectl o Lens como alternativa inmediata
+**Tiempo estimado:** 5-10 minutos
+
+## Escenario 2: Variables incorrectas aplicadas
+**Síntomas:** Aplicación no funciona después de cambios
+**Acción:** Rollback usando backup más reciente
+**Tiempo estimado:** 2-5 minutos
+
+## Escenario 3: Pods no recogen nuevas variables
+**Síntomas:** Variables actualizadas pero pods usan valores antiguos
+**Acción:** Reiniciar deployment manualmente
+**Tiempo estimado:** 1-3 minutos
+
+## Escenario 4: Corrupción de configuración
+**Síntomas:** Secrets o ConfigMaps corruptos
+**Acción:** Restaurar desde backup y recrear recursos
+**Tiempo estimado:** 10-15 minutos
+
+## Contactos de Emergencia:
+- Equipo SleakOps: support@sleakops.com
+- Administrador Kubernetes: admin@company.com
+- Equipo DevOps: devops@company.com
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 27 de marzo de 2024 basada en una consulta real de usuario._

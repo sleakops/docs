@@ -135,4 +135,174 @@ kubectl apply -f scaled-object.yaml
 
 <TroubleshootingItem id="manual-scaling" summary="Manual Start/Stop using KEDA ScaledObjects">
 
-For manual control over workload scaling
+For manual control over workload scaling, you can pause and resume ScaledObjects:
+
+```bash
+# Pause scaling (keeps current replica count)
+kubectl annotate scaledobject api-service-scheduler autoscaling.keda.sh/paused=true
+
+# Resume scaling
+kubectl annotate scaledobject api-service-scheduler autoscaling.keda.sh/paused-
+
+# Scale to zero manually
+kubectl patch scaledobject api-service-scheduler --type merge -p '{"spec":{"minReplicaCount":0}}'
+
+# Check ScaledObject status
+kubectl get scaledobject -n your-namespace
+kubectl describe scaledobject api-service-scheduler
+```
+
+You can also create simple ScaledObjects that allow manual scaling to zero:
+
+```yaml
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: manual-scaler
+  namespace: your-namespace
+spec:
+  scaleTargetRef:
+    name: your-deployment
+  minReplicaCount: 0
+  maxReplicaCount: 10
+  # No triggers means manual scaling only
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-troubleshooting" summary="Monitoring and troubleshooting KEDA">
+
+### Monitoring KEDA Operations
+
+```bash
+# Check KEDA operator logs
+kubectl logs -n keda -l app.kubernetes.io/name=keda-operator
+
+# Check metrics server logs
+kubectl logs -n keda -l app.kubernetes.io/name=keda-operator-metrics-apiserver
+
+# View ScaledObject events
+kubectl describe scaledobject <scaledobject-name> -n <namespace>
+
+# Monitor HPA created by KEDA
+kubectl get hpa -n <namespace>
+```
+
+### Common Issues and Solutions
+
+1. **ScaledObject not creating HPA:**
+
+   - Verify KEDA is running: `kubectl get pods -n keda`
+   - Check ScaledObject syntax and indentation
+   - Ensure target deployment exists
+
+2. **Cron scaling not working:**
+
+   - Verify timezone configuration
+   - Check cron expression syntax
+   - Ensure KEDA operator has correct time
+
+3. **Scaling not happening:**
+   - Check if the deployment has sufficient resources
+   - Verify cluster has enough capacity
+   - Review ScaledObject and HPA status
+
+### Best Practices
+
+1. **Resource Management:**
+
+   - Set appropriate resource requests/limits on deployments
+   - Monitor resource usage after implementing KEDA
+
+2. **Scheduling:**
+
+   - Use meaningful names for ScaledObjects
+   - Document your scaling schedules
+   - Test scaling behavior in development first
+
+3. **Monitoring:**
+   - Set up alerts for scaling events
+   - Monitor application startup times
+   - Track resource cost savings
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="advanced-examples" summary="Advanced KEDA configurations">
+
+### HTTP-based Scaling
+
+Scale based on HTTP traffic:
+
+```yaml
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: http-scaler
+spec:
+  scaleTargetRef:
+    name: web-service
+  minReplicaCount: 0
+  maxReplicaCount: 10
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus:9090
+        metricName: http_requests_per_second
+        threshold: "10"
+        query: rate(http_requests_total[1m])
+```
+
+### Queue-based Scaling
+
+Scale based on message queue length:
+
+```yaml
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: queue-scaler
+spec:
+  scaleTargetRef:
+    name: worker-deployment
+  minReplicaCount: 0
+  maxReplicaCount: 50
+  triggers:
+    - type: aws-sqs-queue
+      metadata:
+        queueURL: https://sqs.us-east-1.amazonaws.com/123456789/my-queue
+        queueLength: "5"
+        awsRegion: "us-east-1"
+```
+
+### Multiple Triggers
+
+Combine multiple scaling triggers:
+
+```yaml
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: multi-trigger-scaler
+spec:
+  scaleTargetRef:
+    name: api-service
+  minReplicaCount: 1
+  maxReplicaCount: 20
+  triggers:
+    - type: cron
+      metadata:
+        timezone: UTC
+        start: "0 8 * * *"
+        end: "0 20 * * *"
+        desiredReplicas: "3"
+    - type: cpu
+      metadata:
+        type: Utilization
+        value: "70"
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on February 13, 2025 based on a real user query._

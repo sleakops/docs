@@ -112,6 +112,356 @@ Provide this information when contacting support:
 
 </TroubleshootingItem>
 
+<TroubleshootingItem id="detailed-deletion-process" summary="Understanding the project deletion process">
+
+SleakOps project deletion involves multiple steps that happen sequentially:
+
+1. **UI State Update**: Project marked as "deleting" in the interface
+2. **Kubernetes Resource Cleanup**: Deployments, services, and pods are removed
+3. **Storage Cleanup**: Persistent volumes and backups are deleted
+4. **Cloud Provider Cleanup**: Load balancers, security groups, and other cloud resources
+5. **Database Cleanup**: Project metadata and configurations removed from SleakOps database
+6. **Final State Update**: Project completely removed from UI
+
+**Why deletions get stuck:**
+
+- Cloud provider API rate limits or timeouts
+- Large number of resources requiring cleanup
+- Network connectivity issues during cleanup
+- Resource dependencies that prevent immediate deletion
+- Backup processes that need to complete first
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-cloud-resources" summary="Troubleshooting cloud resource cleanup">
+
+Check and manually clean up cloud resources if needed:
+
+**AWS Resources to Check:**
+
+```bash
+# List EC2 instances
+aws ec2 describe-instances --filters "Name=tag:Project,Values=your-project-name"
+
+# List load balancers
+aws elbv2 describe-load-balancers
+
+# List security groups
+aws ec2 describe-security-groups --filters "Name=tag:Project,Values=your-project-name"
+
+# List EBS volumes
+aws ec2 describe-volumes --filters "Name=tag:Project,Values=your-project-name"
+
+# List S3 buckets
+aws s3api list-buckets --query "Buckets[?contains(Name, 'your-project-name')]"
+```
+
+**Manual cleanup commands (use with caution):**
+
+```bash
+# Delete load balancers
+aws elbv2 delete-load-balancer --load-balancer-arn <arn>
+
+# Terminate EC2 instances
+aws ec2 terminate-instances --instance-ids <instance-id>
+
+# Delete security groups (after instances are terminated)
+aws ec2 delete-security-group --group-id <sg-id>
+
+# Delete EBS volumes
+aws ec2 delete-volume --volume-id <volume-id>
+```
+
+**Azure Resources:**
+
+```bash
+# List resource groups
+az group list --query "[?name=='your-project-rg']"
+
+# List resources in group
+az resource list --resource-group your-project-rg
+
+# Delete resource group (includes all resources)
+az group delete --name your-project-rg --yes --no-wait
+```
+
+**GCP Resources:**
+
+```bash
+# List compute instances
+gcloud compute instances list --filter="labels.project=your-project-name"
+
+# List load balancers
+gcloud compute forwarding-rules list
+
+# Delete compute instances
+gcloud compute instances delete instance-name --zone=zone-name
+
+# List and delete persistent disks
+gcloud compute disks list --filter="labels.project=your-project-name"
+gcloud compute disks delete disk-name --zone=zone-name
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="kubernetes-cleanup" summary="Kubernetes resource cleanup verification">
+
+Verify Kubernetes resources are properly cleaned up:
+
+1. **Check cluster access** (if you have cluster credentials):
+
+```bash
+# List all namespaces
+kubectl get namespaces
+
+# Check if project namespace still exists
+kubectl get namespace your-project-namespace
+
+# List resources in project namespace
+kubectl get all -n your-project-namespace
+
+# Check persistent volumes
+kubectl get pv | grep your-project
+```
+
+2. **Manual Kubernetes cleanup** (if necessary):
+
+```bash
+# Delete namespace (removes all resources in it)
+kubectl delete namespace your-project-namespace --force --grace-period=0
+
+# Delete persistent volumes manually
+kubectl delete pv your-project-pv-name
+
+# Delete cluster roles and bindings
+kubectl get clusterrole | grep your-project
+kubectl delete clusterrole your-project-role
+
+kubectl get clusterrolebinding | grep your-project
+kubectl delete clusterrolebinding your-project-binding
+```
+
+3. **Check for stuck finalizers**:
+
+```bash
+# Check for resources with finalizers
+kubectl get namespace your-project-namespace -o yaml
+
+# Remove finalizers if needed (advanced operation)
+kubectl patch namespace your-project-namespace -p '{"metadata":{"finalizers":null}}'
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="database-cleanup" summary="Database and metadata cleanup">
+
+Understanding database-level cleanup issues:
+
+1. **Project metadata cleanup**: SleakOps maintains project metadata in its database
+2. **Configuration cleanup**: Project configurations, environment variables, and secrets
+3. **Audit trail preservation**: Some deletion records may be kept for audit purposes
+4. **Cache invalidation**: Platform caches may need time to update
+
+**What gets removed from SleakOps database:**
+
+- Project configuration and settings
+- Environment variables and secrets
+- Deployment history (except audit logs)
+- User access permissions for the project
+- Monitoring and alerting configurations
+
+**What may be preserved:**
+
+- Audit logs of project activities
+- Billing and usage history
+- Security event logs
+- Platform metrics and analytics
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="advanced-troubleshooting" summary="Advanced troubleshooting techniques">
+
+For persistent deletion issues:
+
+1. **Browser-based debugging**:
+
+```javascript
+// Check browser developer tools console for errors
+// Look for network requests to deletion API endpoints
+// Check for any JavaScript errors during deletion process
+
+// Clear all SleakOps-related data
+localStorage.clear();
+sessionStorage.clear();
+// Clear cookies for sleakops.com domain
+```
+
+2. **Network connectivity verification**:
+
+```bash
+# Test connectivity to SleakOps API
+curl -I https://api.sleakops.com/health
+
+# Check DNS resolution
+nslookup api.sleakops.com
+
+# Test from different network/location
+# Use different internet connection or VPN
+```
+
+3. **Platform status verification**:
+
+```bash
+# Check SleakOps status page
+curl -s https://status.sleakops.com/api/v2/status.json
+
+# Verify platform maintenance windows
+# Check SleakOps social media or documentation for known issues
+```
+
+4. **Alternative deletion methods**:
+
+- Try deletion from different browser or device
+- Use SleakOps CLI if available
+- Contact support for manual deletion
+- Use API directly if you have access
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-deletion-progress" summary="Monitoring deletion progress">
+
+Set up monitoring to track deletion progress:
+
+1. **Cloud provider monitoring**:
+
+```bash
+# AWS CloudTrail logs
+aws logs describe-log-groups --log-group-name-prefix "/aws/apigateway/sleakops"
+
+# Monitor resource counts
+watch "aws ec2 describe-instances --filters 'Name=tag:Project,Values=your-project' | jq '.Reservations | length'"
+
+# Monitor storage usage
+watch "aws s3 ls | grep your-project"
+```
+
+2. **Platform monitoring**:
+
+```bash
+# Monitor API responses
+while true; do
+  echo "$(date): Checking project status..."
+  curl -s "https://api.sleakops.com/projects/your-project-id" | jq '.status'
+  sleep 30
+done
+```
+
+3. **Notification setup**:
+
+```bash
+# Email notification when deletion completes
+#!/bin/bash
+PROJECT_NAME="your-project"
+while kubectl get namespace $PROJECT_NAME >/dev/null 2>&1; do
+  sleep 60
+done
+echo "Project $PROJECT_NAME deleted successfully" | mail -s "Project Deletion Complete" your-email@example.com
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="data-backup-recovery" summary="Data backup and recovery considerations">
+
+Important considerations for data that may be lost:
+
+1. **What gets permanently deleted**:
+
+- Application databases and data
+- File storage and uploads
+- Configuration files and secrets
+- Log files and metrics history
+- Custom SSL certificates
+- Backup files and snapshots
+
+2. **Data backup before deletion**:
+
+```bash
+# Backup databases
+kubectl exec -it database-pod -- pg_dump database_name > backup.sql
+
+# Backup persistent volumes
+kubectl get pv your-project-pv -o yaml > pv-backup.yaml
+
+# Export configurations
+kubectl get configmaps -n your-namespace -o yaml > configmaps-backup.yaml
+kubectl get secrets -n your-namespace -o yaml > secrets-backup.yaml
+
+# Backup application files
+kubectl cp pod-name:/app/data ./backup-data/
+```
+
+3. **Recovery options if deletion was accidental**:
+
+- Contact SleakOps support immediately
+- Provide project details and deletion timestamp
+- Check if any automated backups exist
+- Restore from cloud provider snapshots if available
+- Recreate project with backed up configurations
+
+4. **Prevention strategies**:
+
+- Enable automated backups before deletion
+- Use project naming conventions to avoid accidental deletion
+- Implement approval processes for production project deletions
+- Document important configurations and data locations
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Best practices for project lifecycle management">
+
+Implement these practices to avoid deletion issues:
+
+1. **Pre-deletion checklist**:
+
+```bash
+□ Backup all important data
+□ Export project configurations
+□ Notify team members
+□ Document any special setup or configurations
+□ Check for dependencies on other projects
+□ Verify no active users or services
+□ Plan downtime window if needed
+□ Have rollback plan ready
+```
+
+2. **Deletion procedures**:
+
+- Schedule deletions during maintenance windows
+- Monitor cloud provider consoles during deletion
+- Use staging/testing deletions to verify process
+- Document the deletion process and any issues encountered
+- Keep deletion logs and timestamps
+
+3. **Post-deletion verification**:
+
+```bash
+□ Verify all cloud resources are removed
+□ Check billing for reduced costs
+□ Confirm no ghost resources remain
+□ Update documentation and inventories
+□ Notify stakeholders of completion
+□ Archive any important deletion logs
+```
+
+4. **Emergency contacts and procedures**:
+
+- Maintain updated contact list for SleakOps support
+- Document escalation procedures for stuck deletions
+- Keep cloud provider support contacts available
+- Have access to cloud provider root accounts for emergency cleanup
+
+</TroubleshootingItem>
+
 ---
 
 _This FAQ was automatically generated on December 19, 2024 based on a real user query._

@@ -1,0 +1,453 @@
+---
+sidebar_position: 3
+title: "Deployment and Teams Instances Not Creating"
+description: "Troubleshooting deployment failures and Teams instance creation issues"
+date: "2024-01-15"
+category: "project"
+tags: ["deployment", "teams", "instances", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Deployment and Teams Instances Not Creating
+
+**Date:** January 15, 2024  
+**Category:** Project  
+**Tags:** Deployment, Teams, Instances, Troubleshooting
+
+## Problem Description
+
+**Context:** User reports that deployments are not executing and Teams instances are not being created in the SleakOps platform.
+
+**Observed Symptoms:**
+
+- Deployments are not being triggered or completed
+- Teams instances are not being created
+- No visible progress in deployment pipeline
+- Services may appear stuck in pending state
+
+**Relevant Configuration:**
+
+- Domain: teams.simplee.cl
+- Platform: SleakOps
+- Deployment type: Teams instances
+
+**Error Conditions:**
+
+- Deployment process fails to start or complete
+- Instance creation process does not execute
+- May affect multiple services or environments
+
+## Detailed Solution
+
+<TroubleshootingItem id="initial-diagnosis" summary="Check deployment status and logs">
+
+First, verify the current status of your deployments:
+
+1. **Navigate to your Project Dashboard**
+2. **Check the Deployments section** for any failed or pending deployments
+3. **Review deployment logs** for error messages
+4. **Verify the build status** in the CI/CD pipeline
+
+Look for common indicators:
+
+- Red status indicators
+- Error messages in logs
+- Stuck "pending" states
+- Resource allocation issues
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="teams-configuration" summary="Verify Teams instance configuration">
+
+Check your Teams instance configuration:
+
+1. **Go to Workloads** → **Teams Services**
+2. **Verify the configuration** for teams.simplee.cl
+3. **Check resource allocation**:
+   - CPU and memory limits
+   - Storage requirements
+   - Network configuration
+
+```yaml
+# Example Teams configuration
+apiVersion: v1
+kind: Service
+metadata:
+  name: teams-service
+spec:
+  selector:
+    app: teams
+  ports:
+    - port: 80
+      targetPort: 8080
+  type: LoadBalancer
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="resource-verification" summary="Check cluster resources and quotas">
+
+Verify that your cluster has sufficient resources:
+
+1. **Check Node Resources**:
+
+   - Available CPU and memory
+   - Disk space
+   - Network capacity
+
+2. **Verify Quotas**:
+
+   - Namespace resource quotas
+   - Cluster-wide limits
+   - Provider-specific quotas (AWS, Azure, GCP)
+
+3. **Review Pod Status**:
+   ```bash
+   kubectl get pods -n your-namespace
+   kubectl describe pod <pod-name> -n your-namespace
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="networking-dns" summary="Verify networking and DNS configuration">
+
+For Teams instances, networking configuration is critical:
+
+1. **Check DNS Configuration**:
+
+   - Verify teams.simplee.cl DNS records
+   - Ensure proper A/CNAME records point to load balancer
+
+2. **Verify Load Balancer**:
+
+   - Check if load balancer is provisioned
+   - Verify security groups and firewall rules
+
+3. **Test Connectivity**:
+   ```bash
+   nslookup teams.simplee.cl
+   curl -I https://teams.simplee.cl
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-solutions" summary="Common solutions for deployment issues">
+
+**Restart Deployment Process**:
+
+1. Navigate to your project
+2. Go to **Deployments** tab
+3. Click **Redeploy** on the failed deployment
+
+**Clear Stuck Resources**:
+
+1. Delete stuck pods manually if needed
+2. Restart deployment controllers
+3. Check for resource locks or conflicts
+
+**Update Configuration**:
+
+1. Verify all environment variables
+2. Check secrets and configmaps
+3. Ensure image repositories are accessible
+
+**Scale Resources**:
+
+1. Increase node capacity if needed
+2. Adjust resource requests and limits
+3. Consider using different instance types
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="escalation-steps" summary="When to escalate the issue">
+
+Escalate to SleakOps support if:
+
+1. **Infrastructure Issues**:
+
+   - Cluster nodes are not responding
+   - Provider-level service outages
+   - Persistent resource allocation failures
+
+2. **Platform Issues**:
+
+   - SleakOps dashboard not responding
+   - Deployment pipeline completely broken
+   - Authentication or authorization failures
+
+3. **Data Loss Concerns**:
+   - Persistent volumes not mounting
+   - Database connectivity issues
+   - Backup and recovery problems
+
+**Information to provide when escalating**:
+
+- Project name and environment
+- Specific error messages from logs
+- Timeline of when the issue started
+- Recent changes made to configuration
+- Screenshots of error states
+
+**Support Contact Methods**:
+
+- SleakOps Support Portal: Create a ticket with "URGENT" priority for production issues
+- Email: support@sleakops.com with detailed problem description
+- Emergency escalation: Include business impact assessment
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="preventive-measures" summary="Preventive measures and monitoring">
+
+To prevent deployment and Teams instance issues:
+
+1. **Set up monitoring and alerts**:
+
+```yaml
+# Example monitoring configuration
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: teams-monitoring
+spec:
+  selector:
+    matchLabels:
+      app: teams
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+```
+
+2. **Implement health checks**:
+
+```yaml
+# Add health check to Teams deployment
+spec:
+  template:
+    spec:
+      containers:
+        - name: teams-app
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+```
+
+3. **Configure resource monitoring**:
+
+```bash
+# Monitor cluster resources regularly
+kubectl top nodes
+kubectl top pods -n your-namespace
+kubectl get events --sort-by=.metadata.creationTimestamp
+```
+
+4. **Set up automated scaling**:
+
+```yaml
+# Horizontal Pod Autoscaler for Teams service
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: teams-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: teams-deployment
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="advanced-troubleshooting" summary="Advanced troubleshooting techniques">
+
+For complex deployment issues that require deeper investigation:
+
+1. **Deep cluster analysis**:
+
+```bash
+# Check cluster events for errors
+kubectl get events --all-namespaces --sort-by=.metadata.creationTimestamp
+
+# Analyze node conditions
+kubectl describe nodes
+
+# Check system pod status
+kubectl get pods -n kube-system
+
+# Review cluster resource consumption
+kubectl describe nodes | grep -A 5 "Allocated resources"
+```
+
+2. **Network diagnostics**:
+
+```bash
+# Test DNS resolution from within cluster
+kubectl run -it --rm debug --image=busybox --restart=Never -- nslookup teams.simplee.cl
+
+# Check service endpoints
+kubectl get endpoints -n your-namespace
+
+# Test connectivity between pods
+kubectl exec -it <pod-name> -- wget -qO- http://teams-service:80/health
+```
+
+3. **Log aggregation and analysis**:
+
+```bash
+# Collect logs from all related components
+kubectl logs deployment/teams-deployment -n your-namespace --all-containers=true
+
+# Check ingress controller logs
+kubectl logs -n ingress-nginx deployment/ingress-nginx-controller
+
+# Review load balancer logs (if applicable)
+# This depends on your cloud provider and setup
+```
+
+4. **Container image debugging**:
+
+```bash
+# Verify image availability
+kubectl describe pod <pod-name> | grep -i image
+
+# Check image pull status
+kubectl get events | grep -i "image"
+
+# Test image locally (if accessible)
+docker pull your-teams-image:tag
+docker run --rm your-teams-image:tag /health-check
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="recovery-procedures" summary="Recovery and rollback procedures">
+
+When deployments fail, follow these recovery steps:
+
+1. **Immediate rollback to last working version**:
+
+```bash
+# Check deployment history
+kubectl rollout history deployment/teams-deployment -n your-namespace
+
+# Rollback to previous version
+kubectl rollout undo deployment/teams-deployment -n your-namespace
+
+# Monitor rollback progress
+kubectl rollout status deployment/teams-deployment -n your-namespace
+```
+
+2. **Configuration recovery**:
+
+```bash
+# Backup current configuration
+kubectl get deployment teams-deployment -o yaml > teams-backup.yaml
+
+# Apply known working configuration
+kubectl apply -f teams-working-config.yaml
+
+# Verify deployment health
+kubectl get pods -l app=teams -n your-namespace
+```
+
+3. **Data and state recovery**:
+
+```bash
+# Check persistent volume status
+kubectl get pv,pvc -n your-namespace
+
+# Verify database connectivity (if applicable)
+kubectl exec -it <database-pod> -- pg_isready  # For PostgreSQL
+kubectl exec -it <database-pod> -- mysqladmin ping  # For MySQL
+```
+
+4. **Service restoration verification**:
+
+```bash
+# Test service endpoints
+curl -f https://teams.simplee.cl/health
+
+# Check load balancer status
+kubectl get svc teams-service -n your-namespace
+
+# Verify ingress configuration
+kubectl get ingress -n your-namespace
+kubectl describe ingress teams-ingress -n your-namespace
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Best practices for Teams deployments">
+
+Follow these best practices to ensure reliable Teams deployments:
+
+1. **Deployment strategy**:
+
+```yaml
+# Use rolling updates for zero-downtime deployments
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+```
+
+2. **Resource management**:
+
+```yaml
+# Always set resource requests and limits
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "1Gi"
+    cpu: "500m"
+```
+
+3. **Environment-specific configurations**:
+
+- Use ConfigMaps for environment variables
+- Store secrets securely using Kubernetes Secrets
+- Implement proper RBAC controls
+- Use namespaces to isolate environments
+
+4. **Testing and validation**:
+
+- Deploy to staging environment first
+- Run automated tests before production deployment
+- Implement canary deployments for critical changes
+- Monitor key metrics during and after deployment
+
+5. **Documentation and processes**:
+
+- Document all configuration changes
+- Maintain deployment runbooks
+- Create incident response procedures
+- Regular backup and recovery testing
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

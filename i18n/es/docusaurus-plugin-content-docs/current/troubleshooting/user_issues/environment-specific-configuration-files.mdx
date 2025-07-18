@@ -58,6 +58,384 @@ metadata:
 data:
   config.json: |
     {
-      "database_url": "dev-db.example.com""
+      "database_url": "dev-db.example.com",
+      "api_endpoint": "https://api-dev.miapp.com",
+      "log_level": "debug",
+      "feature_flags": {
+        "new_feature": true,
+        "experimental": true
+      }
+    }
+
+---
+# config-prod.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config-prod
+data:
+  config.json: |
+    {
+      "database_url": "prod-db.example.com",
+      "api_endpoint": "https://api.miapp.com",
+      "log_level": "info",
+      "feature_flags": {
+        "new_feature": true,
+        "experimental": false
+      }
+    }
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="templating-approach" summary="Uso de Plantillas para Archivos de Configuración Dinámicos">
+
+Para situaciones más complejas, puedes usar un enfoque de plantillas:
+
+1. **Crear archivos de plantilla** con marcadores de posición
+2. **Usar un script de inicialización** para generar la configuración final
+3. **Combinar variables de entorno con plantillas**
+
+```yaml
+# config-template.json
+{
+  "database_url": "${DATABASE_URL}",
+  "api_endpoint": "${API_ENDPOINT}",
+  "log_level": "${LOG_LEVEL}",
+  "cache_ttl": ${CACHE_TTL},
+  "feature_flags": {
+    "new_feature": ${NEW_FEATURE_ENABLED},
+    "experimental": ${EXPERIMENTAL_ENABLED}
+  }
 }
 ```
+
+**Script de inicialización:**
+
+```bash
+#!/bin/bash
+# init-config.sh
+
+# Sustituir variables de entorno en la plantilla
+envsubst < /templates/config-template.json > /app/config.json
+
+# Validar el JSON generado
+if ! jq empty /app/config.json; then
+    echo "Error: Archivo de configuración JSON inválido"
+    exit 1
+fi
+
+echo "Configuración generada exitosamente para entorno: $ENVIRONMENT"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-integration" summary="Integración con VarGroups de SleakOps">
+
+SleakOps permite gestionar configuraciones específicas por entorno usando VarGroups:
+
+1. **Crear VarGroups por entorno:**
+
+   - `app-config-dev` para desarrollo
+   - `app-config-staging` para staging
+   - `app-config-prod` para producción
+
+2. **Definir variables de configuración:**
+
+```bash
+# VarGroup: app-config-dev
+DATABASE_URL=postgresql://dev-db.example.com:5432/myapp_dev
+API_ENDPOINT=https://api-dev.miapp.com
+LOG_LEVEL=debug
+CACHE_TTL=300
+NEW_FEATURE_ENABLED=true
+EXPERIMENTAL_ENABLED=true
+
+# VarGroup: app-config-prod
+DATABASE_URL=postgresql://prod-db.example.com:5432/myapp
+API_ENDPOINT=https://api.miapp.com
+LOG_LEVEL=info
+CACHE_TTL=3600
+NEW_FEATURE_ENABLED=true
+EXPERIMENTAL_ENABLED=false
+```
+
+3. **Generar archivos durante el despliegue:**
+
+```dockerfile
+# En tu Dockerfile
+COPY config-template.json /templates/
+COPY init-config.sh /scripts/
+
+# Durante el inicio del contenedor
+CMD ["/scripts/init-config.sh && /app/start.sh"]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="kubernetes-secrets" summary="Manejo de Configuraciones Sensibles">
+
+Para configuraciones que contienen datos sensibles:
+
+1. **Usar Kubernetes Secrets** en lugar de ConfigMaps
+2. **Separar configuraciones públicas y privadas**
+3. **Implementar encriptación en reposo**
+
+```yaml
+# secret-config.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secret-config
+type: Opaque
+stringData:
+  database-credentials.json: |
+    {
+      "username": "app_user",
+      "password": "secure_password",
+      "ssl_cert": "/etc/ssl/certs/db-cert.pem"
+    }
+  api-keys.json: |
+    {
+      "stripe_secret": "sk_live_...",
+      "sendgrid_api_key": "SG...",
+      "jwt_secret": "your-jwt-secret"
+    }
+```
+
+**Montaje en el contenedor:**
+
+```yaml
+# deployment.yaml
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          volumeMounts:
+            - name: public-config
+              mountPath: /app/config
+            - name: secret-config
+              mountPath: /app/secrets
+              readOnly: true
+      volumes:
+        - name: public-config
+          configMap:
+            name: app-config-${ENVIRONMENT}
+        - name: secret-config
+          secret:
+            secretName: app-secret-config
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="validation-testing" summary="Validación y Pruebas de Configuraciones">
+
+Implementa validación para asegurar que las configuraciones son correctas:
+
+1. **Validación de esquema:**
+
+```javascript
+// config-validator.js
+const Ajv = require("ajv");
+const fs = require("fs");
+
+const configSchema = {
+  type: "object",
+  properties: {
+    database_url: { type: "string", format: "uri" },
+    api_endpoint: { type: "string", format: "uri" },
+    log_level: { type: "string", enum: ["debug", "info", "warn", "error"] },
+    cache_ttl: { type: "number", minimum: 60 },
+  },
+  required: ["database_url", "api_endpoint", "log_level"],
+};
+
+function validateConfig(configPath) {
+  const ajv = new Ajv();
+  const validate = ajv.compile(configSchema);
+
+  const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+  const valid = validate(config);
+
+  if (!valid) {
+    console.error("Errores de validación:", validate.errors);
+    process.exit(1);
+  }
+
+  console.log("Configuración válida");
+}
+
+validateConfig("/app/config.json");
+```
+
+2. **Pruebas de configuración:**
+
+```bash
+#!/bin/bash
+# test-config.sh
+
+echo "Probando configuración para entorno: $ENVIRONMENT"
+
+# Verificar que el archivo existe
+if [ ! -f "/app/config.json" ]; then
+    echo "Error: Archivo de configuración no encontrado"
+    exit 1
+fi
+
+# Verificar conectividad a base de datos
+node -e "
+  const config = require('/app/config.json');
+  const { Client } = require('pg');
+  const client = new Client({ connectionString: config.database_url });
+
+  client.connect()
+    .then(() => {
+      console.log('Conexión a base de datos exitosa');
+      client.end();
+    })
+    .catch(err => {
+      console.error('Error conectando a base de datos:', err.message);
+      process.exit(1);
+    });
+"
+
+echo "Todas las pruebas de configuración pasaron"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Mejores Prácticas para Configuraciones por Entorno">
+
+1. **Organización de archivos:**
+
+```
+project/
+├── config/
+│   ├── base.json                 # Configuración común
+│   ├── development.json          # Configuración específica dev
+│   ├── staging.json              # Configuración específica staging
+│   └── production.json           # Configuración específica prod
+├── templates/
+│   ├── config-template.json      # Plantilla con variables
+│   └── nginx-template.conf       # Plantillas de servicios
+└── scripts/
+    ├── init-config.sh            # Script de inicialización
+    └── validate-config.js        # Validación de configuración
+```
+
+2. **Estrategias de versionado:**
+
+```yaml
+# Usar etiquetas para versionar configuraciones
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config-v1-2-3
+  labels:
+    app: miapp
+    version: "1.2.3"
+    environment: production
+data:
+  config.json: |
+    {
+      "version": "1.2.3",
+      "environment": "production"
+    }
+```
+
+3. **Monitoreo de cambios:**
+
+```bash
+# Script para detectar cambios en configuración
+#!/bin/bash
+CONFIG_HASH=$(sha256sum /app/config.json | cut -d' ' -f1)
+echo "Hash de configuración actual: $CONFIG_HASH"
+
+# Almacenar en variable de entorno para debugging
+export CONFIG_HASH
+```
+
+4. **Rollback de configuraciones:**
+
+```bash
+# Mantener respaldos de configuraciones
+kubectl get configmap app-config-prod -o yaml > config-backup-$(date +%Y%m%d-%H%M%S).yaml
+
+# Script de rollback
+kubectl apply -f config-backup-20240115-143000.yaml
+kubectl rollout restart deployment/miapp
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-common-issues" summary="Resolución de Problemas Comunes">
+
+**Problema 1: Configuración no se actualiza**
+
+```bash
+# Verificar si el ConfigMap fue actualizado
+kubectl describe configmap app-config-prod
+
+# Forzar recarga del pod
+kubectl rollout restart deployment/miapp
+
+# Verificar logs de inicialización
+kubectl logs deployment/miapp --container=init-config
+```
+
+**Problema 2: Archivos de configuración corruptos**
+
+```bash
+# Validar JSON
+cat /app/config.json | jq .
+
+# Verificar variables de entorno
+env | grep -E "(DATABASE_URL|API_ENDPOINT)"
+
+# Regenerar configuración
+/scripts/init-config.sh
+```
+
+**Problema 3: Configuración por defecto no funciona**
+
+```yaml
+# Usar initContainers para configuración predeterminada
+initContainers:
+  - name: config-init
+    image: busybox
+    command:
+      - sh
+      - -c
+      - |
+        if [ ! -f /app/config.json ]; then
+          echo "Creando configuración por defecto"
+          cp /templates/config-default.json /app/config.json
+        fi
+    volumeMounts:
+      - name: config-volume
+        mountPath: /app
+      - name: templates
+        mountPath: /templates
+```
+
+**Problema 4: Permisos de archivos**
+
+```yaml
+# Configurar permisos correctos en volúmenes
+volumes:
+  - name: config-volume
+    configMap:
+      name: app-config
+      defaultMode: 0644
+  - name: secret-volume
+    secret:
+      secretName: app-secrets
+      defaultMode: 0600
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

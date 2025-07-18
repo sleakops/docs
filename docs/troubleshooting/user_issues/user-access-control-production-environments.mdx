@@ -85,5 +85,195 @@ Create a custom "Developer" role in production account:
 
 ```json
 {
-  "Version": "2012-10-17"
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ViewDevelopmentResources",
+      "Effect": "Allow",
+      "Action": [
+        "rds:Describe*",
+        "s3:GetObject",
+        "s3:ListBucket",
+        "ec2:Describe*",
+        "eks:Describe*",
+        "eks:List*"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "us-east-1"
+        }
+      }
+    },
+    {
+      "Sid": "DenyProductionAccess",
+      "Effect": "Deny",
+      "Action": "*",
+      "Resource": [
+        "arn:aws:rds:*:*:db:prod-*",
+        "arn:aws:s3:::*-production/*",
+        "arn:aws:eks:*:*:cluster/production-*"
+      ]
+    }
+  ]
+}
 ```
+
+### Strategy 3: Environment-Based User Groups
+
+Organize users into environment-specific groups:
+
+| User Group | Development Access | Staging Access | Production Access |
+|------------|-------------------|----------------|------------------|
+| Developers | Full Access | Read-Only | No Access |
+| QA Team | Read-Only | Full Access | No Access |
+| DevOps | Full Access | Full Access | Admin Access |
+| Product Team | No Access | Read-Only | Read-Only |
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="implementation-steps" summary="Step-by-step implementation">
+
+### Step 1: Create User Groups in AWS IAM
+
+```bash
+# Create development team group
+aws iam create-group --group-name SleakOps-Development-Team
+
+# Create production admin group
+aws iam create-group --group-name SleakOps-Production-Admins
+
+# Attach policies to groups
+aws iam attach-group-policy \
+  --group-name SleakOps-Development-Team \
+  --policy-arn arn:aws:iam::aws:policy/ReadOnlyAccess
+
+aws iam attach-group-policy \
+  --group-name SleakOps-Production-Admins \
+  --policy-arn arn:aws:iam::aws:policy/PowerUserAccess
+```
+
+### Step 2: Configure SleakOps User Roles
+
+1. **Access SleakOps Admin Panel**
+2. **Navigate to User Management**
+3. **Create role mappings:**
+
+```yaml
+Production Environment:
+  - Admins: production-admin@company.com, lead-devops@company.com
+  - Restricted Access: No other users
+
+Development Environment:
+  - Full Access: All developers
+  - Editor Access: Senior developers
+  - Viewer Access: Junior developers, QA team
+```
+
+### Step 3: Configure VPN Access
+
+```bash
+# Development VPN group
+vpn_group: development
+users:
+  - developer1@company.com
+  - developer2@company.com
+  - qa1@company.com
+
+# Production VPN group (limited)
+vpn_group: production
+users:
+  - admin1@company.com
+  - admin2@company.com
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="database-access-control" summary="Database Access Control Best Practices">
+
+### Separate Database Users by Environment
+
+```sql
+-- Development database users
+CREATE USER 'dev_user'@'%' IDENTIFIED BY 'dev_password';
+GRANT SELECT, INSERT, UPDATE, DELETE ON development_db.* TO 'dev_user'@'%';
+
+-- Staging database users (read-only for developers)
+CREATE USER 'staging_reader'@'%' IDENTIFIED BY 'staging_password';
+GRANT SELECT ON staging_db.* TO 'staging_reader'@'%';
+
+-- Production database users (very restricted)
+CREATE USER 'prod_admin'@'%' IDENTIFIED BY 'secure_prod_password';
+GRANT ALL PRIVILEGES ON production_db.* TO 'prod_admin'@'%';
+
+CREATE USER 'prod_readonly'@'%' IDENTIFIED BY 'prod_readonly_password';
+GRANT SELECT ON production_db.* TO 'prod_readonly'@'%';
+```
+
+### Connection String Management
+
+Store connection strings in environment-specific VariableGroups:
+
+```yaml
+# Development VariableGroup
+DATABASE_URL: mysql://dev_user:dev_password@dev-db:3306/development_db
+READ_ONLY_DATABASE_URL: mysql://dev_user:dev_password@dev-db:3306/development_db
+
+# Production VariableGroup (restricted access)
+DATABASE_URL: mysql://prod_admin:secure_password@prod-db:3306/production_db
+READ_ONLY_DATABASE_URL: mysql://prod_readonly:readonly_password@prod-db:3306/production_db
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-auditing" summary="Monitoring and auditing access">
+
+### Set Up Access Monitoring
+
+1. **Enable AWS CloudTrail** for all API calls
+2. **Configure VPN logging** to track connection attempts
+3. **Monitor database connections:**
+
+```sql
+-- Enable MySQL general log
+SET GLOBAL general_log = 'ON';
+SET GLOBAL general_log_file = '/var/log/mysql/general.log';
+
+-- Monitor active connections
+SELECT USER, HOST, DB, COMMAND, TIME, STATE 
+FROM information_schema.PROCESSLIST;
+```
+
+### Regular Access Reviews
+
+1. **Monthly access review meetings**
+2. **Quarterly permission audits**
+3. **Automated alerts for unusual access patterns**
+
+```bash
+# Example CloudWatch alarm for unusual production access
+aws cloudwatch put-metric-alarm \
+  --alarm-name "UnusualProductionAccess" \
+  --alarm-description "Alert on unusual production database access" \
+  --metric-name DatabaseConnections \
+  --namespace AWS/RDS \
+  --statistic Sum \
+  --period 300 \
+  --threshold 10 \
+  --comparison-operator GreaterThanThreshold
+```
+
+### Best Practices Summary
+
+1. **Principle of Least Privilege**: Grant minimum necessary permissions
+2. **Environment Segregation**: Clear boundaries between dev/staging/prod
+3. **Regular Audits**: Review and update permissions regularly
+4. **Monitoring**: Track all access attempts and unusual patterns
+5. **Documentation**: Maintain clear documentation of who has access to what
+6. **Emergency Procedures**: Have protocols for emergency access and revocation
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on February 17, 2024 based on a real user query._

@@ -228,5 +228,29 @@ To prevent future migration data integrity issues:
            query: "SELECT COUNT(*) FROM critical_table"
            expected_min: 1000
          - name: data_freshness
-           query: "SELECT MAX(create
+           query: "SELECT MAX(created_at) FROM events WHERE created_at > NOW() - INTERVAL '1 hour'"
+           expected_result: true
    ```
+
+3. **Create rollback procedures**:
+
+   - Document exact steps to revert migration
+   - Test rollback procedures in staging
+   - Keep backup restoration scripts ready
+
+4. **Use incremental migration strategies**:
+
+   - Break large migrations into smaller chunks
+   - Validate each chunk before proceeding
+   - Implement checkpointing for long-running migrations
+
+5. **Document everything**:
+   - Record all migration steps and timing
+   - Document any deviations from planned process
+   - Keep detailed logs for troubleshooting
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

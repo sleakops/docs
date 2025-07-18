@@ -105,7 +105,18 @@ LifecycleConfiguration:
         Prefix: temp/
       Expiration:
         Days: 30
+    - Id: DeleteIncompleteMultipartUploads
+      Status: Enabled
+      AbortIncompleteMultipartUpload:
+        DaysAfterInitiation: 7
 ```
+
+**Recommended practices:**
+
+- Set up lifecycle policies before accumulating large amounts of data
+- Use versioning judiciously to avoid exponential object growth
+- Implement automated cleanup for temporary files
+- Monitor storage costs regularly to identify potential issues early
 
 </TroubleshootingItem>
 
@@ -120,8 +131,112 @@ While waiting for a stuck deletion to complete:
 
 **Note**: The resolution process may take some time depending on the number of objects that need to be cleaned up.
 
+```bash
+# Monitor S3 bucket size during cleanup (if you have access)
+aws s3api list-objects-v2 --bucket your-bucket-name --query 'length(Contents[])'
+
+# Check for stuck multipart uploads
+aws s3api list-multipart-uploads --bucket your-bucket-name
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="emergency-procedures" summary="Emergency recovery procedures">
+
+If project deletion is critical and cannot wait for support resolution:
+
+**Option 1: Manual S3 Cleanup (Advanced)**
+
+```bash
+# List all objects in the bucket
+aws s3 ls s3://your-bucket-name --recursive
+
+# Delete objects in batches (be very careful!)
+aws s3 rm s3://your-bucket-name --recursive
+
+# Delete the bucket
+aws s3 rb s3://your-bucket-name
+```
+
+**⚠️ Warning**: Only perform manual cleanup if:
+
+- You have full AWS access to the account
+- You've verified the bucket only contains project-related data
+- You understand the risks of data loss
+
+**Option 2: Request Priority Support**
+
+For critical production issues:
+
+- Contact SleakOps support via emergency channel
+- Clearly mark as "URGENT - Production Impact"
+- Provide business justification for priority handling
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-tips" summary="Additional troubleshooting steps">
+
+**Check for related issues:**
+
+1. **Verify IAM permissions**: Ensure the SleakOps service has proper S3 deletion permissions
+2. **Check bucket policies**: Look for bucket policies that might prevent deletion
+3. **Review object locks**: Check if objects have legal holds or retention policies
+4. **Examine cross-region replication**: Verify if bucket has replication rules that need cleanup
+
+**Common resolution times:**
+
+- Small buckets (< 1000 objects): 5-15 minutes
+- Medium buckets (1K-100K objects): 30 minutes - 2 hours
+- Large buckets (100K+ objects): 2-24 hours
+- Very large buckets (millions of objects): May require several days
+
+**Signs that cleanup is progressing:**
+
+- Decreasing object count in AWS Console
+- S3 API calls visible in CloudTrail logs
+- Reduced storage costs in AWS billing
+- Email updates from SleakOps support team
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Best practices for project lifecycle management">
+
+**Before creating projects:**
+
+- Plan your data retention strategy
+- Estimate potential storage usage
+- Implement automated cleanup from the start
+- Set up monitoring for storage costs
+
+**During project lifecycle:**
+
+- Regularly review and clean up unnecessary files
+- Monitor storage growth patterns
+- Use temporary buckets for short-lived data
+- Implement proper logging and cleanup of temporary artifacts
+
+**Before project deletion:**
+
+- Backup any critical data
+- Document any persistent data that should be preserved
+- Clean up large objects manually if possible
+- Notify team members about the planned deletion
+
+**Project deletion checklist:**
+
+```bash
+# Pre-deletion verification
+□ Backup critical data
+□ Document important configurations
+□ Clean up large files/datasets
+□ Verify no external dependencies
+□ Notify stakeholders
+□ Choose appropriate time window
+□ Have rollback plan ready
+```
+
 </TroubleshootingItem>
 
 ---
 
-_This FAQ was automatically generated on November 1, 2024 based on a real user query._
+_This FAQ was automatically generated on October 31, 2024 based on a real user query._

@@ -201,5 +201,135 @@ If DNS delegation still fails after following all steps:
    - Results from DNS checker tools
    - Specific error messages or symptoms
 
+### Escalation Process:
+
+If the registrar cannot resolve the issue:
+
+1. **Consider Alternative Approaches:**
+
+   - Transfer the domain to a more AWS-friendly registrar (Route53, Cloudflare, etc.)
+   - Use CNAME delegation for subdomains instead of NS delegation
+   - Implement DNS proxying through services like Cloudflare
+
+2. **Alternative Solution - CNAME Approach:**
+
+   If NS delegation fails, consider using CNAME records for subdomains:
+
+   ```
+   # At your registrar, create:
+   www     CNAME    your-app.sleakops.com
+   api     CNAME    your-api.sleakops.com
+   ```
+
+   This approach requires each subdomain to be individually configured but avoids NS delegation issues.
+
 </TroubleshootingItem>
-\
+
+<TroubleshootingItem id="testing-and-monitoring" summary="Testing DNS delegation and ongoing monitoring">
+
+### DNS Delegation Testing
+
+Once delegation is configured, perform comprehensive testing:
+
+1. **DNS Resolution Testing:**
+
+   ```bash
+   # Test from multiple DNS servers
+   nslookup ordenapp.com.ar 8.8.8.8
+   nslookup ordenapp.com.ar 1.1.1.1
+   nslookup ordenapp.com.ar 208.67.222.222
+
+   # Test NS record delegation
+   dig NS ordenapp.com.ar @8.8.8.8
+
+   # Test specific records
+   dig A www.ordenapp.com.ar @8.8.8.8
+   dig CNAME api.ordenapp.com.ar @8.8.8.8
+   ```
+
+2. **SSL Certificate Validation:**
+
+   ```bash
+   # Test SSL certificate
+   echo | openssl s_client -servername ordenapp.com.ar -connect ordenapp.com.ar:443 2>/dev/null | openssl x509 -noout -dates
+
+   # Check certificate chain
+   curl -I https://ordenapp.com.ar
+   ```
+
+3. **Web-based Testing Tools:**
+
+   - Use https://dnschecker.org/ for global DNS propagation
+   - Use https://www.whatsmydns.net/ for worldwide DNS resolution
+   - Use https://www.ssllabs.com/ssltest/ for SSL configuration testing
+
+### Monitoring and Alerting
+
+Set up monitoring to detect DNS delegation issues:
+
+1. **CloudWatch Alarms:**
+
+   ```yaml
+   # Route53 Health Check Configuration
+   Type: AWS::Route53::HealthCheck
+   Properties:
+     Type: HTTPS
+     ResourcePath: /health
+     FullyQualifiedDomainName: ordenapp.com.ar
+     Port: 443
+     RequestInterval: 30
+     FailureThreshold: 3
+   ```
+
+2. **External Monitoring:**
+
+   - Set up monitoring with services like Pingdom, UptimeRobot, or DataDog
+   - Monitor both DNS resolution and HTTP response times
+   - Alert on certificate expiration
+
+3. **Automated DNS Validation:**
+
+   ```bash
+   #!/bin/bash
+   # DNS delegation monitoring script
+
+   DOMAIN="ordenapp.com.ar"
+   EXPECTED_NS="ns-1234.awsdns-01.com"
+
+   # Check if NS delegation is working
+   CURRENT_NS=$(dig +short NS $DOMAIN @8.8.8.8 | head -1)
+
+   if [[ "$CURRENT_NS" == *"awsdns"* ]]; then
+       echo "DNS delegation working correctly"
+       exit 0
+   else
+       echo "DNS delegation failed - NS: $CURRENT_NS"
+       # Send alert notification
+       exit 1
+   fi
+   ```
+
+### Best Practices for DNS Management
+
+1. **Documentation:**
+
+   - Keep records of all DNS changes with timestamps
+   - Document delegation contact information for domain registrar
+   - Maintain backup of DNS configurations
+
+2. **Change Management:**
+
+   - Test DNS changes in staging environments first
+   - Implement DNS changes during low-traffic periods
+   - Have rollback procedures documented
+
+3. **Security Considerations:**
+   - Enable DNSSEC if supported by registrar
+   - Use DNS monitoring to detect hijacking attempts
+   - Regularly audit DNS records for unauthorized changes
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

@@ -219,4 +219,585 @@ export class AppModule {}
 
 <TroubleshootingItem id="deployment-solution" summary="Force new deployment (immediate fix)">
 
-If you need an immediate fix
+If you need an immediate fix, force a new deployment in SleakOps:
+
+1. **Trigger a new deployment**:
+   - Make a small change to your repository (add a comment, update a dependency)
+   - Push the change to trigger a new build and deployment
+   - This will create fresh pods with clean state
+
+2. **Alternative - Manual pod restart**:
+   ```bash
+   # Restart deployment to create new pods
+   kubectl rollout restart deployment rattlesnake-develop
+   
+   # Wait for rollout to complete
+   kubectl rollout status deployment rattlesnake-develop
+   
+   # Verify new pods are running
+   kubectl get pods -l app=rattlesnake-develop
+   ```
+
+This often resolves the 502 error by creating fresh pods without any potential state issues.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="detailed-debugging" summary="Detailed debugging steps">
+
+### Step 1: Check Pod and Service Configuration
+
+```bash
+# Check pod status and logs
+kubectl get pods -l app=rattlesnake-develop
+kubectl logs <pod-name> --tail=50
+
+# Check service configuration
+kubectl get svc rattlesnake-develop -o yaml
+kubectl describe svc rattlesnake-develop
+
+# Check endpoints
+kubectl get endpoints rattlesnake-develop
+```
+
+### Step 2: Test Direct Pod Connectivity
+
+```bash
+# Port forward directly to a pod
+kubectl port-forward <pod-name> 8080:3000
+
+# Test the application directly
+curl http://localhost:8080/health
+curl -X POST http://localhost:8080/session -H "Content-Type: application/json" -d '{}'
+```
+
+### Step 3: Check Application Startup Sequence
+
+Ensure your NestJS app is fully ready before accepting connections:
+
+```typescript
+// Enhanced main.ts with better startup handling
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import { Logger } from '@nestjs/common';
+
+async function bootstrap() {
+  const logger = new Logger('Bootstrap');
+  
+  try {
+    const app = await NestFactory.create(AppModule);
+    
+    // Enable shutdown hooks
+    app.enableShutdownHooks();
+    
+    // Configure CORS if needed
+    app.enableCors({
+      origin: true,
+      credentials: true,
+    });
+    
+    // Global prefix for all routes
+    app.setGlobalPrefix('api', { exclude: ['health'] });
+    
+    const port = process.env.PORT || 3000;
+    
+    // Listen on all interfaces (crucial for Kubernetes)
+    await app.listen(port, '0.0.0.0');
+    
+    logger.log(`Application is running on port ${port}`);
+    logger.log(`Health check available at: http://localhost:${port}/health`);
+    
+    // Test internal connectivity
+    try {
+      const response = await fetch(`http://localhost:${port}/health`);
+      logger.log(`Self-health check: ${response.status}`);
+    } catch (error) {
+      logger.error('Self-health check failed:', error.message);
+    }
+    
+  } catch (error) {
+    logger.error('Failed to start application:', error);
+    process.exit(1);
+  }
+}
+
+bootstrap();
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="health-check-configuration" summary="Configure proper health checks">
+
+### Health Check Controller
+
+Create a robust health check endpoint:
+
+```typescript
+// health.controller.ts
+import { Controller, Get, HttpStatus } from '@nestjs/common';
+import { HealthCheck, HealthCheckService, TypeOrmHealthIndicator } from '@nestjs/terminus';
+
+@Controller('health')
+export class HealthController {
+  constructor(
+    private health: HealthCheckService,
+    private db: TypeOrmHealthIndicator,
+  ) {}
+
+  @Get()
+  @HealthCheck()
+  check() {
+    return this.health.check([
+      () => this.db.pingCheck('database'),
+    ]);
+  }
+
+  @Get('ready')
+  readiness() {
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+    };
+  }
+
+  @Get('live')
+  liveness() {
+    return {
+      status: 'ok',
+      pid: process.pid,
+      memory: process.memoryUsage(),
+    };
+  }
+}
+```
+
+### Kubernetes Readiness/Liveness Probes
+
+Configure proper probes in your deployment:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rattlesnake-develop
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: rattlesnake-develop
+  template:
+    metadata:
+      labels:
+        app: rattlesnake-develop
+    spec:
+      containers:
+      - name: app
+        image: your-app-image
+        ports:
+        - containerPort: 3000
+        env:
+        - name: PORT
+          value: "3000"
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 3000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-nestjs-issues" summary="Common NestJS-specific issues causing 502s">
+
+### 1. Database Connection Issues
+
+```typescript
+// app.module.ts - Robust database configuration
+import { TypeOrmModule } from '@nestjs/typeorm';
+
+@Module({
+  imports: [
+    TypeOrmModule.forRootAsync({
+      useFactory: () => ({
+        type: 'postgres',
+        host: process.env.DB_HOST,
+        port: parseInt(process.env.DB_PORT) || 5432,
+        username: process.env.DB_USERNAME,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+        autoLoadEntities: true,
+        synchronize: process.env.NODE_ENV === 'development',
+        retryAttempts: 5,
+        retryDelay: 3000,
+        maxQueryExecutionTime: 1000,
+        // Connection pool settings
+        extra: {
+          connectionLimit: 10,
+          acquireTimeoutMillis: 60000,
+          timeout: 60000,
+        },
+      }),
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+### 2. Async Module Initialization
+
+```typescript
+// Ensure all async modules initialize properly
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      validationSchema: Joi.object({
+        NODE_ENV: Joi.string().valid('development', 'production', 'test').required(),
+        PORT: Joi.number().default(3000),
+        DB_HOST: Joi.string().required(),
+        DB_PORT: Joi.number().default(5432),
+        DB_USERNAME: Joi.string().required(),
+        DB_PASSWORD: Joi.string().required(),
+        DB_NAME: Joi.string().required(),
+      }),
+    }),
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => {
+        // Add startup delay to ensure database is ready
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        return {
+          type: 'postgres',
+          host: configService.get('DB_HOST'),
+          port: configService.get('DB_PORT'),
+          username: configService.get('DB_USERNAME'),
+          password: configService.get('DB_PASSWORD'),
+          database: configService.get('DB_NAME'),
+          autoLoadEntities: true,
+          synchronize: configService.get('NODE_ENV') === 'development',
+        };
+      },
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+### 3. Graceful Shutdown Handling
+
+```typescript
+// main.ts - Add graceful shutdown
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  
+  // Enable graceful shutdown
+  app.enableShutdownHooks();
+  
+  // Handle shutdown signals
+  process.on('SIGTERM', async () => {
+    console.log('SIGTERM received, shutting down gracefully');
+    await app.close();
+    process.exit(0);
+  });
+  
+  process.on('SIGINT', async () => {
+    console.log('SIGINT received, shutting down gracefully');
+    await app.close();
+    process.exit(0);
+  });
+  
+  const port = process.env.PORT || 3000;
+  await app.listen(port, '0.0.0.0');
+  console.log(`Application is running on: ${await app.getUrl()}`);
+}
+
+bootstrap().catch(error => {
+  console.error('Failed to start application:', error);
+  process.exit(1);
+});
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-and-logging" summary="Enhanced monitoring and logging">
+
+### Application Logging
+
+```typescript
+// logger.service.ts
+import { Injectable, Logger } from '@nestjs/common';
+
+@Injectable()
+export class AppLogger extends Logger {
+  error(message: string, trace?: string, context?: string) {
+    // Enhanced error logging
+    const errorInfo = {
+      message,
+      trace,
+      context,
+      timestamp: new Date().toISOString(),
+      pid: process.pid,
+      memory: process.memoryUsage(),
+    };
+    
+    console.error(JSON.stringify(errorInfo));
+    super.error(message, trace, context);
+  }
+  
+  log(message: string, context?: string) {
+    const logInfo = {
+      level: 'info',
+      message,
+      context,
+      timestamp: new Date().toISOString(),
+    };
+    
+    console.log(JSON.stringify(logInfo));
+    super.log(message, context);
+  }
+}
+```
+
+### Monitoring Endpoints
+
+```typescript
+// monitoring.controller.ts
+import { Controller, Get } from '@nestjs/common';
+
+@Controller('monitoring')
+export class MonitoringController {
+  @Get('metrics')
+  getMetrics() {
+    return {
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      cpu: process.cpuUsage(),
+      version: process.version,
+      platform: process.platform,
+      timestamp: new Date().toISOString(),
+    };
+  }
+  
+  @Get('config')
+  getConfig() {
+    return {
+      nodeEnv: process.env.NODE_ENV,
+      port: process.env.PORT,
+      // Don't expose sensitive data
+      database: {
+        host: process.env.DB_HOST,
+        port: process.env.DB_PORT,
+        name: process.env.DB_NAME,
+      },
+    };
+  }
+}
+```
+
+### Request Logging Middleware
+
+```typescript
+// request-logger.middleware.ts
+import { Injectable, NestMiddleware, Logger } from '@nestjs/common';
+import { Request, Response, NextFunction } from 'express';
+
+@Injectable()
+export class RequestLoggerMiddleware implements NestMiddleware {
+  private logger = new Logger('HTTP');
+  
+  use(request: Request, response: Response, next: NextFunction): void {
+    const { ip, method, originalUrl } = request;
+    const userAgent = request.get('User-Agent') || '';
+    const startTime = Date.now();
+    
+    response.on('close', () => {
+      const { statusCode } = response;
+      const contentLength = response.get('Content-Length');
+      const responseTime = Date.now() - startTime;
+      
+      const logData = {
+        method,
+        url: originalUrl,
+        statusCode,
+        contentLength,
+        responseTime,
+        ip,
+        userAgent,
+      };
+      
+      if (statusCode >= 400) {
+        this.logger.error(`HTTP ${statusCode} ${method} ${originalUrl} - ${responseTime}ms`);
+        console.error(JSON.stringify(logData));
+      } else {
+        this.logger.log(`HTTP ${statusCode} ${method} ${originalUrl} - ${responseTime}ms`);
+      }
+    });
+    
+    next();
+  }
+}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-strategies" summary="Prevention strategies for 502 errors">
+
+### 1. Robust Deployment Strategy
+
+```yaml
+# deployment.yaml with rolling update strategy
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rattlesnake-develop
+spec:
+  replicas: 3  # Always use multiple replicas
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: rattlesnake-develop
+  template:
+    metadata:
+      labels:
+        app: rattlesnake-develop
+    spec:
+      containers:
+      - name: app
+        image: your-app-image
+        ports:
+        - containerPort: 3000
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 3000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          failureThreshold: 3
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 15"]
+```
+
+### 2. Circuit Breaker Pattern
+
+```typescript
+// circuit-breaker.service.ts
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+export class CircuitBreakerService {
+  private failures = 0;
+  private lastFailureTime = 0;
+  private state = 'CLOSED'; // CLOSED, OPEN, HALF_OPEN
+  
+  async execute<T>(operation: () => Promise<T>, fallback?: () => T): Promise<T> {
+    if (this.state === 'OPEN') {
+      if (Date.now() - this.lastFailureTime > 60000) { // 1 minute timeout
+        this.state = 'HALF_OPEN';
+      } else {
+        return fallback ? fallback() : Promise.reject(new Error('Circuit breaker is OPEN'));
+      }
+    }
+    
+    try {
+      const result = await operation();
+      this.onSuccess();
+      return result;
+    } catch (error) {
+      this.onFailure();
+      return fallback ? fallback() : Promise.reject(error);
+    }
+  }
+  
+  private onSuccess() {
+    this.failures = 0;
+    this.state = 'CLOSED';
+  }
+  
+  private onFailure() {
+    this.failures++;
+    this.lastFailureTime = Date.now();
+    
+    if (this.failures >= 5) {
+      this.state = 'OPEN';
+    }
+  }
+}
+```
+
+### 3. Resource Management
+
+```typescript
+// resource-monitor.service.ts
+import { Injectable, Logger } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
+
+@Injectable()
+export class ResourceMonitorService {
+  private readonly logger = new Logger(ResourceMonitorService.name);
+  
+  @Cron('*/30 * * * * *') // Every 30 seconds
+  checkResources() {
+    const memUsage = process.memoryUsage();
+    const memUsageMB = {
+      rss: Math.round(memUsage.rss / 1024 / 1024),
+      heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
+      heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024),
+      external: Math.round(memUsage.external / 1024 / 1024),
+    };
+    
+    // Alert if memory usage is high
+    if (memUsageMB.heapUsed > 400) { // 400MB threshold
+      this.logger.warn(`High memory usage detected: ${JSON.stringify(memUsageMB)}`);
+    }
+    
+    // Force garbage collection if memory is critically high
+    if (memUsageMB.heapUsed > 450) {
+      if (global.gc) {
+        global.gc();
+        this.logger.log('Forced garbage collection');
+      }
+    }
+  }
+}
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2025 based on a real user query._

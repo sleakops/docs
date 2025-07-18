@@ -1,0 +1,597 @@
+---
+sidebar_position: 3
+title: "Deployment Stuck in Creating Status"
+description: "Solution for deployments that get stuck during the deployment phase after successful build"
+date: "2025-01-27"
+category: "project"
+tags: ["deployment", "build", "troubleshooting", "stuck", "creating"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Deployment Stuck in Creating Status
+
+**Date:** January 27, 2025  
+**Category:** Project  
+**Tags:** Deployment, Build, Troubleshooting, Stuck, Creating
+
+## Problem Description
+
+**Context:** User pushes code to a branch and triggers a deployment through SleakOps. The build process completes successfully, but the deployment phase gets stuck in "creating" status for extended periods.
+
+**Observed Symptoms:**
+
+- Build process completes successfully
+- Deployment remains in "creating" status for more than 14 minutes
+- No visible progress or error messages during deployment phase
+- Application may or may not actually deploy despite stuck status
+- Issue occurs intermittently on specific branches
+
+**Relevant Configuration:**
+
+- Deployment type: `deploy_build_dev`
+- Platform: SleakOps
+- Build status: Successful
+- Deployment status: Stuck in "creating"
+
+**Error Conditions:**
+
+- Occurs after successful build completion
+- Deployment phase hangs without timeout
+- No clear error messages in the UI
+- May require manual intervention to resolve
+
+## Detailed Solution
+
+<TroubleshootingItem id="immediate-troubleshooting" summary="Immediate troubleshooting steps">
+
+When a deployment gets stuck in "creating" status:
+
+1. **Check deployment logs**: Look for any error messages in the deployment logs
+2. **Verify cluster status**: Ensure the target cluster is healthy and responsive
+3. **Check pod status**: Verify if pods are actually being created despite the UI showing "creating"
+4. **Monitor resource usage**: Check if there are resource constraints (CPU, memory, storage)
+
+```bash
+# Check pod status in the cluster
+kubectl get pods -n your-namespace
+
+# Check deployment status
+kubectl get deployments -n your-namespace
+
+# Check events for any issues
+kubectl get events -n your-namespace --sort-by='.lastTimestamp'
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-causes" summary="Common causes and solutions">
+
+**Resource Constraints:**
+
+- Insufficient CPU or memory in the cluster
+- Storage quota exceeded
+- Node capacity issues
+
+**Solution:** Scale up cluster resources or optimize application resource requests
+
+**Image Pull Issues:**
+
+- Container image not found or inaccessible
+- Registry authentication problems
+- Network connectivity issues
+
+**Solution:** Verify image exists and registry credentials are valid
+
+**Configuration Problems:**
+
+- Invalid environment variables
+- Missing secrets or config maps
+- Incorrect service configurations
+
+**Solution:** Review and validate all configuration files
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="platform-intervention" summary="When to contact SleakOps support">
+
+Contact SleakOps support if:
+
+1. **Deployment stuck for more than 15 minutes** without any progress
+2. **Cluster appears healthy** but deployments consistently fail
+3. **No clear error messages** in logs or UI
+4. **Multiple deployments affected** across different projects
+
+When contacting support, provide:
+
+- Project name and branch
+- Deployment timestamp
+- Any error messages or logs
+- Recent infrastructure or application changes
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-measures" summary="Prevention and best practices">
+
+**Resource Management:**
+
+```yaml
+# Set appropriate resource limits
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "256Mi"
+    cpu: "200m"
+```
+
+**Health Checks:**
+
+```yaml
+# Configure proper health checks
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 5
+```
+
+**Deployment Strategy:**
+
+```yaml
+# Use rolling updates for safer deployments
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+    maxSurge: 1
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-recovery" summary="Manual recovery steps">
+
+If deployment remains stuck:
+
+1. **Cancel current deployment** (if option available in UI)
+2. **Wait for platform team intervention** to unlock stuck deployments
+3. **Retry deployment** after confirmation from support
+4. **Monitor closely** for similar issues in subsequent deployments
+
+**Post-resolution actions:**
+
+- Verify application is running correctly
+- Check all services are accessible
+- Monitor application logs for any issues
+- Document any configuration changes made
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="advanced-troubleshooting" summary="Advanced troubleshooting techniques">
+
+For complex deployment issues that require deeper investigation:
+
+1. **Deployment status analysis**:
+
+```bash
+# Get detailed deployment information
+kubectl describe deployment <deployment-name> -n <namespace>
+
+# Check replica set status
+kubectl get replicasets -n <namespace>
+kubectl describe replicaset <replicaset-name> -n <namespace>
+
+# Analyze deployment conditions
+kubectl get deployment <deployment-name> -o yaml -n <namespace> | grep -A 10 conditions
+```
+
+2. **Pod creation troubleshooting**:
+
+```bash
+# Check if pods are being created
+kubectl get pods -l app=<app-name> -n <namespace> --watch
+
+# Look for pod events
+kubectl describe pods -l app=<app-name> -n <namespace>
+
+# Check pod specifications
+kubectl get pods -l app=<app-name> -n <namespace> -o yaml
+```
+
+3. **Resource availability verification**:
+
+```bash
+# Check cluster resource availability
+kubectl top nodes
+kubectl describe nodes
+
+# Check namespace resource quotas
+kubectl describe quota -n <namespace>
+kubectl describe limitrange -n <namespace>
+
+# Check persistent volume claims
+kubectl get pvc -n <namespace>
+kubectl describe pvc <pvc-name> -n <namespace>
+```
+
+4. **Network and service troubleshooting**:
+
+```bash
+# Check service configuration
+kubectl get services -n <namespace>
+kubectl describe service <service-name> -n <namespace>
+
+# Verify ingress configuration
+kubectl get ingress -n <namespace>
+kubectl describe ingress <ingress-name> -n <namespace>
+
+# Check endpoints
+kubectl get endpoints -n <namespace>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deployment-patterns" summary="Deployment patterns and strategies">
+
+Implement robust deployment patterns to prevent issues:
+
+1. **Blue-Green Deployment**:
+
+```yaml
+# Blue deployment (current)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-blue
+  labels:
+    version: blue
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp
+      version: blue
+  template:
+    metadata:
+      labels:
+        app: myapp
+        version: blue
+    spec:
+      containers:
+        - name: app
+          image: myapp:v1.0
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+```
+
+2. **Canary Deployment Configuration**:
+
+```yaml
+# Canary deployment with traffic splitting
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: app-rollout
+spec:
+  replicas: 5
+  strategy:
+    canary:
+      steps:
+        - setWeight: 20
+        - pause: { duration: 10m }
+        - setWeight: 40
+        - pause: { duration: 10m }
+        - setWeight: 60
+        - pause: { duration: 10m }
+        - setWeight: 80
+        - pause: { duration: 10m }
+      trafficRouting:
+        istio:
+          virtualService:
+            name: app-virtualservice
+```
+
+3. **Rolling Update with Careful Configuration**:
+
+```yaml
+# Optimized rolling update strategy
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  minReadySeconds: 10
+  progressDeadlineSeconds: 600
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-deployment-health" summary="Monitoring deployment health">
+
+Set up comprehensive monitoring to detect deployment issues early:
+
+1. **Deployment metrics to monitor**:
+
+```promql
+# Deployment availability
+kube_deployment_status_replicas_available / kube_deployment_spec_replicas
+
+# Deployment rollout duration
+kube_deployment_status_observed_generation - kube_deployment_metadata_generation
+
+# Pod restart rate
+rate(kube_pod_container_status_restarts_total[5m])
+
+# Resource utilization
+container_memory_usage_bytes / container_spec_memory_limit_bytes
+```
+
+2. **Alerting rules for deployment issues**:
+
+```yaml
+groups:
+  - name: deployment-alerts
+    rules:
+      - alert: DeploymentReplicasMismatch
+        expr: kube_deployment_status_replicas_available != kube_deployment_spec_replicas
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Deployment {{ $labels.deployment }} has mismatched replicas"
+          description: "Deployment {{ $labels.deployment }} in namespace {{ $labels.namespace }} has {{ $value }} available replicas out of {{ $labels.replicas }} desired"
+
+      - alert: DeploymentRolloutStuck
+        expr: kube_deployment_status_condition{condition="Progressing", status="false"} == 1
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Deployment {{ $labels.deployment }} rollout is stuck"
+          description: "Deployment {{ $labels.deployment }} in namespace {{ $labels.namespace }} has been stuck for more than 10 minutes"
+```
+
+3. **Health check implementation**:
+
+```yaml
+# Comprehensive health checks
+spec:
+  containers:
+    - name: app
+      image: myapp:latest
+      ports:
+        - containerPort: 8080
+      livenessProbe:
+        httpGet:
+          path: /health
+          port: 8080
+          scheme: HTTP
+        initialDelaySeconds: 30
+        periodSeconds: 10
+        timeoutSeconds: 5
+        successThreshold: 1
+        failureThreshold: 3
+      readinessProbe:
+        httpGet:
+          path: /ready
+          port: 8080
+          scheme: HTTP
+        initialDelaySeconds: 5
+        periodSeconds: 5
+        timeoutSeconds: 3
+        successThreshold: 1
+        failureThreshold: 3
+      startupProbe:
+        httpGet:
+          path: /startup
+          port: 8080
+          scheme: HTTP
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        timeoutSeconds: 5
+        successThreshold: 1
+        failureThreshold: 30
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="emergency-procedures" summary="Emergency deployment recovery procedures">
+
+Emergency procedures for critical deployment failures:
+
+1. **Immediate rollback procedure**:
+
+```bash
+# Quick rollback to previous version
+kubectl rollout undo deployment/<deployment-name> -n <namespace>
+
+# Check rollback status
+kubectl rollout status deployment/<deployment-name> -n <namespace>
+
+# Verify application is working
+kubectl get pods -l app=<app-name> -n <namespace>
+curl -f https://your-app-url.com/health
+```
+
+2. **Force deployment restart**:
+
+```bash
+# Force restart all pods in deployment
+kubectl rollout restart deployment/<deployment-name> -n <namespace>
+
+# Scale down and up if restart doesn't work
+kubectl scale deployment <deployment-name> --replicas=0 -n <namespace>
+kubectl scale deployment <deployment-name> --replicas=3 -n <namespace>
+```
+
+3. **Manual pod replacement**:
+
+```bash
+# Delete stuck pods manually
+kubectl delete pod <stuck-pod-name> -n <namespace> --force --grace-period=0
+
+# Check if new pods are created
+kubectl get pods -l app=<app-name> -n <namespace> --watch
+```
+
+4. **Configuration recovery**:
+
+```bash
+# Backup current configuration
+kubectl get deployment <deployment-name> -o yaml -n <namespace> > deployment-backup.yaml
+
+# Apply known working configuration
+kubectl apply -f known-working-deployment.yaml
+
+# Verify deployment status
+kubectl describe deployment <deployment-name> -n <namespace>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="platform-specific-solutions" summary="SleakOps platform-specific solutions">
+
+Solutions specific to SleakOps platform deployment issues:
+
+1. **SleakOps deployment state management**:
+
+- Deployments in SleakOps may get stuck due to platform state management issues
+- The platform tracks deployment progress through multiple internal states
+- Sometimes manual intervention by SleakOps support is required to reset state
+
+2. **Platform integration checks**:
+
+```bash
+# Verify SleakOps platform connectivity
+# Check if platform can communicate with cluster
+# This requires SleakOps support team verification
+```
+
+3. **Build and deployment pipeline verification**:
+
+- Ensure build completed successfully before deployment
+- Check if image was pushed to registry correctly
+- Verify deployment configuration matches build output
+
+4. **Environment-specific considerations**:
+
+```yaml
+# SleakOps environment configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: production
+data:
+  NODE_ENV: "production"
+  DATABASE_URL: "postgresql://..."
+  REDIS_URL: "redis://..."
+  # Ensure all required environment variables are set
+```
+
+5. **Resource quota management**:
+
+- SleakOps environments may have specific resource quotas
+- Check if deployment exceeds allocated resources
+- Consider optimizing resource requests and limits
+
+6. **Contact support escalation path**:
+
+```bash
+# Information to provide to SleakOps support:
+- Project name and environment
+- Deployment ID (if available)
+- Build ID that triggered the deployment
+- Exact timestamp when deployment got stuck
+- Any error messages from platform UI
+- Recent changes to project configuration
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="proactive-measures" summary="Proactive measures and best practices">
+
+Implement proactive measures to prevent deployment issues:
+
+1. **Pre-deployment validation**:
+
+```bash
+# Validate Kubernetes manifests before deployment
+kubectl apply --dry-run=client -f deployment.yaml
+kubectl apply --dry-run=server -f deployment.yaml
+
+# Validate resource requests
+kubectl describe quota -n <namespace>
+kubectl describe limitrange -n <namespace>
+```
+
+2. **Deployment testing strategy**:
+
+```bash
+# Test deployment in staging environment first
+# Use identical configuration to production
+# Validate all dependent services are available
+```
+
+3. **Monitoring and alerting setup**:
+
+```yaml
+# Set up comprehensive monitoring
+monitoring:
+  enabled: true
+  alerts:
+    deployment_stuck:
+      condition: "deployment_status != 'available'"
+      duration: "10m"
+      severity: "critical"
+    resource_exhaustion:
+      condition: "resource_usage > 80%"
+      duration: "5m"
+      severity: "warning"
+```
+
+4. **Documentation and runbooks**:
+
+- Maintain updated deployment procedures
+- Document known issues and solutions
+- Keep contact information for support escalation
+- Regular review and testing of emergency procedures
+
+5. **Automated recovery mechanisms**:
+
+```yaml
+# Implement automated health checks and recovery
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          image: myapp:latest
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 15"]
+          # Configure graceful shutdown
+          terminationGracePeriodSeconds: 30
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 27, 2025 based on a real user query._

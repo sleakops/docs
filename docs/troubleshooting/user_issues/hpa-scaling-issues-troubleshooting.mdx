@@ -213,4 +213,560 @@ kubectl describe hpa <hpa-name>
 
 ### Step 4: Temporary Mitigation
 
-If the problem is critical
+If the problem is critical, implement temporary mitigation:
+
+```bash
+# Manually scale down pods to a reasonable number
+kubectl scale deployment <deployment-name> --replicas=3
+
+# Temporarily disable HPA if necessary
+kubectl delete hpa <hpa-name>
+
+# Monitor resource usage without HPA
+kubectl top pods -n <your-namespace> --sort-by=cpu
+kubectl top pods -n <your-namespace> --sort-by=memory
+```
+
+### Step 5: Force Pod Restart
+
+```bash
+# Force restart to clear any accumulated resource issues
+kubectl rollout restart deployment <deployment-name>
+
+# Wait for rollout to complete
+kubectl rollout status deployment <deployment-name>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deep-diagnostics" summary="Deep diagnostic analysis">
+
+### Memory Leak Detection
+
+**1. Monitor memory usage over time:**
+
+```bash
+# Create a script to monitor memory usage
+#!/bin/bash
+while true; do
+  echo "$(date): $(kubectl top pods | grep your-app)"
+  sleep 300  # Check every 5 minutes
+done > memory-usage.log
+```
+
+**2. Analyze memory patterns:**
+
+```bash
+# Check for consistently increasing memory
+grep "your-app" memory-usage.log | awk '{print $3}' | sed 's/Mi//' > memory-values.txt
+
+# Plot or analyze the trend
+python3 -c "
+import sys
+values = [int(line.strip()) for line in open('memory-values.txt')]
+print(f'Memory trend: start={values[0]}Mi, end={values[-1]}Mi, increase={values[-1]-values[0]}Mi')
+if len(values) > 1:
+    avg_increase = (values[-1] - values[0]) / (len(values) - 1)
+    print(f'Average increase per measurement: {avg_increase:.2f}Mi')
+"
+```
+
+### CPU Usage Analysis
+
+**1. Check CPU patterns:**
+
+```bash
+# Monitor CPU spikes and sustained usage
+kubectl top pods --sort-by=cpu | head -10
+
+# Check for specific processes consuming CPU
+kubectl exec -it <pod-name> -- top -n 1
+```
+
+**2. Analyze application bottlenecks:**
+
+```bash
+# Check for hung processes or infinite loops
+kubectl exec -it <pod-name> -- ps aux
+
+# Check thread usage
+kubectl exec -it <pod-name> -- cat /proc/loadavg
+```
+
+### Network Connection Analysis
+
+**1. Check for connection leaks:**
+
+```bash
+# Monitor active connections
+kubectl exec -it <pod-name> -- netstat -an | wc -l
+
+# Check for connections in specific states
+kubectl exec -it <pod-name> -- netstat -an | grep TIME_WAIT | wc -l
+kubectl exec -it <pod-name> -- netstat -an | grep ESTABLISHED | wc -l
+```
+
+**2. Database connection monitoring:**
+
+```bash
+# For applications using databases, check connection pools
+kubectl exec -it <pod-name> -- curl localhost:8080/health/database 2>/dev/null | jq '.connections'
+
+# Or check application-specific health endpoints
+kubectl exec -it <pod-name> -- curl localhost:8080/metrics 2>/dev/null | grep connection_pool
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="application-level-fixes" summary="Application-level optimization strategies">
+
+### Memory Management
+
+**1. Implement proper garbage collection (language-specific):**
+
+```javascript
+// Node.js example
+setInterval(() => {
+  if (global.gc) {
+    global.gc();
+  }
+}, 60000); // Force GC every minute
+
+// Monitor memory usage
+setInterval(() => {
+  const memUsage = process.memoryUsage();
+  console.log(
+    `Memory: RSS=${memUsage.rss / 1024 / 1024}MB, Heap=${
+      memUsage.heapUsed / 1024 / 1024
+    }MB`
+  );
+}, 30000);
+```
+
+```python
+# Python example
+import gc
+import psutil
+import threading
+import time
+
+def memory_monitor():
+    while True:
+        gc.collect()  # Force garbage collection
+        process = psutil.Process()
+        memory_mb = process.memory_info().rss / 1024 / 1024
+        print(f"Memory usage: {memory_mb:.2f} MB")
+        time.sleep(60)
+
+# Start memory monitoring thread
+thread = threading.Thread(target=memory_monitor, daemon=True)
+thread.start()
+```
+
+### Connection Pool Management
+
+**1. Database connection pooling:**
+
+```javascript
+// Node.js with connection pool management
+const mysql = require("mysql2/promise");
+
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10, // Limit concurrent connections
+  queueLimit: 0,
+  acquireTimeout: 60000, // Timeout for getting connection
+  timeout: 60000, // Timeout for queries
+  reconnect: true,
+  idleTimeout: 300000, // Close idle connections after 5 minutes
+  enableKeepAlive: true,
+});
+
+// Monitor pool status
+setInterval(() => {
+  console.log(
+    `Pool status: Active=${pool.pool._allConnections.length}, Free=${pool.pool._freeConnections.length}`
+  );
+}, 30000);
+```
+
+### Background Task Optimization
+
+**1. Implement proper task cleanup:**
+
+```python
+# Python background task management
+import asyncio
+import signal
+import sys
+
+class BackgroundTaskManager:
+    def __init__(self):
+        self.tasks = set()
+        self.running = True
+
+    def add_task(self, coro):
+        task = asyncio.create_task(coro)
+        self.tasks.add(task)
+        task.add_done_callback(self.tasks.discard)
+        return task
+
+    async def cleanup(self):
+        self.running = False
+        for task in self.tasks:
+            task.cancel()
+        await asyncio.gather(*self.tasks, return_exceptions=True)
+
+task_manager = BackgroundTaskManager()
+
+def signal_handler(signum, frame):
+    print("Received shutdown signal, cleaning up...")
+    asyncio.create_task(task_manager.cleanup())
+    sys.exit(0)
+
+signal.signal(signal.SIGTERM, signal_handler)
+signal.signal(signal.SIGINT, signal_handler)
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="kubernetes-optimization" summary="Kubernetes-level optimization">
+
+### Resource Requests and Limits Tuning
+
+**1. Right-size your containers:**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: your-app
+spec:
+  template:
+    spec:
+      containers:
+        - name: your-app
+          image: your-app:latest
+          resources:
+            requests:
+              # Set based on actual baseline usage
+              cpu: "100m" # 0.1 CPU cores
+              memory: "256Mi" # 256 MB
+            limits:
+              # Set 2-3x higher than requests
+              cpu: "300m" # 0.3 CPU cores
+              memory: "512Mi" # 512 MB
+          env:
+            - name: NODE_OPTIONS
+              value: "--max-old-space-size=400" # For Node.js apps
+```
+
+### HPA Behavior Tuning
+
+**1. Optimize scaling behavior:**
+
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: your-app-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: your-app
+  minReplicas: 1
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60 # Lower threshold for faster scaling
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 600 # Wait 10 minutes before scaling down
+      policies:
+        - type: Percent
+          value: 25 # Scale down 25% at a time
+          periodSeconds: 300 # Every 5 minutes
+    scaleUp:
+      stabilizationWindowSeconds: 60 # Scale up quickly
+      policies:
+        - type: Percent
+          value: 100 # Double the pods if needed
+          periodSeconds: 60
+        - type: Pods
+          value: 2 # Or add 2 pods, whichever is smaller
+          periodSeconds: 60
+```
+
+### Pod Disruption Budget
+
+**1. Ensure graceful scaling:**
+
+```yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: your-app-pdb
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: your-app
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-and-alerting" summary="Set up comprehensive monitoring">
+
+### Prometheus Metrics
+
+**1. Application-level metrics:**
+
+```javascript
+// Node.js with Prometheus metrics
+const promClient = require("prom-client");
+
+// Memory usage metric
+const memoryUsage = new promClient.Gauge({
+  name: "app_memory_usage_bytes",
+  help: "Memory usage in bytes",
+});
+
+// Active connections metric
+const activeConnections = new promClient.Gauge({
+  name: "app_active_connections",
+  help: "Number of active database connections",
+});
+
+// Update metrics periodically
+setInterval(() => {
+  const memUsage = process.memoryUsage();
+  memoryUsage.set(memUsage.rss);
+
+  // Update connection count if you have access to pool
+  if (pool && pool.pool) {
+    activeConnections.set(pool.pool._allConnections.length);
+  }
+}, 15000);
+
+// Expose metrics endpoint
+app.get("/metrics", (req, res) => {
+  res.set("Content-Type", promClient.register.contentType);
+  res.end(promClient.register.metrics());
+});
+```
+
+### Grafana Dashboard
+
+**1. Create HPA monitoring dashboard:**
+
+```json
+{
+  "dashboard": {
+    "title": "HPA Scaling Monitoring",
+    "panels": [
+      {
+        "title": "Pod Count",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "kube_deployment_status_replicas{deployment=\"your-app\"}"
+          }
+        ]
+      },
+      {
+        "title": "CPU Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(container_cpu_usage_seconds_total{pod=~\"your-app-.*\"}[5m]) * 100"
+          }
+        ]
+      },
+      {
+        "title": "Memory Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "container_memory_working_set_bytes{pod=~\"your-app-.*\"} / 1024 / 1024"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Alerting Rules
+
+**1. Set up alerts for scaling issues:**
+
+```yaml
+groups:
+  - name: hpa-scaling
+    rules:
+      - alert: HPANotScalingDown
+        expr: kube_deployment_status_replicas > 5 for 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HPA not scaling down {{ $labels.deployment }}"
+          description: "Deployment {{ $labels.deployment }} has been running more than 5 replicas for 30 minutes"
+
+      - alert: MemoryLeakDetected
+        expr: increase(container_memory_working_set_bytes[1h]) > 100*1024*1024
+        labels:
+          severity: critical
+        annotations:
+          summary: "Possible memory leak in {{ $labels.pod }}"
+          description: "Memory usage increased by more than 100MB in the last hour"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="preventive-measures" summary="Preventive measures and best practices">
+
+### Development Best Practices
+
+**1. Code review checklist:**
+
+- [ ] Proper connection management (close connections in finally blocks)
+- [ ] Memory cleanup in long-running processes
+- [ ] Timeout configurations for external calls
+- [ ] Graceful shutdown handling
+- [ ] Resource monitoring and health checks
+
+**2. Testing strategies:**
+
+```bash
+#!/bin/bash
+# Load testing script to validate scaling behavior
+
+echo "Starting load test to validate HPA behavior..."
+
+# Baseline measurement
+echo "Baseline pod count:"
+kubectl get pods | grep your-app | wc -l
+
+# Apply load
+echo "Applying load..."
+for i in {1..10}; do
+  kubectl run load-test-$i --image=busybox --rm -it --restart=Never -- \
+    wget -q --spider http://your-app-service/api/health &
+done
+
+# Monitor scaling
+echo "Monitoring scaling behavior..."
+for i in {1..20}; do
+  echo "$(date): Pods=$(kubectl get pods | grep your-app | wc -l), CPU=$(kubectl top pods | grep your-app | awk '{sum+=$2} END {print sum "m"}')"
+  sleep 30
+done
+
+# Cleanup
+echo "Cleaning up load test..."
+kubectl get pods | grep load-test | awk '{print $1}' | xargs kubectl delete pod
+
+# Monitor scale down
+echo "Monitoring scale down..."
+for i in {1..40}; do
+  echo "$(date): Pods=$(kubectl get pods | grep your-app | wc -l)"
+  sleep 30
+done
+```
+
+### Operational Procedures
+
+**1. Regular maintenance:**
+
+```bash
+#!/bin/bash
+# Weekly HPA health check script
+
+echo "=== HPA Health Check - $(date) ==="
+
+# Check HPA status
+echo "1. HPA Status:"
+kubectl get hpa
+
+# Check recent scaling events
+echo "2. Recent scaling events:"
+kubectl get events --field-selector involvedObject.kind=HorizontalPodAutoscaler --sort-by='.lastTimestamp' | tail -10
+
+# Check resource usage trends
+echo "3. Current resource usage:"
+kubectl top pods | grep your-app
+
+# Check for any stuck pods
+echo "4. Pod status check:"
+kubectl get pods | grep your-app | grep -v Running
+
+# Verify metrics server
+echo "5. Metrics server status:"
+kubectl top nodes > /dev/null && echo "✓ Metrics server working" || echo "✗ Metrics server issue"
+
+echo "=== Health check complete ==="
+```
+
+**2. Emergency runbook:**
+
+````markdown
+## HPA Scaling Emergency Runbook
+
+### Symptoms: Too many pods, not scaling down
+
+1. **Immediate action** (< 5 minutes):
+
+   ```bash
+   # Check current status
+   kubectl get hpa
+   kubectl top pods
+
+   # If critical, manually scale down
+   kubectl scale deployment your-app --replicas=3
+   ```
+````
+
+2. **Investigation** (5-15 minutes):
+
+   ```bash
+   # Check HPA behavior
+   kubectl describe hpa your-app-hpa
+
+   # Check application metrics
+   kubectl logs deployment/your-app | tail -100
+
+   # Check resource usage
+   kubectl exec -it deployment/your-app -- top
+   ```
+
+3. **Resolution** (15-30 minutes):
+   - Apply identified fixes
+   - Monitor for 30 minutes
+   - Re-enable HPA if disabled
+4. **Follow-up** (1-24 hours):
+   - Review APM tool insights
+   - Implement permanent fixes
+   - Update monitoring/alerting
+
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._
+```

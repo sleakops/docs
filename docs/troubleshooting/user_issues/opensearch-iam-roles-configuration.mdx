@@ -68,5 +68,516 @@ SleakOps automatically configures basic IAM roles for OpenSearch:
 
 ```json
 {
-  "Version": "2012-10-17"
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::ACCOUNT-ID:role/sleakops-opensearch-access-role"
+      },
+      "Action": "es:*",
+      "Resource": "arn:aws:es:region:ACCOUNT-ID:domain/your-domain/*"
+    }
+  ]
+}
 ```
+
+**Automatic Configuration includes:**
+
+- **Read/Write permissions** for applications in your cluster
+- **Index creation and management** capabilities
+- **Search and aggregation** permissions
+- **Basic monitoring** access
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-iam-setup" summary="Manual IAM configuration for advanced scenarios">
+
+For advanced use cases, you may need to configure custom IAM roles:
+
+**1. Create Custom Application Role:**
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "es:ESHttpGet",
+        "es:ESHttpPost",
+        "es:ESHttpPut",
+        "es:ESHttpDelete",
+        "es:ESHttpHead"
+      ],
+      "Resource": [
+        "arn:aws:es:region:account:domain/your-domain/*",
+        "arn:aws:es:region:account:domain/your-domain"
+      ]
+    }
+  ]
+}
+```
+
+**2. Configure Trust Relationship:**
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    },
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::ACCOUNT-ID:role/sleakops-cluster-role"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+```
+
+**3. Apply Role to OpenSearch Domain:**
+
+```bash
+# Using AWS CLI to update domain access policy
+aws opensearch update-domain-config \
+  --domain-name your-opensearch-domain \
+  --access-policies file://access-policy.json
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="access-verification" summary="Verifying OpenSearch access and permissions">
+
+After configuring IAM roles, verify access works correctly:
+
+**1. Test Connection from Application Pod:**
+
+```bash
+# From within your application pod
+curl -X GET "https://your-opensearch-endpoint/_cluster/health" \
+  --aws-sigv4 "aws:amz:region:es" \
+  --user "$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY"
+```
+
+**2. Test Index Operations:**
+
+```bash
+# Create a test index
+curl -X PUT "https://your-opensearch-endpoint/test-index" \
+  --aws-sigv4 "aws:amz:region:es" \
+  --user "$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"settings": {"number_of_shards": 1}}'
+
+# Insert test document
+curl -X POST "https://your-opensearch-endpoint/test-index/_doc" \
+  --aws-sigv4 "aws:amz:region:es" \
+  --user "$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"message": "Hello OpenSearch", "timestamp": "'$(date -Iseconds)'"}'
+
+# Search test
+curl -X GET "https://your-opensearch-endpoint/test-index/_search" \
+  --aws-sigv4 "aws:amz:region:es" \
+  --user "$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY"
+```
+
+**3. Check IAM Role Permissions:**
+
+```bash
+# Simulate IAM policy evaluation
+aws iam simulate-principal-policy \
+  --policy-source-arn arn:aws:iam::ACCOUNT-ID:role/your-opensearch-role \
+  --action-names es:ESHttpGet es:ESHttpPost \
+  --resource-arns arn:aws:es:region:account:domain/your-domain/*
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="application-integration" summary="Integrating OpenSearch with applications in SleakOps">
+
+Configure your applications to use OpenSearch with proper IAM authentication:
+
+**1. Python Application Example:**
+
+```python
+import boto3
+from opensearchpy import OpenSearch, RequestsHttpConnection
+from requests_aws4auth import AWS4Auth
+
+# Create AWS4Auth credentials
+region = 'us-east-1'  # Replace with your region
+service = 'es'
+credentials = boto3.Session().get_credentials()
+awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, service, session_token=credentials.token)
+
+# Initialize OpenSearch client
+client = OpenSearch(
+    hosts=[{'host': 'your-opensearch-endpoint', 'port': 443}],
+    http_auth=awsauth,
+    use_ssl=True,
+    verify_certs=True,
+    connection_class=RequestsHttpConnection
+)
+
+# Test connection
+try:
+    info = client.info()
+    print(f"Connected to OpenSearch: {info}")
+except Exception as e:
+    print(f"Connection failed: {e}")
+```
+
+**2. Node.js Application Example:**
+
+```javascript
+const AWS = require("aws-sdk");
+const { Client } = require("@opensearch-project/opensearch");
+const { AwsSigv4Signer } = require("@opensearch-project/opensearch/aws");
+
+// Configure AWS credentials
+AWS.config.update({
+  region: "us-east-1", // Replace with your region
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+});
+
+// Create OpenSearch client with AWS Sigv4 authentication
+const client = new Client({
+  ...AwsSigv4Signer({
+    region: "us-east-1",
+    service: "es",
+    getCredentials: () =>
+      new Promise((resolve, reject) => {
+        AWS.config.getCredentials((err, credentials) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(credentials);
+          }
+        });
+      }),
+  }),
+  node: "https://your-opensearch-endpoint",
+});
+
+// Test connection
+async function testConnection() {
+  try {
+    const response = await client.info();
+    console.log("Connected to OpenSearch:", response.body);
+  } catch (error) {
+    console.error("Connection failed:", error);
+  }
+}
+
+testConnection();
+```
+
+**3. Environment Variables Configuration:**
+
+```yaml
+# In your SleakOps deployment
+env:
+  - name: OPENSEARCH_ENDPOINT
+    value: "https://your-opensearch-endpoint"
+  - name: AWS_DEFAULT_REGION
+    value: "us-east-1"
+  - name: AWS_ACCESS_KEY_ID
+    valueFrom:
+      secretKeyRef:
+        name: opensearch-credentials
+        key: access-key-id
+  - name: AWS_SECRET_ACCESS_KEY
+    valueFrom:
+      secretKeyRef:
+        name: opensearch-credentials
+        key: secret-access-key
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-access-issues" summary="Troubleshooting common IAM access issues">
+
+Common issues and their solutions:
+
+**1. "Access Denied" Errors:**
+
+```bash
+# Check current IAM permissions
+aws sts get-caller-identity
+
+# Verify role can be assumed
+aws sts assume-role \
+  --role-arn arn:aws:iam::ACCOUNT-ID:role/your-opensearch-role \
+  --role-session-name test-session
+```
+
+**Solution Steps:**
+
+- Verify the IAM role has correct permissions
+- Check resource ARNs match your domain
+- Ensure trust relationships are configured properly
+
+**2. "Invalid Signature" Errors:**
+
+```bash
+# Check AWS credentials are correctly configured
+aws configure list
+
+# Test AWS API access
+aws opensearch describe-domain --domain-name your-domain
+```
+
+**Solution Steps:**
+
+- Verify AWS credentials are not expired
+- Check system clock is synchronized
+- Ensure correct region is specified
+
+**3. "Forbidden" Errors:**
+
+Check OpenSearch access policies:
+
+```bash
+# Get current domain configuration
+aws opensearch describe-domain-config --domain-name your-domain
+
+# Check access policy
+aws opensearch describe-domain-config --domain-name your-domain \
+  --query 'DomainConfig.AccessPolicies.Options' --output text
+```
+
+**Solution Steps:**
+
+- Update domain access policy to include your IAM role
+- Verify IP restrictions if using public access
+- Check fine-grained access control settings
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-and-logging" summary="Monitoring IAM access and OpenSearch usage">
+
+Set up monitoring to track access and identify issues:
+
+**1. CloudTrail Logging:**
+
+```json
+{
+  "eventVersion": "1.05",
+  "userIdentity": {
+    "type": "AssumedRole",
+    "principalId": "AIDACKCEVSQ6C2EXAMPLE",
+    "arn": "arn:aws:sts::123456789012:assumed-role/opensearch-role/session",
+    "accountId": "123456789012"
+  },
+  "eventTime": "2025-02-05T10:30:00Z",
+  "eventSource": "es.amazonaws.com",
+  "eventName": "ESHttpPost",
+  "resources": [
+    {
+      "accountId": "123456789012",
+      "type": "AWS::ES::Domain",
+      "ARN": "arn:aws:es:us-east-1:123456789012:domain/your-domain/*"
+    }
+  ]
+}
+```
+
+**2. CloudWatch Metrics:**
+
+```bash
+# Monitor failed requests
+aws cloudwatch get-metric-statistics \
+  --namespace AWS/ES \
+  --metric-name IndexingErrors \
+  --dimensions Name=DomainName,Value=your-domain Name=ClientId,Value=123456789012 \
+  --statistics Sum \
+  --start-time 2025-02-05T00:00:00Z \
+  --end-time 2025-02-05T23:59:59Z \
+  --period 3600
+```
+
+**3. Application-Level Monitoring:**
+
+```python
+import logging
+import time
+from opensearchpy import OpenSearch
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+class MonitoredOpenSearchClient:
+    def __init__(self, client):
+        self.client = client
+
+    def search(self, **kwargs):
+        start_time = time.time()
+        try:
+            result = self.client.search(**kwargs)
+            duration = time.time() - start_time
+            logger.info(f"Search completed in {duration:.2f}s")
+            return result
+        except Exception as e:
+            logger.error(f"Search failed: {e}")
+            raise
+
+    def index(self, **kwargs):
+        start_time = time.time()
+        try:
+            result = self.client.index(**kwargs)
+            duration = time.time() - start_time
+            logger.info(f"Index operation completed in {duration:.2f}s")
+            return result
+        except Exception as e:
+            logger.error(f"Index operation failed: {e}")
+            raise
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="security-best-practices" summary="Security best practices for OpenSearch IAM configuration">
+
+Follow these security best practices:
+
+**1. Principle of Least Privilege:**
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["es:ESHttpGet", "es:ESHttpPost"],
+      "Resource": "arn:aws:es:region:account:domain/your-domain/specific-index/*",
+      "Condition": {
+        "IpAddress": {
+          "aws:SourceIp": ["10.0.0.0/16"]
+        }
+      }
+    }
+  ]
+}
+```
+
+**2. Use Resource-Specific Permissions:**
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadOnlyAccess",
+      "Effect": "Allow",
+      "Action": ["es:ESHttpGet", "es:ESHttpHead"],
+      "Resource": "arn:aws:es:region:account:domain/your-domain/logs-*/_search"
+    },
+    {
+      "Sid": "WriteAccess",
+      "Effect": "Allow",
+      "Action": ["es:ESHttpPost", "es:ESHttpPut"],
+      "Resource": "arn:aws:es:region:account:domain/your-domain/application-logs-*/_doc"
+    }
+  ]
+}
+```
+
+**3. Enable Fine-Grained Access Control:**
+
+```bash
+# Enable FGAC via AWS CLI
+aws opensearch update-domain-config \
+  --domain-name your-domain \
+  --advanced-security-options \
+  Enabled=true,InternalUserDatabaseEnabled=false,MasterUserOptions='{
+    "MasterUserARN": "arn:aws:iam::ACCOUNT-ID:role/opensearch-master-role"
+  }'
+```
+
+**4. Regular Access Review:**
+
+```bash
+# Script to audit OpenSearch access
+#!/bin/bash
+
+DOMAIN_NAME="your-domain"
+echo "=== OpenSearch Access Audit ==="
+
+# Get domain access policy
+echo "Current Access Policy:"
+aws opensearch describe-domain-config \
+  --domain-name $DOMAIN_NAME \
+  --query 'DomainConfig.AccessPolicies.Options' \
+  --output text | jq .
+
+# List recent access attempts
+echo "Recent Access Logs (last 24 hours):"
+aws logs filter-log-events \
+  --log-group-name "/aws/opensearch/domains/$DOMAIN_NAME/search-logs" \
+  --start-time $(date -d '24 hours ago' +%s)000 \
+  --filter-pattern "ERROR"
+
+# Check for failed authentication attempts
+echo "Failed Authentication Attempts:"
+aws logs filter-log-events \
+  --log-group-name "/aws/opensearch/domains/$DOMAIN_NAME/search-logs" \
+  --start-time $(date -d '24 hours ago' +%s)000 \
+  --filter-pattern "403"
+```
+
+**5. Credential Rotation:**
+
+```yaml
+# Automated credential rotation using Kubernetes CronJob
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: opensearch-credential-rotation
+spec:
+  schedule: "0 2 * * 0" # Weekly on Sunday at 2 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: credential-rotator
+              image: aws-cli:latest
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  # Rotate IAM access keys
+                  OLD_KEY=$(aws iam list-access-keys --user-name opensearch-user --query 'AccessKeyMetadata[0].AccessKeyId' --output text)
+                  aws iam create-access-key --user-name opensearch-user > new_key.json
+
+                  # Update Kubernetes secret
+                  NEW_KEY=$(cat new_key.json | jq -r '.AccessKey.AccessKeyId')
+                  NEW_SECRET=$(cat new_key.json | jq -r '.AccessKey.SecretAccessKey')
+
+                  kubectl create secret generic opensearch-credentials-new \
+                    --from-literal=access-key-id=$NEW_KEY \
+                    --from-literal=secret-access-key=$NEW_SECRET
+
+                  # Test new credentials before deleting old ones
+                  # (Add validation logic here)
+
+                  # Delete old key after validation
+                  aws iam delete-access-key --user-name opensearch-user --access-key-id $OLD_KEY
+          restartPolicy: OnFailure
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on February 5, 2025 based on a real user query._

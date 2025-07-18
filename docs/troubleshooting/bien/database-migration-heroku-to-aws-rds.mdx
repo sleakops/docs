@@ -1,0 +1,442 @@
+---
+sidebar_position: 3
+title: "Database Migration from Heroku to AWS RDS"
+description: "Complete guide for migrating PostgreSQL databases from Heroku to AWS RDS using DMS and pg_restore"
+date: "2024-12-19"
+category: "dependency"
+tags: ["database", "migration", "heroku", "aws", "rds", "postgresql", "dms"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Database Migration from Heroku to AWS RDS
+
+**Date:** December 19, 2024  
+**Category:** Dependency  
+**Tags:** Database, Migration, Heroku, AWS, RDS, PostgreSQL, DMS
+
+## Problem Description
+
+**Context:** Users need to migrate large PostgreSQL databases from Heroku to AWS RDS through SleakOps platform, dealing with incomplete dumps and size discrepancies between source and restored databases.
+
+**Observed Symptoms:**
+
+- Heroku dump restoration results in smaller database size (94GB vs 385GB production)
+- Standard curl-based dump download may be incomplete
+- Need for external database access for migration tools
+- Requirement for AWS DMS setup to complete migration
+
+**Relevant Configuration:**
+
+- Source: Heroku PostgreSQL database (385GB)
+- Target: AWS RDS PostgreSQL
+- Restored dump size: 94GB (incomplete)
+- Migration method: pg_restore with --jobs=8 --no-owner --no-acl
+
+**Error Conditions:**
+
+- Incomplete data transfer using standard Heroku dump methods
+- Size mismatch indicating data loss during migration
+- Need for continuous replication to catch up missing data
+
+## Detailed Solution
+
+<TroubleshootingItem id="heroku-dump-limitations" summary="Understanding Heroku dump limitations">
+
+Heroku's standard dump process may not capture all data due to:
+
+1. **Timeout limitations**: Large databases may timeout during dump generation
+2. **Active transactions**: Data written during dump creation might be missed
+3. **Compression issues**: Some data types may not compress/decompress properly
+4. **Connection limits**: Heroku may limit long-running dump operations
+
+**Verification steps:**
+
+```bash
+# Check table row counts in both databases
+psql -h heroku-host -c "SELECT schemaname,tablename,n_tup_ins-n_tup_del as rowcount FROM pg_stat_user_tables ORDER BY rowcount DESC;"
+psql -h rds-host -c "SELECT schemaname,tablename,n_tup_ins-n_tup_del as rowcount FROM pg_stat_user_tables ORDER BY rowcount DESC;"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="aws-dms-setup" summary="Setting up AWS DMS for continuous migration">
+
+AWS Database Migration Service (DMS) can handle large database migrations with minimal downtime:
+
+**Prerequisites:**
+
+1. Create DMS replication instance
+2. Configure source endpoint (Heroku PostgreSQL)
+3. Configure target endpoint (AWS RDS)
+4. Set up external database access
+
+**DMS Configuration:**
+
+```json
+{
+  "replication-instance-class": "dms.t3.large",
+  "allocated-storage": 100,
+  "apply-immediately": true,
+  "auto-minor-version-upgrade": true,
+  "multi-az": false,
+  "publicly-accessible": true,
+  "vpc-security-group-ids": ["sg-xxxxxxxxxxxx"]
+}
+```
+
+**Source Endpoint (Heroku):**
+
+```bash
+# Create Heroku source endpoint
+aws dms create-endpoint \
+  --endpoint-identifier heroku-source \
+  --endpoint-type source \
+  --engine-name postgres \
+  --server-name your-heroku-host.amazonaws.com \
+  --port 5432 \
+  --database-name your_database \
+  --username your_username \
+  --password your_password \
+  --ssl-mode require
+```
+
+**Target Endpoint (RDS):**
+
+```bash
+# Create RDS target endpoint
+aws dms create-endpoint \
+  --endpoint-identifier rds-target \
+  --endpoint-type target \
+  --engine-name postgres \
+  --server-name your-rds-endpoint.amazonaws.com \
+  --port 5432 \
+  --database-name postgres \
+  --username rds_username \
+  --password rds_password
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="migration-task-creation" summary="Creating and configuring migration tasks">
+
+**Full Load + CDC Task:**
+
+```json
+{
+  "replication-task-identifier": "heroku-to-rds-migration",
+  "source-endpoint-arn": "arn:aws:dms:region:account:endpoint:heroku-source",
+  "target-endpoint-arn": "arn:aws:dms:region:account:endpoint:rds-target",
+  "replication-instance-arn": "arn:aws:dms:region:account:rep:replication-instance",
+  "migration-type": "full-load-and-cdc",
+  "table-mappings": {
+    "rules": [
+      {
+        "rule-type": "selection",
+        "rule-id": "1",
+        "rule-name": "1",
+        "object-locator": {
+          "schema-name": "public",
+          "table-name": "%"
+        },
+        "rule-action": "include"
+      }
+    ]
+  }
+}
+```
+
+**Task Settings:**
+
+```json
+{
+  "TargetMetadata": {
+    "TargetSchema": "",
+    "SupportLobs": true,
+    "FullLobMode": false,
+    "LobChunkSize": 0,
+    "LimitedSizeLobMode": true,
+    "LobMaxSize": 32,
+    "InlineLobMaxSize": 0,
+    "LoadMaxFileSize": 0,
+    "ParallelLoadThreads": 0,
+    "ParallelLoadBufferSize": 0,
+    "BatchApplyEnabled": false,
+    "TaskRecoveryTableEnabled": false
+  },
+  "FullLoadSettings": {
+    "TargetTablePrepMode": "DROP_AND_CREATE",
+    "CreatePkAfterFullLoad": false,
+    "StopTaskCachedChangesApplied": false,
+    "StopTaskCachedChangesNotApplied": false,
+    "MaxFullLoadSubTasks": 8,
+    "TransactionConsistencyTimeout": 600,
+    "CommitRate": 10000
+  },
+  "ChangeProcessingTuning": {
+    "BatchApplyPreserveTransaction": true,
+    "BatchApplyTimeoutMin": 1,
+    "BatchApplyTimeoutMax": 30,
+    "BatchApplyMemoryLimit": 500,
+    "BatchSplitSize": 0,
+    "MinTransactionSize": 1000,
+    "CommitTimeout": 1,
+    "MemoryLimitTotal": 1024,
+    "MemoryKeepTime": 60,
+    "StatementCacheSize": 50
+  }
+}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="external-database-access" summary="Configuring external database access">
+
+To allow DMS to access both Heroku and RDS:
+
+**Heroku Database Configuration:**
+
+1. **Enable external connections** in Heroku PostgreSQL settings
+2. **Whitelist DMS replication instance IP** in Heroku
+3. **Configure SSL requirements**:
+
+```sql
+-- Check Heroku SSL configuration
+SELECT name, setting FROM pg_settings WHERE name LIKE '%ssl%';
+
+-- Verify connection requirements
+SHOW ssl;
+```
+
+**RDS Security Group Configuration:**
+
+```bash
+# Allow DMS replication instance access
+aws ec2 authorize-security-group-ingress \
+  --group-id sg-xxxxxxxxxxxx \
+  --protocol tcp \
+  --port 5432 \
+  --source-group sg-dms-replication-instance
+```
+
+**Network Configuration:**
+
+```bash
+# Create VPC endpoints for DMS if needed
+aws ec2 create-vpc-endpoint \
+  --vpc-id vpc-xxxxxxxxx \
+  --service-name com.amazonaws.region.dms \
+  --route-table-ids rtb-xxxxxxxxx
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-validation" summary="Monitoring migration progress and validation">
+
+**Monitor DMS Task:**
+
+```bash
+# Check task status
+aws dms describe-replication-tasks \
+  --filters Name=replication-task-id,Values=heroku-to-rds-migration
+
+# Monitor CloudWatch metrics
+aws cloudwatch get-metric-statistics \
+  --namespace AWS/DMS \
+  --metric-name CDCLatencySource \
+  --dimensions Name=ReplicationTaskArn,Value=your-task-arn \
+  --start-time 2024-12-19T00:00:00Z \
+  --end-time 2024-12-19T23:59:59Z \
+  --period 300 \
+  --statistics Average
+```
+
+**Data Validation Queries:**
+
+```sql
+-- Compare row counts
+SELECT
+  'source' as database,
+  schemaname,
+  tablename,
+  n_tup_ins - n_tup_del as estimated_rows
+FROM pg_stat_user_tables
+WHERE schemaname = 'public'
+ORDER BY estimated_rows DESC;
+
+-- Compare data sizes
+SELECT pg_size_pretty(pg_database_size(current_database())) as database_size;
+
+-- Check for missing sequences
+SELECT sequence_name, last_value
+FROM information_schema.sequences s
+JOIN pg_sequences ps ON s.sequence_name = ps.sequencename;
+```
+
+**Performance Monitoring:**
+
+```sql
+-- Monitor active connections during migration
+SELECT
+  client_addr,
+  state,
+  query_start,
+  state_change,
+  query
+FROM pg_stat_activity
+WHERE state != 'idle'
+ORDER BY query_start;
+
+-- Check for locks
+SELECT
+  blocked_locks.pid AS blocked_pid,
+  blocked_activity.usename AS blocked_user,
+  blocking_locks.pid AS blocking_pid,
+  blocking_activity.usename AS blocking_user,
+  blocked_activity.query AS blocked_statement,
+  blocking_activity.query AS current_statement_in_blocking_process
+FROM pg_catalog.pg_locks blocked_locks
+JOIN pg_catalog.pg_stat_activity blocked_activity ON blocked_activity.pid = blocked_locks.pid
+JOIN pg_catalog.pg_locks blocking_locks ON blocking_locks.locktype = blocked_locks.locktype
+AND blocking_locks.DATABASE IS NOT DISTINCT FROM blocked_locks.DATABASE
+AND blocking_locks.relation IS NOT DISTINCT FROM blocked_locks.relation
+WHERE NOT blocked_locks.GRANTED;
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cutover-procedures" summary="Migration cutover procedures">
+
+**Pre-cutover Checklist:**
+
+1. **Verify data consistency**:
+
+   ```sql
+   -- Final row count comparison
+   SELECT tablename,
+          (SELECT count(*) FROM tablename) as current_count
+   FROM pg_tables
+   WHERE schemaname = 'public';
+   ```
+
+2. **Check CDC lag**:
+
+   ```bash
+   aws dms describe-replication-tasks --query 'ReplicationTasks[0].ReplicationTaskStats'
+   ```
+
+3. **Prepare rollback plan**:
+   - Document current Heroku connection strings
+   - Prepare DNS changes
+   - Test rollback procedures
+
+**Cutover Steps:**
+
+1. **Put application in maintenance mode**
+2. **Stop CDC replication**:
+
+   ```bash
+   aws dms stop-replication-task --replication-task-arn your-task-arn
+   ```
+
+3. **Final data verification**
+4. **Update application configuration**:
+
+   ```yaml
+   # Update SleakOps VariableGroup
+   DATABASE_URL: postgresql://username:password@rds-endpoint:5432/database
+   DATABASE_HOST: rds-endpoint.amazonaws.com
+   DATABASE_PORT: 5432
+   ```
+
+5. **Deploy application updates**
+6. **Perform smoke tests**
+7. **Remove maintenance mode**
+
+**Post-cutover Validation:**
+
+```bash
+# Test application connectivity
+curl -I https://your-app.com/health
+
+# Monitor application logs
+kubectl logs -f deployment/your-app -n namespace
+
+# Check database connections
+psql -h rds-endpoint -c "SELECT count(*) FROM pg_stat_activity;"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-common-issues" summary="Troubleshooting common migration issues">
+
+**Large Object (LOB) Issues:**
+
+```sql
+-- Find tables with LOB columns
+SELECT table_name, column_name, data_type
+FROM information_schema.columns
+WHERE data_type IN ('text', 'bytea', 'oid')
+AND table_schema = 'public';
+
+-- Check LOB sizes
+SELECT
+  tablename,
+  attname,
+  n_distinct,
+  most_common_vals
+FROM pg_stats
+WHERE tablename IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public')
+AND attname IN (SELECT column_name FROM information_schema.columns WHERE data_type = 'text');
+```
+
+**Permission Issues:**
+
+```sql
+-- Grant necessary permissions to DMS user
+GRANT CONNECT ON DATABASE your_database TO dms_user;
+GRANT USAGE ON SCHEMA public TO dms_user;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO dms_user;
+GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO dms_user;
+
+-- For target RDS
+GRANT CREATE ON DATABASE your_database TO dms_user;
+GRANT ALL PRIVILEGES ON SCHEMA public TO dms_user;
+```
+
+**Network Connectivity Issues:**
+
+```bash
+# Test connectivity from DMS subnet
+aws dms test-connection \
+  --replication-instance-arn your-replication-instance-arn \
+  --endpoint-arn your-endpoint-arn
+```
+
+**Performance Optimization:**
+
+1. **Increase DMS instance size** if needed
+2. **Optimize target RDS instance**:
+
+   ```sql
+   -- Temporarily increase write capacity
+   ALTER SYSTEM SET shared_buffers = '2GB';
+   ALTER SYSTEM SET effective_cache_size = '8GB';
+   ALTER SYSTEM SET maintenance_work_mem = '1GB';
+   SELECT pg_reload_conf();
+   ```
+
+3. **Parallel loading settings**:
+   ```json
+   {
+     "MaxFullLoadSubTasks": 8,
+     "ParallelLoadThreads": 8,
+     "CommitRate": 50000
+   }
+   ```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

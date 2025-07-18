@@ -54,6 +54,14 @@ Sí, OpenSearch en AWS normalmente requiere roles IAM para un acceso seguro. Los
 - Se pueden usar políticas IAM junto con restricciones basadas en IP
 - Menos seguro pero más sencillo para entornos de desarrollo
 
+### Tipos de Acceso a OpenSearch
+
+| Método de Acceso | Requisitos IAM | Nivel de Seguridad | Uso Recomendado |
+|------------------|----------------|-------------------|-----------------|
+| VPC + IAM        | ✅ Obligatorio | 🔒 Alto          | Producción      |
+| Público + IAM    | ✅ Recomendado | 🔒 Medio         | Desarrollo      |
+| Público + IP     | ❌ Opcional    | ⚠️ Bajo          | Testing local   |
+
 </TroubleshootingItem>
 
 <TroubleshootingItem id="automatic-configuration" summary="Cómo SleakOps maneja IAM para OpenSearch">
@@ -68,6 +76,810 @@ SleakOps configura automáticamente roles IAM básicos para OpenSearch:
 
 ```json
 {
-  "Version": "2012-10-17""
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": [
+          "arn:aws:iam::ACCOUNT-ID:role/sleakops-opensearch-access-role",
+          "arn:aws:iam::ACCOUNT-ID:root"
+        ]
+      },
+      "Action": "es:*",
+      "Resource": "arn:aws:es:REGION:ACCOUNT-ID:domain/DOMAIN-NAME/*"
+    }
+  ]
 }
 ```
+
+### Roles Automáticos Creados por SleakOps
+
+```bash
+# Verificar roles creados automáticamente
+aws iam list-roles --query 'Roles[?contains(RoleName, `sleakops`) && contains(RoleName, `opensearch`)]'
+
+# Ejemplos de roles típicos:
+# - sleakops-opensearch-service-role
+# - sleakops-opensearch-access-role-{environment}
+# - sleakops-pods-opensearch-role
+```
+
+### Variables de Entorno Configuradas
+
+```bash
+# Variables disponibles en pods después de la configuración
+echo $OPENSEARCH_ENDPOINT        # https://your-domain.region.es.amazonaws.com
+echo $OPENSEARCH_DOMAIN_NAME     # your-opensearch-domain
+echo $OPENSEARCH_REGION          # us-east-1
+echo $AWS_ROLE_ARN              # Role ARN para IRSA
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-iam-configuration" summary="Configuración manual de roles IAM para OpenSearch">
+
+Si necesitas configurar roles IAM manualmente o personalizar la configuración automática:
+
+### 1. Rol de Servicio OpenSearch
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "es.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+```
+
+**Política del Rol de Servicio:**
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateNetworkInterface",
+        "ec2:DeleteNetworkInterface",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:ModifyNetworkInterfaceAttribute",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeVpcs"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+### 2. Rol de Acceso para Aplicaciones
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::ACCOUNT-ID:oidc-provider/oidc.eks.REGION.amazonaws.com/id/OIDC-ID"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "oidc.eks.REGION.amazonaws.com/id/OIDC-ID:sub": "system:serviceaccount:NAMESPACE:SERVICE-ACCOUNT-NAME",
+          "oidc.eks.REGION.amazonaws.com/id/OIDC-ID:aud": "sts.amazonaws.com"
+        }
+      }
+    }
+  ]
+}
+```
+
+### 3. Política de Permisos OpenSearch
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "es:ESHttpPost",
+        "es:ESHttpPut",
+        "es:ESHttpGet",
+        "es:ESHttpDelete",
+        "es:ESHttpHead"
+      ],
+      "Resource": [
+        "arn:aws:es:REGION:ACCOUNT-ID:domain/DOMAIN-NAME/*",
+        "arn:aws:es:REGION:ACCOUNT-ID:domain/DOMAIN-NAME"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "es:DescribeDomain",
+        "es:DescribeDomains",
+        "es:DescribeDomainConfig",
+        "es:ListDomainNames",
+        "es:ListTags"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+### Script de Creación de Roles
+
+```bash
+#!/bin/bash
+# create-opensearch-iam-roles.sh
+
+DOMAIN_NAME="your-opensearch-domain"
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+REGION="us-east-1"
+CLUSTER_NAME="your-eks-cluster"
+
+echo "Creating IAM roles for OpenSearch domain: $DOMAIN_NAME"
+
+# 1. Crear rol de servicio OpenSearch
+cat > opensearch-service-role-trust-policy.json << EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "es.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+
+aws iam create-role \
+    --role-name OpenSearchServiceRole-$DOMAIN_NAME \
+    --assume-role-policy-document file://opensearch-service-role-trust-policy.json
+
+# 2. Adjuntar política de servicio
+aws iam attach-role-policy \
+    --role-name OpenSearchServiceRole-$DOMAIN_NAME \
+    --policy-arn arn:aws:iam::aws:policy/AmazonOpenSearchServiceRolePolicy
+
+# 3. Crear rol de acceso para pods
+OIDC_ID=$(aws eks describe-cluster --name $CLUSTER_NAME --query "cluster.identity.oidc.issuer" --output text | cut -d '/' -f 5)
+
+cat > opensearch-access-role-trust-policy.json << EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::$ACCOUNT_ID:oidc-provider/oidc.eks.$REGION.amazonaws.com/id/$OIDC_ID"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "oidc.eks.$REGION.amazonaws.com/id/$OIDC_ID:sub": "system:serviceaccount:default:opensearch-service-account",
+          "oidc.eks.$REGION.amazonaws.com/id/$OIDC_ID:aud": "sts.amazonaws.com"
+        }
+      }
+    }
+  ]
+}
+EOF
+
+aws iam create-role \
+    --role-name OpenSearchAccessRole-$DOMAIN_NAME \
+    --assume-role-policy-document file://opensearch-access-role-trust-policy.json
+
+echo "✓ IAM roles created successfully"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="access-policy-configuration" summary="Configuración de políticas de acceso del dominio">
+
+### Política de Acceso del Dominio OpenSearch
+
+La política de acceso del dominio controla quién puede acceder a su clúster OpenSearch:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": [
+          "arn:aws:iam::ACCOUNT-ID:role/OpenSearchAccessRole-your-domain",
+          "arn:aws:iam::ACCOUNT-ID:user/opensearch-admin"
+        ]
+      },
+      "Action": "es:*",
+      "Resource": "arn:aws:es:REGION:ACCOUNT-ID:domain/your-domain/*"
+    },
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::ACCOUNT-ID:role/ReadOnlyRole"
+      },
+      "Action": [
+        "es:ESHttpGet",
+        "es:ESHttpHead",
+        "es:DescribeDomain"
+      ],
+      "Resource": "arn:aws:es:REGION:ACCOUNT-ID:domain/your-domain/*"
+    }
+  ]
+}
+```
+
+### Política Restrictiva por IP
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "*"
+      },
+      "Action": "es:*",
+      "Resource": "arn:aws:es:REGION:ACCOUNT-ID:domain/your-domain/*",
+      "Condition": {
+        "IpAddress": {
+          "aws:SourceIp": [
+            "203.0.113.0/24",
+            "198.51.100.0/24"
+          ]
+        }
+      }
+    }
+  ]
+}
+```
+
+### Aplicar Política al Dominio
+
+```bash
+#!/bin/bash
+# apply-domain-policy.sh
+
+DOMAIN_NAME="your-opensearch-domain"
+POLICY_FILE="domain-access-policy.json"
+
+# Aplicar política de acceso
+aws opensearch update-domain-config \
+    --domain-name $DOMAIN_NAME \
+    --access-policies file://$POLICY_FILE
+
+# Verificar aplicación
+aws opensearch describe-domain \
+    --domain-name $DOMAIN_NAME \
+    --query 'DomainStatus.AccessPolicies'
+```
+
+### Configuración de VPC y Grupos de Seguridad
+
+```bash
+# Para dominios en VPC, configurar grupos de seguridad
+aws ec2 create-security-group \
+    --group-name opensearch-access-sg \
+    --description "Security group for OpenSearch access"
+
+# Permitir acceso HTTPS desde pods de Kubernetes
+aws ec2 authorize-security-group-ingress \
+    --group-id sg-12345678 \
+    --protocol tcp \
+    --port 443 \
+    --source-group sg-87654321  # Security group de los nodos EKS
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="service-account-configuration" summary="Configuración de Service Account en Kubernetes">
+
+### Crear Service Account con Anotaciones IRSA
+
+```yaml
+# opensearch-service-account.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: opensearch-service-account
+  namespace: default
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT-ID:role/OpenSearchAccessRole-your-domain
+automountServiceAccountToken: true
+```
+
+### Configuración del Pod con Service Account
+
+```yaml
+# opensearch-client-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: opensearch-client
+  namespace: default
+spec:
+  serviceAccountName: opensearch-service-account
+  containers:
+  - name: opensearch-client
+    image: python:3.9-slim
+    command: ["/bin/sh"]
+    args: ["-c", "while true; do sleep 30; done"]
+    env:
+    - name: AWS_REGION
+      value: "us-east-1"
+    - name: OPENSEARCH_ENDPOINT
+      value: "https://your-domain.region.es.amazonaws.com"
+    # AWS SDK automáticamente usa el token de servicio account para autenticación
+```
+
+### Verificar Configuración IRSA
+
+```bash
+#!/bin/bash
+# verify-irsa-setup.sh
+
+NAMESPACE="default"
+SERVICE_ACCOUNT="opensearch-service-account"
+CLUSTER_NAME="your-eks-cluster"
+
+echo "=== Verifying IRSA Setup ==="
+
+# 1. Verificar anotaciones del service account
+echo "1. Service Account annotations:"
+kubectl get serviceaccount $SERVICE_ACCOUNT -n $NAMESPACE -o jsonpath='{.metadata.annotations}' | jq
+
+# 2. Verificar token montado en pod
+echo "2. Pod token mount:"
+kubectl exec -n $NAMESPACE -it opensearch-client -- cat /var/run/secrets/kubernetes.io/serviceaccount/token | head -c 50
+
+# 3. Verificar identidad AWS desde el pod
+echo "3. AWS identity from pod:"
+kubectl exec -n $NAMESPACE -it opensearch-client -- aws sts get-caller-identity
+
+# 4. Test de acceso a OpenSearch
+echo "4. OpenSearch access test:"
+kubectl exec -n $NAMESPACE -it opensearch-client -- \
+    curl -s --aws-sigv4 "aws:amz:us-east-1:es" \
+    "$OPENSEARCH_ENDPOINT/_cluster/health"
+```
+
+### Deployment con Service Account
+
+```yaml
+# opensearch-app-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opensearch-app
+  namespace: default
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: opensearch-app
+  template:
+    metadata:
+      labels:
+        app: opensearch-app
+    spec:
+      serviceAccountName: opensearch-service-account
+      containers:
+      - name: app
+        image: your-app:latest
+        env:
+        - name: AWS_REGION
+          value: "us-east-1"
+        - name: OPENSEARCH_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              name: opensearch-credentials
+              key: endpoint
+        - name: OPENSEARCH_DOMAIN
+          valueFrom:
+            secretKeyRef:
+              name: opensearch-credentials
+              key: domain
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="testing-verification" summary="Pruebas y verificación de configuración IAM">
+
+### Script de Verificación Completa
+
+```bash
+#!/bin/bash
+# opensearch-iam-verification.sh
+
+set -e
+
+DOMAIN_NAME="your-opensearch-domain"
+REGION="us-east-1"
+NAMESPACE="default"
+SERVICE_ACCOUNT="opensearch-service-account"
+
+echo "=== OpenSearch IAM Configuration Verification ==="
+
+# 1. Verificar dominio OpenSearch
+echo "1. Verifying OpenSearch domain..."
+DOMAIN_STATUS=$(aws opensearch describe-domain --domain-name $DOMAIN_NAME --region $REGION --query 'DomainStatus.Processing' --output text)
+if [ "$DOMAIN_STATUS" = "False" ]; then
+    echo "✓ Domain is active and ready"
+else
+    echo "⚠ Domain is still processing"
+fi
+
+# 2. Verificar políticas de acceso
+echo "2. Checking domain access policies..."
+aws opensearch describe-domain --domain-name $DOMAIN_NAME --region $REGION \
+    --query 'DomainStatus.AccessPolicies' --output json | jq '.'
+
+# 3. Verificar roles IAM
+echo "3. Verifying IAM roles..."
+ROLES=$(aws iam list-roles --query 'Roles[?contains(RoleName, `OpenSearch`) || contains(RoleName, `opensearch`)].RoleName' --output text)
+for role in $ROLES; do
+    echo "✓ Found role: $role"
+    aws iam list-attached-role-policies --role-name $role --query 'AttachedPolicies[].PolicyArn' --output text
+done
+
+# 4. Verificar service account
+echo "4. Checking Kubernetes service account..."
+if kubectl get serviceaccount $SERVICE_ACCOUNT -n $NAMESPACE >/dev/null 2>&1; then
+    echo "✓ Service account exists"
+    ROLE_ARN=$(kubectl get serviceaccount $SERVICE_ACCOUNT -n $NAMESPACE -o jsonpath='{.metadata.annotations.eks\.amazonaws\.com/role-arn}')
+    echo "  Associated role: $ROLE_ARN"
+else
+    echo "✗ Service account not found"
+fi
+
+# 5. Test de conectividad desde pod
+echo "5. Testing connectivity from pod..."
+if kubectl get pod opensearch-client -n $NAMESPACE >/dev/null 2>&1; then
+    echo "Testing AWS credentials..."
+    kubectl exec -n $NAMESPACE opensearch-client -- aws sts get-caller-identity
+    
+    echo "Testing OpenSearch access..."
+    kubectl exec -n $NAMESPACE opensearch-client -- \
+        curl -s --aws-sigv4 "aws:amz:$REGION:es" \
+        "https://$DOMAIN_NAME.$REGION.es.amazonaws.com/_cluster/health" | jq '.'
+else
+    echo "⚠ No test pod found. Creating one..."
+    kubectl run opensearch-client --image=amazon/aws-cli:latest --restart=Never \
+        --serviceaccount=$SERVICE_ACCOUNT --namespace=$NAMESPACE \
+        -- /bin/sh -c "while true; do sleep 30; done"
+    
+    echo "Wait for pod to be ready and re-run this script"
+fi
+
+echo "=== Verification Complete ==="
+```
+
+### Pruebas de Rendimiento y Acceso
+
+```python
+# opensearch-access-test.py
+import boto3
+import json
+import time
+from datetime import datetime
+from opensearchpy import OpenSearch, RequestsHttpConnection
+from aws_requests_auth.aws_auth import AWSRequestsAuth
+
+def test_opensearch_access():
+    """Test comprehensive OpenSearch access with IAM authentication"""
+    
+    print("=== OpenSearch Access Test ===")
+    
+    # 1. Setup AWS session
+    session = boto3.Session()
+    credentials = session.get_credentials()
+    region = session.region_name or 'us-east-1'
+    
+    print(f"AWS Region: {region}")
+    print(f"AWS Identity: {session.client('sts').get_caller_identity()['Arn']}")
+    
+    # 2. Setup OpenSearch client
+    endpoint = 'your-domain.region.es.amazonaws.com'
+    awsauth = AWSRequestsAuth(
+        aws_access_key=credentials.access_key,
+        aws_secret_access_key=credentials.secret_key,
+        aws_token=credentials.token,
+        aws_host=endpoint,
+        aws_region=region,
+        aws_service='es'
+    )
+    
+    client = OpenSearch(
+        hosts=[{'host': endpoint, 'port': 443}],
+        http_auth=awsauth,
+        use_ssl=True,
+        verify_certs=True,
+        connection_class=RequestsHttpConnection,
+        timeout=30
+    )
+    
+    try:
+        # 3. Test cluster info
+        print("\n1. Testing cluster information...")
+        info = client.info()
+        print(f"✓ OpenSearch version: {info['version']['number']}")
+        
+        # 4. Test cluster health
+        print("\n2. Testing cluster health...")
+        health = client.cluster.health()
+        print(f"✓ Cluster status: {health['status']}")
+        print(f"✓ Number of nodes: {health['number_of_nodes']}")
+        
+        # 5. Test index operations
+        print("\n3. Testing index operations...")
+        index_name = f"test-index-{int(time.time())}"
+        
+        # Create index
+        client.indices.create(index=index_name, body={
+            "mappings": {
+                "properties": {
+                    "timestamp": {"type": "date"},
+                    "message": {"type": "text"},
+                    "level": {"type": "keyword"}
+                }
+            }
+        })
+        print(f"✓ Created index: {index_name}")
+        
+        # Index document
+        doc = {
+            "timestamp": datetime.now().isoformat(),
+            "message": "Test document for IAM verification",
+            "level": "INFO"
+        }
+        result = client.index(index=index_name, body=doc)
+        print(f"✓ Indexed document: {result['_id']}")
+        
+        # Search document
+        time.sleep(1)  # Wait for indexing
+        search_result = client.search(index=index_name, body={
+            "query": {"match": {"message": "Test"}}
+        })
+        print(f"✓ Search results: {search_result['hits']['total']['value']} documents")
+        
+        # Cleanup
+        client.indices.delete(index=index_name)
+        print(f"✓ Cleaned up index: {index_name}")
+        
+        print("\n✅ All OpenSearch IAM tests passed!")
+        return True
+        
+    except Exception as e:
+        print(f"\n❌ OpenSearch access test failed: {e}")
+        return False
+
+if __name__ == "__main__":
+    test_opensearch_access()
+```
+
+### Monitoreo de Acceso IAM
+
+```bash
+#!/bin/bash
+# monitor-opensearch-access.sh
+
+DOMAIN_NAME="your-opensearch-domain"
+REGION="us-east-1"
+
+echo "=== OpenSearch Access Monitoring ==="
+
+# Métricas de CloudWatch para monitorear acceso
+aws logs create-log-group --log-group-name "/aws/opensearch/domains/$DOMAIN_NAME/application-logs" 2>/dev/null || true
+
+# Consultar logs de acceso recientes
+echo "Recent access logs:"
+aws logs filter-log-events \
+    --log-group-name "/aws/opensearch/domains/$DOMAIN_NAME/application-logs" \
+    --start-time $(date -d '1 hour ago' +%s)000 \
+    --filter-pattern "ERROR" \
+    --query 'events[].message' \
+    --output text
+
+# Métricas de performance
+echo "Performance metrics:"
+aws cloudwatch get-metric-statistics \
+    --namespace AWS/ES \
+    --metric-name IndexingRate \
+    --dimensions Name=DomainName,Value=$DOMAIN_NAME Name=ClientId,Value=$(aws sts get-caller-identity --query Account --output text) \
+    --start-time $(date -u -d '1 hour ago' +%Y-%m-%dT%H:%M:%S) \
+    --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
+    --period 300 \
+    --statistics Average \
+    --region $REGION \
+    --query 'Datapoints[0].Average'
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-common-issues" summary="Solución de problemas comunes con IAM y OpenSearch">
+
+### Error: "User is not authorized to perform: es:ESHttpPost"
+
+**Causa:** El rol IAM no tiene permisos suficientes
+
+**Solución:**
+
+```bash
+# 1. Verificar políticas actuales del rol
+ROLE_NAME="your-opensearch-role"
+aws iam list-attached-role-policies --role-name $ROLE_NAME
+aws iam list-role-policies --role-name $ROLE_NAME
+
+# 2. Adjuntar política con permisos completos
+cat > opensearch-full-access-policy.json << EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "es:*",
+      "Resource": "arn:aws:es:*:*:domain/your-domain/*"
+    }
+  ]
+}
+EOF
+
+aws iam put-role-policy \
+    --role-name $ROLE_NAME \
+    --policy-name OpenSearchFullAccess \
+    --policy-document file://opensearch-full-access-policy.json
+```
+
+### Error: "No credentials found"
+
+**Causa:** IRSA no está configurado correctamente
+
+**Solución:**
+
+```bash
+# 1. Verificar OIDC provider del clúster
+CLUSTER_NAME="your-eks-cluster"
+aws eks describe-cluster --name $CLUSTER_NAME --query "cluster.identity.oidc.issuer"
+
+# 2. Verificar anotaciones del service account
+kubectl describe serviceaccount opensearch-service-account
+
+# 3. Recrear service account con anotaciones correctas
+kubectl delete serviceaccount opensearch-service-account
+kubectl apply -f - << EOF
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: opensearch-service-account
+  namespace: default
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::$(aws sts get-caller-identity --query Account --output text):role/OpenSearchAccessRole
+EOF
+```
+
+### Error: "Domain endpoint not accessible"
+
+**Causa:** Problemas de conectividad de red
+
+**Solución:**
+
+```bash
+# 1. Verificar configuración de VPC
+aws opensearch describe-domain --domain-name your-domain \
+    --query 'DomainStatus.VPCOptions'
+
+# 2. Verificar grupos de seguridad
+SG_ID="sg-12345678"
+aws ec2 describe-security-groups --group-ids $SG_ID \
+    --query 'SecurityGroups[0].IpPermissions[?FromPort==`443`]'
+
+# 3. Test de conectividad desde pod
+kubectl exec -it opensearch-client -- nslookup your-domain.region.es.amazonaws.com
+kubectl exec -it opensearch-client -- curl -I https://your-domain.region.es.amazonaws.com
+```
+
+### Error: "Certificate verification failed"
+
+**Causa:** Problemas con certificados SSL
+
+**Solución:**
+
+```python
+# Cliente Python con verificación SSL personalizada
+import ssl
+from opensearchpy import OpenSearch
+
+# Configuración con verificación SSL relajada (solo para debugging)
+client = OpenSearch(
+    hosts=[{'host': 'your-domain.region.es.amazonaws.com', 'port': 443}],
+    http_auth=awsauth,
+    use_ssl=True,
+    verify_certs=False,  # Solo para debugging
+    ssl_context=ssl.create_default_context(),
+    connection_class=RequestsHttpConnection
+)
+```
+
+### Debug Completo de Conectividad
+
+```bash
+#!/bin/bash
+# debug-opensearch-connectivity.sh
+
+DOMAIN_NAME="your-opensearch-domain"
+REGION="us-east-1"
+POD_NAME="opensearch-client"
+NAMESPACE="default"
+
+echo "=== OpenSearch Connectivity Debug ==="
+
+# 1. Verificar estado del dominio
+echo "1. Domain status:"
+aws opensearch describe-domain --domain-name $DOMAIN_NAME --region $REGION \
+    --query 'DomainStatus.{Processing: Processing, Endpoint: Endpoint, Created: Created}'
+
+# 2. Test de DNS
+echo "2. DNS resolution:"
+kubectl exec -n $NAMESPACE $POD_NAME -- nslookup $DOMAIN_NAME.$REGION.es.amazonaws.com
+
+# 3. Test de conectividad TCP
+echo "3. TCP connectivity:"
+kubectl exec -n $NAMESPACE $POD_NAME -- timeout 5 bash -c "</dev/tcp/$DOMAIN_NAME.$REGION.es.amazonaws.com/443" && \
+    echo "✓ TCP connection successful" || echo "✗ TCP connection failed"
+
+# 4. Test de SSL
+echo "4. SSL certificate:"
+kubectl exec -n $NAMESPACE $POD_NAME -- \
+    openssl s_client -connect $DOMAIN_NAME.$REGION.es.amazonaws.com:443 -servername $DOMAIN_NAME.$REGION.es.amazonaws.com < /dev/null
+
+# 5. Test de autenticación AWS
+echo "5. AWS authentication:"
+kubectl exec -n $NAMESPACE $POD_NAME -- aws sts get-caller-identity
+
+# 6. Test completo de API
+echo "6. OpenSearch API test:"
+kubectl exec -n $NAMESPACE $POD_NAME -- \
+    curl -v --aws-sigv4 "aws:amz:$REGION:es" \
+    "https://$DOMAIN_NAME.$REGION.es.amazonaws.com/_cluster/health"
+
+echo "=== Debug Complete ==="
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 5 de febrero de 2025 basada en una consulta real de usuario._

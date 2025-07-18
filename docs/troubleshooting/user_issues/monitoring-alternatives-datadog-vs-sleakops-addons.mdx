@@ -199,10 +199,560 @@ public class BusinessMetrics {
 
 <TroubleshootingItem id="monitoring-comparison" summary="Feature Comparison: DataDog vs SleakOps vs New Relic">
 
-| Feature                       | DataDog       | SleakOps Addons  | New Relic       |
-| ----------------------------- | ------------- | ---------------- | --------------- |
-| **Cost Model**                | Per instance  | Included         | Per user + data |
-| **Free Tier**                 | 14-day trial  | Included         | 100GB + 1 user  |
-| **APM**                       | Full featured | Beta (expanding) | Full featured   |
-| **Log Management**            | Yes           | Yes (Loki)       | Yes             |
-| **Infrastructure Monitoring** | Yes           | Yes (Graf        |
+| Feature                       | DataDog          | SleakOps Addons     | New Relic          |
+| ----------------------------- | ---------------- | ------------------- | ------------------ |
+| **Cost Model**                | Per instance     | Included            | Per user + data    |
+| **Free Tier**                 | 14-day trial     | Included            | 100GB + 1 user    |
+| **APM**                       | Full featured    | Beta (expanding)    | Full featured      |
+| **Log Management**            | Yes              | Yes (Loki)          | Yes                |
+| **Infrastructure Monitoring** | Yes              | Yes (Grafana)       | Yes                |
+| **Custom Dashboards**         | Yes              | Yes (Grafana)       | Yes                |
+| **Alerting**                  | Advanced         | Basic (Grafana)     | Advanced           |
+| **Real User Monitoring**      | Yes              | No                  | Yes                |
+| **Synthetic Monitoring**      | Yes              | No                  | Yes                |
+| **Database Monitoring**       | Yes              | Basic               | Yes                |
+| **Security Monitoring**       | Yes              | No                  | Basic              |
+| **Team Collaboration**        | Advanced         | Basic               | Advanced           |
+| **API Access**                | Full REST API    | Limited             | Full REST API      |
+| **Mobile App**                | Yes              | No                  | Yes                |
+| **OTEL Support**              | Yes              | Native              | Yes                |
+
+**Recommendation Matrix:**
+
+- **Small teams/startups**: New Relic Free Tier or SleakOps Addons
+- **Cost-conscious**: SleakOps Addons (included)
+- **Enterprise needs**: DataDog or New Relic Paid
+- **OTEL-first**: SleakOps Addons + OpenTelemetry
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="migration-strategy" summary="Step-by-step migration strategy from DataDog">
+
+**Phase 1: Parallel Running (1-2 weeks)**
+
+1. **Enable SleakOps monitoring addons:**
+
+```bash
+# Enable required addons
+sleakops addon enable grafana
+sleakops addon enable loki
+sleakops addon enable opentelemetry
+```
+
+2. **Configure dual export in applications:**
+
+```yaml
+management:
+  metrics:
+    export:
+      # Keep existing DataDog export
+      datadog:
+        enabled: ${DATADOG_ENABLED:true}
+        api-key: ${DATADOG_API_KEY}
+      # Add OpenTelemetry export
+      otlp:
+        enabled: ${OTEL_ENABLED:true}
+        endpoint: ${OTEL_ENDPOINT:http://otel-collector:4317}
+```
+
+3. **Set up basic Grafana dashboards:**
+
+```json
+{
+  "dashboard": {
+    "title": "Application Metrics",
+    "panels": [
+      {
+        "title": "Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "{{method}} {{status}}"
+          }
+        ]
+      },
+      {
+        "title": "Response Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Phase 2: Feature Parity (2-3 weeks)**
+
+1. **Recreate critical DataDog dashboards in Grafana:**
+
+```yaml
+# Business KPI Dashboard
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: business-dashboard
+data:
+  dashboard.json: |
+    {
+      "dashboard": {
+        "title": "Business KPIs",
+        "panels": [
+          {
+            "title": "Orders per Hour",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "increase(business_orders_total[1h])",
+                "legendFormat": "Orders"
+              }
+            ]
+          },
+          {
+            "title": "Revenue Tracking",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sum(business_revenue_total) by (product_type)",
+                "legendFormat": "{{product_type}}"
+              }
+            ]
+          }
+        ]
+      }
+    }
+```
+
+2. **Set up alerting rules:**
+
+```yaml
+groups:
+  - name: application.rules
+    rules:
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} errors per second"
+          
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is {{ $value }}s"
+```
+
+3. **Configure notification channels:**
+
+```yaml
+# Slack notification
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-slack-config
+data:
+  notifications.yaml: |
+    notifiers:
+      - name: slack
+        type: slack
+        uid: slack
+        settings:
+          url: ${SLACK_WEBHOOK_URL}
+          channel: "#alerts"
+          title: "SleakOps Alert"
+          text: "{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}"
+```
+
+**Phase 3: Full Migration (1 week)**
+
+1. **Disable DataDog exports:**
+
+```yaml
+management:
+  metrics:
+    export:
+      datadog:
+        enabled: false
+      otlp:
+        enabled: true
+```
+
+2. **Remove DataDog dependencies:**
+
+```dockerfile
+# Remove DataDog agent installation
+# FROM your-base-image
+# RUN curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh | bash  # REMOVE THIS LINE
+```
+
+3. **Update monitoring documentation and runbooks**
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="custom-metrics-implementation" summary="Implementing custom business metrics">
+
+**1. Spring Boot Actuator + Micrometer Setup:**
+
+```java
+@Configuration
+@EnableConfigurationProperties(MetricsProperties.class)
+public class MetricsConfig {
+
+    @Bean
+    public MeterRegistryCustomizer<MeterRegistry> metricsCommonTags() {
+        return registry -> registry.config()
+            .commonTags("application", "your-app-name")
+            .commonTags("environment", System.getenv("ENVIRONMENT"));
+    }
+
+    @Bean
+    public TimedAspect timedAspect(MeterRegistry registry) {
+        return new TimedAspect(registry);
+    }
+}
+```
+
+**2. Business Metrics Service:**
+
+```java
+@Service
+public class BusinessMetricsService {
+    private final MeterRegistry meterRegistry;
+    private final Counter orderCounter;
+    private final Counter revenueCounter;
+    private final Timer checkoutTimer;
+    private final Gauge activeUsersGauge;
+
+    public BusinessMetricsService(MeterRegistry meterRegistry) {
+        this.meterRegistry = meterRegistry;
+        
+        this.orderCounter = Counter.builder("business.orders")
+            .description("Total orders processed")
+            .tag("type", "all")
+            .register(meterRegistry);
+            
+        this.revenueCounter = Counter.builder("business.revenue")
+            .description("Total revenue in cents")
+            .baseUnit("cents")
+            .register(meterRegistry);
+            
+        this.checkoutTimer = Timer.builder("business.checkout.duration")
+            .description("Time taken to complete checkout")
+            .register(meterRegistry);
+            
+        this.activeUsersGauge = Gauge.builder("business.users.active")
+            .description("Currently active users")
+            .register(meterRegistry, this, BusinessMetricsService::getActiveUserCount);
+    }
+
+    public void recordOrder(String productType, BigDecimal amount) {
+        orderCounter.increment(
+            Tags.of(
+                "product_type", productType,
+                "amount_range", getAmountRange(amount)
+            )
+        );
+        
+        revenueCounter.increment(
+            Tags.of("product_type", productType),
+            amount.multiply(BigDecimal.valueOf(100)).doubleValue()
+        );
+    }
+
+    @Timed(value = "business.checkout.duration", description = "Checkout process timer")
+    public void processCheckout(CheckoutRequest request) {
+        // Business logic here
+        recordOrder(request.getProductType(), request.getAmount());
+    }
+
+    private String getAmountRange(BigDecimal amount) {
+        if (amount.compareTo(BigDecimal.valueOf(50)) < 0) return "0-50";
+        if (amount.compareTo(BigDecimal.valueOf(200)) < 0) return "50-200";
+        return "200+";
+    }
+
+    private double getActiveUserCount() {
+        // Logic to count active users
+        return userSessionService.getActiveUserCount();
+    }
+}
+```
+
+**3. Custom Metrics Controller:**
+
+```java
+@RestController
+@RequestMapping("/api/metrics")
+public class MetricsController {
+    private final BusinessMetricsService metricsService;
+    private final MeterRegistry meterRegistry;
+
+    @PostMapping("/order")
+    public ResponseEntity<String> recordOrder(@RequestBody OrderRequest request) {
+        metricsService.recordOrder(request.getProductType(), request.getAmount());
+        return ResponseEntity.ok("Metric recorded");
+    }
+
+    @GetMapping("/custom")
+    public ResponseEntity<Map<String, Object>> getCustomMetrics() {
+        Map<String, Object> metrics = new HashMap<>();
+        
+        // Get current metric values
+        Counter orderCounter = meterRegistry.find("business.orders").counter();
+        if (orderCounter != null) {
+            metrics.put("total_orders", orderCounter.count());
+        }
+        
+        return ResponseEntity.ok(metrics);
+    }
+}
+```
+
+**4. Prometheus Metrics Exposition:**
+
+```yaml
+# Application properties
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        business.checkout.duration: true
+      percentiles:
+        http.server.requests: 0.5, 0.95, 0.99
+        business.checkout.duration: 0.5, 0.95, 0.99
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-monitoring-issues" summary="Troubleshooting common monitoring issues">
+
+**1. Missing Metrics in Grafana:**
+
+```bash
+# Check if application metrics endpoint is accessible
+kubectl port-forward deployment/your-app 8080:8080
+curl http://localhost:8080/actuator/prometheus
+
+# Verify Prometheus is scraping your application
+kubectl port-forward svc/prometheus 9090:9090
+# Open http://localhost:9090/targets and verify your app is listed and UP
+
+# Check Prometheus configuration
+kubectl get configmap prometheus-config -o yaml
+```
+
+**2. OTEL Collector Issues:**
+
+```bash
+# Check OTEL collector logs
+kubectl logs deployment/otel-collector -n monitoring
+
+# Verify OTEL collector configuration
+kubectl get configmap otel-collector-config -o yaml
+
+# Test OTEL endpoint connectivity
+kubectl run test-pod --image=curlimages/curl --rm -it -- \
+  curl -X POST http://otel-collector:4317/v1/metrics \
+  -H "Content-Type: application/x-protobuf" \
+  --data-binary @/dev/null
+```
+
+**3. Grafana Dashboard Issues:**
+
+```bash
+# Check Grafana logs
+kubectl logs deployment/grafana -n monitoring
+
+# Verify data source configuration
+kubectl exec -it deployment/grafana -n monitoring -- \
+  grafana-cli admin data-sources list
+
+# Test Prometheus connectivity from Grafana
+kubectl exec -it deployment/grafana -n monitoring -- \
+  curl http://prometheus:9090/api/v1/query?query=up
+```
+
+**4. High Cardinality Issues:**
+
+```java
+// BAD: High cardinality metric
+Counter.builder("http.requests")
+    .tag("user_id", userId)  // This creates one metric per user!
+    .register(meterRegistry);
+
+// GOOD: Low cardinality metric
+Counter.builder("http.requests")
+    .tag("endpoint", "/api/users")
+    .tag("method", "GET")
+    .tag("status", "200")
+    .register(meterRegistry);
+```
+
+**5. Memory Issues with Metrics:**
+
+```yaml
+# Optimize metrics collection
+management:
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+        step: 30s  # Reduce frequency if needed
+    distribution:
+      minimum-expected-value: 100ms
+      maximum-expected-value: 10s
+      expiry: 5m  # Reduce memory usage
+      buffer-length: 3  # Reduce buffer size
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cost-optimization-strategies" summary="Cost optimization strategies for monitoring">
+
+**1. SleakOps Addons Optimization:**
+
+```yaml
+# Optimize Grafana resource usage
+grafana:
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+# Optimize Loki retention
+loki:
+  retention_period: "14d"  # Reduce from default 30d
+  compactor:
+    working_directory: /tmp/compactor
+    shared_store: s3
+    retention_enabled: true
+    
+# Optimize Prometheus storage
+prometheus:
+  retention: "15d"  # Reduce from default 30d
+  storage:
+    tsdb:
+      retention.size: "10GB"
+```
+
+**2. Metric Sampling Strategies:**
+
+```java
+@Configuration
+public class MetricsSamplingConfig {
+    
+    @Bean
+    public MeterFilter samplingFilter() {
+        return MeterFilter.maximumAllowableMetrics(1000);
+    }
+    
+    @Bean
+    public MeterFilter highFrequencyFilter() {
+        // Sample high-frequency metrics
+        return MeterFilter.deny(id -> {
+            String name = id.getName();
+            return name.contains("high.frequency") && 
+                   Math.random() > 0.1; // Keep only 10% of samples
+        });
+    }
+}
+```
+
+**3. DataDog Cost Reduction:**
+
+```dockerfile
+# Use DataDog Agent with minimal configuration
+FROM datadog/agent:latest
+ENV DD_APM_ENABLED=false          # Disable if not needed
+ENV DD_PROCESS_AGENT_ENABLED=false  # Disable process monitoring
+ENV DD_LOGS_ENABLED=false           # Use Loki instead
+ENV DD_KUBERNETES_COLLECT_METADATA_TAGS=false
+ENV DD_KUBERNETES_METADATA_TAG_UPDATE_FREQ=60
+```
+
+**4. New Relic Optimization:**
+
+```yaml
+# Use New Relic with data sampling
+newrelic:
+  app_name: "Your App"
+  license_key: "${NEW_RELIC_LICENSE_KEY}"
+  distributed_tracing:
+    enabled: true
+  transaction_tracer:
+    enabled: true
+    transaction_threshold: 500ms  # Only trace slow transactions
+  error_collector:
+    enabled: true
+    ignore_status_codes: "400-404"  # Ignore client errors
+```
+
+**5. Monitoring Cost Calculator:**
+
+```python
+#!/usr/bin/env python3
+"""
+Calculate monitoring costs for different solutions
+"""
+
+def calculate_datadog_cost(hosts, months=12):
+    """DataDog pricing: $15-23 per host per month"""
+    base_cost = 15
+    return hosts * base_cost * months
+
+def calculate_newrelic_cost(users, data_gb_per_month, months=12):
+    """New Relic pricing: Free tier 100GB + 1 user, then $99/user/month"""
+    if users <= 1 and data_gb_per_month <= 100:
+        return 0
+    
+    user_cost = max(0, users - 1) * 99 * months
+    data_overage = max(0, data_gb_per_month - 100) * 0.25 * months
+    return user_cost + data_overage
+
+def calculate_sleakops_cost():
+    """SleakOps addons are included in platform cost"""
+    return 0
+
+# Example calculation
+hosts = 5
+users = 3
+data_gb_month = 150
+months = 12
+
+print(f"DataDog cost (12 months): ${calculate_datadog_cost(hosts, months)}")
+print(f"New Relic cost (12 months): ${calculate_newrelic_cost(users, data_gb_month, months)}")
+print(f"SleakOps cost (12 months): ${calculate_sleakops_cost()}")
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on March 25, 2024 based on a real user query._

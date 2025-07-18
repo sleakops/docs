@@ -234,6 +234,356 @@ To minimize future production outages:
 
 </TroubleshootingItem>
 
+<TroubleshootingItem id="infrastructure-diagnostics" summary="Infrastructure-level diagnostics">
+
+When site outages occur, perform these infrastructure checks:
+
+1. **Cloud provider status**:
+
+```bash
+# Check AWS service health (if using AWS)
+aws sts get-caller-identity
+aws ec2 describe-instances --query 'Reservations[*].Instances[*].[InstanceId,State.Name]'
+
+# Verify load balancer status
+aws elbv2 describe-load-balancers
+aws elbv2 describe-target-health --target-group-arn <target-group-arn>
+```
+
+2. **Kubernetes cluster health**:
+
+```bash
+# Check cluster nodes
+kubectl get nodes
+kubectl describe nodes | grep -i "ready\|condition"
+
+# Verify core services
+kubectl get pods -n kube-system
+kubectl get componentstatuses
+
+# Check cluster events
+kubectl get events --all-namespaces --sort-by=.metadata.creationTimestamp | tail -20
+```
+
+3. **Network connectivity**:
+
+```bash
+# Test DNS resolution
+dig your-domain.com
+nslookup your-domain.com
+
+# Check SSL certificates
+echo | openssl s_client -connect your-domain.com:443 2>/dev/null | openssl x509 -noout -dates
+
+# Test connectivity from different locations
+curl -I https://your-domain.com
+```
+
+4. **Database connectivity**:
+
+```bash
+# Check database status (PostgreSQL example)
+kubectl exec -it <db-pod> -- pg_isready
+kubectl exec -it <db-pod> -- psql -c "SELECT version();"
+
+# Check database connections
+kubectl exec -it <app-pod> -- nc -zv database-service 5432
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="application-level-debugging" summary="Application-level debugging">
+
+Debug application-specific issues during outages:
+
+1. **Application pod analysis**:
+
+```bash
+# Check pod status and events
+kubectl get pods -n production
+kubectl describe pod <failing-pod> -n production
+
+# Examine application logs
+kubectl logs <pod-name> -n production --tail=100
+kubectl logs <pod-name> -n production --previous  # Previous container logs
+```
+
+2. **Configuration verification**:
+
+```bash
+# Check ConfigMaps and Secrets
+kubectl get configmaps -n production
+kubectl get secrets -n production
+
+# Verify environment variables
+kubectl exec -it <pod-name> -n production -- env | sort
+```
+
+3. **Resource utilization**:
+
+```bash
+# Check resource usage
+kubectl top pods -n production
+kubectl top nodes
+
+# Check resource quotas
+kubectl describe quota -n production
+kubectl describe limitrange -n production
+```
+
+4. **Service connectivity**:
+
+```bash
+# Test internal service connections
+kubectl exec -it <pod-name> -n production -- wget -qO- http://internal-service:port/health
+
+# Check service endpoints
+kubectl get endpoints -n production
+kubectl describe service <service-name> -n production
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="emergency-communication" summary="Emergency communication templates">
+
+Use these communication templates during outages:
+
+**Initial incident notification:**
+
+```
+🚨 PRODUCTION INCIDENT ALERT 🚨
+
+Status: Site down detected
+Time: [TIMESTAMP]
+Impact: Complete site outage
+Team: Incident response team activated
+ETA for update: 15 minutes
+
+Incident Commander: [NAME]
+Next update: [TIME]
+```
+
+**Progress updates:**
+
+```
+🔄 INCIDENT UPDATE
+
+Status: Investigating
+Time: [TIMESTAMP]
+Progress: [CURRENT ACTIONS]
+Impact: [CURRENT IMPACT ASSESSMENT]
+
+Actions taken:
+- [ACTION 1]
+- [ACTION 2]
+
+Next steps:
+- [NEXT ACTION]
+
+Next update: [TIME]
+```
+
+**Resolution notification:**
+
+```
+✅ INCIDENT RESOLVED
+
+Status: Site restored
+Time: [TIMESTAMP]
+Duration: [TOTAL DOWNTIME]
+Root cause: [BRIEF CAUSE]
+
+Resolution:
+- [ACTIONS THAT FIXED THE ISSUE]
+
+Follow-up:
+- Post-mortem scheduled for [DATE/TIME]
+- Preventive measures to be implemented
+```
+
+**Escalation procedures:**
+
+```bash
+# Emergency contact hierarchy
+1. Incident Commander
+2. Technical Lead/DevOps Lead
+3. Engineering Manager
+4. CTO/Technical Director
+5. Business Stakeholders
+
+# Communication channels
+- Primary: Slack #incidents
+- Secondary: WhatsApp group
+- External: Customer status page
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="detailed-recovery-checklist" summary="Detailed recovery verification checklist">
+
+Use this comprehensive checklist to verify full system recovery:
+
+**Application Level:**
+
+```bash
+□ All pods are running and ready
+□ Health check endpoints responding (200 OK)
+□ Application logs show normal operation
+□ No error spikes in monitoring dashboards
+□ Resource utilization within normal ranges
+```
+
+**Infrastructure Level:**
+
+```bash
+□ All cluster nodes are ready
+□ Load balancer is healthy and routing traffic
+□ DNS resolution is working correctly
+□ SSL certificates are valid and not expired
+□ CDN (if applicable) is serving content
+```
+
+**Data Layer:**
+
+```bash
+□ Database connections are stable
+□ Database queries are performing normally
+□ Backup systems are operational
+□ Data integrity checks pass
+□ Cache layers are functioning
+```
+
+**User Experience:**
+
+```bash
+□ Website loads completely within acceptable time
+□ All critical user flows work end-to-end
+□ Payment systems are operational (if applicable)
+□ User authentication/login works
+□ Mobile app connectivity (if applicable)
+```
+
+**Business Functions:**
+
+```bash
+□ Order processing works (if e-commerce)
+□ Email notifications are sending
+□ Third-party integrations are working
+□ Monitoring and alerting systems are operational
+□ Backup and disaster recovery systems are verified
+```
+
+**Sign-off checklist:**
+
+```bash
+□ Technical team confirms full restoration
+□ QA team verifies critical flows
+□ Business stakeholders approve go-live
+□ Customer support team notified of resolution
+□ Documentation updated with incident details
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="automated-recovery" summary="Implementing automated recovery mechanisms">
+
+Set up automated systems to handle future outages:
+
+1. **Health check automation**:
+
+```yaml
+# Kubernetes deployment with robust health checks
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+```
+
+2. **Auto-scaling configuration**:
+
+```yaml
+# Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: app-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: app-deployment
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+```
+
+3. **Circuit breaker implementation**:
+
+```yaml
+# Example circuit breaker configuration
+circuit_breaker:
+  failure_threshold: 5
+  recovery_timeout: 30s
+  success_threshold: 3
+  timeout: 10s
+```
+
+4. **Automated alerting**:
+
+```yaml
+# Prometheus alerting rules
+groups:
+  - name: production-alerts
+    rules:
+      - alert: SiteDown
+        expr: probe_success{job="blackbox"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Production site is down"
+          description: "Site has been down for more than 1 minute"
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate detected"
+```
+
+</TroubleshootingItem>
+
 ---
 
 _This FAQ was automatically generated on January 27, 2025 based on a real user query._

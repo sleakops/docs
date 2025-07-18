@@ -223,4 +223,294 @@ If you're still getting 403 errors:
 
 2. **Verify bucket policy**:
    - Check if the bucket has restrictive policies
-   - Ensure your IAM role is
+   - Ensure your IAM role is allowed to access the bucket
+
+3. **Test access step by step**:
+
+   ```python
+   import boto3
+   import botocore
+   
+   def test_s3_access(bucket_name):
+       try:
+           s3_client = boto3.client('s3')
+           
+           # Test 1: List bucket (basic access)
+           print("Testing bucket listing...")
+           response = s3_client.list_objects_v2(Bucket=bucket_name, MaxKeys=1)
+           print("✓ Bucket listing successful")
+           
+           # Test 2: Head bucket (check permissions)
+           print("Testing bucket head...")
+           s3_client.head_bucket(Bucket=bucket_name)
+           print("✓ Bucket head successful")
+           
+           # Test 3: Get bucket location
+           print("Testing bucket location...")
+           location = s3_client.get_bucket_location(Bucket=bucket_name)
+           print(f"✓ Bucket location: {location.get('LocationConstraint', 'us-east-1')}")
+           
+           return True
+           
+       except botocore.exceptions.ClientError as e:
+           error_code = e.response['Error']['Code']
+           print(f"✗ Error {error_code}: {e.response['Error']['Message']}")
+           return False
+       except Exception as e:
+           print(f"✗ Unexpected error: {str(e)}")
+           return False
+   
+   # Test your bucket
+   test_s3_access('your-bucket-name')
+   ```
+
+4. **Common resolution steps**:
+
+   ```bash
+   # Check current AWS identity
+   aws sts get-caller-identity
+   
+   # Test bucket access from CLI
+   aws s3 ls s3://your-bucket-name/
+   
+   # Check IAM role attached to service account
+   kubectl describe serviceaccount default
+   kubectl describe serviceaccount <your-service-account>
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cross-project-access" summary="Setting up cross-project S3 access">
+
+For accessing S3 buckets across different SleakOps projects:
+
+### Method 1: Using Explicit Credentials (Recommended)
+
+1. **Create IAM user with S3 permissions**:
+
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Action": [
+           "s3:GetObject",
+           "s3:PutObject",
+           "s3:DeleteObject",
+           "s3:ListBucket"
+         ],
+         "Resource": [
+           "arn:aws:s3:::your-bucket-name",
+           "arn:aws:s3:::your-bucket-name/*"
+         ]
+       }
+     ]
+   }
+   ```
+
+2. **Store credentials in SleakOps Variable Groups**:
+
+   ```bash
+   # Create a Variable Group with S3 credentials
+   AWS_ACCESS_KEY_ID=AKIA...
+   AWS_SECRET_ACCESS_KEY=...
+   AWS_DEFAULT_REGION=us-east-1
+   S3_BUCKET_NAME=your-bucket-name
+   ```
+
+3. **Use credentials in your application**:
+
+   ```python
+   import boto3
+   import os
+   
+   def get_s3_client():
+       return boto3.client(
+           's3',
+           aws_access_key_id=os.environ['AWS_ACCESS_KEY_ID'],
+           aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'],
+           region_name=os.environ.get('AWS_DEFAULT_REGION', 'us-east-1')
+       )
+   
+   # Usage
+   s3_client = get_s3_client()
+   bucket_name = os.environ['S3_BUCKET_NAME']
+   ```
+
+### Method 2: Cross-Account IAM Role (Advanced)
+
+For more advanced setups, you can configure cross-account IAM role assumptions:
+
+1. **Trust relationship policy on the target bucket's IAM role**:
+
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Principal": {
+           "AWS": "arn:aws:iam::SOURCE-ACCOUNT:role/SERVICE-ROLE-NAME"
+         },
+         "Action": "sts:AssumeRole"
+       }
+     ]
+   }
+   ```
+
+2. **Python code for role assumption**:
+
+   ```python
+   import boto3
+   from botocore.exceptions import BotoCoreError, ClientError
+   
+   def assume_role_and_get_s3_client(role_arn, session_name='s3-access'):
+       try:
+           sts_client = boto3.client('sts')
+           
+           response = sts_client.assume_role(
+               RoleArn=role_arn,
+               RoleSessionName=session_name
+           )
+           
+           credentials = response['Credentials']
+           
+           return boto3.client(
+               's3',
+               aws_access_key_id=credentials['AccessKeyId'],
+               aws_secret_access_key=credentials['SecretAccessKey'],
+               aws_session_token=credentials['SessionToken']
+           )
+       except (BotoCoreError, ClientError) as e:
+           print(f"Error assuming role: {e}")
+           return None
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="security-best-practices" summary="S3 security best practices">
+
+### Security Recommendations
+
+1. **Use least privilege access**:
+
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Action": [
+           "s3:GetObject"
+         ],
+         "Resource": "arn:aws:s3:::your-bucket-name/specific-prefix/*"
+       }
+     ]
+   }
+   ```
+
+2. **Enable bucket versioning and logging**:
+
+   ```python
+   # Enable versioning
+   s3_client.put_bucket_versioning(
+       Bucket='your-bucket-name',
+       VersioningConfiguration={'Status': 'Enabled'}
+   )
+   
+   # Enable access logging
+   s3_client.put_bucket_logging(
+       Bucket='your-bucket-name',
+       BucketLoggingStatus={
+           'LoggingEnabled': {
+               'TargetBucket': 'your-log-bucket',
+               'TargetPrefix': 'access-logs/'
+           }
+       }
+   )
+   ```
+
+3. **Use presigned URLs for temporary access**:
+
+   ```python
+   def generate_presigned_url(bucket_name, object_key, expiration=3600):
+       try:
+           response = s3_client.generate_presigned_url(
+               'get_object',
+               Params={'Bucket': bucket_name, 'Key': object_key},
+               ExpiresIn=expiration
+           )
+           return response
+       except ClientError as e:
+           print(f"Error generating presigned URL: {e}")
+           return None
+   
+   # Generate a URL that expires in 1 hour
+   url = generate_presigned_url('my-bucket', 'my-file.txt', 3600)
+   ```
+
+4. **Implement proper error handling**:
+
+   ```python
+   import boto3
+   from botocore.exceptions import ClientError, NoCredentialsError
+   
+   def safe_s3_operation(bucket_name, key):
+       try:
+           s3_client = boto3.client('s3')
+           response = s3_client.get_object(Bucket=bucket_name, Key=key)
+           return response['Body'].read()
+           
+       except NoCredentialsError:
+           print("AWS credentials not found")
+           return None
+           
+       except ClientError as e:
+           error_code = e.response['Error']['Code']
+           if error_code == 'NoSuchKey':
+               print(f"Object {key} not found in bucket {bucket_name}")
+           elif error_code == 'AccessDenied':
+               print(f"Access denied to {key} in bucket {bucket_name}")
+           elif error_code == 'NoSuchBucket':
+               print(f"Bucket {bucket_name} not found")
+           else:
+               print(f"Error {error_code}: {e.response['Error']['Message']}")
+           return None
+   ```
+
+### Monitoring and Logging
+
+Set up CloudWatch monitoring for S3 access:
+
+```python
+import boto3
+
+def setup_s3_monitoring(bucket_name):
+    cloudwatch = boto3.client('cloudwatch')
+    
+    # Create alarm for 4xx errors
+    cloudwatch.put_metric_alarm(
+        AlarmName=f'{bucket_name}-4xx-errors',
+        ComparisonOperator='GreaterThanThreshold',
+        EvaluationPeriods=1,
+        MetricName='4xxErrors',
+        Namespace='AWS/S3',
+        Period=300,
+        Statistic='Sum',
+        Threshold=10.0,
+        ActionsEnabled=True,
+        Dimensions=[
+            {
+                'Name': 'BucketName',
+                'Value': bucket_name
+            },
+        ]
+    )
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on February 11, 2025 based on a real user query._

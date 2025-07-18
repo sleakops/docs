@@ -81,101 +81,163 @@ Ensure OpenTelemetry Django instrumentation is properly configured:
 ```txt
 opentelemetry-api
 opentelemetry-sdk
-opentelemetry-auto-instrumentation
+opentelemetry-instrumentation
 opentelemetry-instrumentation-django
-opentelemetry-instrumentation-psycopg2  # for PostgreSQL
-# or opentelemetry-instrumentation-mysqlclient  # for MySQL
+opentelemetry-instrumentation-psycopg2  # For PostgreSQL
+opentelemetry-instrumentation-mysql     # For MySQL
+opentelemetry-instrumentation-sqlite3   # For SQLite
+opentelemetry-exporter-otlp
+opentelemetry-propagator-b3
+opentelemetry-propagator-jaeger
+opentelemetry-instrumentation-requests
+opentelemetry-instrumentation-urllib3
 ```
 
-2. **Configure instrumentation in Django settings:**
+2. **Configure auto-instrumentation in Django settings:**
 
 ```python
 # settings.py
+
+# OpenTelemetry configuration
+import os
+from opentelemetry import trace
 from opentelemetry.instrumentation.django import DjangoInstrumentor
 from opentelemetry.instrumentation.psycopg2 import Psycopg2Instrumentor
-
-# Initialize instrumentors
-DjangoInstrumentor().instrument()
-Psycopg2Instrumentor().instrument()
-```
-
-</TroubleshootingItem>
-
-<TroubleshootingItem id="environment-variables" summary="Set Required Environment Variables">
-
-Configure the necessary environment variables in your SleakOps deployment:
-
-```yaml
-# SleakOps deployment configuration
-environment:
-  # Django configuration
-  DJANGO_SETTINGS_MODULE: "your_project.settings"
-
-  # Database configuration
-  DB_NAME: "your_database_name"
-  DB_USER: "your_database_user"
-  DB_PASSWORD: "your_database_password"
-  DB_HOST: "your_database_host"
-  DB_PORT: "5432"
-
-  # OpenTelemetry configuration
-  OTEL_SERVICE_NAME: "your-django-app"
-  OTEL_RESOURCE_ATTRIBUTES: "service.name=your-django-app,service.version=1.0.0"
-  OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED: "true"
-```
-
-</TroubleshootingItem>
-
-<TroubleshootingItem id="manual-instrumentation" summary="Manual Database Instrumentation (Alternative)">
-
-If auto-instrumentation continues to fail, configure manual instrumentation:
-
-1. **Create an instrumentation module:**
-
-```python
-# instrumentation.py
-from opentelemetry import trace
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.requests import RequestsInstrumentor
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.instrumentation.django import DjangoInstrumentor
-from opentelemetry.instrumentation.psycopg2 import Psycopg2Instrumentor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 
-def setup_telemetry():
-    # Set up tracer provider
+# Initialize OpenTelemetry
+if not trace.get_tracer_provider():
     trace.set_tracer_provider(TracerProvider())
-    tracer = trace.get_tracer_provider()
 
-    # Set up OTLP exporter
-    otlp_exporter = OTLPSpanExporter()
+    # Configure OTLP exporter
+    otlp_exporter = OTLPSpanExporter(
+        endpoint=os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317"),
+        headers={"Authorization": f"Bearer {os.environ.get('OTEL_AUTH_TOKEN', '')}"}
+    )
+
+    # Add span processor
     span_processor = BatchSpanProcessor(otlp_exporter)
-    tracer.add_span_processor(span_processor)
+    trace.get_tracer_provider().add_span_processor(span_processor)
 
-    # Instrument Django and database
-    DjangoInstrumentor().instrument()
-    Psycopg2Instrumentor().instrument()
+# Auto-instrument Django
+DjangoInstrumentor().instrument()
+
+# Auto-instrument database connections
+Psycopg2Instrumentor().instrument()  # For PostgreSQL
+
+# Auto-instrument HTTP requests
+RequestsInstrumentor().instrument()
 ```
 
-2. **Initialize in Django's ready() method:**
+3. **Alternative: Use environment variable approach:**
 
-```python
-# apps.py
-from django.apps import AppConfig
-
-class YourAppConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'your_app'
-
-    def ready(self):
-        from .instrumentation import setup_telemetry
-        setup_telemetry()
+```yaml
+# In your deployment configuration
+environment:
+  OTEL_PYTHON_DJANGO_INSTRUMENT: "true"
+  OTEL_PYTHON_PSYCOPG2_INSTRUMENT: "true"
+  OTEL_PYTHON_REQUESTS_INSTRUMENT: "true"
+  OTEL_SERVICE_NAME: "your-django-app"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
 ```
 
 </TroubleshootingItem>
 
-<TroubleshootingItem id="troubleshooting-steps" summary="Troubleshooting and Verification">
+<TroubleshootingItem id="manual-instrumentation" summary="Manual Database Instrumentation">
 
-**Verify instrumentation is working:**
+If auto-instrumentation doesn't work, configure manual instrumentation:
+
+1. **Create custom instrumentation middleware:**
+
+```python
+# middleware/opentelemetry_middleware.py
+import logging
+from django.conf import settings
+from django.db import connection
+from opentelemetry import trace
+from opentelemetry.instrumentation.django import DjangoInstrumentor
+from opentelemetry.instrumentation.psycopg2 import Psycopg2Instrumentor
+
+logger = logging.getLogger(__name__)
+
+class OpenTelemetryMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.setup_instrumentation()
+
+    def setup_instrumentation(self):
+        """Setup OpenTelemetry instrumentation"""
+        try:
+            # Instrument Django
+            if not hasattr(settings, '_otel_django_instrumented'):
+                DjangoInstrumentor().instrument()
+                settings._otel_django_instrumented = True
+                logger.info("Django instrumentation enabled")
+
+            # Instrument database
+            if not hasattr(settings, '_otel_db_instrumented'):
+                # Detect database engine and instrument accordingly
+                db_engine = settings.DATABASES['default']['ENGINE']
+
+                if 'postgresql' in db_engine:
+                    Psycopg2Instrumentor().instrument()
+                elif 'mysql' in db_engine:
+                    from opentelemetry.instrumentation.mysql import MySQLInstrumentor
+                    MySQLInstrumentor().instrument()
+                elif 'sqlite' in db_engine:
+                    from opentelemetry.instrumentation.sqlite3 import SQLite3Instrumentor
+                    SQLite3Instrumentor().instrument()
+
+                settings._otel_db_instrumented = True
+                logger.info(f"Database instrumentation enabled for {db_engine}")
+
+        except Exception as e:
+            logger.error(f"Failed to setup OpenTelemetry instrumentation: {e}")
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        return response
+```
+
+2. **Add middleware to Django settings:**
+
+```python
+# settings.py
+MIDDLEWARE = [
+    'your_app.middleware.opentelemetry_middleware.OpenTelemetryMiddleware',
+    'django.middleware.security.SecurityMiddleware',
+    # ... other middleware
+]
+```
+
+3. **Manual span creation for database operations:**
+
+```python
+# In your Django views or services
+from opentelemetry import trace
+from django.db import connection
+
+tracer = trace.get_tracer(__name__)
+
+def get_user_data(user_id):
+    with tracer.start_as_current_span("database.query.get_user") as span:
+        span.set_attribute("user.id", user_id)
+        span.set_attribute("db.statement", "SELECT * FROM users WHERE id = %s")
+
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT * FROM auth_user WHERE id = %s", [user_id])
+            result = cursor.fetchone()
+
+        span.set_attribute("db.rows_affected", 1 if result else 0)
+        return result
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="debugging-instrumentation" summary="Debugging OpenTelemetry Instrumentation Issues">
 
 1. **Check application logs for OpenTelemetry initialization:**
 
@@ -202,5 +264,543 @@ def test_db_connection():
 ```python
 # Add to a Django view for testing
 from opentelemetry import trace
-\
+from opentelemetry.sdk.trace.export import ConsoleSpanExporter
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+
+def test_telemetry_view(request):
+    """Test view to verify OpenTelemetry is working"""
+
+    # Create a test span
+    tracer = trace.get_tracer(__name__)
+    with tracer.start_as_current_span("test.database.query") as span:
+        span.set_attribute("test", "true")
+
+        # Perform a database query
+        from django.contrib.auth.models import User
+        user_count = User.objects.count()
+
+        span.set_attribute("user.count", user_count)
+
+    return JsonResponse({"status": "success", "user_count": user_count})
 ```
+
+4. **Enable debug logging:**
+
+```python
+# settings.py
+import logging
+
+# Enable OpenTelemetry debug logging
+logging.basicConfig(level=logging.DEBUG)
+logging.getLogger("opentelemetry").setLevel(logging.DEBUG)
+logging.getLogger("opentelemetry.instrumentation").setLevel(logging.DEBUG)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'opentelemetry': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'opentelemetry.instrumentation': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}
+```
+
+5. **Check instrumentation status:**
+
+```python
+# Add this to your Django app startup
+def check_instrumentation_status():
+    """Check which instrumentations are active"""
+    import pkg_resources
+
+    # Check installed OpenTelemetry packages
+    otel_packages = [
+        pkg for pkg in pkg_resources.working_set
+        if 'opentelemetry' in pkg.project_name
+    ]
+
+    print("Installed OpenTelemetry packages:")
+    for pkg in otel_packages:
+        print(f"  {pkg.project_name}: {pkg.version}")
+
+    # Check if instrumentation is active
+    from opentelemetry.instrumentation import _instruments
+    active_instruments = _instruments._instruments
+
+    print("Active instrumentations:")
+    for name, instrument in active_instruments.items():
+        print(f"  {name}: {instrument}")
+
+# Call this in your Django app's ready() method
+check_instrumentation_status()
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="environment-configuration" summary="Proper Environment Variable Configuration">
+
+Configure all necessary environment variables for OpenTelemetry:
+
+1. **Required environment variables:**
+
+```yaml
+# In SleakOps deployment configuration
+environment:
+  # Django settings
+  DJANGO_SETTINGS_MODULE: "your_project.settings"
+
+  # OpenTelemetry configuration
+  OTEL_SERVICE_NAME: "your-django-app"
+  OTEL_SERVICE_VERSION: "1.0.0"
+  OTEL_DEPLOYMENT_ENVIRONMENT: "production" # or staging/development
+
+  # OTLP Exporter configuration
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+  OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+  OTEL_EXPORTER_OTLP_HEADERS: "authorization=Bearer YOUR_TOKEN"
+
+  # Instrumentation configuration
+  OTEL_PYTHON_DJANGO_INSTRUMENT: "true"
+  OTEL_PYTHON_PSYCOPG2_INSTRUMENT: "true"
+  OTEL_PYTHON_REQUESTS_INSTRUMENT: "true"
+  OTEL_PYTHON_URLLIB3_INSTRUMENT: "true"
+
+  # Trace configuration
+  OTEL_TRACES_EXPORTER: "otlp"
+  OTEL_METRICS_EXPORTER: "otlp"
+  OTEL_LOGS_EXPORTER: "otlp"
+
+  # Sampling configuration
+  OTEL_TRACES_SAMPLER: "parentbased_traceidratio"
+  OTEL_TRACES_SAMPLER_ARG: "0.1" # Sample 10% of traces
+
+  # Resource attributes
+  OTEL_RESOURCE_ATTRIBUTES: "service.name=your-django-app,service.version=1.0.0"
+```
+
+2. **Database-specific configuration:**
+
+```yaml
+# For PostgreSQL
+environment:
+  OTEL_PYTHON_PSYCOPG2_INSTRUMENT: "true"
+  DB_NAME: "your_database"
+  DB_USER: "your_user"
+  DB_PASSWORD: "your_password"
+  DB_HOST: "your-db-host"
+  DB_PORT: "5432"
+
+# For MySQL
+environment:
+  OTEL_PYTHON_MYSQL_INSTRUMENT: "true"
+
+# For SQLite
+environment:
+  OTEL_PYTHON_SQLITE3_INSTRUMENT: "true"
+```
+
+3. **Advanced configuration:**
+
+```python
+# settings.py - Advanced OpenTelemetry configuration
+import os
+from opentelemetry.sdk.resources import SERVICE_NAME, SERVICE_VERSION, Resource
+
+# Configure resource attributes
+resource = Resource.create({
+    SERVICE_NAME: os.environ.get("OTEL_SERVICE_NAME", "django-app"),
+    SERVICE_VERSION: os.environ.get("OTEL_SERVICE_VERSION", "1.0.0"),
+    "deployment.environment": os.environ.get("OTEL_DEPLOYMENT_ENVIRONMENT", "development"),
+    "service.namespace": os.environ.get("OTEL_SERVICE_NAMESPACE", "default"),
+})
+
+# Configure trace provider with resource
+from opentelemetry.sdk.trace import TracerProvider
+trace.set_tracer_provider(TracerProvider(resource=resource))
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="testing-verification" summary="Testing and Verification">
+
+1. **Create a test endpoint for verification:**
+
+```python
+# views.py
+from django.http import JsonResponse
+from django.db import connection
+from opentelemetry import trace
+import time
+
+def test_opentelemetry(request):
+    """Test endpoint to verify OpenTelemetry database instrumentation"""
+
+    tracer = trace.get_tracer(__name__)
+
+    with tracer.start_as_current_span("test.opentelemetry.endpoint") as span:
+        span.set_attribute("test.type", "database_instrumentation")
+
+        # Test database query
+        with tracer.start_as_current_span("database.test.query") as db_span:
+            db_span.set_attribute("db.statement", "SELECT COUNT(*) FROM auth_user")
+
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT COUNT(*) FROM auth_user")
+                user_count = cursor.fetchone()[0]
+
+            db_span.set_attribute("db.rows_returned", 1)
+            db_span.set_attribute("user.count", user_count)
+
+        # Test span attributes
+        span.set_attribute("response.user_count", user_count)
+        span.set_attribute("test.status", "success")
+
+        # Add some processing time
+        time.sleep(0.1)
+
+        return JsonResponse({
+            "status": "success",
+            "message": "OpenTelemetry test completed",
+            "user_count": user_count,
+            "instrumentation": {
+                "django": "enabled",
+                "database": "enabled",
+                "traces": "enabled"
+            }
+        })
+```
+
+2. **Integration test for instrumentation:**
+
+```python
+# tests/test_opentelemetry.py
+from django.test import TestCase, Client
+from django.urls import reverse
+from unittest.mock import patch, MagicMock
+
+class OpenTelemetryInstrumentationTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+    @patch('opentelemetry.trace.get_tracer')
+    def test_database_instrumentation(self, mock_tracer):
+        """Test that database queries are instrumented"""
+
+        # Mock tracer and span
+        mock_span = MagicMock()
+        mock_tracer.return_value.start_as_current_span.return_value.__enter__.return_value = mock_span
+
+        # Make request that triggers database query
+        response = self.client.get('/test-opentelemetry/')
+
+        # Verify response
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['status'], 'success')
+
+        # Verify span creation was called
+        mock_tracer.return_value.start_as_current_span.assert_called()
+
+        # Verify span attributes were set
+        mock_span.set_attribute.assert_called()
+
+    def test_database_connection(self):
+        """Test database connection works"""
+        from django.db import connection
+
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            result = cursor.fetchone()
+
+        self.assertEqual(result[0], 1)
+```
+
+3. **Manual verification script:**
+
+```python
+# verify_instrumentation.py
+#!/usr/bin/env python3
+
+import os
+import sys
+import django
+
+# Setup Django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'your_project.settings')
+django.setup()
+
+def verify_opentelemetry_setup():
+    """Verify OpenTelemetry is properly configured"""
+
+    print("=== OpenTelemetry Django Verification ===\n")
+
+    # Check imports
+    try:
+        from opentelemetry import trace
+        print("✓ OpenTelemetry API imported successfully")
+    except ImportError as e:
+        print(f"✗ Failed to import OpenTelemetry API: {e}")
+        return False
+
+    # Check Django instrumentation
+    try:
+        from opentelemetry.instrumentation.django import DjangoInstrumentor
+        print("✓ Django instrumentation available")
+    except ImportError as e:
+        print(f"✗ Django instrumentation not available: {e}")
+        return False
+
+    # Check database instrumentation
+    try:
+        from django.conf import settings
+        db_engine = settings.DATABASES['default']['ENGINE']
+
+        if 'postgresql' in db_engine:
+            from opentelemetry.instrumentation.psycopg2 import Psycopg2Instrumentor
+            print("✓ PostgreSQL instrumentation available")
+        elif 'mysql' in db_engine:
+            from opentelemetry.instrumentation.mysql import MySQLInstrumentor
+            print("✓ MySQL instrumentation available")
+        elif 'sqlite' in db_engine:
+            from opentelemetry.instrumentation.sqlite3 import SQLite3Instrumentor
+            print("✓ SQLite instrumentation available")
+    except ImportError as e:
+        print(f"✗ Database instrumentation not available: {e}")
+        return False
+
+    # Test database connection
+    try:
+        from django.db import connection
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            result = cursor.fetchone()
+        print("✓ Database connection successful")
+    except Exception as e:
+        print(f"✗ Database connection failed: {e}")
+        return False
+
+    # Check tracer provider
+    try:
+        tracer_provider = trace.get_tracer_provider()
+        print(f"✓ Tracer provider configured: {type(tracer_provider)}")
+    except Exception as e:
+        print(f"✗ Tracer provider issue: {e}")
+        return False
+
+    # Test span creation
+    try:
+        tracer = trace.get_tracer(__name__)
+        with tracer.start_as_current_span("test.span") as span:
+            span.set_attribute("test", "verification")
+        print("✓ Span creation successful")
+    except Exception as e:
+        print(f"✗ Span creation failed: {e}")
+        return False
+
+    print("\n=== All checks passed! ===")
+    return True
+
+if __name__ == "__main__":
+    success = verify_opentelemetry_setup()
+    sys.exit(0 if success else 1)
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-common-issues" summary="Troubleshooting Common Issues">
+
+**1. "No module named 'opentelemetry.instrumentation.django'" Error:**
+
+```bash
+# Install the missing package
+pip install opentelemetry-instrumentation-django
+
+# Or add to requirements.txt
+echo "opentelemetry-instrumentation-django" >> requirements.txt
+```
+
+**2. Database instrumentation not working:**
+
+```python
+# Force re-instrumentation in Django app's ready() method
+from django.apps import AppConfig
+
+class YourAppConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'your_app'
+
+    def ready(self):
+        # Force database instrumentation
+        from django.conf import settings
+
+        if not hasattr(settings, '_db_instrumented'):
+            db_engine = settings.DATABASES['default']['ENGINE']
+
+            if 'postgresql' in db_engine:
+                from opentelemetry.instrumentation.psycopg2 import Psycopg2Instrumentor
+                Psycopg2Instrumentor().instrument()
+
+            settings._db_instrumented = True
+```
+
+**3. Spans not appearing in OpenTelemetry backend:**
+
+```python
+# Add console exporter for debugging
+from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
+
+# Add console exporter (for debugging only)
+console_exporter = ConsoleSpanExporter()
+simple_processor = SimpleSpanProcessor(console_exporter)
+trace.get_tracer_provider().add_span_processor(simple_processor)
+```
+
+**4. High memory usage from instrumentation:**
+
+```python
+# Configure sampling to reduce overhead
+import os
+os.environ["OTEL_TRACES_SAMPLER"] = "parentbased_traceidratio"
+os.environ["OTEL_TRACES_SAMPLER_ARG"] = "0.1"  # Sample 10% of traces
+```
+
+**5. Database connection pool issues:**
+
+```python
+# Configure connection pool settings
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('DB_NAME'),
+        # ... other settings ...
+        'OPTIONS': {
+            'MAX_CONNS': 20,
+            'MIN_CONNS': 5,
+        },
+        'CONN_MAX_AGE': 600,  # Connection pooling
+    }
+}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Best Practices for Django OpenTelemetry">
+
+**1. Performance Optimization:**
+
+```python
+# Configure efficient sampling
+OTEL_CONFIG = {
+    'traces_sampler': 'parentbased_traceidratio',
+    'traces_sampler_arg': 0.1,  # 10% sampling
+    'max_attr_length': 256,     # Limit attribute length
+    'max_events': 32,           # Limit events per span
+    'max_links': 32,            # Limit links per span
+}
+```
+
+**2. Security Considerations:**
+
+```python
+# Don't trace sensitive endpoints
+from opentelemetry.instrumentation.django import DjangoInstrumentor
+
+DjangoInstrumentor().instrument(
+    excluded_urls=[
+        "/admin",           # Django admin
+        "/api/auth/login",  # Login endpoints
+        "/api/auth/token",  # Token endpoints
+        "/health",          # Health checks
+    ]
+)
+```
+
+**3. Custom Attributes for Business Logic:**
+
+```python
+# Add business context to spans
+from opentelemetry import trace
+
+def process_order(order_id, user_id):
+    tracer = trace.get_tracer(__name__)
+
+    with tracer.start_as_current_span("business.process_order") as span:
+        span.set_attribute("order.id", order_id)
+        span.set_attribute("user.id", user_id)
+        span.set_attribute("business.operation", "order_processing")
+
+        # Business logic here
+        order = Order.objects.get(id=order_id)
+        span.set_attribute("order.amount", float(order.total_amount))
+        span.set_attribute("order.status", order.status)
+
+        return order
+```
+
+**4. Error Handling and Logging:**
+
+```python
+# Proper error handling with spans
+import logging
+from opentelemetry.trace import Status, StatusCode
+
+logger = logging.getLogger(__name__)
+
+def risky_database_operation():
+    tracer = trace.get_tracer(__name__)
+
+    with tracer.start_as_current_span("database.risky_operation") as span:
+        try:
+            # Database operation
+            result = perform_complex_query()
+            span.set_status(Status(StatusCode.OK))
+            return result
+
+        except Exception as e:
+            # Record error in span
+            span.record_exception(e)
+            span.set_status(Status(StatusCode.ERROR, str(e)))
+
+            # Also log the error
+            logger.error(f"Database operation failed: {e}", exc_info=True)
+            raise
+```
+
+**5. Resource Configuration:**
+
+```python
+# Comprehensive resource configuration
+from opentelemetry.sdk.resources import SERVICE_NAME, SERVICE_VERSION, Resource
+import socket
+
+resource = Resource.create({
+    SERVICE_NAME: "your-django-app",
+    SERVICE_VERSION: "1.0.0",
+    "service.namespace": "production",
+    "service.instance.id": f"{socket.gethostname()}-{os.getpid()}",
+    "deployment.environment": os.environ.get("ENVIRONMENT", "development"),
+    "telemetry.sdk.name": "opentelemetry",
+    "telemetry.sdk.language": "python",
+    "telemetry.sdk.version": "1.21.0",
+})
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

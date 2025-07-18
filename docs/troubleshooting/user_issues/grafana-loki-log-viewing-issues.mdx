@@ -206,6 +206,345 @@ While permanent fixes are being developed:
 
 </TroubleshootingItem>
 
+<TroubleshootingItem id="advanced-loki-queries" summary="Advanced LogQL queries for better log retrieval">
+
+Use these LogQL query patterns to improve log viewing:
+
+1. **Query with specific time boundaries**:
+
+```logql
+{namespace="your-namespace", pod=~"your-pod.*"}
+| json
+| timestamp >= "2025-01-15T14:00:00Z"
+| timestamp <= "2025-01-15T16:00:00Z"
+```
+
+2. **Filter by log level to find completion messages**:
+
+```logql
+{namespace="your-namespace"}
+|~ "(?i)(completed|finished|success|done|exit)"
+| line_format "{{.timestamp}}: {{.message}}"
+```
+
+3. **Query the last N log entries**:
+
+```logql
+{namespace="your-namespace", pod=~"your-service.*"}
+| tail 100
+```
+
+4. **Find error patterns and completion status**:
+
+```logql
+{namespace="your-namespace"}
+|~ "(?i)(error|fail|exception|completed|success)"
+| json
+| line_format "{{.level}}: {{.message}}"
+```
+
+5. **Time-based log aggregation**:
+
+```logql
+sum by (pod) (
+  count_over_time({namespace="your-namespace"}[5m])
+)
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="log-retention-configuration" summary="Configuring log retention and storage">
+
+Properly configure Loki to ensure log availability:
+
+1. **Check current retention configuration**:
+
+```bash
+# View Loki configuration
+kubectl get configmap loki-config -n monitoring -o yaml
+
+# Check retention settings
+kubectl exec -n monitoring loki-read-0 -- cat /etc/loki/config.yaml | grep -A 10 retention
+```
+
+2. **Configure appropriate retention periods**:
+
+```yaml
+# Example Loki retention configuration
+limits_config:
+  retention_period: 168h # 7 days
+  enforce_metric_name: false
+  reject_old_samples: true
+  reject_old_samples_max_age: 168h
+
+compactor:
+  working_directory: /loki/compactor
+  shared_store: s3
+  compaction_interval: 5m
+  retention_enabled: true
+  retention_delete_delay: 2h
+```
+
+3. **Monitor log storage usage**:
+
+```bash
+# Check storage utilization
+kubectl exec -n monitoring loki-write-0 -- df -h /loki
+
+# Check number of chunks
+kubectl exec -n monitoring loki-write-0 -- find /loki/chunks -name "*.gz" | wc -l
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-loki-components" summary="Troubleshooting individual Loki components">
+
+Debug issues with specific Loki components:
+
+1. **Loki Write component issues**:
+
+```bash
+# Check write component logs
+kubectl logs -n monitoring loki-write-0 --tail=100
+
+# Check write metrics
+kubectl exec -n monitoring loki-write-0 -- wget -qO- http://localhost:3100/metrics | grep loki_ingester
+
+# Verify write component health
+kubectl exec -n monitoring loki-write-0 -- wget -qO- http://localhost:3100/ready
+```
+
+2. **Loki Read component issues**:
+
+```bash
+# Check read component logs
+kubectl logs -n monitoring loki-read-0 --tail=100
+
+# Test query functionality
+kubectl exec -n monitoring loki-read-0 -- wget -qO- "http://localhost:3100/loki/api/v1/labels"
+
+# Check read component metrics
+kubectl exec -n monitoring loki-read-0 -- wget -qO- http://localhost:3100/metrics | grep loki_querier
+```
+
+3. **Promtail (log shipper) issues**:
+
+```bash
+# Check Promtail pods
+kubectl get pods -n monitoring | grep promtail
+
+# Check Promtail logs
+kubectl logs -n monitoring daemonset/promtail --tail=100
+
+# Verify Promtail configuration
+kubectl get configmap promtail-config -n monitoring -o yaml
+
+# Check Promtail targets
+kubectl exec -n monitoring promtail-xxx -- wget -qO- http://localhost:3101/targets
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="log-shipping-optimization" summary="Optimizing log shipping and ingestion">
+
+Improve log ingestion performance and reliability:
+
+1. **Optimize Promtail configuration**:
+
+```yaml
+# Enhanced Promtail configuration
+scrape_configs:
+  - job_name: kubernetes-pods
+    kubernetes_sd_configs:
+      - role: pod
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_pod_container_name]
+        target_label: container
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: namespace
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: timestamp
+            message: message
+            level: level
+      - timestamp:
+          source: timestamp
+          format: RFC3339
+      - labels:
+          level:
+```
+
+2. **Configure log buffering**:
+
+```yaml
+# Improved buffering configuration
+limits_config:
+  ingestion_rate_mb: 10
+  ingestion_burst_size_mb: 20
+  max_streams_per_user: 10000
+  max_line_size: 256000
+
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9095
+  http_server_read_timeout: 30s
+  http_server_write_timeout: 30s
+```
+
+3. **Implement log sampling for high-volume services**:
+
+```yaml
+# Sample high-volume logs
+pipeline_stages:
+  - match:
+      selector: '{level="debug"}'
+      stages:
+        - sampling:
+            rate: 0.1 # Keep only 10% of debug logs
+  - match:
+      selector: '{level="info"}'
+      stages:
+        - sampling:
+            rate: 0.5 # Keep 50% of info logs
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="emergency-log-recovery" summary="Emergency procedures for log recovery">
+
+When logs are completely inaccessible through Grafana:
+
+1. **Direct kubectl log access**:
+
+```bash
+# Get logs from all containers in a pod
+kubectl logs <pod-name> -n <namespace> --all-containers=true
+
+# Get logs from previous pod instance
+kubectl logs <pod-name> -n <namespace> --previous
+
+# Get logs with timestamps
+kubectl logs <pod-name> -n <namespace> --timestamps=true
+
+# Follow live logs
+kubectl logs -f <pod-name> -n <namespace>
+```
+
+2. **Export logs to files**:
+
+```bash
+# Export recent logs to file
+kubectl logs <pod-name> -n <namespace> --since=1h > pod-logs-$(date +%Y%m%d-%H%M%S).log
+
+# Export all available logs
+kubectl logs <pod-name> -n <namespace> --tail=-1 > complete-pod-logs.log
+```
+
+3. **Access logs via node filesystem** (if pods write to hostPath):
+
+```bash
+# Connect to node and access log files
+kubectl debug node/<node-name> -it --image=busybox
+# Navigate to /host/var/log/pods/ to find pod logs
+```
+
+4. **Query Loki API directly**:
+
+```bash
+# Port-forward to Loki
+kubectl port-forward -n monitoring svc/loki 3100:3100 &
+
+# Query logs directly
+curl -G -s "http://localhost:3100/loki/api/v1/query_range" \
+  --data-urlencode 'query={namespace="your-namespace"}' \
+  --data-urlencode 'start=2025-01-15T14:00:00Z' \
+  --data-urlencode 'end=2025-01-15T16:00:00Z' \
+  --data-urlencode 'limit=1000' | jq '.data.result'
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-log-pipeline" summary="Monitoring the log pipeline health">
+
+Set up monitoring to detect log ingestion issues:
+
+1. **Key metrics to monitor**:
+
+```promql
+# Log ingestion rate
+rate(loki_distributor_lines_received_total[5m])
+
+# Log ingestion errors
+rate(loki_distributor_lines_received_total{status="error"}[5m])
+
+# Query performance
+histogram_quantile(0.95, rate(loki_request_duration_seconds_bucket[5m]))
+
+# Storage utilization
+loki_ingester_memory_chunks / loki_ingester_memory_chunks_max
+```
+
+2. **Alerting rules for log pipeline**:
+
+```yaml
+groups:
+  - name: loki-pipeline
+    rules:
+      - alert: LokiLogIngestionStopped
+        expr: rate(loki_distributor_lines_received_total[5m]) == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Loki log ingestion has stopped"
+
+      - alert: LokiHighErrorRate
+        expr: rate(loki_distributor_lines_received_total{status="error"}[5m]) > 10
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate in Loki log ingestion"
+```
+
+3. **Dashboard panels for log health**:
+
+```json
+{
+  "title": "Log Pipeline Health",
+  "panels": [
+    {
+      "title": "Logs Ingested per Second",
+      "targets": [{ "expr": "rate(loki_distributor_lines_received_total[5m])" }]
+    },
+    {
+      "title": "Log Ingestion Errors",
+      "targets": [
+        {
+          "expr": "rate(loki_distributor_lines_received_total{status=\"error\"}[5m])"
+        }
+      ]
+    },
+    {
+      "title": "Query Latency (95th percentile)",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(loki_request_duration_seconds_bucket[5m]))"
+        }
+      ]
+    }
+  ]
+}
+```
+
+</TroubleshootingItem>
+
 ---
 
 _This FAQ was automatically generated on January 15, 2025 based on a real user query._

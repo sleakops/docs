@@ -46,44 +46,770 @@ import TroubleshootingItem from "@site/src/components/HomepageFeatures/troublesh
 
 Para añadir configuraciones personalizadas persistentes de Ingress:
 
-1. Navega a tu proyecto en SleakOps
-2. Ve a la sección **"Gráficos Extendidos"**
-3. Esta función te permite añadir recursos personalizados de Kubernetes que serán incluidos en tu despliegue Helm
+1. **Navegar al proyecto** en la consola de SleakOps
+2. **Ir a la sección "Gráficos Extendidos"** en el menú lateral
+3. **Hacer clic en "Plantillas"** para añadir recursos personalizados de Kubernetes
+4. **Crear una nueva plantilla** que contenga la configuración de Ingress
 
-![Opción de Gráficos Extendidos](./images/extended-charts-option.png)
+**Ubicación en la interfaz:**
+
+```
+Proyecto → Configuración → Gráficos Extendidos → Plantillas → Añadir Plantilla
+```
+
+**Ventajas de usar Gráficos Extendidos:**
+
+- Persistencia automática a través de despliegues
+- Integración nativa con Helm
+- Versionado junto con el código de la aplicación
+- Capacidad de usar valores dinámicos de Helm
 
 </TroubleshootingItem>
 
-<TroubleshootingItem id="add-ingress-template" summary="Añadiendo configuración de Ingress a las plantillas">
+<TroubleshootingItem id="ingress-template-structure" summary="Estructura básica de la plantilla de Ingress">
 
-Una vez en la sección de Gráficos Extendidos:
+La plantilla de Ingress debe seguir la estructura estándar de Kubernetes con soporte para valores de Helm:
 
-1. Haz clic en **"Plantillas"** o **"Añadir Plantilla"**
-2. Añade tu configuración YAML personalizada de Ingress
-3. La configuración será incluida automáticamente en tu gráfico Helm
+```yaml
+# templates/custom-ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Values.ingress.name | default "custom-ingress" }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ include "chart.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+  annotations:
+    {{- toYaml .Values.ingress.annotations | nindent 4 }}
+spec:
+  ingressClassName: {{ .Values.ingress.className | default "alb" }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- range .Values.ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType | default "Prefix" }}
+            backend:
+              service:
+                name: {{ .service.name }}
+                port:
+                  number: {{ .service.port }}
+          {{- end }}
+    {{- end }}
+```
 
-![Configuración de Plantilla](./images/template-configuration.png)
+**Componentes clave:**
+
+- **Metadatos:** Incluyen etiquetas estándar de Helm
+- **Anotaciones:** Configuración específica del proveedor
+- **Clase de Ingress:** Especifica el controlador a usar
+- **TLS:** Configuración de certificados SSL
+- **Reglas:** Definición de rutas y servicios backend
 
 </TroubleshootingItem>
 
-<TroubleshootingItem id="ingress-example" summary="Ejemplo completo de configuración de Ingress">
+<TroubleshootingItem id="aws-alb-annotations" summary="Configuraciones específicas de AWS ALB">
 
-Aquí tienes un ejemplo completo de una configuración de Ingress con anotaciones de AWS ALB:
+Para proyectos que usan AWS Application Load Balancer, estas son las anotaciones más comunes:
+
+```yaml
+# Anotaciones específicas de AWS ALB
+annotations:
+  # Configuración básica del ALB
+  kubernetes.io/ingress.class: alb
+  alb.ingress.kubernetes.io/scheme: internet-facing
+  alb.ingress.kubernetes.io/target-type: ip
+  alb.ingress.kubernetes.io/load-balancer-name: custom-alb-name
+
+  # Configuración SSL/TLS
+  alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:region:account:certificate/cert-id
+  alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS-1-2-2017-01
+  alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+
+  # Redirecciones HTTP a HTTPS
+  alb.ingress.kubernetes.io/ssl-redirect: "443"
+  alb.ingress.kubernetes.io/actions.ssl-redirect: |
+    {
+      "Type": "redirect",
+      "RedirectConfig": {
+        "Protocol": "HTTPS",
+        "Port": "443",
+        "StatusCode": "HTTP_301"
+      }
+    }
+
+  # Configuración de Health Checks
+  alb.ingress.kubernetes.io/healthcheck-path: /health
+  alb.ingress.kubernetes.io/healthcheck-interval-seconds: "30"
+  alb.ingress.kubernetes.io/healthcheck-timeout-seconds: "5"
+  alb.ingress.kubernetes.io/healthy-threshold-count: "2"
+  alb.ingress.kubernetes.io/unhealthy-threshold-count: "3"
+
+  # Tags para gestión de recursos
+  alb.ingress.kubernetes.io/tags: |
+    Environment={{ .Values.environment }},
+    Project={{ .Values.project.name }},
+    ManagedBy=SleakOps
+
+  # Configuración de subnets
+  alb.ingress.kubernetes.io/subnets: subnet-xxxxx,subnet-yyyyy
+
+  # Grupos de seguridad
+  alb.ingress.kubernetes.io/security-groups: sg-xxxxx,sg-yyyyy
+```
+
+**Ejemplo de redirección personalizada:**
+
+```yaml
+annotations:
+  alb.ingress.kubernetes.io/actions.redirect-to-domain: |
+    {
+      "Type": "redirect",
+      "RedirectConfig": {
+        "Host": "newdomain.com",
+        "Path": "/#{path}",
+        "Query": "#{query}",
+        "StatusCode": "HTTP_301"
+      }
+    }
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="multi-domain-configuration" summary="Configuración para múltiples dominios y certificados">
+
+**Configuración de valores para múltiples dominios:**
+
+```yaml
+# values.yaml
+ingress:
+  name: multi-domain-ingress
+  className: alb
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/certificate-arn: |
+      arn:aws:acm:region:account:certificate/cert-id-1,
+      arn:aws:acm:region:account:certificate/cert-id-2
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+
+  hosts:
+    - host: api.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service:
+            name: api-service
+            port: 8080
+        - path: /v2
+          pathType: Prefix
+          service:
+            name: api-v2-service
+            port: 8080
+
+    - host: admin.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service:
+            name: admin-service
+            port: 3000
+
+    - host: www.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service:
+            name: web-service
+            port: 80
+
+  tls:
+    - hosts:
+        - api.example.com
+        - admin.example.com
+      secretName: api-admin-tls
+    - hosts:
+        - www.example.com
+      secretName: www-tls
+```
+
+**Plantilla correspondiente:**
 
 ```yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: websimpleecommx
-  namespace: mx-simplee-web-prod-mx-2
-  labels:
-    app.kubernetes.io/instance: 1.0.1
-    app.kubernetes.io/name: websimpleecommx
+  name: {{ .Values.ingress.name }}
+  namespace: {{ .Release.Namespace }}
   annotations:
-    # Configuración de redireccionamiento
-    alb.ingress.kubernetes.io/actions.redirect-to-simplee: >
-      {"Type": "redirect""
-}
+    {{- range $key, $value := .Values.ingress.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  tls:
+    {{- range .Values.ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  rules:
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ .service.name }}
+                port:
+                  number: {{ .service.port }}
+          {{- end }}
+    {{- end }}
 ```
 
 </TroubleshootingItem>
+
+<TroubleshootingItem id="advanced-routing-rules" summary="Reglas avanzadas de enrutamiento y redireccionamiento">
+
+**Configuración de acciones personalizadas:**
+
+```yaml
+annotations:
+  # Acción de redirección
+  alb.ingress.kubernetes.io/actions.redirect-to-https: |
+    {
+      "Type": "redirect",
+      "RedirectConfig": {
+        "Protocol": "HTTPS",
+        "Port": "443",
+        "StatusCode": "HTTP_301"
+      }
+    }
+
+  # Acción de respuesta fija
+  alb.ingress.kubernetes.io/actions.response-503: |
+    {
+      "Type": "fixed-response",
+      "FixedResponseConfig": {
+        "ContentType": "text/plain",
+        "StatusCode": "503",
+        "MessageBody": "Service temporarily unavailable"
+      }
+    }
+
+  # Acción de forward con pesos (para A/B testing)
+  alb.ingress.kubernetes.io/actions.weighted-routing: |
+    {
+      "Type": "forward",
+      "ForwardConfig": {
+        "TargetGroups": [
+          {
+            "ServiceName": "app-v1",
+            "ServicePort": "80",
+            "Weight": 80
+          },
+          {
+            "ServiceName": "app-v2", 
+            "ServicePort": "80",
+            "Weight": 20
+          }
+        ]
+      }
+    }
+```
+
+**Ejemplo de Ingress con múltiples acciones:**
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: advanced-routing-ingress
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/actions.ssl-redirect: |
+      {
+        "Type": "redirect",
+        "RedirectConfig": {
+          "Protocol": "HTTPS",
+          "Port": "443",
+          "StatusCode": "HTTP_301"
+        }
+      }
+    alb.ingress.kubernetes.io/actions.maintenance-mode: |
+      {
+        "Type": "fixed-response",
+        "FixedResponseConfig": {
+          "ContentType": "text/html",
+          "StatusCode": "503",
+          "MessageBody": "<h1>Maintenance Mode</h1><p>Service will be back soon</p>"
+        }
+      }
+spec:
+  ingressClassName: alb
+  rules:
+    - host: example.com
+      http:
+        paths:
+          # Redirección HTTP a HTTPS
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ssl-redirect
+                port:
+                  name: use-annotation
+
+          # Ruta normal para HTTPS
+          - path: /app
+            pathType: Prefix
+            backend:
+              service:
+                name: app-service
+                port:
+                  number: 80
+
+          # Modo de mantenimiento para rutas específicas
+          - path: /admin
+            pathType: Prefix
+            backend:
+              service:
+                name: maintenance-mode
+                port:
+                  name: use-annotation
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="custom-authentication" summary="Configuración de autenticación personalizada">
+
+**Integración con AWS Cognito:**
+
+```yaml
+annotations:
+  # Configuración de autenticación con Cognito
+  alb.ingress.kubernetes.io/auth-type: cognito
+  alb.ingress.kubernetes.io/auth-idp-cognito: |
+    {
+      "UserPoolArn": "arn:aws:cognito-idp:region:account:userpool/us-west-2_xxxxxx",
+      "UserPoolClientId": "xxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "UserPoolDomain": "your-domain.auth.region.amazoncognito.com"
+    }
+  alb.ingress.kubernetes.io/auth-scope: "openid profile email"
+  alb.ingress.kubernetes.io/auth-session-cookie: "AWSELBAuthSessionCookie"
+  alb.ingress.kubernetes.io/auth-session-timeout: "86400"
+  alb.ingress.kubernetes.io/auth-on-unauthenticated-request: authenticate
+```
+
+**Integración con OIDC externo:**
+
+```yaml
+annotations:
+  # Configuración de autenticación OIDC
+  alb.ingress.kubernetes.io/auth-type: oidc
+  alb.ingress.kubernetes.io/auth-idp-oidc: |
+    {
+      "Issuer": "https://your-oidc-provider.com",
+      "AuthorizationEndpoint": "https://your-oidc-provider.com/auth",
+      "TokenEndpoint": "https://your-oidc-provider.com/token",
+      "UserInfoEndpoint": "https://your-oidc-provider.com/userinfo",
+      "SecretName": "oidc-client-secret"
+    }
+  alb.ingress.kubernetes.io/auth-scope: "openid profile email"
+```
+
+**Configuración de rutas protegidas y públicas:**
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: auth-protected-ingress
+  annotations:
+    alb.ingress.kubernetes.io/auth-type: cognito
+    alb.ingress.kubernetes.io/auth-idp-cognito: |
+      {
+        "UserPoolArn": "arn:aws:cognito-idp:region:account:userpool/us-west-2_xxxxxx",
+        "UserPoolClientId": "client-id",
+        "UserPoolDomain": "domain.auth.region.amazoncognito.com"
+      }
+spec:
+  rules:
+    - host: app.example.com
+      http:
+        paths:
+          # Rutas públicas (sin autenticación)
+          - path: /public
+            pathType: Prefix
+            backend:
+              service:
+                name: public-service
+                port:
+                  number: 80
+
+          # Rutas protegidas (requieren autenticación)
+          - path: /admin
+            pathType: Prefix
+            backend:
+              service:
+                name: admin-service
+                port:
+                  number: 80
+
+          - path: /dashboard
+            pathType: Prefix
+            backend:
+              service:
+                name: dashboard-service
+                port:
+                  number: 80
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-and-debugging" summary="Monitoreo y depuración de configuraciones Ingress">
+
+**Verificación de configuración aplicada:**
+
+```bash
+#!/bin/bash
+# Script para verificar la configuración de Ingress
+
+# Obtener información del Ingress
+kubectl get ingress -n namespace-name -o yaml
+
+# Verificar eventos relacionados
+kubectl get events -n namespace-name --sort-by=.metadata.creationTimestamp
+
+# Verificar el estado del ALB
+kubectl describe ingress ingress-name -n namespace-name
+
+# Obtener logs del controlador ALB
+kubectl logs -n kube-system deployment/aws-load-balancer-controller
+```
+
+**Comandos de diagnóstico:**
+
+```bash
+# Verificar que el controlador ALB está funcionando
+kubectl get deployment -n kube-system aws-load-balancer-controller
+
+# Verificar los servicios backend
+kubectl get svc -n namespace-name
+
+# Verificar los endpoints
+kubectl get endpoints -n namespace-name
+
+# Verificar certificados TLS
+kubectl get secrets -n namespace-name | grep tls
+
+# Obtener detalles del Load Balancer creado
+aws elbv2 describe-load-balancers --names custom-alb-name
+aws elbv2 describe-target-groups --load-balancer-arn arn:aws:elasticloadbalancing:...
+```
+
+**Métricas de monitoreo:**
+
+```yaml
+# ServiceMonitor para Prometheus (si está disponible)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ingress-nginx-metrics
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ingress-nginx
+  endpoints:
+    - port: prometheus
+      interval: 30s
+      path: /metrics
+```
+
+**Alertas recomendadas:**
+
+```yaml
+# PrometheusRule para alertas de Ingress
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ingress-alerts
+spec:
+  groups:
+    - name: ingress.rules
+      rules:
+        - alert: IngressDown
+          expr: up{job="ingress-nginx"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Ingress controller is down"
+
+        - alert: HighLatency
+          expr: histogram_quantile(0.95, rate(nginx_ingress_controller_request_duration_seconds_bucket[5m])) > 1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High latency on ingress"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-common-issues" summary="Resolución de problemas comunes">
+
+**Problema: Ingress no crea Load Balancer**
+
+```bash
+# Verificar logs del controlador
+kubectl logs -n kube-system deployment/aws-load-balancer-controller -f
+
+# Verificar anotaciones requeridas
+kubectl get ingress ingress-name -o yaml | grep -A 10 annotations
+
+# Verificar permisos IAM del controlador
+aws sts get-caller-identity
+aws iam list-attached-role-policies --role-name AWSLoadBalancerControllerRole
+```
+
+**Problema: Certificados SSL no funcionan**
+
+```bash
+# Verificar certificados en AWS ACM
+aws acm list-certificates --region your-region
+
+# Verificar validación de dominio
+aws acm describe-certificate --certificate-arn arn:aws:acm:...
+
+# Verificar anotaciones de certificado en Ingress
+kubectl get ingress ingress-name -o jsonpath='{.metadata.annotations.alb\.ingress\.kubernetes\.io/certificate-arn}'
+```
+
+**Problema: Health checks fallan**
+
+```bash
+# Verificar configuración de health check
+aws elbv2 describe-target-health --target-group-arn arn:aws:elasticloadbalancing:...
+
+# Verificar que el servicio responde en el puerto correcto
+kubectl port-forward svc/service-name 8080:80
+curl http://localhost:8080/health
+
+# Ajustar configuración de health check en Ingress
+kubectl annotate ingress ingress-name alb.ingress.kubernetes.io/healthcheck-path=/custom-health
+```
+
+**Problema: Redirecciones no funcionan**
+
+```yaml
+# Verificar formato correcto de anotaciones de redirección
+annotations:
+  alb.ingress.kubernetes.io/actions.ssl-redirect: |
+    {
+      "Type": "redirect",
+      "RedirectConfig": {
+        "Protocol": "HTTPS",
+        "Port": "443",
+        "StatusCode": "HTTP_301"
+      }
+    }
+```
+
+**Soluciones de script automatizado:**
+
+```bash
+#!/bin/bash
+# Script de diagnóstico completo
+
+echo "=== Verificación de Ingress ==="
+NAMESPACE=${1:-default}
+INGRESS_NAME=${2:-""}
+
+if [ -z "$INGRESS_NAME" ]; then
+    echo "Listando todos los Ingress en namespace $NAMESPACE:"
+    kubectl get ingress -n $NAMESPACE
+    exit 1
+fi
+
+echo "1. Estado del Ingress:"
+kubectl get ingress $INGRESS_NAME -n $NAMESPACE
+
+echo -e "\n2. Descripción detallada:"
+kubectl describe ingress $INGRESS_NAME -n $NAMESPACE
+
+echo -e "\n3. Eventos recientes:"
+kubectl get events -n $NAMESPACE --field-selector involvedObject.name=$INGRESS_NAME
+
+echo -e "\n4. Servicios backend:"
+kubectl get svc -n $NAMESPACE
+
+echo -e "\n5. Estado del controlador ALB:"
+kubectl get pods -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controller
+
+echo -e "\n6. Logs del controlador (últimas 20 líneas):"
+kubectl logs -n kube-system deployment/aws-load-balancer-controller --tail=20
+
+echo -e "\n7. Verificación de Load Balancer en AWS:"
+ALB_NAME=$(kubectl get ingress $INGRESS_NAME -n $NAMESPACE -o jsonpath='{.metadata.annotations.alb\.ingress\.kubernetes\.io/load-balancer-name}')
+if [ ! -z "$ALB_NAME" ]; then
+    aws elbv2 describe-load-balancers --names $ALB_NAME 2>/dev/null || echo "Load Balancer no encontrado en AWS"
+fi
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Mejores prácticas para configuraciones Ingress">
+
+**Organización de templates:**
+
+```
+project/
+├── charts/
+│   └── templates/
+│       ├── ingress-main.yaml          # Ingress principal
+│       ├── ingress-api.yaml           # Ingress para API
+│       ├── ingress-admin.yaml         # Ingress para admin
+│       └── configmap-nginx.yaml      # Configuraciones adicionales
+└── values/
+    ├── values.yaml                    # Valores por defecto
+    ├── values-dev.yaml               # Valores desarrollo
+    ├── values-staging.yaml           # Valores staging
+    └── values-prod.yaml              # Valores producción
+```
+
+**Configuración por entornos:**
+
+```yaml
+# values-prod.yaml
+ingress:
+  enabled: true
+  className: alb
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:region:account:certificate/prod-cert
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS-1-2-2017-01
+    alb.ingress.kubernetes.io/tags: |
+      Environment=production,
+      Project={{ .Values.project.name }},
+      CostCenter=engineering
+
+  hosts:
+    - host: api.production.com
+      paths:
+        - path: /
+          service:
+            name: api-service
+            port: 80
+
+# values-dev.yaml
+ingress:
+  enabled: true
+  className: alb
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internal
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/tags: |
+      Environment=development,
+      Project={{ .Values.project.name }}
+
+  hosts:
+    - host: api.dev.internal.com
+      paths:
+        - path: /
+          service:
+            name: api-service
+            port: 80
+```
+
+**Seguridad y validación:**
+
+```yaml
+# Validaciones en templates
+{{- if and .Values.ingress.enabled .Values.ingress.tls }}
+{{- range .Values.ingress.tls }}
+{{- if not .secretName }}
+{{- fail "secretName is required for TLS configuration" }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+# Configuración de seguridad
+annotations:
+  # Restricción de IPs (para entornos internos)
+  alb.ingress.kubernetes.io/inbound-cidrs: 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+
+  # Headers de seguridad
+  alb.ingress.kubernetes.io/response-headers: |
+    X-Frame-Options=SAMEORIGIN,
+    X-Content-Type-Options=nosniff,
+    X-XSS-Protection=1; mode=block,
+    Strict-Transport-Security=max-age=31536000; includeSubDomains
+```
+
+**Versionado y rollback:**
+
+```bash
+#!/bin/bash
+# Script para deployment con rollback automático
+
+NAMESPACE=$1
+RELEASE_NAME=$2
+CHART_PATH=$3
+
+echo "Desplegando nueva versión..."
+helm upgrade --install $RELEASE_NAME $CHART_PATH \
+    --namespace $NAMESPACE \
+    --timeout 10m \
+    --wait \
+    --atomic
+
+if [ $? -ne 0 ]; then
+    echo "Deployment falló, ejecutando rollback..."
+    helm rollback $RELEASE_NAME -n $NAMESPACE
+    exit 1
+fi
+
+# Verificar que el Ingress está funcionando
+sleep 30
+INGRESS_ENDPOINT=$(kubectl get ingress -n $NAMESPACE -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}')
+
+if [ ! -z "$INGRESS_ENDPOINT" ]; then
+    curl -f https://$INGRESS_ENDPOINT/health || {
+        echo "Health check falló, ejecutando rollback..."
+        helm rollback $RELEASE_NAME -n $NAMESPACE
+        exit 1
+    }
+fi
+
+echo "Deployment exitoso!"
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 26 de diciembre de 2024 basada en una consulta real de usuario._

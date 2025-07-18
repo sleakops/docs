@@ -69,4 +69,392 @@ This will show you:
 
 <TroubleshootingItem id="opensearch-permissions" summary="Required OpenSearch permissions">
 
-For OpenSearch access
+For OpenSearch access from Kubernetes pods, your IAM role needs specific permissions:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "es:ESHttpGet",
+        "es:ESHttpPost",
+        "es:ESHttpPut",
+        "es:ESHttpDelete",
+        "es:ESHttpHead",
+        "es:Describe*",
+        "es:List*"
+      ],
+      "Resource": [
+        "arn:aws:es:*:*:domain/your-opensearch-domain/*",
+        "arn:aws:es:*:*:domain/your-opensearch-domain"
+      ]
+    }
+  ]
+}
+```
+
+**Minimum required actions:**
+
+- `es:ESHttpGet` - Read operations (search, get documents)
+- `es:ESHttpPost` - Create operations (index documents, search)
+- `es:ESHttpPut` - Update operations (update documents, create indices)
+- `es:ESHttpDelete` - Delete operations (delete documents, indices)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="irsa-configuration" summary="Configure IAM Roles for Service Accounts (IRSA)">
+
+SleakOps should automatically configure IRSA for OpenSearch access, but you can verify the setup:
+
+1. **Check if the service account has annotations**:
+
+   ```bash
+   kubectl get serviceaccount -o yaml | grep annotations -A 5
+   ```
+
+   Look for:
+
+   ```yaml
+   annotations:
+     eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/sleakops-opensearch-role
+   ```
+
+2. **Verify the pod uses the correct service account**:
+
+   ```bash
+   kubectl describe pod YOUR_POD_NAME | grep "Service Account"
+   ```
+
+3. **Check environment variables in the pod**:
+
+   ```bash
+   kubectl exec -it YOUR_POD_NAME -- env | grep AWS
+   ```
+
+   You should see:
+
+   ```
+   AWS_ROLE_ARN=arn:aws:iam::ACCOUNT:role/sleakops-opensearch-role
+   AWS_WEB_IDENTITY_TOKEN_FILE=/var/run/secrets/eks.amazonaws.com/serviceaccount/token
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="test-opensearch-connection" summary="Test OpenSearch connectivity from pod">
+
+Test the connection to ensure proper authentication:
+
+1. **Basic connectivity test**:
+
+   ```bash
+   # From within your pod
+   curl -I https://your-opensearch-endpoint.region.es.amazonaws.com/_cluster/health
+   ```
+
+2. **Authenticated request using AWS CLI**:
+
+   ```bash
+   # Install AWS CLI if not available
+   curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+   unzip awscliv2.zip && sudo ./aws/install
+
+   # Test authenticated access
+   aws opensearch describe-domain --domain-name your-domain-name
+   ```
+
+3. **Test with proper AWS Signature v4**:
+
+   ```bash
+   # Using curl with AWS signature
+   curl -X GET "https://your-opensearch-endpoint/_cluster/health" \
+     --aws-sigv4 "aws:amz:us-east-1:es" \
+     --user "$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY"
+   ```
+
+4. **Python test script** (if Python is available in the pod):
+
+   ```python
+   import boto3
+   import requests
+   from requests_aws4auth import AWS4Auth
+
+   # Get credentials
+   session = boto3.Session()
+   credentials = session.get_credentials()
+
+   # Create AWS4Auth object
+   awsauth = AWS4Auth(
+       credentials.access_key,
+       credentials.secret_key,
+       'us-east-1',  # Replace with your region
+       'es',
+       session_token=credentials.token
+   )
+
+   # Test connection
+   url = 'https://your-opensearch-endpoint/_cluster/health'
+   response = requests.get(url, auth=awsauth)
+   print(f"Status: {response.status_code}")
+   print(f"Response: {response.text}")
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshoot-common-errors" summary="Troubleshooting common authentication errors">
+
+**1. "Access Denied" or "Unauthorized" (403/401 errors):**
+
+```bash
+# Check current IAM identity
+aws sts get-caller-identity
+
+# Verify domain access policy
+aws opensearch describe-domain --domain-name your-domain \
+  --query 'DomainStatus.AccessPolicies' --output text | jq .
+```
+
+**Solution steps:**
+
+- Verify the IAM role has the required permissions
+- Check that the domain access policy allows the role
+- Ensure the pod is using the correct service account
+
+**2. "Unable to locate credentials" errors:**
+
+```bash
+# Check if AWS credentials are available
+env | grep AWS
+
+# Check service account token
+ls -la /var/run/secrets/eks.amazonaws.com/serviceaccount/
+```
+
+**Solution steps:**
+
+- Verify IRSA is configured correctly
+- Check service account annotations
+- Restart the pod to refresh tokens
+
+**3. Network connectivity issues:**
+
+```bash
+# Test network connectivity
+nslookup your-opensearch-endpoint.region.es.amazonaws.com
+
+# Test port connectivity
+telnet your-opensearch-endpoint.region.es.amazonaws.com 443
+```
+
+**Solution steps:**
+
+- Check VPC security groups
+- Verify network policies
+- Ensure OpenSearch is in VPC if using VPC endpoints
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="debug-permissions" summary="Debugging permission issues step by step">
+
+**Step 1: Verify basic AWS access**
+
+```bash
+# Test if AWS CLI works
+aws sts get-caller-identity
+
+# List OpenSearch domains
+aws opensearch list-domain-names
+```
+
+**Step 2: Check OpenSearch domain configuration**
+
+```bash
+# Get domain details
+aws opensearch describe-domain --domain-name your-domain
+
+# Check access policies
+aws opensearch describe-domain --domain-name your-domain \
+  --query 'DomainStatus.AccessPolicies' --output text
+```
+
+**Step 3: Simulate IAM policy evaluation**
+
+```bash
+# Test specific OpenSearch actions
+aws iam simulate-principal-policy \
+  --policy-source-arn $(aws sts get-caller-identity --query Arn --output text) \
+  --action-names es:ESHttpGet es:ESHttpPost \
+  --resource-arns "arn:aws:es:region:account:domain/your-domain/*"
+```
+
+**Step 4: Test from application code**
+
+Create a test script to verify application-level access:
+
+```python
+#!/usr/bin/env python3
+import boto3
+import json
+from opensearchpy import OpenSearch, RequestsHttpConnection
+from requests_aws4auth import AWS4Auth
+
+def test_opensearch_connection():
+    try:
+        # Get AWS credentials
+        session = boto3.Session()
+        credentials = session.get_credentials()
+        region = 'us-east-1'  # Replace with your region
+
+        # Create AWS4Auth
+        awsauth = AWS4Auth(
+            credentials.access_key,
+            credentials.secret_key,
+            region,
+            'es',
+            session_token=credentials.token
+        )
+
+        # Create OpenSearch client
+        client = OpenSearch(
+            hosts=[{'host': 'your-opensearch-endpoint', 'port': 443}],
+            http_auth=awsauth,
+            use_ssl=True,
+            verify_certs=True,
+            connection_class=RequestsHttpConnection
+        )
+
+        # Test connection
+        info = client.info()
+        print("✅ Connection successful!")
+        print(f"Cluster info: {json.dumps(info, indent=2)}")
+
+        # Test basic operations
+        health = client.cluster.health()
+        print(f"✅ Cluster health: {health['status']}")
+
+        return True
+
+    except Exception as e:
+        print(f"❌ Connection failed: {str(e)}")
+        return False
+
+if __name__ == "__main__":
+    test_opensearch_connection()
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-integration" summary="SleakOps-specific OpenSearch integration">
+
+**Automatic Configuration in SleakOps:**
+
+When you add OpenSearch as a dependency in SleakOps, the following is automatically configured:
+
+1. **Service Account with IRSA**: Annotated with the appropriate IAM role
+2. **IAM Role**: With permissions to access the OpenSearch domain
+3. **Domain Access Policy**: Updated to allow the IAM role
+4. **Environment Variables**: Injected into your pods
+
+**Accessing OpenSearch from your application:**
+
+```python
+# Environment variables available in your pod
+import os
+opensearch_endpoint = os.getenv('OPENSEARCH_ENDPOINT')
+opensearch_region = os.getenv('AWS_DEFAULT_REGION', 'us-east-1')
+```
+
+**Configuration in your deployment:**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: your-app
+spec:
+  template:
+    spec:
+      serviceAccountName: sleakops-opensearch-sa # Auto-created by SleakOps
+      containers:
+        - name: app
+          env:
+            - name: OPENSEARCH_ENDPOINT
+              value: "https://your-opensearch-endpoint"
+            - name: AWS_DEFAULT_REGION
+              value: "us-east-1"
+```
+
+**Best practices for SleakOps OpenSearch integration:**
+
+- Use the automatically configured service account
+- Rely on IRSA for authentication (don't use access keys)
+- Use environment variables for endpoint configuration
+- Test connections during application startup
+- Implement proper error handling and retries
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="production-considerations" summary="Production considerations and monitoring">
+
+**Security Best Practices:**
+
+1. **Use VPC endpoints** for OpenSearch when possible
+2. **Enable encryption** at rest and in transit
+3. **Use fine-grained access control** for production environments
+4. **Regularly rotate credentials** and review permissions
+
+**Monitoring and Alerting:**
+
+```bash
+# Create CloudWatch custom metric for connection health
+aws cloudwatch put-metric-data \
+  --namespace "Custom/OpenSearch" \
+  --metric-data MetricName=ConnectionHealth,Value=1,Unit=Count
+```
+
+**Application-level monitoring:**
+
+```python
+import time
+import logging
+from opensearchpy import OpenSearch
+
+def monitor_opensearch_health(client):
+    """Monitor OpenSearch cluster health"""
+    try:
+        health = client.cluster.health()
+        status = health['status']
+
+        if status == 'green':
+            logging.info("OpenSearch cluster is healthy")
+            return True
+        elif status == 'yellow':
+            logging.warning("OpenSearch cluster has issues but is functional")
+            return True
+        else:
+            logging.error("OpenSearch cluster is unhealthy")
+            return False
+
+    except Exception as e:
+        logging.error(f"Failed to check OpenSearch health: {e}")
+        return False
+
+# Use in your application
+if not monitor_opensearch_health(opensearch_client):
+    # Implement fallback or alert mechanism
+    pass
+```
+
+**Performance Optimization:**
+
+- Use connection pooling for high-traffic applications
+- Implement proper indexing strategies
+- Monitor query performance and optimize slow queries
+- Use batch operations for bulk data operations
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on February 19, 2025 based on a real user query._

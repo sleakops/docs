@@ -236,6 +236,65 @@ kubectl exec -it <app-pod> -- rails db:migrate:status
    ```
 
 3. **Check certificate status:**
+
    ```bash
-   kubectl get certificates -n <namespace
+   kubectl get certificates -n <namespace>
+   kubectl describe certificate <certificate-name>
    ```
+
+4. **Verify load balancer status:**
+   ```bash
+   kubectl get services -n <namespace>
+   kubectl describe service <service-name>
+   ```
+
+### Performance Issues
+
+1. **Monitor resource usage:**
+
+   ```bash
+   kubectl top pods -n <namespace>
+   kubectl top nodes
+   ```
+
+2. **Scale services if needed:**
+
+   - Access SleakOps dashboard
+   - Navigate to workloads
+   - Adjust replica count for high-traffic services
+
+3. **Database performance:**
+   - Monitor connection pool usage
+   - Check for slow queries
+   - Consider read replicas for production load
+
+### Best Practices for Production
+
+1. **Security:**
+
+   - Rotate all credentials after setup
+   - Enable SSL/TLS for all communications
+   - Implement proper access controls
+
+2. **Monitoring:**
+
+   - Set up alerts for critical metrics
+   - Monitor application logs regularly
+   - Configure uptime monitoring
+
+3. **Backup Strategy:**
+
+   - Schedule regular database backups
+   - Test restore procedures
+   - Document recovery processes
+
+4. **Deployment Strategy:**
+   - Use blue-green or rolling deployments
+   - Test all changes in staging first
+   - Maintain rollback procedures
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

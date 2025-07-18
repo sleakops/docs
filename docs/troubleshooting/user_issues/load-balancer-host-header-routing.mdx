@@ -136,53 +136,6 @@ curl -v https://www.velo.la
 curl -v -H "Host: velo.la" https://main-proxy.develop.us-east-2.velo.la
 ```
 
-3. **Check service logs:**
-
-```bash
-# In SleakOps dashboard, check your service logs
-# You should see requests arriving for all configured domains
-```
-
-4. **Verify DNS resolution:**
-
-```bash
-nslookup velo.la
-nslookup www.velo.la
-```
-
-</TroubleshootingItem>
-
-<TroubleshootingItem id="alternative-solutions" summary="Alternative solutions">
-
-If you cannot configure custom domains in SleakOps, consider these alternatives:
-
-1. **Use a reverse proxy:**
-   Deploy a separate reverse proxy service that handles custom domains and forwards requests to your main service.
-
-2. **Configure Nginx to accept any host:**
-
-```nginx
-server {
-    listen 80 default_server;
-    server_name _;
-
-    location / {
-        # Your application configuration
-    }
-}
-```
-
-3. **Use Cloudflare Workers:**
-   Create a Cloudflare Worker to modify the Host header before forwarding requests.
-
-</TroubleshootingItem>
-
-<TroubleshootingItem id="troubleshooting-tips" summary="Additional troubleshooting tips">
-
-**If the problem persists:**
-
-1. **Check SleakOps service status** - Ensure the service is running and healthy
-2. **Verify load balancer configuration** - Contact SleakOps support to verify load balancer settings
 3. **Test with different tools:**
 
 ```bash
@@ -190,5 +143,28 @@ server {
 wget --server-response --header="Host: velo.la" https://main-proxy.develop.us-east-2.velo.la
 
 # Test with different User-Agent
-curl -v -H "Host: velo.la" -H "User-Agent: Mozilla/5.0" https://main-proxy.develop.us
+curl -v -H "Host: velo.la" -H "User-Agent: Mozilla/5.0" https://main-proxy.develop.us-east-2.velo.la
 ```
+
+4. **Monitor service logs:**
+
+   - Check application logs for incoming requests
+   - Monitor load balancer access logs if available
+   - Look for any SSL/TLS certificate issues
+
+5. **Validate DNS configuration:**
+   - Ensure CNAME records are properly configured
+   - Verify DNS propagation using tools like `dig` or `nslookup`
+   - Check for conflicting DNS records
+
+**Important Notes:**
+
+- Changes to load balancer configuration may require SleakOps support assistance
+- Custom domain configuration should be consistent across all environments
+- Always test configuration changes in development before applying to production
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

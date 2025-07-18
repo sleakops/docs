@@ -230,4 +230,519 @@ spec:
   capacity:
     storage: 100Gi
   accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: efs-sc
+  csi:
+    driver: efs.csi.aws.com
+    volumeHandle: fs-12345678.efs.us-west-2.amazonaws.com
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: efs-pvc-cronjob
+  namespace: jobs
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: efs-sc
+  resources:
+    requests:
+      storage: 100Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: efs-pvc-nginx
+  namespace: web
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: efs-sc
+  resources:
+    requests:
+      storage: 100Gi
 ```
+
+**Pros:**
+
+- True shared filesystem
+- POSIX-compliant file operations
+- Good performance for concurrent access
+
+**Cons:**
+
+- Additional AWS cost for EFS
+- More complex setup
+- Network dependency
+
+### Option 3: Kubernetes Volumes with Copy Pattern
+
+Use init containers to copy data between pods:
+
+```yaml
+# Nginx deployment with init container
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-with-data
+  namespace: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      initContainers:
+        - name: data-fetcher
+          image: amazon/aws-cli:latest
+          command:
+            - sh
+            - -c
+            - |
+              aws s3 sync s3://your-bucket/generated-files/ /shared-data/
+          volumeMounts:
+            - name: shared-volume
+              mountPath: /shared-data
+          env:
+            - name: AWS_DEFAULT_REGION
+              value: "us-west-2"
+      containers:
+        - name: nginx
+          image: nginx:latest
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: shared-volume
+              mountPath: /usr/share/nginx/html
+              readOnly: true
+      volumes:
+        - name: shared-volume
+          emptyDir: {}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="performance-optimization" summary="Performance optimization for large files">
+
+When dealing with large files (5GB+), consider these optimization strategies:
+
+### 1. Streaming and Chunked Uploads
+
+```python
+import boto3
+from botocore.config import Config
+import os
+
+# Optimized S3 client configuration
+s3_config = Config(
+    retries={'max_attempts': 10, 'mode': 'adaptive'},
+    max_pool_connections=50
+)
+
+s3_client = boto3.client('s3', config=s3_config)
+
+def upload_large_file(file_path, bucket, key):
+    """Upload large file with multipart upload"""
+    try:
+        # Use multipart upload for files > 100MB
+        file_size = os.path.getsize(file_path)
+        if file_size > 100 * 1024 * 1024:  # 100MB
+            print(f"Using multipart upload for {file_size / (1024*1024):.2f}MB file")
+
+        s3_client.upload_file(
+            file_path,
+            bucket,
+            key,
+            Config=boto3.s3.transfer.TransferConfig(
+                multipart_threshold=1024 * 25,  # 25MB
+                max_concurrency=10,
+                multipart_chunksize=1024 * 25,
+                use_threads=True
+            )
+        )
+        print(f"Successfully uploaded {key}")
+        return True
+    except Exception as e:
+        print(f"Upload failed: {e}")
+        return False
+
+def download_large_file(bucket, key, file_path):
+    """Download large file with optimization"""
+    try:
+        s3_client.download_file(
+            bucket,
+            key,
+            file_path,
+            Config=boto3.s3.transfer.TransferConfig(
+                multipart_threshold=1024 * 25,
+                max_concurrency=10,
+                multipart_chunksize=1024 * 25,
+                use_threads=True
+            )
+        )
+        print(f"Successfully downloaded {key}")
+        return True
+    except Exception as e:
+        print(f"Download failed: {e}")
+        return False
+```
+
+### 2. Compression and Optimization
+
+```bash
+#!/bin/bash
+# Script for cronjob to optimize file transfer
+
+# Generate your files
+generate_files.sh
+
+# Compress files before upload
+tar -czf generated-files-$(date +%Y%m%d).tar.gz /path/to/generated/files/
+
+# Upload compressed file
+aws s3 cp generated-files-$(date +%Y%m%d).tar.gz s3://your-bucket/compressed/
+
+# Upload individual files for nginx access
+aws s3 sync /path/to/generated/files/ s3://your-bucket/files/ --delete
+
+# Cleanup local files
+rm -rf /path/to/generated/files/*
+rm generated-files-$(date +%Y%m%d).tar.gz
+```
+
+### 3. Nginx Configuration for S3 Proxy
+
+Instead of downloading files, configure Nginx to proxy S3 requests:
+
+```nginx
+# nginx.conf
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    location /files/ {
+        # Proxy to S3 bucket
+        proxy_pass https://your-bucket.s3.amazonaws.com/;
+        proxy_set_header Host your-bucket.s3.amazonaws.com;
+        proxy_set_header Authorization "";
+
+        # Cache settings
+        proxy_cache_valid 200 1h;
+        proxy_cache_key $uri;
+
+        # Hide S3 headers
+        proxy_hide_header x-amz-id-2;
+        proxy_hide_header x-amz-request-id;
+        proxy_hide_header Set-Cookie;
+
+        # Add custom headers
+        add_header Cache-Control "public, max-age=3600";
+    }
+
+    location /health {
+        access_log off;
+        return 200 "healthy\n";
+        add_header Content-Type text/plain;
+    }
+}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-and-alerting" summary="Monitoring file sharing and transfers">
+
+### CloudWatch Monitoring
+
+Set up monitoring for your file sharing system:
+
+```yaml
+# CloudWatch alarm for S3 upload failures
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: monitoring-config
+data:
+  cloudwatch-config.json: |
+    {
+      "alarms": [
+        {
+          "name": "S3-Upload-Errors",
+          "metric": "4xxErrors",
+          "namespace": "AWS/S3",
+          "threshold": 5,
+          "period": 300,
+          "dimensions": {
+            "BucketName": "your-bucket"
+          }
+        }
+      ]
+    }
+```
+
+### Application-Level Monitoring
+
+```python
+import time
+import logging
+from prometheus_client import Counter, Histogram, start_http_server
+
+# Metrics
+upload_counter = Counter('file_uploads_total', 'Total file uploads', ['status'])
+upload_duration = Histogram('file_upload_duration_seconds', 'File upload duration')
+download_counter = Counter('file_downloads_total', 'Total file downloads', ['status'])
+
+def monitored_upload(file_path, bucket, key):
+    start_time = time.time()
+    try:
+        result = upload_large_file(file_path, bucket, key)
+        status = 'success' if result else 'failure'
+        upload_counter.labels(status=status).inc()
+
+        duration = time.time() - start_time
+        upload_duration.observe(duration)
+
+        logging.info(f"Upload {status}: {key} in {duration:.2f}s")
+        return result
+    except Exception as e:
+        upload_counter.labels(status='error').inc()
+        logging.error(f"Upload error: {e}")
+        return False
+
+# Start metrics server
+start_http_server(8000)
+```
+
+### Log Aggregation
+
+```yaml
+# Fluent Bit configuration for log collection
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluent-bit-config
+data:
+  fluent-bit.conf: |
+    [INPUT]
+        Name tail
+        Path /var/log/cronjob/*.log
+        Parser json
+        Tag cronjob.*
+        
+    [INPUT]
+        Name tail
+        Path /var/log/nginx/*.log
+        Parser nginx
+        Tag nginx.*
+        
+    [OUTPUT]
+        Name cloudwatch_logs
+        Match *
+        region us-west-2
+        log_group_name /k8s/file-sharing
+        auto_create_group true
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-common-issues" summary="Troubleshooting common file sharing issues">
+
+### Common Issues and Solutions
+
+1. **S3 Upload Timeouts:**
+
+   ```python
+   import boto3
+   from botocore.config import Config
+
+   # Increase timeout values
+   config = Config(
+       read_timeout=900,  # 15 minutes
+       connect_timeout=60,
+       retries={'max_attempts': 10}
+   )
+   s3_client = boto3.client('s3', config=config)
+   ```
+
+2. **Permission Issues:**
+
+   ```bash
+   # Check IAM permissions
+   aws sts get-caller-identity
+   aws s3 ls s3://your-bucket/ --recursive
+
+   # Test upload permission
+   echo "test" | aws s3 cp - s3://your-bucket/test.txt
+   ```
+
+3. **Network Connectivity:**
+
+   ```bash
+   # Test from pod
+   kubectl exec -it <cronjob-pod> -- nslookup s3.amazonaws.com
+   kubectl exec -it <cronjob-pod> -- curl -I https://s3.amazonaws.com
+   ```
+
+4. **File Synchronization Issues:**
+
+   ```python
+   import hashlib
+   import boto3
+
+   def verify_file_integrity(local_file, bucket, s3_key):
+       # Calculate local file hash
+       with open(local_file, 'rb') as f:
+           local_hash = hashlib.md5(f.read()).hexdigest()
+
+       # Get S3 object ETag (MD5 for single-part uploads)
+       s3 = boto3.client('s3')
+       response = s3.head_object(Bucket=bucket, Key=s3_key)
+       s3_etag = response['ETag'].strip('"')
+
+       if local_hash == s3_etag:
+           print("File integrity verified")
+           return True
+       else:
+           print(f"Hash mismatch: local={local_hash}, s3={s3_etag}")
+           return False
+   ```
+
+5. **Performance Issues:**
+
+   ```bash
+   # Monitor disk I/O
+   kubectl top pods
+   kubectl exec -it <pod> -- iostat -x 1
+
+   # Check network throughput
+   kubectl exec -it <pod> -- iperf3 -c s3.amazonaws.com -p 80
+   ```
+
+### Emergency Recovery Procedures
+
+```bash
+#!/bin/bash
+# Emergency recovery script
+
+BUCKET="your-bucket"
+BACKUP_BUCKET="your-backup-bucket"
+
+# Check if primary upload failed
+if ! aws s3 ls s3://$BUCKET/latest/ > /dev/null 2>&1; then
+    echo "Primary upload failed, initiating recovery..."
+
+    # Attempt to restore from backup
+    aws s3 sync s3://$BACKUP_BUCKET/latest/ s3://$BUCKET/latest/
+
+    # Trigger nginx refresh
+    kubectl rollout restart deployment/nginx -n web
+
+    # Send alert
+    curl -X POST "https://hooks.slack.com/..." \
+         -H 'Content-type: application/json' \
+         --data '{"text":"File sharing recovery completed"}'
+fi
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Best practices for cross-namespace file sharing">
+
+### Security Best Practices
+
+1. **Use least privilege IAM policies:**
+
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Action": ["s3:GetObject", "s3:PutObject"],
+         "Resource": "arn:aws:s3:::your-bucket/files/*"
+       },
+       {
+         "Effect": "Allow",
+         "Action": ["s3:ListBucket"],
+         "Resource": "arn:aws:s3:::your-bucket",
+         "Condition": {
+           "StringLike": {
+             "s3:prefix": ["files/*"]
+           }
+         }
+       }
+     ]
+   }
+   ```
+
+2. **Enable S3 versioning and lifecycle policies:**
+
+   ```json
+   {
+     "Rules": [
+       {
+         "ID": "FileRetention",
+         "Status": "Enabled",
+         "Filter": { "Prefix": "files/" },
+         "Transitions": [
+           {
+             "Days": 30,
+             "StorageClass": "STANDARD_IA"
+           },
+           {
+             "Days": 90,
+             "StorageClass": "GLACIER"
+           }
+         ],
+         "Expiration": {
+           "Days": 365
+         }
+       }
+     ]
+   }
+   ```
+
+3. **Implement proper error handling and retries:**
+
+   ```python
+   import time
+   import random
+
+   def retry_with_backoff(func, max_retries=5, base_delay=1):
+       for attempt in range(max_retries):
+           try:
+               return func()
+           except Exception as e:
+               if attempt == max_retries - 1:
+                   raise e
+
+               delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
+               print(f"Attempt {attempt + 1} failed: {e}. Retrying in {delay:.2f}s")
+               time.sleep(delay)
+   ```
+
+### Performance Best Practices
+
+1. **Use appropriate instance types for file operations**
+2. **Configure proper resource requests and limits**
+3. **Implement caching strategies for frequently accessed files**
+4. **Use S3 Transfer Acceleration for global deployments**
+5. **Monitor and optimize network bandwidth usage**
+
+### Operational Best Practices
+
+1. **Implement comprehensive logging and monitoring**
+2. **Set up automated backups and disaster recovery**
+3. **Document file naming conventions and data retention policies**
+4. **Regular testing of file sharing mechanisms**
+5. **Maintain up-to-date documentation of the architecture**
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 30, 2025 based on a real user query._

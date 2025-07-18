@@ -240,4 +240,50 @@ NGINX_UPSTREAM=your-app-service:8080
 
 **Nginx proxy issues:**
 
-- Check Nginx configuration syntax\
+- Check Nginx configuration syntax
+- Verify upstream service availability
+- Review access logs for errors
+- Test direct service access
+
+**Kafka connectivity problems:**
+
+- Verify Kafka broker addresses
+- Check consumer group configurations
+- Review topic permissions
+- Monitor Kafka logs for errors
+
+**Performance and scaling:**
+
+```bash
+# Monitor resource usage
+kubectl top pods -n <namespace>
+
+# Scale services based on load
+kubectl scale deployment kafka --replicas=3
+kubectl scale deployment your-app --replicas=5
+
+# Check service endpoints
+kubectl get endpoints -n <namespace>
+```
+
+**Debugging commands:**
+
+```bash
+# Test service connectivity
+kubectl exec -it <pod-name> -- telnet <service-name> <port>
+
+# Check service DNS resolution
+kubectl exec -it <pod-name> -- nslookup <service-name>
+
+# View service logs
+kubectl logs -f deployment/<deployment-name>
+
+# Debug networking
+kubectl exec -it <pod-name> -- netstat -an
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._
