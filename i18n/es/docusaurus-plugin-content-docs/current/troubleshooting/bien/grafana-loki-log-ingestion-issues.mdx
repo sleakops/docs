@@ -241,5 +241,204 @@ Para prevenir futuros problemas de ingestión de logs:
 
 ```yaml
 - alert: LokiStorageFull
-  expr: (kubelet_volume_stats_available_bytes{persistentvolumeclaim=~".*loki.*"} / kubelet_volume_stats_capacity_bytes{"
+  expr: (kubelet_volume_stats_available_bytes{persistentvolumeclaim=~".*loki.*"} / kubelet_volume_stats_capacity_bytes{persistentvolumeclaim=~".*loki.*"}) < 0.1
+  for: 5m
+  labels:
+    severity: critical
+  annotations:
+    summary: "Almacenamiento de Loki casi lleno"
 ```
+
+3. **Configurar dashboards de monitoreo:**
+
+```json
+{
+  "dashboard": {
+    "title": "Loki Health Monitoring",
+    "panels": [
+      {
+        "title": "Log Ingestion Rate",
+        "targets": [
+          {
+            "expr": "rate(loki_distributor_lines_received_total[5m])"
+          }
+        ]
+      },
+      {
+        "title": "Write Errors",
+        "targets": [
+          {
+            "expr": "rate(loki_ingester_chunks_flushed_total{status=\"failed\"}[5m])"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="network-connectivity" summary="Resolución de Problemas de Conectividad de Red">
+
+Para diagnosticar problemas de red que afectan la ingestión de logs:
+
+1. **Verificar conectividad entre componentes:**
+
+```bash
+# Desde un pod de Promtail, probar conectividad a Loki
+kubectl exec -n monitoring promtail-xxx -- nslookup loki
+kubectl exec -n monitoring promtail-xxx -- telnet loki 3100
+```
+
+2. **Verificar políticas de red:**
+
+```bash
+kubectl get networkpolicies -n monitoring
+kubectl describe networkpolicy -n monitoring
+```
+
+3. **Probar conectividad desde Grafana a Loki:**
+
+```bash
+kubectl exec -n monitoring grafana-xxx -- wget -qO- http://loki:3100/ready
+```
+
+4. **Verificar configuración de DNS:**
+
+```bash
+kubectl get svc -n monitoring | grep loki
+kubectl describe svc loki -n monitoring
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="performance-tuning" summary="Optimización de Rendimiento de Loki">
+
+Para mejorar el rendimiento de ingestión de logs:
+
+1. **Configurar paralelismo de ingestión:**
+
+```yaml
+ingester:
+  lifecycler:
+    ring:
+      replication_factor: 3
+  chunk_idle_period: 5m
+  chunk_retain_period: 30s
+  max_transfer_retries: 0
+  wal:
+    enabled: true
+    dir: /loki/wal
+```
+
+2. **Optimizar configuración de distribuidor:**
+
+```yaml
+distributor:
+  ring:
+    kvstore:
+      store: memberlist
+```
+
+3. **Configurar compactación eficiente:**
+
+```yaml
+compactor:
+  working_directory: /loki/compactor
+  shared_store: s3
+  compaction_interval: 10m
+  retention_enabled: true
+  retention_delete_delay: 2h
+  retention_delete_worker_count: 150
+```
+
+4. **Ajustar límites de consulta:**
+
+```yaml
+query_range:
+  results_cache:
+    cache:
+      memcached_client:
+        consistent_hash: true
+        host: memcached
+        service: http
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="backup-recovery" summary="Estrategias de Respaldo y Recuperación">
+
+Para proteger contra pérdida de logs:
+
+1. **Configurar respaldo automático:**
+
+```yaml
+# Configuración de respaldo para chunks de Loki
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: loki-backup
+spec:
+  schedule: "0 2 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup
+            image: amazon/aws-cli
+            command:
+            - /bin/sh
+            - -c
+            - aws s3 sync /loki/chunks s3://your-backup-bucket/loki-chunks/
+```
+
+2. **Implementar retención de logs:**
+
+```yaml
+table_manager:
+  retention_deletes_enabled: true
+  retention_period: 168h
+```
+
+3. **Configurar alertas de respaldo:**
+
+```yaml
+- alert: LokiBackupFailed
+  expr: increase(cronjob_status_failed{job="loki-backup"}[1h]) > 0
+  labels:
+    severity: warning
+  annotations:
+    summary: "Respaldo de Loki falló"
+```
+
+</TroubleshootingItem>
+
+## Mejores Prácticas
+
+### Configuración de Producción
+
+1. **Usar almacenamiento persistente adecuado**
+2. **Configurar retención de logs apropiada**
+3. **Implementar monitoreo proactivo**
+4. **Establecer alertas para problemas de ingestión**
+5. **Realizar respaldos regulares**
+
+### Optimización de Consultas
+
+1. **Usar etiquetas eficientemente**
+2. **Limitar rangos de tiempo en consultas**
+3. **Implementar caché de consultas**
+4. **Optimizar expresiones LogQL**
+
+### Mantenimiento Regular
+
+1. **Monitorear uso de almacenamiento**
+2. **Revisar logs de errores regularmente**
+3. **Actualizar configuraciones según carga**
+4. **Probar procedimientos de recuperación**
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de usuario._

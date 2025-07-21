@@ -1,0 +1,574 @@
+---
+sidebar_position: 3
+title: "Alternativas de Monitoreo: DataDog vs Complementos Nativos de SleakOps"
+description: "Comparación entre DataDog y los complementos nativos de monitoreo de SleakOps para métricas y telemetría de aplicaciones"
+date: "2024-03-25"
+category: "dependencia"
+tags:
+  ["monitoreo", "datadog", "grafana", "loki", "otel", "telemetría", "métricas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Alternativas de Monitoreo: DataDog vs Complementos de SleakOps
+
+**Fecha:** 25 de marzo de 2024  
+**Categoría:** Dependencia  
+**Etiquetas:** Monitoreo, DataDog, Grafana, Loki, OTEL, Telemetría, Métricas
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios que migran desde soluciones externas de monitoreo como DataDog necesitan comprender las opciones de monitoreo disponibles en SleakOps y cómo implementar la recopilación de métricas a nivel de aplicación para KPIs de negocio y monitoreo de rendimiento.
+
+**Síntomas Observados:**
+
+- Pérdida de capacidades de monitoreo de DataDog después de la migración a SleakOps
+- Necesidad de recolección de métricas a nivel de aplicación para KPIs de negocio
+- Incertidumbre sobre las alternativas de monitoreo disponibles en SleakOps
+- Preguntas sobre las implicaciones de costos de diferentes soluciones de monitoreo
+
+**Configuración Relevante:**
+
+- La aplicación usa OpenTelemetry para exportar métricas
+- Configuración previa de DataDog con claves API y recolectores
+- Aplicación Spring Boot con configuración de gestión de métricas
+- Necesidad de etiquetas personalizadas para la aplicación y métricas específicas por entorno
+
+**Condiciones de Error:**
+
+- Infraestructura de monitoreo ausente tras la migración de plataforma
+- Incapacidad para rastrear métricas de rendimiento del negocio
+- Falta de visibilidad en el rendimiento de la aplicación
+
+## Solución Detallada
+
+<TroubleshootingItem id="sleakops-monitoring-addons" summary="Stack Nativo de Monitoreo de SleakOps">
+
+SleakOps proporciona un stack de monitoreo completo a través de complementos nativos:
+
+**Loki (Gestión de Logs):**
+
+- Persiste logs de todos los componentes del clúster
+- Incluye tanto logs de aplicaciones como de controladores
+- Proporciona agregación centralizada y búsqueda de logs
+
+**Grafana (Métricas y Visualización):**
+
+- Recopila y persiste métricas de CPU, Memoria, Red y E/S
+- Monitorea todos los componentes del clúster y aplicaciones
+- Proporciona paneles personalizables y alertas
+
+**OpenTelemetry (APM - Beta):**
+
+- Monitoreo de Rendimiento de Aplicaciones usando estándares abiertos
+- Actualmente en beta con capacidades de métricas en expansión
+- Compatible con la instrumentación existente de OpenTelemetry
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="datadog-cost-considerations" summary="Análisis de Costos de DataDog y Alternativas">
+
+**Estructura de Costos de DataDog:**
+
+- Cargos por instancia en el clúster
+- Costos variables según el tamaño del clúster
+- Difícil predecir y controlar gastos
+
+**Alternativa: New Relic**
+
+- Precios basados en usuarios y consumo de datos
+- Nivel gratuito incluye 100GB de datos y 1 usuario
+- Estructura de costos más predecible
+- Puede usarse gratis para equipos pequeños
+
+**Comparación de Costos:**
+
+```
+DataDog: $15-23/host/mes (variable con tamaño del clúster)
+New Relic: $0-99/usuario/mes (predecible, nivel gratuito disponible)
+Complementos de SleakOps: Incluidos en el costo de la plataforma
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="datadog-integration-setup" summary="Agregar DataDog al Clúster de SleakOps">
+
+Si decides continuar con DataDog, puedes agregarlo como una dependencia personalizada:
+
+**1. Añadir el Agente de DataDog a la Imagen Docker:**
+
+```dockerfile
+# Añadir a tu Dockerfile de aplicación
+FROM your-base-image
+
+# Instalar agente de DataDog
+RUN curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh | bash
+
+# Copiar tu aplicación
+COPY . /app
+
+# Configurar variables de entorno de DataDog
+ENV DD_API_KEY=${DATADOG_API_KEY}
+ENV DD_SITE="datadoghq.com"
+ENV DD_LOGS_ENABLED=true
+ENV DD_APM_ENABLED=true
+```
+
+**2. Configurar Propiedades de la Aplicación:**
+
+```yaml
+management:
+  metrics:
+    export:
+      datadog:
+        api-key: ${DATADOG_API_KEY}
+        application-key: ${DATADOG_APPLICATION_KEY}
+        uri: https://api.datadoghq.com
+        enabled: ${DATADOG_TOGGLE}
+        api-host: ${DATADOG_COLLECTOR_HOST}
+        port: ${DATADOG_COLLECTOR_PORT}
+        tags:
+          appId: ${spring.application.name}
+          env: ${DATADOG_ENVIRONMENT}
+          host: ${spring.cloud.client.hostname}
+        security:
+          enabled: false
+```
+
+**3. Establecer Variables de Entorno en SleakOps:**
+
+- `DATADOG_API_KEY`: Tu clave API de DataDog
+- `DATADOG_APPLICATION_KEY`: Tu clave de aplicación de DataDog
+- `DATADOG_TOGGLE`: Activar/desactivar DataDog (true/false)
+- `DATADOG_ENVIRONMENT`: Nombre del entorno (prod, staging, dev)
+- `DATADOG_COLLECTOR_HOST`: Endpoint del colector de DataDog
+- `DATADOG_COLLECTOR_PORT`: Puerto del colector (usualmente 8125)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="opentelemetry-migration" summary="Migración a OpenTelemetry con SleakOps">
+
+Dado que tu aplicación ya usa OpenTelemetry, puedes integrarte fácilmente con el complemento OTEL de SleakOps:
+
+**1. Habilitar el Complemento OTEL en SleakOps:**
+
+- Navega a Configuración del Clúster → Complementos
+- Habilita "OpenTelemetry (Beta)"
+- Configura el endpoint del colector OTEL
+
+**2. Actualizar Configuración de la Aplicación:**
+
+```yaml
+management:
+  metrics:
+    export:
+      otlp:
+        endpoint: http://otel-collector:4317
+        protocol: grpc
+        headers:
+          authorization: Bearer ${OTEL_TOKEN}
+  tracing:
+    enabled: true
+    sampling:
+      probability: 1.0
+```
+
+**3. Configuración de Métricas Personalizadas:**
+
+```java
+@Component
+public class BusinessMetrics {
+    private final MeterRegistry meterRegistry;
+    private final Counter orderCounter;
+    private final Timer processTimer;
+
+    public BusinessMetrics(MeterRegistry meterRegistry) {
+        this.meterRegistry = meterRegistry;
+        this.orderCounter = Counter.builder("business.orders.total")
+            .description("Total de pedidos procesados")
+            .tag("env", "${ENVIRONMENT}")
+            .register(meterRegistry);
+        this.processTimer = Timer.builder("business.process.duration")
+            .description("Duración del proceso de negocio")
+            .register(meterRegistry);
+    }
+}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-comparison" summary="Comparación de Funcionalidades: DataDog vs SleakOps vs New Relic">
+
+| Funcionalidad                    | DataDog           | Complementos SleakOps | New Relic           |
+| -------------------------------- | ----------------- | --------------------- | ------------------- |
+| **Modelo de Costo**              | Por instancia     | Incluido              | Por usuario + datos |
+| **Nivel Gratuito**               | Prueba de 14 días | Incluido              | 100GB + 1 usuario   |
+| **APM**                          | Completo          | Beta (en expansión)   | Completo            |
+| **Gestión de Logs**              | Sí                | Sí (Loki)             | Sí                  |
+| **Monitoreo de Infraestructura** | Sí                | Sí (Grafana)          | Sí                  |
+| **Métricas Personalizadas**      | Sí                | Sí (OTEL)             | Sí                  |
+| **Alertas**                      | Avanzadas         | Básicas               | Avanzadas           |
+| **Dashboards**                   | Predefinidos      | Personalizables       | Predefinidos        |
+| **Integración con K8s**          | Excelente         | Nativa                | Buena               |
+| **Curva de Aprendizaje**         | Media             | Baja                  | Media               |
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="grafana-dashboard-setup" summary="Configuración de Dashboards Personalizados en Grafana">
+
+Para replicar funcionalidades de DataDog usando Grafana:
+
+**1. Crear Dashboard de Métricas de Aplicación:**
+
+```json
+{
+  "dashboard": {
+    "title": "Application Metrics Dashboard",
+    "panels": [
+      {
+        "title": "Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "{{method}} {{status}}"
+          }
+        ]
+      },
+      {
+        "title": "Response Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile"
+          }
+        ]
+      },
+      {
+        "title": "Error Rate",
+        "type": "singlestat",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{status=~\"5..\"}[5m]) / rate(http_requests_total[5m])",
+            "legendFormat": "Error Rate"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**2. Configurar Alertas en Grafana:**
+
+```yaml
+# Alerta para alta tasa de errores
+- alert: HighErrorRate
+  expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+  for: 5m
+  labels:
+    severity: warning
+  annotations:
+    summary: "Alta tasa de errores en {{ $labels.instance }}"
+    description: "La tasa de errores es {{ $value | humanizePercentage }}"
+
+# Alerta para tiempo de respuesta alto
+- alert: HighResponseTime
+  expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+  for: 5m
+  labels:
+    severity: warning
+  annotations:
+    summary: "Tiempo de respuesta alto en {{ $labels.instance }}"
+```
+
+**3. Configurar Variables de Dashboard:**
+
+```json
+{
+  "templating": {
+    "list": [
+      {
+        "name": "environment",
+        "type": "query",
+        "query": "label_values(environment)",
+        "refresh": 1
+      },
+      {
+        "name": "service",
+        "type": "query",
+        "query": "label_values(service)",
+        "refresh": 1
+      }
+    ]
+  }
+}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="new-relic-integration" summary="Integración con New Relic como Alternativa">
+
+Para usar New Relic como alternativa a DataDog:
+
+**1. Configurar New Relic Agent:**
+
+```yaml
+# application.yml
+newrelic:
+  app_name: ${spring.application.name}
+  license_key: ${NEW_RELIC_LICENSE_KEY}
+  agent:
+    enabled: ${NEW_RELIC_ENABLED:true}
+  distributed_tracing:
+    enabled: true
+  application_logging:
+    enabled: true
+    forwarding:
+      enabled: true
+    local_decorating:
+      enabled: true
+```
+
+**2. Añadir Dependencias Maven:**
+
+```xml
+<dependency>
+    <groupId>com.newrelic.agent.java</groupId>
+    <artifactId>newrelic-agent</artifactId>
+    <version>8.7.0</version>
+    <scope>provided</scope>
+</dependency>
+<dependency>
+    <groupId>com.newrelic.agent.java</groupId>
+    <artifactId>newrelic-api</artifactId>
+    <version>8.7.0</version>
+</dependency>
+```
+
+**3. Configurar Métricas Personalizadas:**
+
+```java
+@Component
+public class NewRelicMetrics {
+    
+    @EventListener
+    public void handleOrderCreated(OrderCreatedEvent event) {
+        NewRelic.recordMetric("Custom/Orders/Created", 1);
+        NewRelic.addCustomAttribute("orderId", event.getOrderId());
+        NewRelic.addCustomAttribute("amount", event.getAmount());
+    }
+    
+    @Trace(dispatcher = true)
+    public void processBusinessLogic() {
+        // Tu lógica de negocio aquí
+        NewRelic.setTransactionName("Custom", "ProcessBusinessLogic");
+    }
+}
+```
+
+**4. Variables de Entorno en SleakOps:**
+
+```bash
+NEW_RELIC_LICENSE_KEY=your_license_key
+NEW_RELIC_APP_NAME=your_app_name
+NEW_RELIC_ENABLED=true
+NEW_RELIC_ENVIRONMENT=production
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="hybrid-monitoring-approach" summary="Enfoque Híbrido de Monitoreo">
+
+Para obtener lo mejor de ambos mundos:
+
+**1. Usar Complementos de SleakOps para Infraestructura:**
+
+- Grafana para métricas de infraestructura y aplicación básicas
+- Loki para gestión centralizada de logs
+- Alertas básicas para problemas de infraestructura
+
+**2. Integrar Herramienta APM Externa para Aplicaciones:**
+
+- New Relic o DataDog para APM detallado
+- Métricas de negocio personalizadas
+- Análisis avanzado de rendimiento
+
+**3. Configuración de Ejemplo:**
+
+```yaml
+# Configuración híbrida en application.yml
+management:
+  metrics:
+    export:
+      # Para métricas básicas a Grafana
+      prometheus:
+        enabled: true
+      # Para APM detallado a New Relic
+      newrelic:
+        enabled: ${NEW_RELIC_ENABLED:false}
+        api-key: ${NEW_RELIC_LICENSE_KEY}
+        account-id: ${NEW_RELIC_ACCOUNT_ID}
+        step: 1m
+```
+
+**4. Estrategia de Costos:**
+
+- Usar nivel gratuito de New Relic para desarrollo/staging
+- Pagar solo por producción con datos críticos
+- Mantener monitoreo básico gratuito con SleakOps
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="migration-strategy" summary="Estrategia de Migración desde DataDog">
+
+Para migrar gradualmente desde DataDog:
+
+**1. Fase 1: Configurar Monitoreo Paralelo**
+
+```bash
+# Mantener DataDog mientras configuras alternativas
+DATADOG_ENABLED=true
+NEW_RELIC_ENABLED=true
+GRAFANA_METRICS_ENABLED=true
+```
+
+**2. Fase 2: Comparar Métricas**
+
+- Ejecutar ambos sistemas durante 2-4 semanas
+- Comparar precisión y cobertura de métricas
+- Identificar gaps en funcionalidad
+
+**3. Fase 3: Migración Gradual**
+
+```yaml
+# Configuración de transición
+monitoring:
+  primary: "newrelic"  # o "grafana"
+  fallback: "datadog"
+  migration_mode: true
+```
+
+**4. Fase 4: Desactivar DataDog**
+
+```bash
+# Una vez validada la nueva solución
+DATADOG_ENABLED=false
+# Cancelar suscripción de DataDog
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="custom-metrics-implementation" summary="Implementación de Métricas Personalizadas">
+
+Para replicar métricas de negocio específicas:
+
+**1. Métricas de Negocio con Micrometer:**
+
+```java
+@Service
+public class BusinessMetricsService {
+    private final MeterRegistry meterRegistry;
+    private final Counter orderCounter;
+    private final Timer paymentTimer;
+    private final Gauge activeUsersGauge;
+
+    public BusinessMetricsService(MeterRegistry meterRegistry) {
+        this.meterRegistry = meterRegistry;
+        
+        this.orderCounter = Counter.builder("business.orders.total")
+            .description("Total orders processed")
+            .tag("environment", "${ENVIRONMENT}")
+            .register(meterRegistry);
+            
+        this.paymentTimer = Timer.builder("business.payment.duration")
+            .description("Payment processing time")
+            .register(meterRegistry);
+            
+        this.activeUsersGauge = Gauge.builder("business.users.active")
+            .description("Currently active users")
+            .register(meterRegistry, this, BusinessMetricsService::getActiveUserCount);
+    }
+
+    public void recordOrder(String type, double amount) {
+        orderCounter.increment(
+            Tags.of(
+                "type", type,
+                "amount_range", getAmountRange(amount)
+            )
+        );
+    }
+
+    public void recordPayment(Duration duration, boolean success) {
+        Timer.Sample sample = Timer.start(meterRegistry);
+        sample.stop(paymentTimer.tag("success", String.valueOf(success)));
+    }
+}
+```
+
+**2. Métricas Personalizadas con OpenTelemetry:**
+
+```java
+@Component
+public class OtelBusinessMetrics {
+    private final Meter meter;
+    private final LongCounter orderCounter;
+    private final DoubleHistogram paymentAmount;
+
+    public OtelBusinessMetrics() {
+        this.meter = GlobalOpenTelemetry.getMeter("business-metrics");
+        this.orderCounter = meter.counterBuilder("business_orders_total")
+            .setDescription("Total business orders")
+            .build();
+        this.paymentAmount = meter.histogramBuilder("business_payment_amount")
+            .setDescription("Payment amounts")
+            .build();
+    }
+
+    public void recordOrder(String category) {
+        orderCounter.add(1, Attributes.of(
+            AttributeKey.stringKey("category"), category,
+            AttributeKey.stringKey("environment"), System.getenv("ENVIRONMENT")
+        ));
+    }
+}
+```
+
+</TroubleshootingItem>
+
+## Recomendaciones
+
+### Para Equipos Pequeños (1-5 desarrolladores)
+
+1. **Usar complementos nativos de SleakOps** para monitoreo básico
+2. **Agregar New Relic nivel gratuito** para APM detallado
+3. **Configurar alertas básicas** en Grafana
+
+### Para Equipos Medianos (5-20 desarrolladores)
+
+1. **Enfoque híbrido** con SleakOps + New Relic pagado
+2. **Dashboards personalizados** en Grafana
+3. **Métricas de negocio** implementadas con OpenTelemetry
+
+### Para Equipos Grandes (20+ desarrolladores)
+
+1. **Evaluar DataDog vs New Relic** basado en costos
+2. **Implementar monitoreo multicapa** con diferentes herramientas
+3. **Establecer centro de excelencia** para monitoreo
+
+### Consideraciones de Costo
+
+- **SleakOps nativo**: $0 adicional
+- **New Relic**: $0-99/usuario/mes
+- **DataDog**: $15-23/host/mes
+
+### Migración Recomendada
+
+1. Comenzar con complementos nativos de SleakOps
+2. Agregar New Relic para APM si es necesario
+3. Evaluar DataDog solo si se requieren funcionalidades específicas
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 25 de marzo de 2024 basada en una consulta real de usuario._
