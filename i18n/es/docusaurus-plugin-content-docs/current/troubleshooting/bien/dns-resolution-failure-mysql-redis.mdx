@@ -1,0 +1,548 @@
+---
+sidebar_position: 3
+title: "Fallo en la resolución DNS para conexiones MySQL y Redis"
+description: "Solución para fallos en la resolución DNS que causan errores de conexión en MySQL y Redis"
+date: "2024-12-19"
+category: "dependency"
+tags: ["dns", "mysql", "redis", "conexión", "solución-de-problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Fallo en la resolución DNS para conexiones MySQL y Redis
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Dependencia  
+**Etiquetas:** DNS, MySQL, Redis, Conexión, Solución de problemas
+
+## Descripción del problema
+
+**Contexto:** Aplicación que experimenta un rendimiento lento debido a fallos en la resolución DNS al intentar conectar con los servicios MySQL y Redis en un entorno Kubernetes.
+
+**Síntomas observados:**
+
+- Aplicación funcionando muy lentamente
+- Fallos repetidos en la conexión a MySQL
+- Fallos en la conexión a Redis
+- Errores "Fallo temporal en la resolución de nombre"
+- Mensajes "No se encontraron nodos activos en su clúster"
+- Tiempos de espera en la conexión a la instancia Redis de AWS ElastiCache
+
+**Configuración relevante:**
+
+- Conexión MySQL: Uso de resolución por nombre de host
+- Conexión Redis: `redis-aws-production-bfdbf3f.pdvyst.0001.use2.cache.amazonaws.com:6379`
+- Entorno: clúster de producción en AWS
+- Patrón de error: `php_network_getaddresses: getaddrinfo failed`
+
+**Condiciones de error:**
+
+- La resolución DNS falla de forma intermitente
+- Los errores ocurren durante períodos de alto tráfico
+- Tanto MySQL como Redis se ven afectados simultáneamente
+- La aplicación se vuelve no responsiva debido a los tiempos de espera en las conexiones
+
+## Solución detallada
+
+<TroubleshootingItem id="dns-diagnosis" summary="Diagnóstico de problemas de resolución DNS">
+
+El error "Fallo temporal en la resolución de nombre" indica problemas con la resolución DNS. Esto puede suceder debido a:
+
+1. **Sobrecarga del servidor DNS**: demasiadas consultas DNS concurrentes
+2. **Problemas de conectividad de red**: dificultades para alcanzar los servidores DNS
+3. **Problemas con la caché DNS**: caché DNS obsoleta o corrupta
+4. **Problemas con CoreDNS**: fallos en el servicio DNS de Kubernetes
+
+Para diagnosticar:
+
+```bash
+# Verificar resolución DNS desde dentro de un pod
+kubectl exec -it <nombre-del-pod> -- nslookup mysql-hostname
+kubectl exec -it <nombre-del-pod> -- nslookup redis-aws-production-bfdbf3f.pdvyst.0001.use2.cache.amazonaws.com
+
+# Verificar logs de CoreDNS
+kubectl logs -n kube-system -l k8s-app=kube-dns
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="coredns-scaling" summary="Escalar CoreDNS para mejor rendimiento">
+
+Incrementar réplicas de CoreDNS para manejar más consultas DNS:
+
+```bash
+# Verificar despliegue actual de CoreDNS
+kubectl get deployment coredns -n kube-system
+
+# Escalar réplicas de CoreDNS
+kubectl scale deployment coredns --replicas=3 -n kube-system
+
+# Verificar escalado
+kubectl get pods -n kube-system -l k8s-app=kube-dns
+```
+
+Para aplicaciones con alto tráfico, se recomiendan de 3 a 5 réplicas de CoreDNS.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dns-caching" summary="Configurar caché DNS en la aplicación">
+
+Implementar caché DNS a nivel de aplicación para reducir las consultas DNS:
+
+**Para aplicaciones PHP:**
+
+```php
+// Añadir a la configuración de la base de datos
+'mysql' => [
+    'host' => env('DB_HOST', 'localhost'),
+    'options' => [
+        PDO::ATTR_PERSISTENT => true,
+        PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true,
+    ],
+    // Habilitar agrupación de conexiones
+    'pool' => [
+        'min_connections' => 5,
+        'max_connections' => 20,
+    ]
+],
+
+// Para conexiones Redis
+'redis' => [
+    'client' => 'predis',
+    'options' => [
+        'cluster' => env('REDIS_CLUSTER', 'redis'),
+        'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_database_'),
+        // Añadir agrupación de conexiones
+        'persistent' => true,
+    ],
+]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="kubernetes-dns-config" summary="Optimizar configuración DNS en Kubernetes">
+
+Configurar ajustes DNS en tu despliegue:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tu-app
+spec:
+  template:
+    spec:
+      # Configurar política DNS
+      dnsPolicy: ClusterFirst
+      dnsConfig:
+        options:
+          # Reducir tiempo de espera DNS
+          - name: timeout
+            value: "1"
+          # Incrementar intentos
+          - name: attempts
+            value: "3"
+          # Habilitar caché DNS
+          - name: use-vc
+          - name: ndots
+            value: "2"
+      containers:
+        - name: app
+          image: tu-app:latest
+          # Añadir variables de entorno relacionadas con DNS
+          env:
+            - name: DB_HOST
+              value: "mysql-service.default.svc.cluster.local"
+            - name: REDIS_HOST
+              value: "redis-service.default.svc.cluster.local"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="service-mesh-solution" summary="Usar servicios de Kubernetes en lugar de nombres de host externos">
+
+Crear servicios Kubernetes para evitar la resolución DNS externa:
+
+**Para MySQL:**
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-external
+spec:
+  type: ExternalName
+  externalName: your-mysql-hostname.amazonaws.com
+  ports:
+    - port: 3306
+      targetPort: 3306
+```
+
+**Para Redis:**
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-external
+spec:
+  type: ExternalName
+  externalName: redis-aws-production-bfdbf3f.pdvyst.0001.use2.cache.amazonaws.com
+  ports:
+    - port: 6379
+      targetPort: 6379
+```
+
+Luego actualiza la configuración de tu aplicación:
+
+```bash
+# Usar nombres de servicios en lugar de nombres de host externos
+DB_HOST=mysql-external.default.svc.cluster.local
+REDIS_HOST=redis-external.default.svc.cluster.local
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-solution" summary="Implementar monitoreo DNS">
+
+Agregar monitoreo para detectar problemas DNS temprano:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dns-monitor
+data:
+  monitor.sh: |
+    #!/bin/bash
+    while true; do
+      # Probar resolución DNS
+      if ! nslookup mysql-service.default.svc.cluster.local > /dev/null 2>&1; then
+        echo "$(date): Fallo en la resolución DNS para MySQL"
+      fi
+      if ! nslookup redis-service.default.svc.cluster.local > /dev/null 2>&1; then
+        echo "$(date): Fallo en la resolución DNS para Redis"
+      fi
+      sleep 30
+    done
+```
+
+Desplegar como contenedor sidecar o pod de monitoreo separado.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="connection-pooling" summary="Implementar agrupación de conexiones para reducir consultas DNS">
+
+La agrupación de conexiones puede reducir significativamente las consultas DNS:
+
+**Para aplicaciones PHP/Laravel:**
+
+```php
+// config/database.php
+'mysql' => [
+    'driver' => 'mysql',
+    'host' => env('DB_HOST', '127.0.0.1'),
+    'port' => env('DB_PORT', '3306'),
+    'database' => env('DB_DATABASE', 'forge'),
+    'username' => env('DB_USERNAME', 'forge'),
+    'password' => env('DB_PASSWORD', ''),
+    'charset' => 'utf8mb4',
+    'collation' => 'utf8mb4_unicode_ci',
+    'prefix' => '',
+    'prefix_indexes' => true,
+    'strict' => true,
+    'engine' => null,
+    'options' => [
+        PDO::ATTR_PERSISTENT => true, // Conexiones persistentes
+        PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true,
+    ],
+],
+
+// Para Redis
+'redis' => [
+    'client' => env('REDIS_CLIENT', 'predis'),
+    'options' => [
+        'cluster' => env('REDIS_CLUSTER', 'redis'),
+        'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_database_'),
+        'persistent' => true, // Conexiones persistentes
+    ],
+    'default' => [
+        'url' => env('REDIS_URL'),
+        'host' => env('REDIS_HOST', '127.0.0.1'),
+        'password' => env('REDIS_PASSWORD', null),
+        'port' => env('REDIS_PORT', '6379'),
+        'database' => env('REDIS_DB', '0'),
+        'read_write_timeout' => 60,
+        'persistent' => true,
+    ],
+],
+```
+
+**Para aplicaciones Node.js:**
+
+```javascript
+// database.js
+const mysql = require('mysql2');
+
+// Crear pool de conexiones
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  acquireTimeout: 60000,
+  timeout: 60000,
+  reconnect: true
+});
+
+module.exports = pool.promise();
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dns-cache-optimization" summary="Optimización de caché DNS a nivel del sistema">
+
+Configurar caché DNS más agresivo para reducir consultas:
+
+**Configuración de systemd-resolved (Ubuntu/Debian):**
+
+```bash
+# Editar configuración de systemd-resolved
+sudo nano /etc/systemd/resolved.conf
+
+# Agregar configuraciones optimizadas
+[Resolve]
+DNS=8.8.8.8 1.1.1.1
+FallbackDNS=8.8.4.4 1.0.0.1
+Cache=yes
+CacheFromLocalhost=yes
+DNSStubListener=yes
+ReadEtcHosts=yes
+```
+
+**Configuración en pods de Kubernetes:**
+
+```yaml
+apiVersion: v1
+kind: Pod
+spec:
+  dnsConfig:
+    options:
+      # Aumentar tiempo de caché DNS
+      - name: timeout
+        value: "2"
+      - name: attempts
+        value: "5"
+      # Reducir ndots para consultas más eficientes
+      - name: ndots
+        value: "1"
+      # Habilitar caché local
+      - name: use-vc
+      - name: rotate
+  containers:
+    - name: app
+      image: tu-app:latest
+      env:
+        # Usar IPs directas como fallback
+        - name: DB_HOST_IP
+          value: "10.0.1.100"  # IP directa de MySQL
+        - name: REDIS_HOST_IP
+          value: "10.0.1.200"  # IP directa de Redis
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="health-checks-circuit-breaker" summary="Implementar health checks y circuit breaker">
+
+Implementar patrones de resiliencia para manejar fallos DNS:
+
+**Circuit Breaker para conexiones de base de datos:**
+
+```php
+// CircuitBreaker.php
+class DatabaseCircuitBreaker
+{
+    private $failureCount = 0;
+    private $lastFailureTime = null;
+    private $timeout = 30; // 30 segundos
+    private $threshold = 5; // 5 fallos consecutivos
+
+    public function call(callable $operation)
+    {
+        if ($this->isOpen()) {
+            throw new Exception('Circuit breaker is open');
+        }
+
+        try {
+            $result = $operation();
+            $this->onSuccess();
+            return $result;
+        } catch (Exception $e) {
+            $this->onFailure();
+            throw $e;
+        }
+    }
+
+    private function isOpen()
+    {
+        if ($this->failureCount >= $this->threshold) {
+            if (time() - $this->lastFailureTime > $this->timeout) {
+                $this->reset();
+                return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private function onSuccess()
+    {
+        $this->reset();
+    }
+
+    private function onFailure()
+    {
+        $this->failureCount++;
+        $this->lastFailureTime = time();
+    }
+
+    private function reset()
+    {
+        $this->failureCount = 0;
+        $this->lastFailureTime = null;
+    }
+}
+```
+
+**Health checks para servicios:**
+
+```yaml
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+    - name: app
+      image: tu-app:latest
+      livenessProbe:
+        httpGet:
+          path: /health
+          port: 8080
+        initialDelaySeconds: 30
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+      readinessProbe:
+        httpGet:
+          path: /ready
+          port: 8080
+        initialDelaySeconds: 5
+        periodSeconds: 5
+        timeoutSeconds: 3
+        failureThreshold: 3
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-alerting" summary="Monitoreo y alertas para problemas DNS">
+
+Configurar monitoreo proactivo para detectar problemas DNS:
+
+**Script de monitoreo DNS:**
+
+```bash
+#!/bin/bash
+# dns-monitor.sh
+
+MYSQL_HOST="mysql-service.default.svc.cluster.local"
+REDIS_HOST="redis-service.default.svc.cluster.local"
+LOG_FILE="/var/log/dns-monitor.log"
+
+check_dns_resolution() {
+    local hostname=$1
+    local service_name=$2
+    
+    if nslookup "$hostname" > /dev/null 2>&1; then
+        echo "$(date): ✓ $service_name DNS resolution OK" >> $LOG_FILE
+        return 0
+    else
+        echo "$(date): ✗ $service_name DNS resolution FAILED" >> $LOG_FILE
+        # Enviar alerta
+        curl -X POST "$WEBHOOK_URL" \
+             -H "Content-Type: application/json" \
+             -d "{\"text\":\"DNS resolution failed for $service_name ($hostname)\"}"
+        return 1
+    fi
+}
+
+# Monitoreo continuo
+while true; do
+    check_dns_resolution "$MYSQL_HOST" "MySQL"
+    check_dns_resolution "$REDIS_HOST" "Redis"
+    sleep 30
+done
+```
+
+**Configuración de alertas en Prometheus:**
+
+```yaml
+# dns-alerts.yml
+groups:
+  - name: dns-resolution
+    rules:
+      - alert: DNSResolutionFailure
+        expr: increase(dns_lookup_failures_total[5m]) > 5
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "DNS resolution failures detected"
+          description: "DNS resolution has failed {{ $value }} times in the last 5 minutes"
+
+      - alert: HighDNSLatency
+        expr: dns_lookup_duration_seconds > 2
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High DNS lookup latency"
+          description: "DNS lookups are taking {{ $value }} seconds"
+```
+
+**Dashboard de Grafana para monitoreo DNS:**
+
+```json
+{
+  "dashboard": {
+    "title": "DNS Monitoring",
+    "panels": [
+      {
+        "title": "DNS Resolution Success Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(dns_lookups_total[5m]) - rate(dns_lookup_failures_total[5m])"
+          }
+        ]
+      },
+      {
+        "title": "DNS Lookup Duration",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "dns_lookup_duration_seconds"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de usuario._

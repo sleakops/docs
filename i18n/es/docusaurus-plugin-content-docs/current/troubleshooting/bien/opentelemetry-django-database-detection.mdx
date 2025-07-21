@@ -203,5 +203,77 @@ def test_db_connection():
 ```python
 # Añade a una vista Django para pruebas
 from opentelemetry import trace
-"""
+
+def test_view(request):
+    tracer = trace.get_tracer(__name__)
+    with tracer.start_as_current_span("test-span"):
+        # Tu lógica de vista aquí
+        return JsonResponse({"status": "ok"})
 ```
+
+**Problemas comunes y soluciones:**
+
+- **Problema**: La instrumentación no se inicializa
+  - **Solución**: Asegúrate de que la instrumentación se ejecute antes de importar Django
+- **Problema**: Variables de entorno no están configuradas
+  - **Solución**: Verifica que todas las variables de entorno estén establecidas en SleakOps
+- **Problema**: Versiones incompatibles de paquetes
+  - **Solución**: Actualiza todos los paquetes de OpenTelemetry a la misma versión
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="advanced-configuration" summary="Configuración Avanzada y Mejores Prácticas">
+
+**Configuración avanzada para casos complejos:**
+
+1. **Configuración personalizada del exportador:**
+
+```python
+# settings.py
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+# Configuración personalizada del exportador OTLP
+otlp_exporter = OTLPSpanExporter(
+    endpoint="http://tu-collector:4317",
+    headers={
+        "api-key": "tu-api-key"
+    }
+)
+```
+
+2. **Instrumentación selectiva:**
+
+```python
+# Solo instrumentar componentes específicos
+from opentelemetry.instrumentation.django import DjangoInstrumentor
+from opentelemetry.instrumentation.requests import RequestsInstrumentor
+
+# Instrumentar solo Django y requests
+DjangoInstrumentor().instrument()
+RequestsInstrumentor().instrument()
+```
+
+3. **Configuración de muestreo:**
+
+```python
+from opentelemetry.sdk.trace.sampling import TraceIdRatioBasedSampler
+
+# Configurar muestreo al 10%
+sampler = TraceIdRatioBasedSampler(rate=0.1)
+```
+
+**Mejores prácticas:**
+
+- Usa instrumentación automática cuando sea posible
+- Configura muestreo apropiado para entornos de producción
+- Monitorea el rendimiento de la instrumentación
+- Mantén actualizadas las librerías de OpenTelemetry
+- Documenta la configuración específica de tu aplicación
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de usuario._
+

@@ -220,8 +220,186 @@ echo "Limpieza de Docker completada"
 
 ```json
 {
-  "log-driver": "json-file"
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3"
+  }
 }
 ```
 
 </TroubleshootingItem>
+
+<TroubleshootingItem id="kubernetes-resource-management" summary="Gestión de Recursos en Kubernetes">
+
+**Configurar límites de recursos para construcciones:**
+
+1. **Configurar límites de recursos en pods de construcción:**
+
+```yaml
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: build-container
+    image: docker:latest
+    resources:
+      limits:
+        memory: "2Gi"
+        cpu: "1000m"
+        ephemeral-storage: "10Gi"
+      requests:
+        memory: "1Gi"
+        cpu: "500m"
+        ephemeral-storage: "5Gi"
+```
+
+2. **Configurar políticas de limpieza automática:**
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: docker-cleanup
+spec:
+  schedule: "0 2 * * *"  # Ejecutar diariamente a las 2 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: cleanup
+            image: docker:latest
+            command:
+            - /bin/sh
+            - -c
+            - |
+              docker system prune -af
+              docker volume prune -f
+          restartPolicy: OnFailure
+```
+
+3. **Monitorear uso de almacenamiento efímero:**
+
+```bash
+# Ver uso de almacenamiento efímero por pod
+kubectl top pods --containers
+
+# Describir uso de recursos de un pod específico
+kubectl describe pod <pod-name>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-specific-solutions" summary="Soluciones Específicas para SleakOps">
+
+**Configuraciones específicas para la plataforma SleakOps:**
+
+1. **Configurar limpieza automática en SleakOps:**
+
+   - Accede al panel de SleakOps
+   - Ve a **Configuración del Clúster** → **Políticas de Limpieza**
+   - Habilita **Limpieza Automática de Docker**
+   - Configura frecuencia: **Diaria**
+
+2. **Aumentar tamaño de disco de nodos:**
+
+```bash
+# Usando la CLI de SleakOps
+sleakops cluster node-pool update <node-pool-name> --disk-size 60GB
+
+# O desde el panel web:
+# Clúster → Pools de Nodos → Editar → Aumentar Tamaño de Disco
+```
+
+3. **Configurar alertas de espacio en disco:**
+
+```yaml
+# Configuración de alerta en SleakOps
+alerts:
+  - name: "Espacio en Disco Bajo"
+    condition: "disk_usage > 80%"
+    action: "notify_team"
+    channels: ["slack", "email"]
+```
+
+4. **Optimizar configuración de construcción:**
+
+```yaml
+# En la configuración de construcción de SleakOps
+build:
+  cache:
+    enabled: true
+    size: "5Gi"
+  cleanup:
+    after_build: true
+    keep_artifacts: 3
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="long-term-solutions" summary="Soluciones a Largo Plazo">
+
+**Estrategias para prevenir problemas futuros:**
+
+1. **Implementar construcciones distribuidas:**
+
+```yaml
+# Configurar múltiples nodos de construcción
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: build-config
+data:
+  strategy: "distributed"
+  max_concurrent_builds: "3"
+  node_selector: "build-node=true"
+```
+
+2. **Usar registro de contenedores externo:**
+
+```dockerfile
+# Usar registro externo para reducir almacenamiento local
+FROM registry.external.com/base-image:latest
+# En lugar de construir imágenes base localmente
+```
+
+3. **Implementar caché de construcción compartido:**
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: build-cache
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: shared-storage
+```
+
+4. **Configurar métricas y alertas avanzadas:**
+
+```bash
+# Instalar Prometheus para monitoreo
+kubectl apply -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/main/bundle.yaml
+
+# Configurar alertas específicas para espacio en disco
+```
+
+**Mejores prácticas a largo plazo:**
+
+- Revisar y optimizar Dockerfiles regularmente
+- Implementar construcciones en múltiples etapas
+- Usar imágenes base más pequeñas (Alpine Linux)
+- Configurar limpieza automática en todos los nodos
+- Monitorear tendencias de uso de espacio en disco
+- Planificar capacidad basada en patrones de uso
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 10 de septiembre de 2024 basada en una consulta real de usuario._

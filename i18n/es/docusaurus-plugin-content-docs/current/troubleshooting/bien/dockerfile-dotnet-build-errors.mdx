@@ -1,0 +1,548 @@
+---
+sidebar_position: 3
+title: "Errores de compilación en Dockerfile con aplicaciones .NET"
+description: "Solución de problemas de fallos en la compilación de Docker y problemas de inicio de aplicaciones en proyectos .NET"
+date: "2024-12-19"
+category: "proyecto"
+tags: ["dockerfile", ".net", "compilación", "solución de problemas", "docker"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Errores de compilación en Dockerfile con aplicaciones .NET
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Dockerfile, .NET, Compilación, Solución de problemas, Docker
+
+## Descripción del problema
+
+**Contexto:** Los usuarios experimentan fallos en la compilación al desplegar aplicaciones .NET a través de SleakOps, particularmente durante el proceso de compilación de Docker o cuando la aplicación no logra iniciarse correctamente después del despliegue.
+
+**Síntomas observados:**
+
+- La compilación de Docker falla durante el proceso de despliegue
+- La aplicación no se inicia y muestra errores en tiempo de ejecución de .NET
+- Los registros de compilación muestran errores relacionados con la ejecución del comando `dotnet`
+- Los despliegues de pull request fallan inesperadamente
+
+**Configuración relevante:**
+
+- Tipo de aplicación: API Web .NET
+- Proceso de compilación: despliegue basado en Docker
+- Comando: `dotnet Netdo.Firev.WebApi.dll`
+- Disparador de despliegue: Pull request de la rama develop a main
+
+**Condiciones de error:**
+
+- Error ocurre durante el proceso de compilación de Docker
+- Puede estar relacionado con la configuración del Dockerfile
+- Podría involucrar problemas a nivel de aplicación (problemas con la clase Main)
+- Aparece durante flujos de trabajo automatizados de despliegue
+
+## Solución detallada
+
+<TroubleshootingItem id="local-debugging" summary="Depura el problema localmente">
+
+Para diagnosticar el problema, primero prueba tu aplicación localmente usando Docker:
+
+1. **Ejecuta el contenedor localmente:**
+
+   ```bash
+   docker compose run --rm --name api-shell api
+   ```
+
+2. **Dentro del contenedor, prueba el comando de la aplicación:**
+
+   ```bash
+   dotnet Netdo.Firev.WebApi.dll
+   ```
+
+3. **Verifica si hay errores en tiempo de ejecución o dependencias faltantes**
+
+Esto ayudará a identificar si el problema está en el código de la aplicación o en la configuración de Docker.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-validation" summary="Valida tu Dockerfile">
+
+Problemas comunes en Dockerfile con aplicaciones .NET:
+
+```dockerfile
+# Asegúrate de usar la imagen base correcta
+FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
+WORKDIR /app
+EXPOSE 80
+EXPOSE 443
+
+# Etapa de compilación
+FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+WORKDIR /src
+COPY ["YourProject.csproj", "./"]
+RUN dotnet restore "YourProject.csproj"
+COPY . .
+RUN dotnet build "YourProject.csproj" -c Release -o /app/build
+
+# Etapa de publicación
+FROM build AS publish
+RUN dotnet publish "YourProject.csproj" -c Release -o /app/publish
+
+# Etapa final
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "YourProject.dll"]
+```
+
+**Puntos clave a verificar:**
+
+- Versión correcta del runtime de .NET
+- Copia y pasos de compilación adecuados
+- Configuración correcta del punto de entrada
+- Inclusión de todas las dependencias necesarias
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="main-class-issues" summary="Corrige la clase Main y problemas de inicio de la aplicación">
+
+Si el error está relacionado con la clase Main o el inicio de la aplicación:
+
+1. **Revisa tu archivo Program.cs:**
+
+   ```csharp
+   // Para .NET 6+ (modelo de hosting minimalista)
+   var builder = WebApplication.CreateBuilder(args);
+
+   // Agrega servicios
+   builder.Services.AddControllers();
+
+   var app = builder.Build();
+
+   // Configura el pipeline
+   app.UseRouting();
+   app.MapControllers();
+
+   app.Run();
+   ```
+
+2. **Para versiones anteriores de .NET, asegura un método Main correcto:**
+
+   ```csharp
+   public class Program
+   {
+       public static void Main(string[] args)
+       {
+           CreateHostBuilder(args).Build().Run();
+       }
+
+       public static IHostBuilder CreateHostBuilder(string[] args) =>
+           Host.CreateDefaultBuilder(args)
+               .ConfigureWebHostDefaults(webBuilder =>
+               {
+                   webBuilder.UseStartup<Startup>();
+               });
+   }
+   ```
+
+3. **Verifica tu archivo de proyecto (.csproj):**
+   ```xml
+   <Project Sdk="Microsoft.NET.Sdk.Web">
+     <PropertyGroup>
+       <TargetFramework>net6.0</TargetFramework>
+       <OutputType>Exe</OutputType>
+     </PropertyGroup>
+   </Project>
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="build-logs-analysis" summary="Analiza los registros de compilación en SleakOps">
+
+Para obtener información detallada sobre la falla en la compilación:
+
+1. **Accede al panel de control de SleakOps**
+2. **Navega a los registros de despliegue de tu proyecto**
+3. **Busca mensajes de error específicos en la fase de compilación**
+4. **Revisa por:**
+   - Dependencias faltantes
+   - Errores de compilación
+   - Problemas de configuración en tiempo de ejecución
+   - Problemas de permisos en archivos
+
+**Patrones comunes de error:**
+
+- `No se encontró un ejecutable coincidente`
+- `Ensamblado no encontrado`
+- `Errores de configuración`
+- `Problemas de enlace de puerto`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="environment-configuration" summary="Verifica la configuración del entorno">
+
+Asegúrate de que tu aplicación esté correctamente configurada para el entorno de despliegue:
+
+1. **Revisa appsettings.json:**
+   ```json
+   {
+     "Logging": {
+       "LogLevel": {
+         "Default": "Information"
+       }
+     },
+     "AllowedHosts": "*",
+     "Kestrel": {
+       "Endpoints": {
+         "Http": {
+           "Url": "http://0.0.0.0:80"
+         }
+       }
+     }
+   }
+   ```
+
+2. **Configura variables de entorno en docker-compose.yml:**
+   ```yaml
+   services:
+     api:
+       environment:
+         - ASPNETCORE_ENVIRONMENT=Production
+         - ASPNETCORE_URLS=http://+:80
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dependency-management" summary="Gestión de dependencias y paquetes NuGet">
+
+Problemas comunes con dependencias en aplicaciones .NET:
+
+1. **Verifica el archivo .csproj:**
+   ```xml
+   <Project Sdk="Microsoft.NET.Sdk.Web">
+     <PropertyGroup>
+       <TargetFramework>net6.0</TargetFramework>
+       <Nullable>enable</Nullable>
+       <ImplicitUsings>enable</ImplicitUsings>
+     </PropertyGroup>
+
+     <ItemGroup>
+       <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="6.0.0" />
+       <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
+     </ItemGroup>
+   </Project>
+   ```
+
+2. **Limpia y restaura paquetes:**
+   ```bash
+   # Localmente
+   dotnet clean
+   dotnet restore
+   dotnet build
+
+   # En el Dockerfile
+   RUN dotnet clean
+   RUN dotnet restore --no-cache
+   ```
+
+3. **Verifica compatibilidad de versiones:**
+   - Asegúrate de que todas las dependencias sean compatibles con tu versión de .NET
+   - Revisa conflictos de versiones en el archivo de proyecto
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="multi-stage-dockerfile" summary="Optimización del Dockerfile multi-etapa">
+
+Un Dockerfile optimizado para aplicaciones .NET:
+
+```dockerfile
+# Etapa 1: Imagen base para runtime
+FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
+WORKDIR /app
+EXPOSE 80
+EXPOSE 443
+
+# Etapa 2: Imagen SDK para compilación
+FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+WORKDIR /src
+
+# Copiar archivos de proyecto y restaurar dependencias
+COPY ["Netdo.Firev.WebApi/Netdo.Firev.WebApi.csproj", "Netdo.Firev.WebApi/"]
+COPY ["Netdo.Firev.Core/Netdo.Firev.Core.csproj", "Netdo.Firev.Core/"]
+COPY ["Netdo.Firev.Infrastructure/Netdo.Firev.Infrastructure.csproj", "Netdo.Firev.Infrastructure/"]
+
+RUN dotnet restore "Netdo.Firev.WebApi/Netdo.Firev.WebApi.csproj"
+
+# Copiar todo el código fuente
+COPY . .
+
+# Compilar la aplicación
+WORKDIR "/src/Netdo.Firev.WebApi"
+RUN dotnet build "Netdo.Firev.WebApi.csproj" -c Release -o /app/build
+
+# Etapa 3: Publicación
+FROM build AS publish
+RUN dotnet publish "Netdo.Firev.WebApi.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+# Etapa 4: Imagen final
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+
+# Crear usuario no-root para seguridad
+RUN adduser --disabled-password --gecos '' appuser && chown -R appuser /app
+USER appuser
+
+ENTRYPOINT ["dotnet", "Netdo.Firev.WebApi.dll"]
+```
+
+**Puntos clave del Dockerfile optimizado:**
+
+- Usa imágenes específicas para runtime y SDK
+- Copia archivos de proyecto primero para aprovechar el cache de Docker
+- Incluye usuario no-root para seguridad
+- Usa parámetros de publicación optimizados
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="debugging-techniques" summary="Técnicas de depuración para errores de compilación">
+
+Estrategias para diagnosticar problemas de compilación:
+
+1. **Habilita logging detallado:**
+   ```dockerfile
+   # En el Dockerfile, agrega verbosidad
+   RUN dotnet build "YourProject.csproj" -c Release -o /app/build --verbosity detailed
+   ```
+
+2. **Ejecuta compilación paso a paso:**
+   ```bash
+   # Prueba cada etapa individualmente
+   docker build --target build -t myapp:build .
+   docker run --rm -it myapp:build /bin/bash
+
+   # Dentro del contenedor
+   dotnet --info
+   dotnet restore --verbosity detailed
+   dotnet build --verbosity detailed
+   ```
+
+3. **Verifica el entorno de compilación:**
+   ```bash
+   # Revisa la versión de .NET en el contenedor
+   docker run --rm mcr.microsoft.com/dotnet/sdk:6.0 dotnet --version
+
+   # Verifica las variables de entorno
+   docker run --rm mcr.microsoft.com/dotnet/sdk:6.0 env
+   ```
+
+4. **Analiza logs de SleakOps:**
+   - Busca mensajes específicos de error en los logs de compilación
+   - Identifica en qué etapa del Dockerfile falla la compilación
+   - Revisa errores de dependencias o configuración
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-error-solutions" summary="Soluciones para errores comunes de .NET">
+
+**Error: "No se encontró un ejecutable coincidente"**
+
+```bash
+# Solución: Verifica el nombre del archivo DLL
+ls /app/publish/
+# Asegúrate de que el nombre en ENTRYPOINT coincida con el archivo generado
+```
+
+**Error: "Ensamblado no encontrado"**
+
+```dockerfile
+# Solución: Incluye todas las dependencias en la publicación
+RUN dotnet publish "YourProject.csproj" -c Release -o /app/publish --self-contained false --runtime linux-x64
+```
+
+**Error: "Puerto ya en uso"**
+
+```yaml
+# docker-compose.yml
+services:
+  api:
+    ports:
+      - "8080:80"  # Cambia el puerto externo si hay conflicto
+    environment:
+      - ASPNETCORE_URLS=http://+:80
+```
+
+**Error: "Problemas de permisos"**
+
+```dockerfile
+# Solución: Configura permisos correctos
+RUN chown -R appuser:appuser /app
+RUN chmod +x /app/YourApp.dll
+```
+
+**Error: "Dependencias de runtime faltantes"**
+
+```dockerfile
+# Solución: Usa imagen runtime completa si es necesario
+FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
+# O para aplicaciones que requieren más dependencias
+FROM mcr.microsoft.com/dotnet/runtime-deps:6.0 AS base
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="performance-optimization" summary="Optimización de rendimiento y mejores prácticas">
+
+**Optimizaciones del Dockerfile:**
+
+```dockerfile
+# Usa cache de NuGet para acelerar compilaciones
+FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+WORKDIR /src
+
+# Configura cache de NuGet
+ENV NUGET_PACKAGES=/root/.nuget/packages
+COPY ["*.csproj", "./"]
+RUN dotnet restore --packages $NUGET_PACKAGES
+
+# Optimiza la imagen final
+FROM mcr.microsoft.com/dotnet/aspnet:6.0-alpine AS final
+WORKDIR /app
+
+# Instala dependencias del sistema si es necesario
+RUN apk add --no-cache icu-libs
+
+# Configura variables de entorno para rendimiento
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+ENV DOTNET_EnableDiagnostics=0
+```
+
+**Configuración de producción:**
+
+```json
+// appsettings.Production.json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Warning",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "Kestrel": {
+    "Limits": {
+      "MaxConcurrentConnections": 100,
+      "MaxRequestBodySize": 10485760
+    }
+  }
+}
+```
+
+**docker-compose.yml optimizado:**
+
+```yaml
+version: "3.8"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - DOTNET_EnableDiagnostics=0
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="ci-cd-integration" summary="Integración con CI/CD y SleakOps">
+
+**Configuración para GitHub Actions:**
+
+```yaml
+name: .NET CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 6.0.x
+        
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+      
+    - name: Test
+      run: dotnet test --no-build --configuration Release --verbosity normal
+      
+    - name: Deploy to SleakOps
+      if: github.ref == 'refs/heads/main'
+      run: |
+        pip install sleakops
+        sleakops build -p ${{ secrets.SLEAKOPS_PROJECT }} -b main -w
+        sleakops deploy -p ${{ secrets.SLEAKOPS_PROJECT }} -e production -w
+      env:
+        SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+```
+
+**Configuración de health checks:**
+
+```csharp
+// Program.cs
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddHealthChecks();
+
+var app = builder.Build();
+
+app.MapHealthChecks("/health");
+app.MapHealthChecks("/ready");
+
+app.Run();
+```
+
+**Monitoreo y alertas:**
+
+```yaml
+# docker-compose.yml
+services:
+  api:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`api.yourdomain.com`)"
+      - "traefik.http.services.api.loadbalancer.healthcheck.path=/health"
+      - "traefik.http.services.api.loadbalancer.healthcheck.interval=30s"
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de usuario._
+   ```

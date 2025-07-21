@@ -209,3 +209,208 @@ while true; do
     sleep 30
 done
 ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="backup-verification" summary="Verificación y Validación de la Restauración">
+
+Después de completar la restauración, es crucial verificar la integridad de los datos:
+
+```bash
+# Verificar integridad de la base de datos
+kubectl exec -it <nombre-del-pod> -- psql -h localhost -U postgres -d target_db -c "SELECT count(*) FROM information_schema.tables;"
+
+# Comparar conteos de registros con la base de datos original
+kubectl exec -it <nombre-del-pod> -- psql -h localhost -U postgres -d target_db -c "
+SELECT 
+    schemaname,
+    tablename,
+    n_tup_ins as inserts,
+    n_tup_upd as updates,
+    n_tup_del as deletes
+FROM pg_stat_user_tables 
+ORDER BY schemaname, tablename;"
+
+# Verificar índices y restricciones
+kubectl exec -it <nombre-del-pod> -- psql -h localhost -U postgres -d target_db -c "
+SELECT 
+    indexname,
+    indexdef 
+FROM pg_indexes 
+WHERE schemaname = 'public';"
+```
+
+**Script de validación completo:**
+
+```bash
+#!/bin/bash
+# validate_restore.sh
+
+DB_NAME=$1
+LOG_FILE="/data/logs/validation_$(date +%Y%m%d_%H%M%S).log"
+
+echo "Iniciando validación de restauración para: $DB_NAME" | tee -a $LOG_FILE
+
+# Verificar conectividad
+if psql -h localhost -U postgres -d $DB_NAME -c "SELECT 1;" > /dev/null 2>&1; then
+    echo "✓ Conectividad a la base de datos: OK" | tee -a $LOG_FILE
+else
+    echo "✗ Error de conectividad a la base de datos" | tee -a $LOG_FILE
+    exit 1
+fi
+
+# Verificar tablas principales
+TABLE_COUNT=$(psql -h localhost -U postgres -d $DB_NAME -t -c "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public';")
+echo "✓ Número de tablas: $TABLE_COUNT" | tee -a $LOG_FILE
+
+# Verificar datos de muestra
+SAMPLE_DATA=$(psql -h localhost -U postgres -d $DB_NAME -t -c "SELECT count(*) FROM users LIMIT 1;" 2>/dev/null || echo "0")
+echo "✓ Datos de muestra (usuarios): $SAMPLE_DATA registros" | tee -a $LOG_FILE
+
+echo "Validación completada: $(date)" | tee -a $LOG_FILE
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-common-issues" summary="Solución de Problemas Comunes">
+
+**Problemas frecuentes durante la restauración y sus soluciones:**
+
+1. **Error de permisos:**
+
+```bash
+# Verificar permisos del usuario
+kubectl exec -it <nombre-del-pod> -- psql -h localhost -U postgres -c "SELECT rolname, rolsuper, rolcreatedb FROM pg_roles WHERE rolname = 'tu_usuario';"
+
+# Otorgar permisos necesarios
+kubectl exec -it <nombre-del-pod> -- psql -h localhost -U postgres -c "ALTER USER tu_usuario CREATEDB;"
+```
+
+2. **Problemas de codificación:**
+
+```bash
+# Verificar codificación de la base de datos
+kubectl exec -it <nombre-del-pod> -- psql -h localhost -U postgres -c "SELECT datname, encoding FROM pg_database WHERE datname = 'tu_db';"
+
+# Crear base de datos con codificación específica
+kubectl exec -it <nombre-del-pod> -- psql -h localhost -U postgres -c "CREATE DATABASE nueva_db WITH ENCODING 'UTF8';"
+```
+
+3. **Conflictos de versión:**
+
+```bash
+# Verificar versión de PostgreSQL
+kubectl exec -it <nombre-del-pod> -- psql -h localhost -U postgres -c "SELECT version();"
+
+# Actualizar estadísticas después de la restauración
+kubectl exec -it <nombre-del-pod> -- psql -h localhost -U postgres -d tu_db -c "ANALYZE;"
+```
+
+4. **Problemas de espacio:**
+
+```bash
+# Monitorear espacio durante la restauración
+kubectl exec -it <nombre-del-pod> -- watch "df -h /var/lib/postgresql/data"
+
+# Limpiar logs de transacciones si es necesario
+kubectl exec -it <nombre-del-pod> -- psql -h localhost -U postgres -c "CHECKPOINT;"
+```
+
+**Mejores prácticas para evitar problemas:**
+
+- Siempre hacer backup antes de restaurar
+- Verificar compatibilidad de versiones
+- Monitorear recursos durante el proceso
+- Usar transacciones para operaciones críticas
+- Documentar todos los pasos realizados
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="automation-best-practices" summary="Automatización y Mejores Prácticas">
+
+**Script automatizado completo para restauración:**
+
+```bash
+#!/bin/bash
+# automated_restore.sh - Script completo de restauración automatizada
+
+set -euo pipefail
+
+# Configuración
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="${SCRIPT_DIR}/restore.conf"
+LOG_DIR="/data/logs"
+DUMP_DIR="/data/dumps"
+
+# Cargar configuración
+source $CONFIG_FILE
+
+# Funciones
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
+}
+
+cleanup() {
+    log "Limpiando recursos temporales..."
+    # Limpiar archivos temporales si existen
+    rm -f /tmp/restore_*.tmp
+}
+
+# Trap para limpieza en caso de error
+trap cleanup EXIT
+
+# Función principal
+main() {
+    local dump_file="$1"
+    local target_db="$2"
+    
+    log "=== Iniciando proceso de restauración automatizada ==="
+    log "Archivo de volcado: $dump_file"
+    log "Base de datos destino: $target_db"
+    
+    # Verificaciones previas
+    check_prerequisites
+    check_disk_space
+    backup_current_db "$target_db"
+    
+    # Proceso de restauración
+    log "Iniciando restauración..."
+    restore_database "$dump_file" "$target_db"
+    
+    # Verificación post-restauración
+    validate_restore "$target_db"
+    
+    log "=== Restauración completada exitosamente ==="
+}
+
+# Ejecutar función principal
+main "$@"
+```
+
+**Archivo de configuración (restore.conf):**
+
+```bash
+# restore.conf
+DB_HOST="localhost"
+DB_USER="postgres"
+DB_PORT="5432"
+LOG_FILE="/data/logs/restore_$(date +%Y%m%d_%H%M%S).log"
+BACKUP_RETENTION_DAYS=7
+MAX_RESTORE_TIME_HOURS=6
+NOTIFICATION_EMAIL="admin@empresa.com"
+```
+
+**Mejores prácticas para automatización:**
+
+- Usar archivos de configuración separados
+- Implementar logging detallado
+- Agregar verificaciones de salud
+- Configurar notificaciones automáticas
+- Mantener backups de seguridad
+- Documentar todos los procesos
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 21 de marzo de 2024 basada en una consulta real de usuario._

@@ -197,7 +197,33 @@ server {
 wget --server-response --header="Host: velo.la" https://main-proxy.develop.us-east-2.velo.la
 
 # Prueba con diferente User-Agent
-curl -v -H "Host: velo.la" -H "User-Agent: Mozilla/5.0" https://main-proxy.develop.us
+curl -v -H "Host: velo.la" -H "User-Agent: Mozilla/5.0" https://main-proxy.develop.us-east-2.velo.la
 ```
 
+4. **Revisa los logs del balanceador de carga:**
+   - Contacta el soporte de SleakOps para obtener acceso a los logs del balanceador
+   - Busca patrones de solicitudes rechazadas o filtradas
+
+5. **Considera usar herramientas de depuración de red:**
+
+```bash
+# Usar tcpdump para capturar tráfico de red
+sudo tcpdump -i any -s 0 -w capture.pcap host main-proxy.develop.us-east-2.velo.la
+
+# Analizar headers HTTP con curl verbose
+curl -v -H "Host: velo.la" -H "X-Debug: true" https://main-proxy.develop.us-east-2.velo.la
+```
+
+**Mejores prácticas:**
+
+- Siempre configura todos los dominios que planeas usar en la configuración del servicio
+- Mantén sincronizados los dominios en SleakOps y la configuración de Nginx
+- Usa HTTPS siempre que sea posible para mayor seguridad
+- Implementa health checks para monitorear la disponibilidad del servicio
+- Documenta todos los dominios configurados para futuras referencias
+
 </TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

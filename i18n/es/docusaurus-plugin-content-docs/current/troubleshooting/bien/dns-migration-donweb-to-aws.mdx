@@ -222,4 +222,186 @@ Una vez que tus servicios estén listos en AWS, configura los registros DNS:
 **Fase 1: Preparación**
 
 1. Exporta todos los registros DNS desde DonWeb
-2. Configura los servicios AWS (Lightsail/EC2 para WordPress"
+2. Configura los servicios AWS (Lightsail/EC2 para WordPress, WorkMail para correo)
+3. Crea la zona hospedada en Route 53
+4. Prepara los nuevos registros DNS
+
+**Fase 2: Migración de servicios**
+
+1. Migra WordPress a AWS
+2. Configura el servicio de correo en AWS
+3. Prueba ambos servicios con IPs temporales
+
+**Fase 3: Cambio de DNS**
+
+1. Reduce TTL de registros DNS actuales a 300 segundos (5 minutos)
+2. Espera el tiempo del TTL anterior para que se propague
+3. Actualiza los servidores de nombre en tu registrador de dominio
+4. Configura los nuevos registros DNS en Route 53
+
+**Fase 4: Verificación**
+
+1. Verifica que el sitio web sea accesible
+2. Prueba el envío y recepción de correos
+3. Monitorea por 24-48 horas para asegurar estabilidad
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="nameserver-update" summary="Actualización de servidores de nombre en el registrador">
+
+El paso más crítico es actualizar los servidores de nombre en tu registrador de dominio:
+
+1. **Accede a tu registrador de dominio** (donde compraste el dominio)
+2. **Busca la sección DNS o Servidores de Nombre**
+3. **Reemplaza los servidores de nombre actuales** con los proporcionados por AWS Route 53:
+
+   ```
+   Servidores de nombre de AWS Route 53 (ejemplo):
+   ns-1234.awsdns-12.com
+   ns-5678.awsdns-34.net
+   ns-9012.awsdns-56.org
+   ns-3456.awsdns-78.co.uk
+   ```
+
+4. **Guarda los cambios**
+5. **Espera la propagación** (puede tomar de 24 a 48 horas)
+
+**Verificar la propagación:**
+
+```bash
+# Verificar desde diferentes ubicaciones
+dig NS tudominio.com @8.8.8.8
+dig NS tudominio.com @1.1.1.1
+
+# Usar herramientas online
+# whatsmydns.net
+# dnschecker.org
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="rollback-plan" summary="Plan de reversión en caso de problemas">
+
+Siempre ten un plan de reversión preparado:
+
+**Plan de reversión rápida:**
+
+1. **Mantén acceso a DonWeb** durante al menos 72 horas después de la migración
+2. **Documenta la configuración DNS original** antes de hacer cambios
+3. **Ten los servidores de nombre originales** listos para restaurar
+
+**Pasos de reversión:**
+
+```bash
+# Si algo sale mal, puedes revertir rápidamente:
+
+1. Accede a tu registrador de dominio
+2. Cambia los servidores de nombre de vuelta a los de DonWeb
+3. Espera 5-15 minutos para que se propague (si habías reducido el TTL)
+4. Verifica que el sitio y correo funcionen normalmente
+```
+
+**Indicadores de que necesitas hacer rollback:**
+
+- El sitio web no es accesible después de 2 horas
+- Los correos no se envían o reciben
+- Errores SSL/TLS persistentes
+- Pérdida significativa de tráfico web
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="post-migration-monitoring" summary="Monitoreo post-migración">
+
+Después de completar la migración, es crucial monitorear:
+
+**Herramientas de monitoreo recomendadas:**
+
+1. **AWS CloudWatch** para monitorear servicios AWS
+2. **Route 53 Health Checks** para monitorear disponibilidad
+3. **Google Search Console** para verificar indexación
+4. **Herramientas de correo** para verificar entregabilidad
+
+**Configurar alertas:**
+
+```bash
+# Configurar health check en Route 53
+aws route53 create-health-check \
+  --caller-reference "website-health-check-$(date +%s)" \
+  --health-check-config Type=HTTPS,ResourcePath=/,FullyQualifiedDomainName=tudominio.com,Port=443
+```
+
+**Métricas a monitorear:**
+
+- Tiempo de respuesta del sitio web
+- Disponibilidad del servicio (uptime)
+- Entregabilidad de correos
+- Errores SSL/TLS
+- Tráfico web y conversiones
+
+**Checklist post-migración (primeras 48 horas):**
+
+- [ ] Sitio web accesible desde múltiples ubicaciones
+- [ ] Correos se envían y reciben correctamente
+- [ ] Certificados SSL funcionan correctamente
+- [ ] Formularios de contacto funcionan
+- [ ] Analytics y tracking funcionan
+- [ ] SEO no se ve afectado negativamente
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-common-issues" summary="Solución de problemas comunes">
+
+**Problemas frecuentes y sus soluciones:**
+
+1. **Sitio web no accesible:**
+
+   ```bash
+   # Verificar propagación DNS
+   dig A tudominio.com
+   dig A www.tudominio.com
+   
+   # Verificar desde diferentes DNS
+   nslookup tudominio.com 8.8.8.8
+   nslookup tudominio.com 1.1.1.1
+   ```
+
+2. **Correos no funcionan:**
+
+   ```bash
+   # Verificar registros MX
+   dig MX tudominio.com
+   
+   # Probar envío de correo
+   telnet tu-servidor-correo.com 25
+   ```
+
+3. **Certificado SSL no válido:**
+
+   - Verifica que el dominio apunte a la IP correcta
+   - Regenera el certificado SSL en AWS
+   - Verifica configuración de HTTPS en el servidor
+
+4. **Propagación DNS lenta:**
+
+   - Verifica que los TTL estén configurados correctamente
+   - Usa herramientas de verificación DNS global
+   - Espera hasta 48 horas para propagación completa
+
+**Comandos útiles para diagnóstico:**
+
+```bash
+# Verificar todos los registros DNS
+dig ANY tudominio.com
+
+# Verificar ruta de red
+traceroute tudominio.com
+
+# Verificar certificado SSL
+openssl s_client -connect tudominio.com:443 -servername tudominio.com
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de usuario._

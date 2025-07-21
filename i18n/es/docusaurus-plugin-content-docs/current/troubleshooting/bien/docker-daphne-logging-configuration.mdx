@@ -1,0 +1,531 @@
+---
+sidebar_position: 3
+title: "Configuración de Registro en Docker para Aplicaciones Daphne"
+description: "Cómo configurar contenedores Docker para capturar y mostrar los registros de aplicaciones Daphne"
+date: "2025-01-21"
+category: "workload"
+tags: ["docker", "daphne", "logging", "django", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Configuración de Registro en Docker para Aplicaciones Daphne
+
+**Fecha:** 21 de enero de 2025  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** Docker, Daphne, Registro, Django, Solución de problemas
+
+## Descripción del Problema
+
+**Contexto:** El usuario necesita configurar un contenedor Docker que ejecuta una aplicación Django con el servidor ASGI Daphne para capturar y mostrar correctamente los registros de la aplicación a través del sistema de registro de Docker.
+
+**Síntomas observados:**
+
+- Los registros de la aplicación no son visibles en los registros del contenedor Docker
+- Los registros del servidor Daphne no están siendo capturados por Docker
+- Los parámetros estándar de registro de Docker (`stdin_open: true`, `tty: true`) no son suficientes
+- La aplicación tiene configurado el registro pero la salida no llega al stdout de Docker
+
+**Configuración relevante:**
+
+- Aplicación: Django con servidor ASGI Daphne
+- Orquestación de contenedores: Docker Compose
+- Parámetros actuales: `stdin_open: true` y `tty: true`
+- Logger configurado para Daphne en la aplicación
+
+**Condiciones de error:**
+
+- Se generan registros en la aplicación pero no son visibles en los logs de Docker
+- La configuración estándar de registro de Docker es insuficiente para Daphne
+- Es necesario redirigir los registros de la aplicación a los flujos stdout/stderr de Docker
+
+## Solución Detallada
+
+<TroubleshootingItem id="redirect-logs-stdout" summary="Redirigir los registros de Daphne a stdout">
+
+La solución principal es configurar Daphne para que envíe los registros directamente a `/dev/stdout`, que Docker puede capturar:
+
+**Método 1: Configuración por línea de comandos**
+
+```dockerfile
+# En tu Dockerfile o comando de docker-compose.yml
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "--access-log", "/dev/stdout", "--proxy-headers", "myproject.asgi:application"]
+```
+
+**Método 2: Variable de entorno**
+
+```yaml
+# docker-compose.yml
+services:
+  web:
+    environment:
+      - DAPHNE_ACCESS_LOG=/dev/stdout
+      - DAPHNE_ERROR_LOG=/dev/stderr
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="django-logging-config" summary="Configurar los ajustes de logging de Django">
+
+Actualiza tu `settings.py` de Django para asegurar que los registros se dirigen a stdout:
+
+```python
+# settings.py
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'stream': 'ext://sys.stdout',
+            'formatter': 'verbose',
+        },
+        'daphne': {
+            'class': 'logging.StreamHandler',
+            'stream': 'ext://sys.stdout',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'daphne': {
+            'handlers': ['daphne'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="docker-compose-configuration" summary="Configuración completa de docker-compose.yml">
+
+Aquí tienes un ejemplo completo de cómo configurar tu `docker-compose.yml`:
+
+```yaml
+version: "3.8"
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=1
+      - PYTHONUNBUFFERED=1 # Importante para salida de logs en tiempo real
+    command: >
+      daphne 
+      --bind 0.0.0.0 
+      --port 8000 
+      --access-log /dev/stdout 
+      --proxy-headers 
+      myproject.asgi:application
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Elimina estos si no son necesarios para tu caso de uso
+    # stdin_open: true
+    # tty: true
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-optimization" summary="Optimizaciones del Dockerfile para logging">
+
+Optimiza tu Dockerfile para un mejor registro:
+
+```dockerfile
+FROM python:3.11-slim
+
+# Establecer variables de entorno para mejor logging
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+WORKDIR /app
+
+# Copiar requirements e instalar dependencias
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copiar código de la aplicación
+COPY . .
+
+# Crear un usuario no root
+RUN useradd --create-home --shell /bin/bash app
+USER app
+
+# Exponer puerto
+EXPOSE 8000
+
+# Iniciar Daphne con logging adecuado
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "--access-log", "/dev/stdout", "--proxy-headers", "myproject.asgi:application"]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-tips" summary="Solución de problemas y verificación">
+
+**Verifica que los logs funcionen:**
+
+```bash
+# Ver registros del contenedor
+docker-compose logs -f web
+
+# O para un contenedor específico
+docker logs -f <nombre_contenedor>
+```
+
+**Problemas comunes y soluciones:**
+
+1. **Los logs aún no aparecen:** Asegúrate de que `PYTHONUNBUFFERED=1` esté configurado
+2. **Logs parciales:** Verifica si tu aplicación usa print en lugar de logging adecuado
+3. **Problemas de rendimiento:** Considera usar logging estructurado (formato JSON)
+
+**Prueba la configuración de logging:**
+
+```python
+# Agrega esto a tus vistas de Django o comandos de gestión
+import logging
+logger = logging.getLogger(__name__)
+
+def test_view(request):
+    logger.info("Mensaje de prueba de log desde vista Django")
+    return HttpResponse("Revisa los logs de Docker para el mensaje")
+```
+
+**Problemas comunes y soluciones:**
+
+1. **Los logs no aparecen en tiempo real:**
+   - Asegúrate de que `PYTHONUNBUFFERED=1` esté configurado
+   - Usa `docker-compose logs -f` para seguir los logs
+
+2. **Los logs de Daphne no se muestran:**
+   - Verifica que `--access-log /dev/stdout` esté en el comando
+   - Revisa la configuración de logging en Django
+
+3. **Logs duplicados:**
+   - Puede ocurrir si tanto Django como Daphne están enviando logs al mismo stream
+   - Ajusta la configuración de logging para evitar duplicación
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="advanced-logging-setup" summary="Configuración avanzada de logging con múltiples niveles">
+
+Para un control más granular sobre los logs, configura diferentes niveles de logging:
+
+```python
+# settings.py - Configuración avanzada
+import os
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{asctime}] {levelname} {name} {module}.{funcName}:{lineno} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '[{asctime}] {levelname} {message}',
+            'style': '{',
+        },
+        'json': {
+            'format': '{"time": "{asctime}", "level": "{levelname}", "logger": "{name}", "message": "{message}"}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'stream': 'ext://sys.stdout',
+            'formatter': 'verbose' if os.getenv('DEBUG') else 'json',
+        },
+        'error_console': {
+            'class': 'logging.StreamHandler',
+            'stream': 'ext://sys.stderr',
+            'formatter': 'verbose',
+            'level': 'ERROR',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': os.getenv('LOG_LEVEL', 'INFO'),
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'daphne': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['error_console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'myapp': {  # Reemplaza con el nombre de tu aplicación
+            'handlers': ['console'],
+            'level': 'DEBUG' if os.getenv('DEBUG') else 'INFO',
+            'propagate': False,
+        },
+    },
+}
+```
+
+**Variables de entorno para docker-compose.yml:**
+
+```yaml
+services:
+  web:
+    environment:
+      - DEBUG=0
+      - LOG_LEVEL=INFO
+      - PYTHONUNBUFFERED=1
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="structured-logging" summary="Implementar logging estructurado para mejor análisis">
+
+Para aplicaciones en producción, considera usar logging estructurado:
+
+```python
+# requirements.txt
+django-structlog==4.0.0
+structlog==23.1.0
+
+# settings.py
+import structlog
+
+# Configuración de structlog
+structlog.configure(
+    processors=[
+        structlog.stdlib.filter_by_level,
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        structlog.processors.UnicodeDecoder(),
+        structlog.processors.JSONRenderer()
+    ],
+    context_class=dict,
+    logger_factory=structlog.stdlib.LoggerFactory(),
+    wrapper_class=structlog.stdlib.BoundLogger,
+    cache_logger_on_first_use=True,
+)
+
+# En tus vistas o modelos
+import structlog
+logger = structlog.get_logger(__name__)
+
+def my_view(request):
+    logger.info("Processing request", 
+                user_id=request.user.id, 
+                path=request.path,
+                method=request.method)
+```
+
+**Configuración de Docker para logging estructurado:**
+
+```yaml
+# docker-compose.yml
+services:
+  web:
+    environment:
+      - STRUCTURED_LOGGING=true
+      - LOG_FORMAT=json
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+        labels: "service,environment"
+    labels:
+      - "service=django-app"
+      - "environment=production"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-integration" summary="Integración con sistemas de monitoreo">
+
+Configura la integración con sistemas de monitoreo como ELK Stack o Grafana:
+
+**Para ELK Stack (Elasticsearch, Logstash, Kibana):**
+
+```yaml
+# docker-compose.yml
+version: "3.8"
+
+services:
+  web:
+    build: .
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LOG_FORMAT=json
+    logging:
+      driver: "gelf"
+      options:
+        gelf-address: "udp://logstash:12201"
+        tag: "django-app"
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.8.0
+    volumes:
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+    ports:
+      - "12201:12201/udp"
+```
+
+**Configuración de Logstash (logstash.conf):**
+
+```ruby
+input {
+  gelf {
+    port => 12201
+  }
+}
+
+filter {
+  if [tag] == "django-app" {
+    json {
+      source => "message"
+    }
+    
+    date {
+      match => [ "time", "ISO8601" ]
+    }
+  }
+}
+
+output {
+  elasticsearch {
+    hosts => ["elasticsearch:9200"]
+    index => "django-logs-%{+YYYY.MM.dd}"
+  }
+}
+```
+
+**Para Prometheus y Grafana:**
+
+```python
+# requirements.txt
+django-prometheus==2.3.1
+
+# settings.py
+INSTALLED_APPS = [
+    'django_prometheus',
+    # ... otras apps
+]
+
+MIDDLEWARE = [
+    'django_prometheus.middleware.PrometheusBeforeMiddleware',
+    # ... otros middlewares
+    'django_prometheus.middleware.PrometheusAfterMiddleware',
+]
+
+# urls.py
+from django.urls import path, include
+
+urlpatterns = [
+    path('', include('django_prometheus.urls')),
+    # ... otras URLs
+]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="log-rotation-management" summary="Gestión de rotación de logs y almacenamiento">
+
+Implementa estrategias de rotación de logs para evitar problemas de espacio:
+
+**Configuración de Docker con rotación automática:**
+
+```yaml
+# docker-compose.yml
+services:
+  web:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "10"
+        compress: "true"
+```
+
+**Script de limpieza de logs:**
+
+```bash
+#!/bin/bash
+# cleanup-logs.sh
+
+# Limpiar logs de Docker más antiguos de 7 días
+docker system prune -f --filter "until=168h"
+
+# Limpiar logs específicos del contenedor
+CONTAINER_NAME="myapp_web_1"
+docker logs --since 7d $CONTAINER_NAME > /dev/null 2>&1
+
+# Comprimir logs antiguos
+find /var/lib/docker/containers -name "*.log" -mtime +7 -exec gzip {} \;
+
+echo "Log cleanup completed at $(date)"
+```
+
+**Configuración de cron para limpieza automática:**
+
+```bash
+# Agregar al crontab
+0 2 * * 0 /path/to/cleanup-logs.sh >> /var/log/log-cleanup.log 2>&1
+```
+
+**Configuración de logrotate para logs de aplicación:**
+
+```bash
+# /etc/logrotate.d/django-app
+/var/log/django/*.log {
+    daily
+    missingok
+    rotate 30
+    compress
+    delaycompress
+    notifempty
+    create 644 www-data www-data
+    postrotate
+        docker-compose restart web
+    endscript
+}
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 21 de enero de 2025 basada en una consulta real de usuario._

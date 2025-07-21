@@ -1,0 +1,753 @@
+---
+sidebar_position: 3
+title: "Despliegue Multi-Proyecto con GitHub Actions"
+description: "Configura GitHub Actions para desplegar automáticamente múltiples proyectos SleakOps"
+date: "2025-01-15"
+category: "proyecto"
+tags:
+  ["github-actions", "ci-cd", "despliegue", "automatización", "sleakops-cli"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Despliegue Multi-Proyecto con GitHub Actions
+
+**Fecha:** 15 de enero de 2025  
+**Categoría:** Proyecto  
+**Etiquetas:** GitHub Actions, CI/CD, Despliegue, Automatización, SleakOps CLI
+
+## Descripción del Problema
+
+**Contexto:** El usuario necesita configurar GitHub Actions para construir y desplegar automáticamente múltiples proyectos SleakOps al hacer push en la rama de producción, específicamente desea desplegar simultáneamente los proyectos `simplee-drf-aws-cl` y `simplee-drf-aws-mx`.
+
+**Síntomas Observados:**
+
+- La pipeline actual de CI/CD solo despliega un proyecto
+- Necesidad de activar despliegues de múltiples proyectos desde un solo push
+- Requisito de duplicar comandos de build y deploy para proyectos adicionales
+- Confusión con el parámetro de entorno (usando `-e main` en lugar de `-e dev`)
+
+**Configuración Relevante:**
+
+- Plataforma: GitHub Actions
+- Comandos SleakOps CLI: `sleakops build` y `sleakops deploy`
+- Proyectos: `simplee-drf-aws-cl`, `simplee-drf-aws-mx`
+- Rama disparadora: rama `prod`
+- Entorno: `dev` (no `main`)
+
+**Condiciones de Error:**
+
+- Parámetro de entorno incorrecto en el comando de despliegue
+- Despliegue de un solo proyecto en vez de multi-proyecto
+- Necesidad de optimizar el workflow para múltiples proyectos
+
+## Solución Detallada
+
+<TroubleshootingItem id="basic-multi-project-setup" summary="Configuración Básica Multi-Proyecto en GitHub Actions">
+
+Así es como configurar GitHub Actions para desplegar múltiples proyectos SleakOps:
+
+```yaml
+name: Multi-Project CI/CD
+
+on:
+  push:
+    branches:
+      - prod
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: ["simplee-drf-aws-cl", "simplee-drf-aws-mx"]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install SleakOps CLI
+        run: pip install sleakops
+
+      - name: Run SleakOps build for ${{ matrix.project }}
+        env:
+          SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+        run: sleakops build -p ${{ matrix.project }} -b prod -w
+
+  deploy:
+    needs: [build]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: ["simplee-drf-aws-cl", "simplee-drf-aws-mx"]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install SleakOps CLI
+        run: pip install sleakops
+
+      - name: Run SleakOps deploy for ${{ matrix.project }}
+        env:
+          SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+        run: sleakops deploy -p ${{ matrix.project }} -e dev -w
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sequential-deployment" summary="Enfoque de Despliegue Secuencial">
+
+Si prefieres un despliegue secuencial (un proyecto tras otro), usa esta configuración:
+
+```yaml
+name: Sequential Multi-Project CI/CD
+
+on:
+  push:
+    branches:
+      - prod
+
+jobs:
+  build-and-deploy-cl:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install SleakOps CLI
+        run: pip install sleakops
+
+      - name: Build simplee-drf-aws-cl
+        env:
+          SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+        run: sleakops build -p simplee-drf-aws-cl -b prod -w
+
+      - name: Deploy simplee-drf-aws-cl
+        env:
+          SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+        run: sleakops deploy -p simplee-drf-aws-cl -e dev -w
+
+  build-and-deploy-mx:
+    runs-on: ubuntu-latest
+    needs: [build-and-deploy-cl]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install SleakOps CLI
+        run: pip install sleakops
+
+      - name: Build simplee-drf-aws-mx
+        env:
+          SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+        run: sleakops build -p simplee-drf-aws-mx -b prod -w
+
+      - name: Deploy simplee-drf-aws-mx
+        env:
+          SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+        run: sleakops deploy -p simplee-drf-aws-mx -e dev -w
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="environment-parameter-fix" summary="Uso Correcto del Parámetro de Entorno">
+
+**Importante:** El parámetro de entorno en el comando deploy debe coincidir con el nombre del entorno en SleakOps, no con la rama git.
+
+Errores comunes:
+
+- ❌ `sleakops deploy -p nombre-del-proyecto -e main -w`
+- ✅ `sleakops deploy -p nombre-del-proyecto -e dev -w`
+- ✅ `sleakops deploy -p nombre-del-proyecto -e prod -w`
+
+Para verificar el nombre de tu entorno:
+
+1. Ve a tu consola de SleakOps
+2. Navega a tu proyecto
+3. Revisa la sección de entornos
+4. Usa el nombre exacto del entorno en el parámetro `-e`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="advanced-configuration" summary="Configuración Avanzada con Manejo de Errores">
+
+Para entornos de producción, considera agregar manejo de errores y notificaciones:
+
+```yaml
+name: Production Multi-Project CI/CD
+
+on:
+  push:
+    branches:
+      - prod
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: ["simplee-drf-aws-cl", "simplee-drf-aws-mx"]
+      fail-fast: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install SleakOps CLI
+        run: pip install sleakops
+
+      - name: Build ${{ matrix.project }}
+        env:
+          SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+        run: |
+          set -e
+          echo "Building ${{ matrix.project }}..."
+          sleakops build -p ${{ matrix.project }} -b prod -w
+          echo "Build completed for ${{ matrix.project }}"
+        continue-on-error: false
+
+      - name: Deploy ${{ matrix.project }}
+        env:
+          SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+        run: |
+          set -e
+          echo "Deploying ${{ matrix.project }}..."
+          sleakops deploy -p ${{ matrix.project }} -e dev -w
+          echo "Deployment completed for ${{ matrix.project }}"
+        continue-on-error: false
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Failed to build/deploy ${{ matrix.project }}"
+          # Aquí puedes agregar notificaciones a Slack, Discord, etc.
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="conditional-deployment" summary="Despliegue Condicional Basado en Cambios">
+
+Para optimizar el proceso, puedes configurar despliegues condicionales basados en los archivos modificados:
+
+```yaml
+name: Smart Multi-Project CI/CD
+
+on:
+  push:
+    branches:
+      - prod
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      cl-changed: ${{ steps.changes.outputs.cl }}
+      mx-changed: ${{ steps.changes.outputs.mx }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect changes
+        id: changes
+        run: |
+          # Detectar cambios en proyecto CL
+          if git diff --name-only HEAD~1 HEAD | grep -E "(cl/|shared/)" > /dev/null; then
+            echo "cl=true" >> $GITHUB_OUTPUT
+          else
+            echo "cl=false" >> $GITHUB_OUTPUT
+          fi
+          
+          # Detectar cambios en proyecto MX
+          if git diff --name-only HEAD~1 HEAD | grep -E "(mx/|shared/)" > /dev/null; then
+            echo "mx=true" >> $GITHUB_OUTPUT
+          else
+            echo "mx=false" >> $GITHUB_OUTPUT
+          fi
+
+  deploy-cl:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.cl-changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install SleakOps CLI
+        run: pip install sleakops
+
+      - name: Deploy CL project
+        env:
+          SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+        run: |
+          sleakops build -p simplee-drf-aws-cl -b prod -w
+          sleakops deploy -p simplee-drf-aws-cl -e dev -w
+
+  deploy-mx:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.mx-changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install SleakOps CLI
+        run: pip install sleakops
+
+      - name: Deploy MX project
+        env:
+          SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+        run: |
+          sleakops build -p simplee-drf-aws-mx -b prod -w
+          sleakops deploy -p simplee-drf-aws-mx -e dev -w
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="environment-management" summary="Gestión de Múltiples Entornos">
+
+Configura despliegues para diferentes entornos basados en la rama:
+
+```yaml
+name: Multi-Environment Multi-Project CI/CD
+
+on:
+  push:
+    branches:
+      - main      # Producción
+      - staging   # Staging
+      - develop   # Desarrollo
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.env.outputs.environment }}
+      projects: ${{ steps.projects.outputs.list }}
+    steps:
+      - name: Determine environment
+        id: env
+        run: |
+          case ${{ github.ref_name }} in
+            main)
+              echo "environment=prod" >> $GITHUB_OUTPUT
+              ;;
+            staging)
+              echo "environment=staging" >> $GITHUB_OUTPUT
+              ;;
+            develop)
+              echo "environment=dev" >> $GITHUB_OUTPUT
+              ;;
+            *)
+              echo "environment=dev" >> $GITHUB_OUTPUT
+              ;;
+          esac
+
+      - name: Set project list
+        id: projects
+        run: |
+          echo 'list=["simplee-drf-aws-cl", "simplee-drf-aws-mx"]' >> $GITHUB_OUTPUT
+
+  deploy:
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: ${{ fromJson(needs.setup.outputs.projects) }}
+      fail-fast: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install SleakOps CLI
+        run: pip install sleakops
+
+      - name: Build and Deploy ${{ matrix.project }}
+        env:
+          SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+          ENVIRONMENT: ${{ needs.setup.outputs.environment }}
+        run: |
+          echo "Deploying ${{ matrix.project }} to $ENVIRONMENT environment"
+          sleakops build -p ${{ matrix.project }} -b ${{ github.ref_name }} -w
+          sleakops deploy -p ${{ matrix.project }} -e $ENVIRONMENT -w
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="notification-integration" summary="Integración con Sistemas de Notificación">
+
+Agrega notificaciones para mantener al equipo informado sobre los despliegues:
+
+```yaml
+name: Multi-Project CI/CD with Notifications
+
+on:
+  push:
+    branches:
+      - prod
+
+jobs:
+  notify-start:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify deployment start
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              text: "🚀 Starting multi-project deployment",
+              attachments: [{
+                color: "warning",
+                fields: [{
+                  title: "Branch",
+                  value: "${{ github.ref_name }}",
+                  short: true
+                }, {
+                  title: "Commit",
+                  value: "${{ github.sha }}",
+                  short: true
+                }]
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: ["simplee-drf-aws-cl", "simplee-drf-aws-mx"]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install SleakOps CLI
+        run: pip install sleakops
+
+      - name: Deploy ${{ matrix.project }}
+        env:
+          SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+        run: |
+          sleakops build -p ${{ matrix.project }} -b prod -w
+          sleakops deploy -p ${{ matrix.project }} -e dev -w
+
+      - name: Notify success
+        if: success()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          text: "✅ Successfully deployed ${{ matrix.project }}"
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify failure
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          text: "❌ Failed to deploy ${{ matrix.project }}"
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  notify-complete:
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Notify deployment complete
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              text: "🏁 Multi-project deployment completed",
+              attachments: [{
+                color: "${{ needs.deploy.result == 'success' && 'good' || 'danger' }}",
+                fields: [{
+                  title: "Status",
+                  value: "${{ needs.deploy.result }}",
+                  short: true
+                }, {
+                  title: "Duration",
+                  value: "${{ github.event.head_commit.timestamp }}",
+                  short: true
+                }]
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="rollback-strategy" summary="Estrategia de Rollback y Recuperación">
+
+Implementa una estrategia de rollback en caso de fallos:
+
+```yaml
+name: Multi-Project CI/CD with Rollback
+
+on:
+  push:
+    branches:
+      - prod
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: ["simplee-drf-aws-cl", "simplee-drf-aws-mx"]
+    outputs:
+      deployment-status: ${{ steps.deploy.outcome }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install SleakOps CLI
+        run: pip install sleakops
+
+      - name: Store current deployment info
+        id: current-deployment
+        env:
+          SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+        run: |
+          # Obtener información del despliegue actual
+          CURRENT_VERSION=$(sleakops status -p ${{ matrix.project }} -e dev --format json | jq -r '.version')
+          echo "current-version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "Current version for ${{ matrix.project }}: $CURRENT_VERSION"
+
+      - name: Deploy new version
+        id: deploy
+        env:
+          SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+        run: |
+          sleakops build -p ${{ matrix.project }} -b prod -w
+          sleakops deploy -p ${{ matrix.project }} -e dev -w
+
+      - name: Health check
+        id: health-check
+        run: |
+          # Esperar un momento para que el despliegue se estabilice
+          sleep 30
+          
+          # Realizar health check (ajusta la URL según tu configuración)
+          if curl -f "https://${{ matrix.project }}.yourdomain.com/health" > /dev/null 2>&1; then
+            echo "Health check passed for ${{ matrix.project }}"
+            echo "status=healthy" >> $GITHUB_OUTPUT
+          else
+            echo "Health check failed for ${{ matrix.project }}"
+            echo "status=unhealthy" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Rollback on failure
+        if: failure()
+        env:
+          SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+        run: |
+          echo "Deployment failed, initiating rollback for ${{ matrix.project }}"
+          # Rollback al despliegue anterior
+          sleakops rollback -p ${{ matrix.project }} -e dev -v ${{ steps.current-deployment.outputs.current-version }}
+          
+          # Verificar que el rollback fue exitoso
+          sleep 30
+          if curl -f "https://${{ matrix.project }}.yourdomain.com/health" > /dev/null 2>&1; then
+            echo "Rollback successful for ${{ matrix.project }}"
+          else
+            echo "Rollback failed for ${{ matrix.project }} - manual intervention required"
+            exit 1
+          fi
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-and-observability" summary="Monitoreo y Observabilidad de Despliegues">
+
+Implementa monitoreo para tus despliegues multi-proyecto:
+
+```yaml
+name: Multi-Project CI/CD with Monitoring
+
+on:
+  push:
+    branches:
+      - prod
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: ["simplee-drf-aws-cl", "simplee-drf-aws-mx"]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install SleakOps CLI
+        run: pip install sleakops
+
+      - name: Create deployment record
+        id: deployment-record
+        run: |
+          DEPLOYMENT_ID="deploy-$(date +%s)-${{ matrix.project }}"
+          echo "deployment-id=$DEPLOYMENT_ID" >> $GITHUB_OUTPUT
+          
+          # Registrar inicio del despliegue en tu sistema de monitoreo
+          curl -X POST "${{ secrets.MONITORING_WEBHOOK }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "deployment_id": "'$DEPLOYMENT_ID'",
+              "project": "${{ matrix.project }}",
+              "status": "started",
+              "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'",
+              "commit": "${{ github.sha }}",
+              "branch": "${{ github.ref_name }}"
+            }'
+
+      - name: Deploy project
+        env:
+          SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+        run: |
+          sleakops build -p ${{ matrix.project }} -b prod -w
+          sleakops deploy -p ${{ matrix.project }} -e dev -w
+
+      - name: Post-deployment monitoring
+        run: |
+          # Configurar alertas específicas para este despliegue
+          curl -X POST "${{ secrets.MONITORING_WEBHOOK }}/alerts" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "deployment_id": "${{ steps.deployment-record.outputs.deployment-id }}",
+              "project": "${{ matrix.project }}",
+              "alerts": [
+                {
+                  "type": "error_rate",
+                  "threshold": 5,
+                  "duration": "5m"
+                },
+                {
+                  "type": "response_time",
+                  "threshold": 2000,
+                  "duration": "5m"
+                }
+              ]
+            }'
+
+      - name: Update deployment status
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          curl -X PUT "${{ secrets.MONITORING_WEBHOOK }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "deployment_id": "${{ steps.deployment-record.outputs.deployment-id }}",
+              "status": "'$STATUS'",
+              "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"
+            }'
+
+  generate-deployment-report:
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Generate deployment report
+        run: |
+          cat << EOF > deployment-report.md
+          # Deployment Report
+          
+          **Date:** $(date)
+          **Branch:** ${{ github.ref_name }}
+          **Commit:** ${{ github.sha }}
+          **Status:** ${{ needs.deploy.result }}
+          
+          ## Projects Deployed
+          - simplee-drf-aws-cl
+          - simplee-drf-aws-mx
+          
+          ## Links
+          - [CL Environment](https://simplee-drf-aws-cl.yourdomain.com)
+          - [MX Environment](https://simplee-drf-aws-mx.yourdomain.com)
+          - [Monitoring Dashboard](https://monitoring.yourdomain.com)
+          EOF
+
+      - name: Upload deployment report
+        uses: actions/upload-artifact@v3
+        with:
+          name: deployment-report
+          path: deployment-report.md
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-common-issues" summary="Solución de Problemas Comunes">
+
+**Problema: Fallos intermitentes en la matriz de despliegue**
+
+```yaml
+# Solución: Agregar reintentos automáticos
+strategy:
+  matrix:
+    project: ["simplee-drf-aws-cl", "simplee-drf-aws-mx"]
+  fail-fast: false
+  max-parallel: 2  # Limitar despliegues paralelos
+
+steps:
+  - name: Deploy with retry
+    uses: nick-invision/retry@v2
+    with:
+      timeout_minutes: 10
+      max_attempts: 3
+      retry_on: error
+      command: |
+        sleakops build -p ${{ matrix.project }} -b prod -w
+        sleakops deploy -p ${{ matrix.project }} -e dev -w
+```
+
+**Problema: Conflictos de recursos entre proyectos**
+
+```yaml
+# Solución: Despliegue secuencial con dependencias
+jobs:
+  deploy-cl:
+    runs-on: ubuntu-latest
+    steps:
+      # ... pasos de despliegue para CL
+
+  deploy-mx:
+    needs: deploy-cl
+    runs-on: ubuntu-latest
+    steps:
+      # ... pasos de despliegue para MX
+```
+
+**Problema: Timeouts en despliegues largos**
+
+```yaml
+# Solución: Aumentar timeouts y agregar progreso
+- name: Deploy with extended timeout
+  timeout-minutes: 30
+  env:
+    SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+  run: |
+    echo "Starting deployment of ${{ matrix.project }}..."
+    sleakops build -p ${{ matrix.project }} -b prod -w --timeout 1800
+    echo "Build completed, starting deployment..."
+    sleakops deploy -p ${{ matrix.project }} -e dev -w --timeout 1800
+    echo "Deployment completed successfully"
+```
+
+**Problema: Gestión de secretos para múltiples proyectos**
+
+```yaml
+# Solución: Usar secretos específicos por proyecto
+env:
+  SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
+  PROJECT_SPECIFIC_SECRET: ${{ secrets[format('SECRET_{0}', matrix.project)] }}
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 15 de enero de 2025 basada en una consulta real de usuario._
