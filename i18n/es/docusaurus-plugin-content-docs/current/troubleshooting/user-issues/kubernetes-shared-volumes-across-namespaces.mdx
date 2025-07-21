@@ -230,4 +230,334 @@ spec:
   capacity:
     storage: 100Gi
   accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: efs-sc
+  csi:
+    driver: efs.csi.aws.com
+    volumeHandle: fs-12345678  # Tu EFS ID
+```
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: efs-claim
+  namespace: jobs  # Namespace del cronjob
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: efs-sc
+  resources:
+    requests:
+      storage: 100Gi
+```
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: efs-claim
+  namespace: web  # Namespace de nginx
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: efs-sc
+  resources:
+    requests:
+      storage: 100Gi
+```
+
+### Opción 3: Usar un servicio intermedio
+
+Crea un servicio API que maneje la transferencia de archivos:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: file-service
+  namespace: shared
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: file-service
+  template:
+    metadata:
+      labels:
+        app: file-service
+    spec:
+      containers:
+      - name: file-service
+        image: file-service:latest
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: shared-storage
+          mountPath: /shared
+      volumes:
+      - name: shared-storage
+        persistentVolumeClaim:
+          claimName: shared-pvc
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="performance-optimization" summary="Optimización de rendimiento para archivos grandes">
+
+Para manejar archivos de más de 5GB eficientemente:
+
+### 1. Configuración de recursos del pod:
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: generador-archivos-grandes
+spec:
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: generador
+            image: tu-app:latest
+            resources:
+              requests:
+                memory: "4Gi"
+                cpu: "2"
+                ephemeral-storage: "60Gi"
+              limits:
+                memory: "8Gi"
+                cpu: "4"
+                ephemeral-storage: "80Gi"
+            volumeMounts:
+            - name: temp-storage
+              mountPath: /tmp/large-files
+          volumes:
+          - name: temp-storage
+            emptyDir:
+              sizeLimit: 70Gi
+```
+
+### 2. Subida multipart a S3:
+
+```python
+import boto3
+from boto3.s3.transfer import TransferConfig
+
+def upload_large_file(file_path, bucket, key):
+    # Configuración para archivos grandes
+    config = TransferConfig(
+        multipart_threshold=1024 * 25,  # 25MB
+        max_concurrency=10,
+        multipart_chunksize=1024 * 25,
+        use_threads=True
+    )
+    
+    s3_client = boto3.client('s3')
+    s3_client.upload_file(
+        file_path, bucket, key,
+        Config=config
+    )
+```
+
+### 3. Compresión antes de subir:
+
+```bash
+#!/bin/bash
+# Script para comprimir y subir archivos grandes
+cd /tmp/files
+
+# Comprimir archivos
+tar -czf data_$(date +%Y%m%d_%H%M%S).tar.gz *.data
+
+# Subir a S3
+aws s3 cp data_*.tar.gz s3://$S3_BUCKET/compressed-files/
+
+# Limpiar archivos temporales
+rm -f *.data *.tar.gz
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-and-troubleshooting" summary="Monitoreo y solución de problemas">
+
+### Monitoreo de uso de almacenamiento:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: monitoring-script
+data:
+  monitor.sh: |
+    #!/bin/bash
+    while true; do
+      echo "=== Uso de almacenamiento $(date) ==="
+      df -h /tmp/files
+      echo "=== Archivos en directorio ==="
+      ls -lah /tmp/files/
+      echo "=== Memoria del pod ==="
+      free -h
+      sleep 300  # Cada 5 minutos
+    done
+```
+
+### Verificación de conectividad S3:
+
+```bash
+# Script de verificación
+#!/bin/bash
+echo "Verificando conectividad con S3..."
+
+# Verificar credenciales
+aws sts get-caller-identity
+
+# Verificar acceso al bucket
+aws s3 ls s3://$S3_BUCKET/
+
+# Probar subida de archivo de prueba
+echo "test" > /tmp/test.txt
+aws s3 cp /tmp/test.txt s3://$S3_BUCKET/test/
+aws s3 rm s3://$S3_BUCKET/test/test.txt
+rm /tmp/test.txt
+
+echo "Verificación completada"
+```
+
+### Logs y debugging:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: debug-pod
+spec:
+  containers:
+  - name: debug
+    image: amazon/aws-cli:latest
+    command: ["/bin/bash"]
+    args: ["-c", "while true; do sleep 3600; done"]
+    env:
+    - name: S3_BUCKET
+      value: "tu-bucket"
+    volumeMounts:
+    - name: debug-storage
+      mountPath: /debug
+  volumes:
+  - name: debug-storage
+    emptyDir: {}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Mejores prácticas y recomendaciones">
+
+### 1. Gestión del ciclo de vida de archivos:
+
+```yaml
+# Política de ciclo de vida en S3
+{
+  "Rules": [
+    {
+      "ID": "ArchiveOldFiles",
+      "Status": "Enabled",
+      "Filter": {
+        "Prefix": "generated-files/"
+      },
+      "Transitions": [
+        {
+          "Days": 30,
+          "StorageClass": "STANDARD_IA"
+        },
+        {
+          "Days": 90,
+          "StorageClass": "GLACIER"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### 2. Seguridad y acceso:
+
+```yaml
+# ServiceAccount con permisos específicos para S3
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: s3-access-sa
+  namespace: jobs
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/S3AccessRole
+```
+
+### 3. Configuración de retry y timeout:
+
+```python
+import boto3
+from botocore.config import Config
+
+# Configuración robusta para S3
+config = Config(
+    region_name='us-east-1',
+    retries={
+        'max_attempts': 10,
+        'mode': 'adaptive'
+    },
+    max_pool_connections=50
+)
+
+s3_client = boto3.client('s3', config=config)
+```
+
+### 4. Notificaciones y alertas:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: notification-config
+data:
+  notify.py: |
+    import boto3
+    import json
+    
+    def send_notification(message):
+        sns = boto3.client('sns')
+        sns.publish(
+            TopicArn='arn:aws:sns:us-east-1:ACCOUNT:file-processing',
+            Message=json.dumps({
+                'status': 'completed',
+                'timestamp': str(datetime.now()),
+                'message': message
+            })
+        )
+```
+
+### 5. Backup y recuperación:
+
+```bash
+#!/bin/bash
+# Script de backup automático
+BACKUP_BUCKET="tu-bucket-backup"
+SOURCE_BUCKET="tu-bucket"
+
+# Sincronizar buckets
+aws s3 sync s3://$SOURCE_BUCKET/ s3://$BACKUP_BUCKET/ \
+  --delete \
+  --storage-class STANDARD_IA
+
+# Verificar integridad
+aws s3api head-object --bucket $BACKUP_BUCKET --key generated-files/latest.zip
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 30 de enero de 2025 basada en una consulta real de usuario._
 ```
