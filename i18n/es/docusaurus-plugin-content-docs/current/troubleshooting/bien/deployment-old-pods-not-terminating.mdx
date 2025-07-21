@@ -123,5 +123,104 @@ Si las sondas de disponibilidad fallan, el servicio no enviará tráfico a los p
 </TroubleshootingItem>
 
 <TroubleshootingItem id="force-deployment-rollout" summary="Forzar un despliegue correcto">
+Si el despliegue está atascado, puedes forzar un nuevo rollout:
 
-Si el despliegue está atascado
+```bash
+# Forzar un nuevo rollout del despliegue
+kubectl rollout restart deployment <nombre-del-despliegue> -n <namespace>
+
+# Monitorear el progreso del rollout
+kubectl rollout status deployment <nombre-del-despliegue> -n <namespace>
+
+# Ver historial de rollouts
+kubectl rollout history deployment <nombre-del-despliegue> -n <namespace>
+```
+
+Esto creará un nuevo conjunto de réplicas y terminará gradualmente los pods antiguos.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="check-resource-constraints" summary="Verificar restricciones de recursos">
+
+Verifica si hay problemas de recursos que impidan el despliegue correcto:
+
+```bash
+# Ver uso de recursos del nodo
+kubectl top nodes
+kubectl describe nodes
+
+# Ver límites de recursos de los pods
+kubectl describe pod <nombre-del-pod> -n <namespace>
+
+# Ver eventos del namespace
+kubectl get events -n <namespace> --sort-by='.lastTimestamp'
+```
+
+Busca eventos relacionados con:
+- Falta de CPU o memoria
+- Problemas de programación de pods
+- Fallos en el pull de imágenes
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-cleanup" summary="Limpieza manual si es necesario">
+
+Si los métodos anteriores no funcionan, puedes realizar una limpieza manual:
+
+```bash
+# Escalar el despliegue a 0 réplicas
+kubectl scale deployment <nombre-del-despliegue> --replicas=0 -n <namespace>
+
+# Esperar a que todos los pods se terminen
+kubectl get pods -n <namespace> -w
+
+# Escalar de vuelta al número deseado de réplicas
+kubectl scale deployment <nombre-del-despliegue> --replicas=<número-deseado> -n <namespace>
+```
+
+**Precaución:** Este método causará tiempo de inactividad del servicio.
+
+</TroubleshootingItem>
+
+## Prevención
+
+Para evitar este problema en el futuro:
+
+1. **Configurar correctamente la estrategia de despliegue:**
+   ```yaml
+   spec:
+     strategy:
+       type: RollingUpdate
+       rollingUpdate:
+         maxUnavailable: 25%
+         maxSurge: 25%
+   ```
+
+2. **Asegurar sondas de disponibilidad apropiadas:**
+   ```yaml
+   readinessProbe:
+     httpGet:
+       path: /health
+       port: 8080
+     initialDelaySeconds: 10
+     periodSeconds: 5
+   ```
+
+3. **Monitorear despliegues regularmente:**
+   ```bash
+   kubectl rollout status deployment <nombre> -n <namespace> --timeout=300s
+   ```
+
+4. **Usar herramientas de CI/CD que verifiquen el estado del despliegue antes de completar**
+
+## Recursos Adicionales
+
+- [Documentación oficial de Kubernetes sobre Despliegues](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)
+- [Estrategias de Despliegue en Kubernetes](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy)
+- [Configuración de Sondas de Salud](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/)
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de usuario._

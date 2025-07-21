@@ -229,5 +229,38 @@ Para prevenir futuros problemas de integridad de datos en migraciones:
            query: "SELECT COUNT(*) FROM critical_table"
            expected_min: 1000
          - name: frescura_de_datos
-           query: "SELECT MAX(create"
+           query: "SELECT MAX(created_at) FROM critical_table"
+           max_age_hours: 24
    ```
+
+3. **Automatizar validación post-migración**:
+
+   ```bash
+   #!/bin/bash
+   # Script de validación automática post-migración
+   
+   echo "Iniciando validación post-migración..."
+   
+   # Verificar conteos de registros
+   ./validate_record_counts.sh
+   
+   # Verificar integridad referencial
+   psql $TARGET_DB -f validate_foreign_keys.sql
+   
+   # Verificar frescura de datos
+   ./check_data_freshness.sh
+   
+   echo "Validación completada."
+   ```
+
+4. **Documentar procedimientos de migración**:
+   - Crear runbooks detallados para cada tipo de migración
+   - Documentar puntos de verificación críticos
+   - Mantener scripts de validación actualizados
+   - Establecer criterios claros de éxito/fallo
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de usuario._

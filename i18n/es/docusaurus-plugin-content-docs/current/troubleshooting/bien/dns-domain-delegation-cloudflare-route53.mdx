@@ -193,3 +193,48 @@ dig +short NS yourdomain.com
 2. **Retrasos en la propagación**
 
 - Usar múltiples verificadores DNS: whatsmydns.net
+- Verificar TTL de registros DNS existentes
+- Limpiar caché DNS local si es necesario
+
+3. **Problemas de certificado SSL**
+
+```bash
+# Verificar estado del certificado
+openssl s_client -connect yourdomain.com:443 -servername yourdomain.com
+
+# Verificar registros de validación ACME
+dig TXT _acme-challenge.yourdomain.com
+```
+
+**Pasos de resolución:**
+
+1. Verificar que el dominio esté correctamente delegado a Route53
+2. Confirmar que todos los registros NS coincidan
+3. Esperar la propagación DNS completa
+4. Reintentar la validación del dominio en SleakOps
+5. Contactar soporte si los problemas persisten después de 48 horas
+
+</TroubleshootingItem>
+
+## Prevención
+
+**Mejores prácticas para evitar problemas de delegación:**
+
+1. **Planificar la migración:** Realizar la migración DNS durante ventanas de mantenimiento
+2. **Documentar registros:** Mantener un inventario completo de todos los registros DNS
+3. **Probar en subdominios:** Probar la delegación primero con subdominios no críticos
+4. **Monitorear propagación:** Usar herramientas de monitoreo DNS para verificar la propagación
+5. **Backup de configuración:** Mantener respaldos de la configuración DNS de CloudFlare
+
+## Recursos Adicionales
+
+- [Documentación de Route53](https://docs.aws.amazon.com/route53/)
+- [Guía de migración DNS de CloudFlare](https://developers.cloudflare.com/dns/)
+- [Verificador de propagación DNS](https://whatsmydns.net/)
+- [Documentación de SleakOps sobre gestión de dominios]()
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de usuario._
+
+```
