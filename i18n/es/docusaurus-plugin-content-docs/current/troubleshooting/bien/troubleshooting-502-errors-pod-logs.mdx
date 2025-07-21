@@ -239,3 +239,314 @@ kubectl scale deployment <nombre-despliegue> --replicas=1 -n <tu-namespace>
 
 - Aumentar temporalmente límites de recursos
 - Reducir escala de otros servicios no críticos
+- Usar nodos con más recursos si están disponibles
+
+**4. Rollback a imagen conocida como funcional:**
+
+```bash
+# Rollback usando kubectl
+kubectl rollout undo deployment/<nombre-despliegue> -n <tu-namespace>
+
+# Verificar estado del rollback
+kubectl rollout status deployment/<nombre-despliegue> -n <tu-namespace>
+```
+
+**5. Despliegue de emergencia con configuración mínima:**
+
+```yaml
+# deployment-emergency.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: emergency-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: emergency-app
+  template:
+    metadata:
+      labels:
+        app: emergency-app
+    spec:
+      containers:
+      - name: app
+        image: <imagen-funcional-anterior>
+        ports:
+        - containerPort: 8080
+        resources:
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+        # Deshabilitar chequeos de salud temporalmente
+        # livenessProbe: {}
+        # readinessProbe: {}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-strategies" summary="Estrategias de prevención para futuros despliegues">
+
+**1. Implementar chequeos de salud robustos:**
+
+```javascript
+// Ejemplo para aplicación Node.js
+const express = require('express');
+const app = express();
+
+// Endpoint de health check básico
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
+});
+
+// Endpoint de readiness más complejo
+app.get('/ready', async (req, res) => {
+  try {
+    // Verificar conexiones a base de datos
+    await checkDatabaseConnection();
+    
+    // Verificar servicios externos críticos
+    await checkExternalServices();
+    
+    res.status(200).json({ 
+      status: 'ready', 
+      timestamp: new Date().toISOString(),
+      checks: {
+        database: 'ok',
+        external_services: 'ok'
+      }
+    });
+  } catch (error) {
+    res.status(503).json({ 
+      status: 'not ready', 
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+```
+
+**2. Configurar monitoreo proactivo:**
+
+```yaml
+# Configuración de alertas
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: app-alerts
+spec:
+  groups:
+  - name: app.rules
+    rules:
+    - alert: PodCrashLooping
+      expr: rate(kube_pod_container_status_restarts_total[15m]) > 0
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Pod {{ $labels.pod }} is crash looping"
+        
+    - alert: HighMemoryUsage
+      expr: container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.9
+      for: 2m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High memory usage on {{ $labels.pod }}"
+```
+
+**3. Implementar despliegues graduales:**
+
+```yaml
+# Estrategia de rolling update conservadora
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  minReadySeconds: 30
+  progressDeadlineSeconds: 600
+```
+
+**4. Usar staging que replique producción:**
+
+- Configurar entorno de staging con recursos similares a producción
+- Probar con volúmenes de datos realistas
+- Validar chequeos de salud en staging antes de producción
+- Implementar pruebas de carga automatizadas
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="advanced-debugging" summary="Técnicas avanzadas de depuración">
+
+**1. Depuración con contenedores sidecar:**
+
+```yaml
+# Agregar contenedor de depuración
+spec:
+  containers:
+  - name: app
+    image: tu-app:latest
+  - name: debug
+    image: busybox
+    command: ['sleep', '3600']
+    volumeMounts:
+    - name: shared-logs
+      mountPath: /logs
+```
+
+**2. Usar herramientas de profiling:**
+
+```bash
+# Instalar herramientas de depuración en el pod
+kubectl exec -it <pod-name> -- /bin/bash
+
+# Dentro del pod
+apt-get update && apt-get install -y htop strace tcpdump
+
+# Monitorear procesos
+htop
+
+# Rastrear llamadas del sistema
+strace -p <pid>
+
+# Capturar tráfico de red
+tcpdump -i any port 8080
+```
+
+**3. Análisis de dumps de memoria:**
+
+```bash
+# Para aplicaciones Java
+kubectl exec <pod-name> -- jstack <pid>
+kubectl exec <pod-name> -- jmap -dump:format=b,file=/tmp/heap.hprof <pid>
+
+# Para aplicaciones Node.js
+kubectl exec <pod-name> -- kill -USR2 <pid>  # Genera heap dump
+```
+
+**4. Depuración de red:**
+
+```bash
+# Verificar conectividad desde el pod
+kubectl exec <pod-name> -- nslookup <service-name>
+kubectl exec <pod-name> -- curl -v http://<service-name>:<port>/health
+
+# Verificar configuración de iptables
+kubectl exec <pod-name> -- iptables -L
+
+# Verificar rutas de red
+kubectl exec <pod-name> -- route -n
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="documentation-and-runbooks" summary="Documentación y runbooks para el equipo">
+
+**1. Crear runbook de respuesta a incidentes:**
+
+```markdown
+# Runbook: Error 502 con Logs Inaccesibles
+
+## Pasos inmediatos (5 minutos)
+1. Verificar estado de pods: `kubectl get pods -n <namespace>`
+2. Revisar eventos recientes: `kubectl get events --sort-by='.lastTimestamp'`
+3. Intentar acceso a logs: `kubectl logs <pod> --previous`
+
+## Investigación (15 minutos)
+1. Verificar recursos: `kubectl top pods`
+2. Revisar chequeos de salud
+3. Comparar con configuración funcional anterior
+
+## Escalación
+- Si no se resuelve en 20 minutos, contactar al equipo de plataforma
+- Si es crítico para producción, implementar rollback inmediato
+```
+
+**2. Configurar dashboards de monitoreo:**
+
+```yaml
+# Dashboard de Grafana para monitoreo de aplicación
+{
+  "dashboard": {
+    "title": "Application Health Dashboard",
+    "panels": [
+      {
+        "title": "Pod Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "kube_pod_status_phase{namespace=\"your-namespace\"}"
+          }
+        ]
+      },
+      {
+        "title": "Memory Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "container_memory_usage_bytes{namespace=\"your-namespace\"}"
+          }
+        ]
+      },
+      {
+        "title": "HTTP Response Codes",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**3. Automatizar chequeos de salud:**
+
+```bash
+#!/bin/bash
+# health-check-script.sh
+
+NAMESPACE="your-namespace"
+DEPLOYMENT="your-deployment"
+
+echo "Verificando salud del despliegue $DEPLOYMENT en namespace $NAMESPACE"
+
+# Verificar estado de pods
+PODS=$(kubectl get pods -n $NAMESPACE -l app=$DEPLOYMENT --no-headers)
+echo "Estado de pods:"
+echo "$PODS"
+
+# Verificar si hay pods en estado no saludable
+UNHEALTHY=$(echo "$PODS" | grep -v "Running\|Completed" | wc -l)
+
+if [ $UNHEALTHY -gt 0 ]; then
+    echo "ALERTA: $UNHEALTHY pods no están en estado saludable"
+    
+    # Obtener logs de pods problemáticos
+    kubectl get pods -n $NAMESPACE -l app=$DEPLOYMENT --no-headers | \
+    grep -v "Running\|Completed" | \
+    awk '{print $1}' | \
+    while read pod; do
+        echo "Logs del pod $pod:"
+        kubectl logs $pod -n $NAMESPACE --tail=50
+    done
+    
+    exit 1
+else
+    echo "Todos los pods están saludables"
+    exit 0
+fi
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 27 de enero de 2025 basada en una consulta real de usuario._

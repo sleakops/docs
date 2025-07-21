@@ -250,7 +250,138 @@ async function executeQuery(query) {
 
 ```javascript
 // Monitoreo de conexiones a la base de datos
-const dbMetrics = {
-  activeConnections: () => pool.pool._allConnections"
+7const dbMetrics = {
+  activeConnections: () => pool.pool._allConnections.length,
+  idleConnections: () => pool.pool._freeConnections.length,
+  queuedRequests: () => pool.pool._connectionQueue.length,
+};
+
+// Función para monitorear durante migraciones
+function monitorDatabaseDuringMigration() {
+  const interval = setInterval(() => {
+    console.log(`Conexiones activas: ${dbMetrics.activeConnections()}`);
+    console.log(`Conexiones inactivas: ${dbMetrics.idleConnections()}`);
+    console.log(`Solicitudes en cola: ${dbMetrics.queuedRequests()}`);
+  }, 5000);
+
+  return interval;
 }
+```
+
+**Configuración de Alertas:**
+
+```javascript
+// Configurar alertas para métricas críticas
+function setupDatabaseAlerts() {
+  setInterval(() => {
+    const activeConnections = dbMetrics.activeConnections();
+    
+    if (activeConnections > 80) {
+      console.warn(`ALERTA: Conexiones altas detectadas: ${activeConnections}`);
+      // Enviar notificación al equipo
+    }
+  }, 30000);
+}
+```
+
+**Herramientas de Monitoreo Recomendadas:**
+
+- **AWS CloudWatch** (para RDS)
+- **Prometheus + Grafana** (para métricas personalizadas)
+- **New Relic** o **DataDog** (para monitoreo integral)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="rollback-procedures" summary="Procedimientos de Rollback en Caso de Problemas">
+
+**Plan de Rollback Automático:**
+
+```bash
+#!/bin/bash
+# rollback-migration.sh
+
+# Verificar si la migración falló
+if [ $? -ne 0 ]; then
+    echo "Migración falló, iniciando rollback..."
+    
+    # Restaurar desde backup
+    mysql -u $DB_USER -p$DB_PASS $DB_NAME < backup_pre_migration.sql
+    
+    # Reiniciar servicios
+    kubectl rollout undo deployment/app-deployment
+    
+    # Notificar al equipo
+    curl -X POST $SLACK_WEBHOOK -d '{"text":"Rollback de migración ejecutado"}'
+fi
+```
+
+**Verificaciones Post-Migración:**
+
+```javascript
+// Script de verificación después de migración
+async function verifyMigration() {
+  try {
+    // Verificar integridad de datos
+    const countCheck = await pool.query('SELECT COUNT(*) as count FROM countries');
+    console.log(`Registros en tabla countries: ${countCheck[0].count}`);
+    
+    // Verificar funcionamiento de la aplicación
+    const healthCheck = await fetch('/health');
+    if (!healthCheck.ok) {
+      throw new Error('Health check falló');
+    }
+    
+    console.log('Migración verificada exitosamente');
+  } catch (error) {
+    console.error('Verificación de migración falló:', error);
+    // Activar rollback automático
+    process.exit(1);
+  }
+}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Mejores Prácticas para Migraciones en Producción">
+
+**1. Preparación Previa:**
+
+- Siempre crear backups completos antes de migraciones
+- Probar migraciones en entornos de staging idénticos
+- Documentar todos los pasos y procedimientos de rollback
+- Coordinar con el equipo sobre ventanas de mantenimiento
+
+**2. Durante la Migración:**
+
+- Monitorear métricas de rendimiento en tiempo real
+- Mantener comunicación constante con el equipo
+- Tener procedimientos de rollback listos para ejecutar
+- Documentar cualquier problema o comportamiento inesperado
+
+**3. Después de la Migración:**
+
+- Verificar integridad de datos y funcionamiento de la aplicación
+- Monitorear rendimiento durante las siguientes 24 horas
+- Mantener backups por al menos 7 días
+- Documentar lecciones aprendidas para futuras migraciones
+
+**4. Automatización Recomendada:**
+
+```yaml
+# Ejemplo de pipeline de migración automatizada
+migration_pipeline:
+  steps:
+    - backup_database
+    - run_migration
+    - verify_migration
+    - notify_team
+  rollback_on_failure: true
+  monitoring_enabled: true
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._
 ```

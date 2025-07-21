@@ -1,0 +1,332 @@
+---
+sidebar_position: 3
+title: "Problema Interno de Configuración de Cargas de Trabajo"
+description: "Imposible modificar las configuraciones internas de cargas de trabajo en la plataforma SleakOps"
+date: "2025-03-28"
+category: "workload"
+tags:
+  [
+    "carga de trabajo",
+    "interna",
+    "configuración",
+    "interfaz",
+    "solución de problemas",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problema Interno de Configuración de Cargas de Trabajo
+
+**Fecha:** 28 de marzo de 2025  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** Carga de trabajo, Interna, Configuración, Interfaz, Solución de problemas
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios que intentan modificar las configuraciones internas de cargas de trabajo a través de la interfaz de la plataforma SleakOps encuentran problemas de navegación en la interfaz que les impiden completar el proceso de configuración.
+
+**Síntomas Observados:**
+
+- El botón "Siguiente" en el paso de Esquema de Servicio se vuelve inoperante
+- Incapacidad para avanzar en el asistente de configuración para cargas de trabajo internas
+- El problema afecta consistentemente a múltiples cargas de trabajo internas
+- Las cargas de trabajo públicas pueden ser modificadas sin problemas
+- No se pueden guardar ni aplicar los cambios de configuración
+
+**Configuración Relevante:**
+
+- Tipo de carga de trabajo: Cargas de trabajo internas
+- Paso afectado: Paso de configuración de Esquema de Servicio
+- Componente de interfaz: Funcionalidad del botón Siguiente
+- Alternativa funcional: Las cargas de trabajo públicas funcionan normalmente
+
+**Condiciones de Error:**
+
+- El error ocurre específicamente con tipos de cargas de trabajo internas
+- El problema aparece durante el paso de Esquema de Servicio del asistente de configuración
+- Afecta uniformemente a todas las cargas de trabajo internas
+- No afecta configuraciones de cargas de trabajo públicas
+
+## Solución Detallada
+
+<TroubleshootingItem id="immediate-workaround" summary="Solución inmediata usando Lens">
+
+Mientras se resuelve el problema de la interfaz de la plataforma, puedes modificar las configuraciones internas de cargas de trabajo directamente usando Lens:
+
+1. **Accede a tu clúster a través de Lens**
+2. **Navega a Cargas de Trabajo** → **Despliegues**
+3. **Encuentra tu carga de trabajo interna**
+4. **Edita el despliegue directamente**
+
+Para modificaciones comunes:
+
+```yaml
+# Para cambiar el número de réplicas
+spec:
+  replicas: 3  # Cambia este valor
+
+# Para modificar límites de recursos
+spec:
+  template:
+    spec:
+      containers:
+      - name: tu-contenedor
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="kubectl-alternative" summary="Alternativa usando kubectl">
+
+También puedes usar kubectl para modificar cargas de trabajo internas:
+
+```bash
+# Obtener la configuración actual del despliegue
+kubectl get deployment <nombre-carga-trabajo> -o yaml > respaldo-carga-trabajo.yaml
+
+# Editar el despliegue
+kubectl edit deployment <nombre-carga-trabajo>
+
+# O aplicar cambios desde un archivo
+kubectl apply -f carga-trabajo-modificada.yaml
+
+# Verificar los cambios
+kubectl get deployment <nombre-carga-trabajo>
+kubectl describe deployment <nombre-carga-trabajo>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-modifications" summary="Modificaciones comunes en cargas de trabajo internas">
+
+**Escalar réplicas:**
+
+```bash
+kubectl scale deployment <nombre-carga-trabajo> --replicas=5
+```
+
+**Actualizar límites de recursos:**
+
+```bash
+kubectl patch deployment <nombre-carga-trabajo> -p '{
+  "spec": {
+    "template": {
+      "spec": {
+        "containers": [{
+          "name": "<nombre-contenedor>",
+          "resources": {
+            "limits": {
+              "cpu": "1000m",
+              "memory": "1Gi"
+            },
+            "requests": {
+              "cpu": "500m",
+              "memory": "512Mi"
+            }
+          }
+        }]
+      }
+    }
+  }
+}'
+```
+
+**Actualizar variables de entorno:**
+
+```bash
+kubectl patch deployment <nombre-carga-trabajo> -p '{
+  "spec": {
+    "template": {
+      "spec": {
+        "containers": [{
+          "name": "<nombre-contenedor>",
+          "env": [
+            {"name": "NUEVA_VARIABLE", "value": "nuevo-valor"},
+            {"name": "OTRA_VARIABLE", "value": "otro-valor"}
+          ]
+        }]
+      }
+    }
+  }
+}'
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="interface-debugging" summary="Depuración del problema de interfaz">
+
+Para ayudar a diagnosticar el problema de la interfaz:
+
+**1. Verificar la consola del navegador:**
+
+```javascript
+// Abrir herramientas de desarrollador (F12)
+// Buscar errores en la consola durante el proceso de configuración
+console.log("Verificando errores de JavaScript...");
+
+// Verificar si hay errores de red
+// Ir a la pestaña Network y buscar requests fallidos
+```
+
+**2. Verificar el estado del botón:**
+
+```javascript
+// En la consola del navegador, verificar el estado del botón
+const nextButton = document.querySelector('[data-testid="next-button"]') || 
+                   document.querySelector('button:contains("Siguiente")');
+console.log("Estado del botón:", nextButton);
+console.log("Deshabilitado:", nextButton?.disabled);
+console.log("Clases CSS:", nextButton?.className);
+```
+
+**3. Información útil para reportar:**
+
+- Versión del navegador
+- Errores específicos en la consola
+- Pasos exactos para reproducir el problema
+- Capturas de pantalla del estado del botón
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-strategies" summary="Estrategias de prevención y mejores prácticas">
+
+**Respaldo antes de modificaciones:**
+
+```bash
+# Crear respaldo completo del namespace
+kubectl get all -n <namespace> -o yaml > respaldo-completo.yaml
+
+# Respaldar configuraciones específicas
+kubectl get deployment <nombre-carga-trabajo> -o yaml > respaldo-deployment.yaml
+kubectl get service <nombre-servicio> -o yaml > respaldo-service.yaml
+kubectl get configmap <nombre-configmap> -o yaml > respaldo-configmap.yaml
+```
+
+**Validación de cambios:**
+
+```bash
+# Verificar que los pods se reinicien correctamente
+kubectl rollout status deployment/<nombre-carga-trabajo>
+
+# Verificar logs de los nuevos pods
+kubectl logs -f deployment/<nombre-carga-trabajo>
+
+# Verificar que el servicio responda
+kubectl port-forward deployment/<nombre-carga-trabajo> 8080:8080
+curl http://localhost:8080/health
+```
+
+**Monitoreo post-cambios:**
+
+```bash
+# Verificar métricas de recursos
+kubectl top pods -l app=<nombre-carga-trabajo>
+
+# Verificar eventos del deployment
+kubectl describe deployment <nombre-carga-trabajo>
+
+# Verificar estado de los pods
+kubectl get pods -l app=<nombre-carga-trabajo> -w
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="advanced-troubleshooting" summary="Solución de problemas avanzada">
+
+**Análisis de configuración YAML:**
+
+```bash
+# Exportar configuración actual para análisis
+kubectl get deployment <nombre-carga-trabajo> -o yaml > current-config.yaml
+
+# Validar sintaxis YAML
+python -c "import yaml; yaml.safe_load(open('current-config.yaml'))"
+
+# Comparar con configuración de trabajo conocida
+diff working-config.yaml current-config.yaml
+```
+
+**Depuración de problemas de red:**
+
+```bash
+# Verificar conectividad desde el pod
+kubectl exec -it <pod-name> -- nslookup <service-name>
+kubectl exec -it <pod-name> -- curl -v http://<service-name>:<port>/health
+
+# Verificar configuración de red del servicio
+kubectl get endpoints <service-name>
+kubectl describe service <service-name>
+```
+
+**Análisis de logs detallado:**
+
+```bash
+# Logs con timestamps
+kubectl logs <pod-name> --timestamps=true
+
+# Logs de contenedores específicos
+kubectl logs <pod-name> -c <container-name>
+
+# Logs de eventos del sistema
+kubectl get events --sort-by=.metadata.creationTimestamp
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="emergency-procedures" summary="Procedimientos de emergencia">
+
+**Rollback rápido:**
+
+```bash
+# Ver historial de rollouts
+kubectl rollout history deployment/<nombre-carga-trabajo>
+
+# Rollback a la versión anterior
+kubectl rollout undo deployment/<nombre-carga-trabajo>
+
+# Rollback a una versión específica
+kubectl rollout undo deployment/<nombre-carga-trabajo> --to-revision=2
+```
+
+**Recuperación de configuración:**
+
+```bash
+# Restaurar desde respaldo
+kubectl apply -f respaldo-deployment.yaml
+
+# Forzar recreación de pods
+kubectl delete pods -l app=<nombre-carga-trabajo>
+
+# Escalar a cero y luego restaurar
+kubectl scale deployment <nombre-carga-trabajo> --replicas=0
+kubectl scale deployment <nombre-carga-trabajo> --replicas=3
+```
+
+**Contacto con soporte:**
+
+Si el problema persiste:
+
+1. **Recopilar información de diagnóstico:**
+   - Logs de la consola del navegador
+   - Capturas de pantalla del problema
+   - Configuración actual de la carga de trabajo
+
+2. **Crear ticket de soporte** con:
+   - Descripción detallada del problema
+   - Pasos para reproducir
+   - Información del entorno (navegador, versión de SleakOps)
+
+3. **Mientras tanto, usar las alternativas** descritas anteriormente
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 28 de marzo de 2025 basada en una consulta real de usuario._

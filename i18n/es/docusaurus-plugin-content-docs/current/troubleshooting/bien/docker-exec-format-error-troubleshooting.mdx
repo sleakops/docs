@@ -231,3 +231,198 @@ resources:
 - Siempre incluye códigos de salida adecuados en tus scripts
 - Usa cheques de salud cuando sea apropiado
 - Registra errores en stdout/stderr para monitoreo en SleakOps
+
+**Ejemplo de script TypeScript robusto:**
+
+```typescript
+// job-script.ts
+import { exit } from 'process';
+
+async function main() {
+  try {
+    console.log('Iniciando job...');
+    
+    // Tu lógica aquí
+    await performTask();
+    
+    console.log('Job completado exitosamente');
+    exit(0);
+  } catch (error) {
+    console.error('Error en el job:', error);
+    exit(1);
+  }
+}
+
+async function performTask() {
+  // Implementa tu lógica de negocio aquí
+  console.log('Ejecutando tarea...');
+}
+
+main();
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="debugging-techniques" summary="Técnicas de depuración para jobs fallidos">
+
+**1. Revisar logs del job:**
+
+```bash
+# Ver logs del job en SleakOps
+kubectl logs job/your-job-name
+
+# Ver logs de pods específicos
+kubectl logs pod/your-pod-name
+
+# Seguir logs en tiempo real
+kubectl logs -f job/your-job-name
+```
+
+**2. Inspeccionar el estado del job:**
+
+```bash
+# Ver detalles del job
+kubectl describe job your-job-name
+
+# Ver eventos relacionados
+kubectl get events --field-selector involvedObject.name=your-job-name
+```
+
+**3. Probar la imagen localmente:**
+
+```bash
+# Probar la imagen en tu máquina local
+docker run --rm efrecon/ts-node:9.1.1 /bin/echo "test"
+
+# Verificar arquitectura
+docker run --rm efrecon/ts-node:9.1.1 uname -m
+```
+
+**4. Usar modo interactivo para depuración:**
+
+```yaml
+# Job temporal para depuración
+image: node:18-alpine
+command: ["/bin/sh"]
+args: ["-c", "sleep 3600"]  # Mantiene el contenedor vivo
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-strategies" summary="Estrategias de prevención">
+
+**1. Validación de imágenes antes del despliegue:**
+
+```bash
+# Script para validar compatibilidad de imagen
+#!/bin/bash
+IMAGE=$1
+echo "Verificando imagen: $IMAGE"
+
+# Verificar si la imagen existe
+docker manifest inspect $IMAGE > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+    echo "Error: La imagen no existe o no es accesible"
+    exit 1
+fi
+
+# Verificar arquitecturas soportadas
+echo "Arquitecturas soportadas:"
+docker manifest inspect $IMAGE | jq -r '.manifests[].platform | "\(.architecture)/\(.os)"'
+```
+
+**2. Usar imágenes con soporte multi-arquitectura:**
+
+- Prefiere imágenes oficiales que soportan múltiples arquitecturas
+- Verifica que la imagen tenga builds para `linux/amd64` y `linux/arm64`
+- Usa registros de imágenes que proporcionen manifiestos multi-arquitectura
+
+**3. Crear imágenes personalizadas:**
+
+```dockerfile
+# Dockerfile multi-arquitectura
+FROM --platform=$BUILDPLATFORM node:18-alpine AS base
+WORKDIR /app
+
+# Instalar dependencias
+COPY package*.json ./
+RUN npm ci --only=production
+
+# Instalar herramientas de desarrollo
+FROM base AS dev
+RUN npm install -g ts-node typescript
+
+# Imagen final
+FROM base AS production
+COPY --from=dev /usr/local/lib/node_modules /usr/local/lib/node_modules
+COPY --from=dev /usr/local/bin /usr/local/bin
+COPY . .
+CMD ["ts-node", "src/index.ts"]
+```
+
+**4. Documentar requisitos de arquitectura:**
+
+```yaml
+# En tu configuración de job, documenta los requisitos
+metadata:
+  annotations:
+    sleakops.io/architecture: "amd64"
+    sleakops.io/image-verified: "true"
+    sleakops.io/last-tested: "2025-01-27"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-alternatives" summary="Alternativas comunes para casos específicos">
+
+**Para desarrollo con TypeScript:**
+
+```yaml
+# Opción 1: Imagen base con instalación en tiempo de ejecución
+image: node:18-alpine
+command: ["/bin/sh"]
+args: ["-c", "npm install -g ts-node typescript @types/node && ts-node --version && exec ts-node /app/script.ts"]
+
+# Opción 2: Usar imagen con TypeScript preinstalado
+image: node:18
+command: ["/bin/sh"]
+args: ["-c", "npm install -g typescript ts-node && ts-node /app/script.ts"]
+```
+
+**Para aplicaciones de producción:**
+
+```yaml
+# Compilar TypeScript a JavaScript
+image: node:18-alpine
+command: ["/bin/sh"]
+args: ["-c", "npm install -g typescript && tsc /app/src/index.ts --outDir /app/dist && node /app/dist/index.js"]
+```
+
+**Para scripts simples:**
+
+```yaml
+# Usar JavaScript directamente
+image: node:18-alpine
+command: ["node"]
+args: ["-e", "console.log('Hello from Node.js job!')"]
+```
+
+**Para casos complejos:**
+
+```yaml
+# Usar init container para preparación
+initContainers:
+- name: setup
+  image: node:18-alpine
+  command: ["/bin/sh"]
+  args: ["-c", "npm install -g ts-node typescript && echo 'Setup complete'"]
+  volumeMounts:
+  - name: shared-tools
+    mountPath: /shared
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 27 de enero de 2025 basada en una consulta real de usuario._

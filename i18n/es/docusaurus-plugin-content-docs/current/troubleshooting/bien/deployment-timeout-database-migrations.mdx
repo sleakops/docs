@@ -259,4 +259,147 @@ spec:
 ```bash
 # Siempre probar con volúmenes de datos similares a producción
 # Usar snapshots de base de datos para pruebas realistas
+
+# Crear snapshot de producción para testing
+aws rds create-db-snapshot \
+  --db-instance-identifier prod-db \
+  --db-snapshot-identifier migration-test-$(date +%Y%m%d)
+
+# Restaurar snapshot en staging
+aws rds restore-db-instance-from-db-snapshot \
+  --db-instance-identifier staging-migration-test \
+  --db-snapshot-identifier migration-test-$(date +%Y%m%d)
 ```
+
+**4. Implementar métricas de migración:**
+
+```python
+# middleware/migration_metrics.py
+import time
+from django.core.management.base import BaseCommand
+from django.db import connection
+
+class MigrationMetrics:
+    @staticmethod
+    def measure_migration_time(migration_func):
+        def wrapper(*args, **kwargs):
+            start_time = time.time()
+            result = migration_func(*args, **kwargs)
+            end_time = time.time()
+            
+            # Log métricas
+            print(f"Migración completada en {end_time - start_time:.2f} segundos")
+            
+            # Enviar métricas a sistema de monitoreo
+            # send_metric('migration.duration', end_time - start_time)
+            
+            return result
+        return wrapper
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="database-optimization" summary="Optimización de base de datos para migraciones">
+
+**1. Configurar parámetros de base de datos para migraciones:**
+
+```sql
+-- PostgreSQL: Optimizar para migraciones grandes
+SET maintenance_work_mem = '2GB';
+SET max_parallel_workers = 8;
+SET max_parallel_maintenance_workers = 4;
+
+-- MySQL: Configuraciones para migraciones
+SET innodb_buffer_pool_size = 2147483648;  -- 2GB
+SET innodb_log_file_size = 512M;
+SET innodb_flush_log_at_trx_commit = 2;
+```
+
+**2. Usar transacciones más pequeñas:**
+
+```python
+# Para migraciones de datos grandes
+from django.db import transaction
+
+class Migration(migrations.Migration):
+    def migrate_data_in_batches(apps, schema_editor):
+        Model = apps.get_model('app', 'Model')
+        batch_size = 1000
+        
+        total_count = Model.objects.count()
+        processed = 0
+        
+        while processed < total_count:
+            with transaction.atomic():
+                batch = Model.objects.all()[processed:processed + batch_size]
+                for obj in batch:
+                    # Procesar objeto
+                    obj.save()
+                processed += batch_size
+                print(f"Procesados {processed}/{total_count} registros")
+```
+
+**3. Índices y constraints:**
+
+```python
+# Crear índices después de insertar datos
+class Migration(migrations.Migration):
+    operations = [
+        # Primero insertar datos
+        migrations.RunPython(insert_data),
+        # Luego crear índices
+        migrations.AddIndex(
+            model_name='model',
+            index=models.Index(fields=['field'], name='idx_field'),
+        ),
+    ]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-checklist" summary="Lista de verificación para solución de problemas">
+
+**Antes del despliegue:**
+
+- [ ] Verificar el tamaño de las migraciones pendientes
+- [ ] Probar migraciones en staging con datos de producción
+- [ ] Configurar timeouts apropiados
+- [ ] Preparar plan de rollback
+- [ ] Verificar recursos de base de datos disponibles
+
+**Durante problemas de timeout:**
+
+- [ ] Revisar logs de migración para identificar operación lenta
+- [ ] Verificar métricas de CPU/memoria de la base de datos
+- [ ] Comprobar conexiones activas a la base de datos
+- [ ] Evaluar si hay bloqueos de tabla
+- [ ] Considerar ejecutar migración manualmente
+
+**Después de resolver:**
+
+- [ ] Documentar la causa raíz del problema
+- [ ] Actualizar timeouts si es necesario
+- [ ] Mejorar monitoreo para futuras migraciones
+- [ ] Revisar estrategia de migración para casos similares
+
+**Comandos útiles para diagnóstico:**
+
+```bash
+# Ver migraciones pendientes
+kubectl exec -it deployment/backend -- python manage.py showmigrations
+
+# Ver plan de migración
+kubectl exec -it deployment/backend -- python manage.py migrate --plan
+
+# Ejecutar migración específica
+kubectl exec -it deployment/backend -- python manage.py migrate app_name migration_name
+
+# Ver estado de la base de datos
+kubectl exec -it deployment/backend -- python manage.py dbshell
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 25 de abril de 2024 basada en una consulta real de usuario._
