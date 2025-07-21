@@ -221,6 +221,54 @@ El aumento temporal en el conteo de réplicas es normal durante los despliegues:
 
 3. **Monitorear el Progreso del Despliegue:**
    ```bash
-   kubectl rollout status deployment
+   kubectl rollout status deployment/tu-nombre-de-app
    ```
-   }
+
+</TroubleshootingItem>
+
+## Mejores Prácticas
+
+### Configuración de Seguridad
+
+- **Nunca hardcodees tokens de Doppler** en tu código o archivos de configuración
+- **Usa secretos de SleakOps** para almacenar tokens de Doppler de forma segura
+- **Rota los tokens regularmente** para mantener la seguridad
+- **Limita el alcance de los tokens** solo a las configuraciones necesarias
+
+### Configuración de Desarrollo
+
+- **Usa configuraciones separadas** para cada entorno (dev, staging, prod)
+- **Implementa validación de variables** en tu aplicación para detectar configuración faltante
+- **Documenta todas las variables requeridas** para facilitar la configuración del equipo
+- **Usa valores por defecto sensatos** cuando sea posible
+
+### Configuración de Operaciones
+
+- **Monitorea la sincronización de Doppler** con alertas automatizadas
+- **Implementa health checks** que verifiquen la disponibilidad de variables críticas
+- **Mantén respaldos** de configuraciones críticas fuera de Doppler
+- **Documenta procedimientos de recuperación** para fallos de Doppler
+
+## Lista de Verificación para Resolución
+
+### Verificación Inicial
+- [ ] Token de Doppler configurado correctamente en SleakOps
+- [ ] Nombre de configuración coincide exactamente con Doppler
+- [ ] CLI de Doppler instalada en la imagen Docker
+- [ ] Conectividad de red a api.doppler.com verificada
+
+### Diagnóstico Avanzado
+- [ ] Logs de contenedor revisados para errores de Doppler
+- [ ] Variables de entorno verificadas dentro del pod
+- [ ] Permisos del token validados con API de Doppler
+- [ ] Sincronización manual probada exitosamente
+
+### Soluciones Implementadas
+- [ ] Redepliegue forzado para actualizar variables
+- [ ] Anotaciones de despliegue añadidas si es necesario
+- [ ] Enfoque alternativo implementado si Doppler falla
+- [ ] Monitoreo y alertas configuradas
+
+---
+
+*Este documento fue generado automáticamente el 19 de diciembre de 2024 para proporcionar soluciones completas a problemas comunes de integración con Doppler en SleakOps.*
