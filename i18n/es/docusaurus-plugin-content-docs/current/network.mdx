@@ -1,0 +1,71 @@
+---
+id: networking-y-recursos-de-red
+title: Networking y Recursos de Red
+sidebar_label: Networking y Recursos de Red
+sidebar_position: 9
+---
+import Zoom from "react-medium-image-zoom";
+
+# Networking y Recursos de Red
+
+Esta documentación tiene como objetivo brindar una visión clara y sencilla de la arquitectura de red que SleakOps despliega en los entornos de los clientes. Aquí encontrarás cómo se organiza la red, cómo se protegen los recursos y cómo se facilita la comunicación tanto interna como externa.
+
+> ❓ **Nota**: La red está diseñada para garantizar seguridad, escalabilidad y alta disponibilidad. Permite separar ambientes, proteger datos sensibles y exponer servicios de manera controlada y segura.
+
+## 1. Descripción general de la arquitectura
+
+La infraestructura de red en SleakOps se basa en los siguientes componentes principales:
+
+- **VPC (Virtual Private Cloud):** Segmenta la red por entorno (Management, Production, Development).
+- **Subredes:**
+  - *Públicas:* expuestas a Internet.
+  - *Privadas:* acceso restringido, acceden a Internet a través de un NAT Gateway.
+  - *Persistencia:* bases de datos, almacenamiento.
+- **Internet Gateway:** Permite la comunicación entre la VPC y el exterior (Internet).
+- **Route Tables:** Definen las rutas de tráfico entre subredes y hacia/desde Internet.
+- **Security Groups:** Firewalls virtuales que controlan el tráfico de entrada y salida de los recursos.
+- **DNS Interno:** Permite que los recursos se comuniquen usando nombres en vez de IPs.
+- **External-DNS:** Servicio que corre dentro de cada clúster Kubernetes (EKS), encargado de gestionar automáticamente los registros DNS públicos en Route53 para los servicios expuestos desde el clúster.
+
+## 2. Flujo típico de comunicación
+
+El siguiente es un ejemplo de cómo viaja el tráfico en la red de SleakOps:
+
+1. **Acceso desde Internet:**  
+   Un usuario accede a un servicio expuesto (por ejemplo, una API). El tráfico llega al Internet Gateway y es dirigido a la subred pública.
+
+2. **Control de acceso:**  
+   El Security Group asociado al recurso valida si la conexión está permitida.
+
+3. **Comunicación interna:**  
+   Los servicios internos (en subredes privadas o de persistencia) pueden comunicarse entre sí usando el DNS interno, siempre bajo las reglas de los Security Groups.
+
+4. **Exposición de servicios:**  
+   Si un servicio dentro del clúster Kubernetes debe ser accesible desde Internet (por ejemplo, una API), se expone a través de un Application Load Balancer y External-DNS se encarga de registrar automáticamente el nombre en Route53.
+
+> Esta segmentación y control aseguran que solo los servicios necesarios sean expuestos y que los datos sensibles permanezcan protegidos.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/network/sleakops-network.png"
+    alt="reference-architecture"
+  />
+</Zoom>
+
+## 3. External-DNS y Route53
+
+Se utiliza una solución automatizada para gestionar los registros DNS públicos de los servicios desplegados, integrando la infraestructura con servicios de DNS externos como Route53.
+
+- External-DNS **no expone servicios directamente**, sino que automatiza la gestión de registros DNS públicos para recursos ya expuestos (por ejemplo, mediante un Application Load Balancer).
+- Esto permite que los servicios sean accesibles de forma segura y sencilla desde Internet.
+
+## 4. Conectividad entre entornos mediante VPC Peering
+
+Para permitir la comunicación controlada entre entornos (por ejemplo, entre Management y Production), SleakOps configura **conexiones VPC Peering** de manera explícita entre las VPCs de los distintos entornos.
+
+- Un **VPC Peering** permite que dos VPCs puedan intercambiar tráfico interno como si estuvieran en la misma red.
+- **No requiere** pasar por Internet, NAT Gateway ni VPN.
+- Es una conexión directa entre dos redes.
+
+> 💡 Además del acceso mediante Internet Gateway, SleakOps contempla otros mecanismos de conectividad como **Pritunl VPN**, **NAT Gateway** y **Transit Gateway**, dependiendo del caso de uso y el nivel de aislamiento requerido.
+
