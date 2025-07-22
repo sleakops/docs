@@ -273,7 +273,7 @@ In the first form we will have to select our project and define a name for it. T
     alt="create-rabbitmq-reference"
   />
 </Zoom>
-In the following form we have several fields but the only ones that we care for this example is the username and password, we can define what we want. For this example I chose admin as username and for the password I generated it randomly with the dice button. Then we click the “Next” button to create the dependency:
+In the following form we have several fields but the only ones that matter to us for this example are the username and password, we can define whatever we want. For this example I chose admin as username and for the password I generated it randomly with the dice button. Then we click on the “Next” button to go to the next form:
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
     src="/img/quickstart/django_celery/create-rabbitmq-2.png"
@@ -281,26 +281,16 @@ In the following form we have several fields but the only ones that we care for 
   />
 </Zoom>
 
+In this last form we have to change the name of the variable that ends in *_BROKER_AUTH_URL to CELERY_BROKER_URL (as shown in the image). Then we click on the “Submit” button at the bottom right to finish creating rabbitmq:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/create-rabbitmq-3.png"
+    alt="create-rabbitmq-3-reference"
+  />
+</Zoom>
+
 ### Create yours environment variables
-Once the dependencies are deployed we have to configure our environment variables. But first we have to get some data from rabbitmq, for this we go to the rabbitmq detail:
-<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
-  <img
-    src="/img/quickstart/django_celery/click-rabbitmq-detail.png"
-    alt="click-rabbitmq-detail-reference"
-  />
-</Zoom>
-
-And from here we need the following data:
-- RABBITMQ_BROKER_AUTH_URL
-
-<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
-  <img
-    src="/img/quickstart/django_celery/rabbitmq-detail.png"
-    alt="rabbitmq-detail-reference"
-  />
-</Zoom>
-
-Save that url because now we are going to need it. Now we are going to go to the **Vargroups** section:
+Once the dependencies are deployed we have to configure our environment variables. We are going to go to the **Vargroups** section:
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
     src="/img/quickstart/django_celery/click-vargroups.png"
@@ -323,7 +313,6 @@ In this form we have the following fields:
 - Type: If we want to load it by file or by variable.
 - Vars: Here we enable the textmode and copy the following environment variables:
 ```bash
-CELERY_BROKER_URL=amqps://username:password@host:port
 CELERY_RESULT_BACKEND=django-db
 DJANGO_ADMIN_URL=admin/
 DJANGO_DEBUG=False
@@ -334,7 +323,7 @@ ENVIRONMENT=production
 LOGS_LEVEL=INFO
 PYTHONPATH=.
 ```
-This is where you will paste your url in the variable “CELERY_BROKER_URL” all the others you can leave the same. Finally click on the “Submit” button at the bottom right to create the variable group.
+These environment variables are required for our example project. Finally click on the “Submit” button at the bottom right to create the variable group.
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
     src="/img/quickstart/django_celery/create-vargroup.png"
