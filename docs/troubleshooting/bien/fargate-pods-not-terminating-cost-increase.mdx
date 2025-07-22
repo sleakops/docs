@@ -232,5 +232,59 @@ spec:
             requests:
               memory: "256Mi"
               cpu: "250m"
-            limits: memory
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+```
+
+**Resource Optimization:**
+
+- Right-size your Fargate pods to avoid over-provisioning
+- Use spot instances where appropriate for cost savings
+- Implement horizontal pod autoscaling for variable workloads
+
+**Cluster Maintenance:**
+
+- Regularly review and clean up unused resources
+- Monitor cluster health and performance metrics
+- Keep Kubernetes and addon versions up to date
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cost-optimization-strategies" summary="Long-term cost optimization strategies">
+
+**Resource Right-Sizing:**
+
+1. **Analyze actual resource usage**:
+   ```bash
+   kubectl top pods --all-namespaces
+   kubectl top nodes
+   ```
+
+2. **Adjust resource requests and limits** based on actual usage
+3. **Use Vertical Pod Autoscaler** for automatic right-sizing
+
+**Scheduling Optimization:**
+
+- Use node affinity to optimize pod placement
+- Implement pod disruption budgets for controlled updates
+- Consider using mixed instance types for cost optimization
+
+**Monitoring and Alerting:**
+
+- Set up comprehensive cost monitoring dashboards
+- Implement alerts for unusual cost spikes
+- Regular cost reviews and optimization sessions
+
+**Automation:**
+
+- Automate resource cleanup processes
+- Implement policy-based resource management
+- Use tools like Karpenter for intelligent node provisioning
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ section was automatically generated on March 14, 2024, based on a real user inquiry._
 ```

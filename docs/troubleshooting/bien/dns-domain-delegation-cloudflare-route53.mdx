@@ -192,3 +192,30 @@ nslookup your-domain.com
 
 2. **Propagation delays**
    - Use multiple DNS checkers: whatsmydns.net
+   - Wait 24-48 hours for full propagation
+   - Test from different geographic locations
+
+3. **CloudFlare interference**
+   - Disable proxy (orange cloud) for validation records
+   - Temporarily pause CloudFlare if needed
+   - Check CloudFlare DNS settings
+
+**Validation debugging:**
+
+```bash
+# Test DNS resolution from different servers
+dig @8.8.8.8 yourdomain.com
+dig @1.1.1.1 yourdomain.com
+
+# Check SOA record
+dig SOA yourdomain.com
+
+# Verify delegation chain
+dig +trace yourdomain.com
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ section was automatically generated on December 21, 2024, based on a real user inquiry._

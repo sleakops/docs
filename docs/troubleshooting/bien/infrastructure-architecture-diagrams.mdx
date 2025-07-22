@@ -2,7 +2,7 @@
 sidebar_position: 15
 title: "Infrastructure Architecture Diagrams"
 description: "Understanding SleakOps infrastructure architecture and request flow"
-date: "2024-12-19"
+date: "2024-01-15"
 category: "general"
 tags: ["architecture", "infrastructure", "diagrams", "networking", "vpc"]
 ---
@@ -11,7 +11,7 @@ import TroubleshootingItem from "@site/src/components/HomepageFeatures/troublesh
 
 # Infrastructure Architecture Diagrams
 
-**Date:** December 19, 2024  
+**Date:** January 15, 2024  
 **Category:** General  
 **Tags:** Architecture, Infrastructure, Diagrams, Networking, VPC
 
@@ -170,4 +170,83 @@ sequenceDiagram
 
 <TroubleshootingItem id="multi-app-architecture" summary="Multiple Applications Architecture">
 
-When deploying multiple applications
+When deploying multiple applications with SleakOps, the architecture scales efficiently:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Application Load Balancer                   │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │  Host-based routing:                                    │    │
+│  │  • app1.domain.com → Target Group 1                    │    │
+│  │  • app2.domain.com → Target Group 2                    │    │
+│  │  • api.domain.com  → Target Group 3                    │    │
+│  └─────────────────────────────────────────────────────────┘    │
+└─────────────────────┬───────────────────────────────────────────┘
+                      │
+┌─────────────────────┴───────────────────────────────────────────┐
+│                        VPC                                      │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │                  EKS Cluster                            │    │
+│  │                                                         │    │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐       │    │
+│  │  │ Namespace 1 │ │ Namespace 2 │ │ Namespace 3 │       │    │
+│  │  │             │ │             │ │             │       │    │
+│  │  │ App1 Pods   │ │ App2 Pods   │ │ API Pods    │       │    │
+│  │  │ Service     │ │ Service     │ │ Service     │       │    │
+│  │  │ Ingress     │ │ Ingress     │ │ Ingress     │       │    │
+│  │  └─────────────┘ └─────────────┘ └─────────────┘       │    │
+│  └─────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Key Benefits:**
+
+- **Resource Sharing**: Multiple apps share the same EKS cluster
+- **Isolation**: Each app runs in its own namespace
+- **Efficient Routing**: Single ALB handles all applications
+- **Cost Optimization**: Shared infrastructure reduces costs
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="security-architecture" summary="Security Architecture and Network Isolation">
+
+SleakOps implements multiple layers of security:
+
+**Network Security:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      Internet                                   │
+└─────────────────────┬───────────────────────────────────────────┘
+                      │ (HTTPS only)
+┌─────────────────────┴───────────────────────────────────────────┐
+│                      ALB                                        │
+│  Security Groups: Allow 80/443 from 0.0.0.0/0                 │
+└─────────────────────┬───────────────────────────────────────────┘
+                      │ (HTTP to VPC)
+┌─────────────────────┴───────────────────────────────────────────┐
+│                      VPC                                        │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │              Private Subnets                            │    │
+│  │  Security Groups: Allow traffic only from ALB          │    │
+│  │  ┌─────────────────────────────────────────────────┐    │    │
+│  │  │                EKS Nodes                        │    │    │
+│  │  │  Pod Security: Network policies, RBAC          │    │    │
+│  │  └─────────────────────────────────────────────────┘    │    │
+│  └─────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Security Layers:**
+
+1. **SSL/TLS Termination**: All external traffic encrypted
+2. **Security Groups**: Firewall rules at instance level
+3. **Network ACLs**: Subnet-level access control
+4. **Kubernetes RBAC**: Pod-level access control
+5. **Network Policies**: Inter-pod communication rules
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ section was automatically generated on January 15, 2024, based on a real user inquiry._

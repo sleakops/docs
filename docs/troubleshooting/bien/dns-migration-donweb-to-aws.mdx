@@ -222,4 +222,62 @@ Once your services are ready in AWS, configure the DNS records:
 **Phase 1: Preparation**
 
 1. Export all DNS records from DonWeb
-2. Set up AWS services (Lightsail/EC2 for WordPress
+2. Set up AWS services (Lightsail/EC2 for WordPress, WorkMail for email)
+3. Create Route 53 hosted zone
+4. Test new services before DNS switch
+
+**Phase 2: Migration**
+
+1. **Lower TTL values** (24-48 hours before migration):
+   - Change TTL to 300 seconds for faster propagation
+   - This allows quick rollback if needed
+
+2. **Update nameservers at domain registrar**:
+   - Change NS records to Route 53 nameservers
+   - Wait for propagation (up to 48 hours)
+
+3. **Monitor services**:
+   - Check website accessibility
+   - Test email functionality
+   - Monitor for any issues
+
+**Phase 3: Post-Migration**
+
+1. **Verify all services are working**
+2. **Update TTL values back to normal** (3600 seconds)
+3. **Clean up old DonWeb services** (after confirming everything works)
+4. **Document the new configuration** for future reference
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-common-issues" summary="Troubleshooting common migration issues">
+
+**Issue: Email stops working after migration**
+
+- Check MX records are correctly configured
+- Verify SPF/DKIM records are in place
+- Test email sending and receiving
+
+**Issue: Website shows SSL certificate errors**
+
+- Ensure SSL certificate is properly configured in AWS
+- Check that domain validation is complete
+- Verify certificate covers both www and non-www versions
+
+**Issue: Some services still point to old provider**
+
+- Check all DNS records are migrated
+- Look for hardcoded IP addresses in applications
+- Verify CDN configurations if applicable
+
+**Issue: Slow DNS propagation**
+
+- Use multiple DNS checkers to verify propagation
+- Clear local DNS cache
+- Wait up to 48 hours for full global propagation
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ section was automatically generated on January 15, 2024, based on a real user inquiry._

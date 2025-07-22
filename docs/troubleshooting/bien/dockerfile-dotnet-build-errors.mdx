@@ -2,7 +2,7 @@
 sidebar_position: 3
 title: "Dockerfile Build Errors with .NET Applications"
 description: "Troubleshooting Docker build failures and application startup issues in .NET projects"
-date: "2024-12-19"
+date: "2024-01-15"
 category: "project"
 tags: ["dockerfile", "dotnet", "build", "troubleshooting", "docker"]
 ---
@@ -11,7 +11,7 @@ import TroubleshootingItem from "@site/src/components/HomepageFeatures/troublesh
 
 # Dockerfile Build Errors with .NET Applications
 
-**Date:** December 19, 2024  
+**Date:** January 15, 2024  
 **Category:** Project  
 **Tags:** Dockerfile, .NET, Build, Troubleshooting, Docker
 
@@ -187,5 +187,68 @@ Ensure your application is properly configured for the deployment environment:
    {
      "Logging": {
        "LogLevel": {
-         "Default": "Information"
+         "Default": "Information",
+         "Microsoft.AspNetCore": "Warning"
+       }
+     },
+     "AllowedHosts": "*",
+     "Urls": "http://0.0.0.0:80"
+   }
    ```
+
+2. **Environment-specific configuration:**
+   ```json
+   // appsettings.Production.json
+   {
+     "Logging": {
+       "LogLevel": {
+         "Default": "Warning"
+       }
+     }
+   }
+   ```
+
+3. **Verify port configuration:**
+   - Ensure your application listens on the correct port
+   - Check that EXPOSE directive in Dockerfile matches application port
+   - Verify SleakOps port configuration
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dependency-issues" summary="Resolve dependency and package issues">
+
+Common dependency-related problems:
+
+1. **Missing runtime dependencies:**
+   ```dockerfile
+   # Add any required system dependencies
+   RUN apt-get update && apt-get install -y \
+       libgdiplus \
+       && rm -rf /var/lib/apt/lists/*
+   ```
+
+2. **NuGet package restore issues:**
+   ```dockerfile
+   # Clear NuGet cache if needed
+   RUN dotnet nuget locals all --clear
+   RUN dotnet restore --no-cache
+   ```
+
+3. **Version compatibility:**
+   - Ensure all packages are compatible with target framework
+   - Check for deprecated packages
+   - Verify package versions in .csproj file
+
+4. **Runtime identifier issues:**
+   ```xml
+   <PropertyGroup>
+     <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
+     <SelfContained>false</SelfContained>
+   </PropertyGroup>
+   ```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ section was automatically generated on January 15, 2024, based on a real user inquiry._

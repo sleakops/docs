@@ -231,3 +231,44 @@ resources:
 - Always include proper exit codes in your scripts
 - Use health checks when appropriate
 - Log errors to stdout/stderr for SleakOps monitoring
+
+**Security Considerations:**
+
+- Don't run containers as root unless necessary
+- Use minimal base images to reduce attack surface
+- Regularly update base images for security patches
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Alternative solutions and workarounds">
+
+**If you must use the specific image:**
+
+1. **Check for multi-arch versions**:
+   - Look for tags with `-amd64` or `-arm64` suffixes
+   - Try different version tags that might have better architecture support
+
+2. **Build your own image**:
+   ```dockerfile
+   FROM node:18-alpine
+   RUN npm install -g ts-node typescript
+   WORKDIR /app
+   COPY . .
+   CMD ["ts-node", "index.ts"]
+   ```
+
+3. **Use SleakOps build process**:
+   - Let SleakOps build your application
+   - Use the built artifacts in a simple runtime container
+
+**For complex TypeScript projects:**
+
+- Consider using a build step to compile TypeScript to JavaScript
+- Use multi-stage Docker builds for optimization
+- Implement proper dependency caching for faster builds
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ section was automatically generated on January 27, 2025, based on a real user inquiry._
