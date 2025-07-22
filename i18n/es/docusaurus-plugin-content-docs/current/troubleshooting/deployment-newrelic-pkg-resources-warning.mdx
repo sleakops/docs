@@ -46,7 +46,7 @@ import TroubleshootingItem from "@site/src/components/HomepageFeatures/troublesh
 
 - El error ocurre durante el proceso de compilación para despliegue en producción
 - La advertencia se origina en `/usr/local/lib/python3.9/site-packages/newrelic/config.py:4555`
-- La advertencia de deprecación de pkg_resources sugiere fijar Setuptools<81
+- La advertencia de deprecación de pkg_resources sugiere fijar Setuptools&lt;81
 - El fallo en la compilación impide un despliegue exitoso
 
 ## Solución Detallada
@@ -58,14 +58,14 @@ La solución más rápida es fijar la versión de Setuptools en los requisitos d
 1. **Agregar a requirements.txt**:
 
 ```txt
-setuptools<81
+setuptools&lt;81
 ```
 
 2. **O agregar a pyproject.toml** (si usas este archivo):
 
 ```toml
 [build-system]
-requires = ["setuptools<81", "wheel"]
+requires = ["setuptools&lt;81", "wheel"]
 ```
 
 3. **Reconstruir el proyecto**:
@@ -82,7 +82,7 @@ Si tienes control sobre el Dockerfile, puedes fijar Setuptools durante el proces
 
 ```dockerfile
 # Antes de instalar otras dependencias
-RUN pip install "setuptools<81"
+RUN pip install "setuptools&lt;81"
 
 # Luego instala tus requerimientos
 COPY requirements.txt .
@@ -92,7 +92,7 @@ RUN pip install -r requirements.txt
 O instalarlo junto con otras dependencias:
 
 ```dockerfile
-RUN pip install "setuptools<81" -r requirements.txt
+RUN pip install "setuptools&lt;81" -r requirements.txt
 ```
 
 </TroubleshootingItem>

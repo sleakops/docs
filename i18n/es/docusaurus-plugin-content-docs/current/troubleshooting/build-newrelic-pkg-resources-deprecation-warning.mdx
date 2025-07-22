@@ -62,18 +62,18 @@ Agrega esto a tu `requirements.txt` o `pyproject.toml` para fijar setuptools a u
 **Para requirements.txt:**
 
 ```txt
-setuptools<81
+setuptools&lt;81
 ```
 
 **Para pyproject.toml:**
 
 ```toml
 [build-system]
-requires = ["setuptools<81", "wheel"]
+requires = ["setuptools&lt;81", "wheel"]
 
 [project]
 dependencies = [
-    "setuptools<81",
+    "setuptools&lt;81",
     # tus otras dependencias
 ]
 ```
@@ -81,7 +81,7 @@ dependencies = [
 **Para Dockerfile:**
 
 ```dockerfile
-RUN pip install "setuptools<81"
+RUN pip install "setuptools&lt;81"
 ```
 
 </TroubleshootingItem>
@@ -146,7 +146,7 @@ Aquí tienes un enfoque completo con Dockerfile que aborda el problema:
 FROM python:3.9-slim
 
 # Fijar setuptools para evitar advertencias de desaprobación de pkg_resources
-RUN pip install --upgrade pip "setuptools<81" wheel
+RUN pip install --upgrade pip "setuptools&lt;81" wheel
 
 # Establecer variable de entorno para suprimir advertencias de New Relic si es necesario
 ENV PYTHONWARNINGS="ignore::UserWarning:newrelic.config"
