@@ -211,11 +211,28 @@ En el 2do formulario vamos a tener muchos campos, los únicos que nos importan s
 | **Database Master Username** | Aquí asignamos un nombre de usuario root a nuestra base de datos. |
 | **Database Master Password** | Una contraseña para este usuario root. |
 
-Con estos campos estamos listos para avanzar. Hacemos clic en el botón "Next" en la parte inferior derecha y luego en "Submit", con esto ya hemos creado nuestra base de datos:
+Una vez rellenados estos campos, estamos listos para continuar. Haga clic en el botón «Siguiente» situado en la parte inferior derecha para pasar al tercer formulario:
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
     src="/img/quickstart/django_celery/create-postgresql-2.png"
     alt="create-postgresql-2-reference"
+  />
+</Zoom>
+
+En este último formulario, vamos a ajustar las variables de entorno que tenemos en nuestro proyecto con respecto a la base de datos. Para ello, debemos cambiar las siguientes variables por las nuestras propias:
+| **Antes** | **Despues** |
+| --- | --- |
+| *_POSTGRESQL_NAME | DB_NAME |
+| *_POSTGRESQL_USERNAME | DB_USER |
+| *_POSTGRESQL_PASSWORD | DB_PASSWORD |
+| *_POSTGRESQL_ADDRESS | DB_HOST |
+| *_POSTGRESQL_PORT | DB_PORT |
+
+Debería verse similar a la imagen de abajo. A continuación, haga clic en el botón «Enviar» y se creará su base de datos:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/create-postgresql-3.png"
+    alt="create-postgresql-3-reference"
   />
 </Zoom>
 
@@ -323,6 +340,7 @@ DJANGO_DEBUG=False
 DJANGO_SECRET_KEY=secret_key
 DJANGO_SETTINGS_MODULE=core.settings.production
 DJANGO_STATIC_STORAGE=storages.backends.s3boto3.S3StaticStorage
+DB_ENGINE=django.db.backends.postgresql_psycopg2
 ENVIRONMENT=production
 LOGS_LEVEL=INFO
 PYTHONPATH=.
