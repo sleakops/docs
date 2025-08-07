@@ -1,0 +1,83 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Extra Templates
+
+Allows you to deploy different resources than those already available in SleakOps. This is done through Kubernetes templates.
+This feature is really useful when you want to deploy specific Ingresses that you might need for more custom environments or a Pod you want to use for testing purposes.
+
+:::warning
+As SleakOps uses NodePools to determine in which Nodes are the resources deployed, you can only deploy resources by setting up the 'tolerations' parameter that targets an existing NodePool. 
+:::
+
+## How to use Extra Templates feature to deploy a custom Ingress
+You can deploy an Ingress by writing it in the 'Templates' section. For example you can use the following as Boilerplate:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: coreexampledjangocelerysleakopscom
+  namespace: example-django-celery-myenv
+  labels:
+    app.kubernetes.io/name: example-django-celery
+  annotations:
+    alb.ingress.kubernetes.io/certificate-arn: >-
+      arn:aws:acm:us-east-1:445567110485:certificate/11111111-aaaa-2222-bbbb-3333cccc3333
+    alb.ingress.kubernetes.io/group.name: example-django-celery-public
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/healthcheck-port: '8000'
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    alb.ingress.kubernetes.io/success-codes: '200'
+    alb.ingress.kubernetes.io/target-type: ip
+    meta.helm.sh/release-name: example-django-celery-myenv
+    meta.helm.sh/release-namespace: example-django-celery-myenv
+spec:
+  ingressClassName: alb-ingressclass-public
+  tls:
+    - hosts:
+        - core.example-django-celery.sleakops.com
+  rules:
+    - host: core.example-django-celery.sleakops.com
+      http:
+        paths:
+          - path: /api/public/
+            pathType: Prefix
+            backend:
+              service:
+                name: example-django-celery-myenv-api-public-svc
+                port:
+                  number: 8000
+```
+
+Once you have your Ingres defined you can Deploy it:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/project/chart/template-deploy.png"
+    alt="template-deploy"
+/>
+</Zoom>
+
+<details>
+<summary>
+### My templates are created with custom values, how can I add them?
+</summary>
+You can just add them in the 'Values' section in the right side. Just as shown in the below example whe you can see a Pod Template that uses custom Values and how to apply them.
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/project/chart/extra-values.png"
+    alt="extra-values"
+/>
+</Zoom>
+</details>
+
+<details>
+<summary>
+### Can I deploy every possible Kubernetes Resource? Can I deploy ClusterScoped resources?
+</summary>
+No, every Project defines a Namespace and we use NamespaceScoped permissions. For this reason, we only allow to deploy templates of NamespaceScoped Resources.
+For example: You will be able to deploy a Pod or Ingress (NamespaceScoped), but not allowed to create a ClusterRole (ClusterScoped).
+</details>

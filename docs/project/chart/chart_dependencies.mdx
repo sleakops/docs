@@ -1,0 +1,47 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Chart Dependencies
+Allows you to add Dependencies to your charts just as it is naturally done in Helm.
+This feature allows you to add [Helm Chart Dependencies <FiExternalLink/>](https://helm.sh/docs/helm/helm_dependency/), as it is naturally done using Helm.
+
+:::warning
+As SleakOps uses NodePools to determine in which Nodes are the resources deployed, you can only deploy resources by setting up the 'tolerations' parameter that targets an existing NodePool. 
+:::
+
+At this moment, we only allow Bitnami Charts. In addition, we recommend you to check Charts in [ArtifactHub <FiExternalLink/>](https://artifacthub.io/)
+
+To add a new ChartDependency you can do so with the 'Create' buttom at the right side of the Chart Configuration:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/project/chart/chart-dependencies-create.png"
+    alt="config-chart"
+/>
+</Zoom>
+
+There you can search the Chart name and select the version you want to deploy in the first two fields.
+Below you can modify the values that you will use to deploy it.
+IMPORTANT: Modify every 'toleration' field found in the values of the chart to use a NodePool. This is crucial as if not set, Kubernetes will not know where to allocate the Pods.
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/project/chart/chart-dependencies-form.png"
+    alt="config-chart"
+/>
+</Zoom>
+
+
+## FAQs 
+<details>
+<summary>
+### All was properly deployed but my Pods are not working, what could be causing this?
+</summary>
+The main reason for this problem is associated with the wrong definition of the NodePools. Check that first and follow the recommendations.
+</details>
+
+<details>
+<summary>
+### I can not find the Chart I am looking for, what should I do?
+</summary>
+Bear in mind that, right now, we only allow Charts coming from the Bitnami repo. If you required something not hold by Bitnami, please communicate with us.
+</details>
