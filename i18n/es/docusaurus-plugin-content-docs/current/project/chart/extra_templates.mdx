@@ -1,0 +1,122 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Extra Templates
+
+Los Extra Templates te permiten desplegar recursos personalizados de Kubernetes más allá de los componentes integrados de SleakOps. Esta poderosa funcionalidad te permite extender tu proyecto con recursos especializados como Ingresses personalizados, pods de prueba, u otros objetos de Kubernetes adaptados a tus requisitos específicos.
+
+## Casos de Uso
+- Configuraciones de Ingress personalizadas para enrutamiento especializado
+- Pods de prueba para depuración y desarrollo
+- ConfigMaps o Secrets adicionales
+- Políticas de red personalizadas
+- Componentes especializados de monitoreo o logging
+
+:::warning Configuración de NodePool Requerida
+Dado que SleakOps utiliza NodePools para la ubicación de recursos, todos los recursos personalizados deben incluir la configuración adecuada de `tolerations` apuntando a un NodePool existente.
+:::
+
+## Desplegando un Ingress Personalizado
+
+Para desplegar un Ingress personalizado, agrega tu configuración YAML de Kubernetes en la sección **Templates**. Aquí tienes un ejemplo completo que puedes usar como punto de partida:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: coreexampledjangocelerysleakopscom
+  namespace: example-django-celery-myenv
+  labels:
+    app.kubernetes.io/name: example-django-celery
+  annotations:
+    alb.ingress.kubernetes.io/certificate-arn: >-
+      arn:aws:acm:us-east-1:445567110485:certificate/11111111-aaaa-2222-bbbb-3333cccc3333
+    alb.ingress.kubernetes.io/group.name: example-django-celery-public
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/healthcheck-port: '8000'
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    alb.ingress.kubernetes.io/success-codes: '200'
+    alb.ingress.kubernetes.io/target-type: ip
+    meta.helm.sh/release-name: example-django-celery-myenv
+    meta.helm.sh/release-namespace: example-django-celery-myenv
+spec:
+  ingressClassName: alb-ingressclass-public
+  tls:
+    - hosts:
+        - core.example-django-celery.sleakops.com
+  rules:
+    - host: core.example-django-celery.sleakops.com
+      http:
+        paths:
+          - path: /api/public/
+            pathType: Prefix
+            backend:
+              service:
+                name: example-django-celery-myenv-api-public-svc
+                port:
+                  number: 8000
+```
+
+Una vez que hayas definido tu plantilla de Ingress, puedes desplegarla usando la interfaz:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/project/chart/template-deploy.png"
+    alt="Interfaz de despliegue de plantillas"
+/>
+</Zoom>
+
+## Preguntas Frecuentes
+
+<details>
+<summary>
+### ¿Cómo uso valores personalizados en mis plantillas?
+</summary>
+
+Puedes definir valores personalizados en la sección **Values** en el lado derecho de la interfaz. Estos valores pueden ser referenciados en tus plantillas usando la sintaxis de plantillas de Helm.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/project/chart/extra-values.png"
+    alt="Ejemplo de configuración de valores personalizados"
+/>
+</Zoom>
+
+El ejemplo anterior muestra cómo crear una plantilla de Pod que usa valores personalizados y cómo referenciarlos en tu configuración YAML.
+</details>
+
+<details>
+<summary>
+### ¿Qué tipos de recursos de Kubernetes puedo desplegar?
+</summary>
+
+SleakOps soporta **solo recursos con alcance de namespace** debido a requisitos de seguridad y aislamiento. Cada proyecto opera dentro de su propio namespace con permisos con alcance de namespace.
+
+**Recursos soportados incluyen:**
+- Pods, Deployments, Services
+- Ingresses, NetworkPolicies
+- ConfigMaps, Secrets
+- PersistentVolumeClaims
+- Jobs, CronJobs
+
+**No soportados:**
+- ClusterRoles, ClusterRoleBindings
+- CustomResourceDefinitions
+- PersistentVolumes
+- Cualquier recurso con alcance de cluster
+</details>
+
+<details>
+<summary>
+### ¿Cómo soluciono problemas de despliegue de plantillas?
+</summary>
+
+Pasos comunes de solución de problemas:
+1. **Validar sintaxis YAML** - Asegúrate de que tu plantilla sea YAML válido de Kubernetes
+2. **Verificar tolerations de NodePool** - Verifica que las tolerations apunten a NodePools existentes
+3. **Revisar cuotas de recursos** - Asegúrate de que haya recursos suficientes disponibles
+4. **Validar referencias** - Verifica que los servicios, secrets o configmaps referenciados existan
+5. **Revisar logs** - Revisa los logs de despliegue para mensajes de error específicos
+</details>

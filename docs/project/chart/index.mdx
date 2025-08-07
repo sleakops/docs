@@ -4,81 +4,92 @@ import { FiExternalLink } from "react-icons/fi";
 
 # Chart
 
-A **Chart** is a key piece in a Project as it is used to define what SleakOps deploys when a Deployment is run. A Chart is the analog that SleakOps uses of a [Helm Chart <FiExternalLink/>](https://helm.sh/docs/topics/charts/) and implements it for its own functionalities.
+A **Chart** is a fundamental component of a Project that defines what SleakOps deploys during a deployment run. Charts in SleakOps are analogous to [Helm Charts <FiExternalLink/>](https://helm.sh/docs/topics/charts/) but are specifically adapted for SleakOps functionality.
 
-## Where can I found the Chart section?
-The Chart section is located in Project -> Settings
+## Accessing the Chart Configuration
+
+You can find the Chart section by navigating to **Project → Settings**:
+
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
     src="/img/project/chart/settings-chart.png"
-    alt="settings-chart"
+    alt="Chart settings location"
 />
 </Zoom>
 
-:::warning
-As SleakOps uses NodePools to determine in which Nodes are the resources deployed, you can only deploy resources by setting up the 'tolerations' parameter that targets an existing NodePool. 
+:::warning NodePool Requirements
+SleakOps uses NodePools to determine where resources are deployed. You must configure the `tolerations` parameter to target an existing NodePool for all deployed resources.
 :::
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
     src="/img/project/chart/config-chart.png"
-    alt="config-chart"
+    alt="Chart configuration interface"
 />
 </Zoom>
 
 
-## Default Values used by SleakOps
-SleakOps deploys his own Charts and applied some values to them, you can found them here:
+## Default Values
+
+SleakOps automatically applies default values to its Charts. You can view these values by clicking the designated area:
+
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
     src="/img/project/chart/default-values-place.png"
-    alt="default-values-place"
+    alt="Default values access point"
 />
 </Zoom>
 
-And in the right side, a drawer will open where you will find the default values used by SleakOps for of all the Workloads of the Project.
-For example for the 'api' WebService created in this Project:
+This opens a drawer on the right side displaying the default values for all Project workloads.
+
+### Workload-Specific Values
+For example, here are the default values for an 'api' WebService:
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
     src="/img/project/chart/api-web-service-default-values.png"
-    alt="config-chart"
+    alt="API WebService default values"
 />
 </Zoom>
 
-And as global values we have:
+### Global Values
+Global values that apply across the entire Project:
+
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
     src="/img/project/chart/global-default-values.png"
-    alt="config-chart"
+    alt="Global default values"
 />
 </Zoom>
 
-## FAQs 
+## Frequently Asked Questions
+
 <details>
 <summary>
-### Where can I found the Chart of my Project?
+### Where can I find my Project's Chart?
 </summary>
-Today, we have not made available to view it in the platform but you can do so by yourself. By downloading the Chart from the ECR created for each of your Projects, which can found in the corresponding AWS Account.
+Currently, Charts are not viewable directly in the platform. However, you can download the Chart from the ECR repository created for your Project in the corresponding AWS Account.
 </details>
 
 <details>
 <summary>
 ### Can I modify the Chart deployed by a Project?
 </summary>
-Yes, but partially. You can add new templates that you might need by using the [***Extra Templates***](./extra_templates.mdx). You can also add dependencies to the Chart by using the [***Chart Dependencies***](./chart_dependencies.mdx) feature, it is analog to [Helm Chart Dependencies <FiExternalLink/>](https://helm.sh/docs/helm/helm_dependency/).
+Yes, with some limitations. You can:
+- Add custom templates using [**Extra Templates**](./extra_templates.mdx)
+- Add chart dependencies using [**Chart Dependencies**](./chart_dependencies.mdx), similar to [Helm Chart Dependencies <FiExternalLink/>](https://helm.sh/docs/helm/helm_dependency/)
 </details>
 
 <details>
 <summary>
-### Can I add a new Ingress to the Project by modifying the Chart?
+### Can I add a custom Ingress to my Project?
 </summary>
-Yes, and this is also the main use of the ***Extra Templates*** feature. Check [here](./extra_templates.mdx) for more information.
+Yes, this is one of the primary use cases for the **Extra Templates** feature. See the [Extra Templates documentation](./extra_templates.mdx) for detailed instructions.
 </details>
 
 <details>
 <summary>
-### I need to modify the template of the Kubernetes Service being deployed, can I do it?
+### Can I modify existing Kubernetes Service templates?
 </summary>
-No, this is not yet allowed by SleakOps. We are still working on allowing modifications of the SleakOps built-in templates.
+No, modifying SleakOps built-in templates is not currently supported. We are working on enabling modifications to built-in templates in future releases.
 </details>

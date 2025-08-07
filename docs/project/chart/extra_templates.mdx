@@ -4,15 +4,22 @@ import { FiExternalLink } from "react-icons/fi";
 
 # Extra Templates
 
-Allows you to deploy different resources than those already available in SleakOps. This is done through Kubernetes templates.
-This feature is really useful when you want to deploy specific Ingresses that you might need for more custom environments or a Pod you want to use for testing purposes.
+Extra Templates enable you to deploy custom Kubernetes resources beyond SleakOps' built-in components. This powerful feature allows you to extend your project with specialized resources such as custom Ingresses, testing pods, or other Kubernetes objects tailored to your specific requirements.
 
-:::warning
-As SleakOps uses NodePools to determine in which Nodes are the resources deployed, you can only deploy resources by setting up the 'tolerations' parameter that targets an existing NodePool. 
+## Use Cases
+- Custom Ingress configurations for specialized routing
+- Testing pods for debugging and development
+- Additional ConfigMaps or Secrets
+- Custom networking policies
+- Specialized monitoring or logging components
+
+:::warning NodePool Configuration Required
+Since SleakOps uses NodePools for resource placement, all custom resources must include proper `tolerations` configuration targeting an existing NodePool.
 :::
 
-## How to use Extra Templates feature to deploy a custom Ingress
-You can deploy an Ingress by writing it in the 'Templates' section. For example you can use the following as Boilerplate:
+## Deploying a Custom Ingress
+
+To deploy a custom Ingress, add your Kubernetes YAML configuration in the **Templates** section. Here's a complete example you can use as a starting point:
 
 ```yaml
 apiVersion: networking.k8s.io/v1
@@ -52,32 +59,64 @@ spec:
                   number: 8000
 ```
 
-Once you have your Ingres defined you can Deploy it:
+Once you have defined your Ingress template, you can deploy it using the interface:
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
     src="/img/project/chart/template-deploy.png"
-    alt="template-deploy"
+    alt="Template deployment interface"
 />
 </Zoom>
 
+## Frequently Asked Questions
+
 <details>
 <summary>
-### My templates are created with custom values, how can I add them?
+### How do I use custom values in my templates?
 </summary>
-You can just add them in the 'Values' section in the right side. Just as shown in the below example whe you can see a Pod Template that uses custom Values and how to apply them.
+
+You can define custom values in the **Values** section on the right side of the interface. These values can then be referenced in your templates using Helm templating syntax.
+
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
     src="/img/project/chart/extra-values.png"
-    alt="extra-values"
+    alt="Custom values configuration example"
 />
 </Zoom>
+
+The example above shows how to create a Pod template that uses custom values and how to reference them in your YAML configuration.
 </details>
 
 <details>
 <summary>
-### Can I deploy every possible Kubernetes Resource? Can I deploy ClusterScoped resources?
+### What types of Kubernetes resources can I deploy?
 </summary>
-No, every Project defines a Namespace and we use NamespaceScoped permissions. For this reason, we only allow to deploy templates of NamespaceScoped Resources.
-For example: You will be able to deploy a Pod or Ingress (NamespaceScoped), but not allowed to create a ClusterRole (ClusterScoped).
+
+SleakOps supports **namespace-scoped resources only** due to security and isolation requirements. Each project operates within its own namespace with namespace-scoped permissions.
+
+**Supported resources include:**
+- Pods, Deployments, Services
+- Ingresses, NetworkPolicies
+- ConfigMaps, Secrets
+- PersistentVolumeClaims
+- Jobs, CronJobs
+
+**Not supported:**
+- ClusterRoles, ClusterRoleBindings
+- CustomResourceDefinitions
+- PersistentVolumes
+- Any cluster-scoped resources
+</details>
+
+<details>
+<summary>
+### How do I troubleshoot template deployment issues?
+</summary>
+
+Common troubleshooting steps:
+1. **Validate YAML syntax** - Ensure your template is valid Kubernetes YAML
+2. **Check NodePool tolerations** - Verify tolerations target existing NodePools
+3. **Review resource quotas** - Ensure sufficient resources are available
+4. **Validate references** - Check that referenced services, secrets, or configmaps exist
+5. **Check logs** - Review deployment logs for specific error messages
 </details>
