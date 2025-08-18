@@ -1,0 +1,122 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Extra Templates
+
+Extra Templates enable you to deploy custom Kubernetes resources beyond SleakOps' built-in components. This powerful feature allows you to extend your project with specialized resources such as custom Ingresses, testing pods, or other Kubernetes objects tailored to your specific requirements.
+
+## Use Cases
+- Custom Ingress configurations for specialized routing
+- Testing pods for debugging and development
+- Additional ConfigMaps or Secrets
+- Custom networking policies
+- Specialized monitoring or logging components
+
+:::warning NodePool Configuration Required
+Since SleakOps uses NodePools for resource placement, all custom resources must include proper `tolerations` configuration targeting an existing NodePool.
+:::
+
+## Deploying a Custom Ingress
+
+To deploy a custom Ingress, add your Kubernetes YAML configuration in the **Templates** section. Here's a complete example you can use as a starting point:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: coreexampledjangocelerysleakopscom
+  namespace: example-django-celery-myenv
+  labels:
+    app.kubernetes.io/name: example-django-celery
+  annotations:
+    alb.ingress.kubernetes.io/certificate-arn: >-
+      arn:aws:acm:REGION:ACCOUNT_ID:certificate/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+    alb.ingress.kubernetes.io/group.name: example-django-celery-public
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/healthcheck-port: '8000'
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    alb.ingress.kubernetes.io/success-codes: '200'
+    alb.ingress.kubernetes.io/target-type: ip
+    meta.helm.sh/release-name: example-django-celery-myenv
+    meta.helm.sh/release-namespace: example-django-celery-myenv
+spec:
+  ingressClassName: alb-ingressclass-public
+  tls:
+    - hosts:
+        - core.example-django-celery.sleakops.com
+  rules:
+    - host: core.example-django-celery.sleakops.com
+      http:
+        paths:
+          - path: /api/public/
+            pathType: Prefix
+            backend:
+              service:
+                name: example-django-celery-myenv-api-public-svc
+                port:
+                  number: 8000
+```
+
+Once you have defined your Ingress template, you can deploy it using the interface:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/project/chart/template-deploy.png"
+    alt="Template deployment interface"
+/>
+</Zoom>
+
+## Frequently Asked Questions
+
+<details>
+<summary>
+### How do I use custom values in my templates?
+</summary>
+
+You can define custom values in the **Values** section on the right side of the interface. These values can then be referenced in your templates using Helm templating syntax.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/project/chart/extra-values.png"
+    alt="Custom values configuration example"
+/>
+</Zoom>
+
+The example above shows how to create a Pod template that uses custom values and how to reference them in your YAML configuration.
+</details>
+
+<details>
+<summary>
+### What types of Kubernetes resources can I deploy?
+</summary>
+
+SleakOps supports **namespace-scoped resources only** due to security and isolation requirements. Each project operates within its own namespace with namespace-scoped permissions.
+
+**Supported resources include:**
+- Pods, Deployments, Services
+- Ingresses, NetworkPolicies
+- ConfigMaps, Secrets
+- PersistentVolumeClaims
+- Jobs, CronJobs
+
+**Not supported:**
+- ClusterRoles, ClusterRoleBindings
+- CustomResourceDefinitions
+- PersistentVolumes
+- Any cluster-scoped resources
+</details>
+
+<details>
+<summary>
+### How do I troubleshoot template deployment issues?
+</summary>
+
+Common troubleshooting steps:
+1. **Validate YAML syntax** - Ensure your template is valid Kubernetes YAML
+2. **Check NodePool tolerations** - Verify tolerations target existing NodePools
+3. **Review resource quotas** - Ensure sufficient resources are available
+4. **Validate references** - Check that referenced services, secrets, or configmaps exist
+5. **Check logs** - Review deployment logs for specific error messages
+</details>
