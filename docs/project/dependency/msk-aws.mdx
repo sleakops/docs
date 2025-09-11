@@ -1,0 +1,147 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# AWS MSK (Managed Streaming for Apache Kafka)
+
+SleakOps provides seamless integration with Amazon MSK (Managed Streaming for Apache Kafka), a fully managed service that makes it easy to build and run applications that use Apache Kafka to process streaming data. Amazon MSK eliminates the operational overhead of managing Kafka infrastructure, allowing you to focus on building your applications. By leveraging SleakOps for this integration, you can efficiently manage MSK clusters within your EKS environment, ensuring high performance, scalability, and reliability for your streaming data applications.
+
+## FAQs 
+
+<details>
+<summary>
+### How does SleakOps manage MSK credentials?
+</summary>
+When you create an MSK dependency in SleakOps, it automatically generates a Vargroup for your Kafka cluster. This Variable Group securely stores the MSK credentials and other important configuration details, such as the cluster endpoints and authentication information. You'll be able to manage them from the [Vargroups](/project/vargroup/index.mdx) section.
+</details>
+
+<details>
+<summary>
+### Can I change the Kafka version after the cluster is deployed?
+</summary>
+Yes, Amazon MSK supports Kafka version upgrades. You can upgrade between the supported versions: 2.8.1, 3.2.0, 3.3.2, 3.4.0, and 3.5.1. However, the upgrade process requires careful planning and may involve downtime. It's recommended to test the upgrade process in a non-production environment first.
+</details>
+
+<details>
+<summary>
+### What happens if I need more storage for my MSK cluster?
+</summary>
+**For Provisioned mode**: You configure the storage size per broker node (1-16384 GB) during cluster creation. This storage is automatically provisioned and managed by AWS. If you need more storage, you'll need to modify the cluster configuration, which may require downtime.
+
+**For Serverless mode**: Storage is automatically managed and scaled by AWS based on your usage patterns. You don't need to configure storage size as it scales automatically.
+</details>
+
+<details>
+<summary>
+### How do I connect to my MSK cluster?
+</summary>
+To connect to your MSK cluster:
+1. **Get the Bootstrap Servers**: Use the bootstrap server endpoints provided by SleakOps in the vargroup.
+2. **Configure Authentication**: MSK supports various authentication methods including SASL/SCRAM, IAM, and TLS.
+3. **Use Kafka Clients**: Connect using standard Kafka clients and libraries.
+4. **VPN Connection**: Ensure you are connected to the VPN of the AWS account where the MSK cluster is located.
+
+**Note**: Both Provisioned and Serverless modes use the same connection methods, but Serverless mode may have different performance characteristics and scaling behavior.
+</details>
+
+<details>
+<summary>
+### How do I create topics in my MSK cluster?
+</summary>
+To create topics in your MSK cluster:
+1. **Using Kafka Tools**: 
+```
+kafka-topics.sh --create --topic my-topic --bootstrap-server MSK_BOOTSTRAP_SERVERS --partitions 3 --replication-factor 3
+```
+2. **Using Kafka Admin Client**: Use the Kafka Admin Client in your application code.
+3. **Replace Variables**: Replace `MSK_BOOTSTRAP_SERVERS` with the actual bootstrap server endpoints from your vargroup.
+
+**Note**: For Provisioned mode, set the replication factor to match your number of broker nodes (minimum 3 for production). For Serverless mode, AWS manages the replication automatically.
+</details>
+
+<details>
+<summary>
+### How do I produce and consume messages?
+</summary>
+To produce and consume messages:
+1. **Producer Example**:
+```
+kafka-console-producer.sh --topic my-topic --bootstrap-server MSK_BOOTSTRAP_SERVERS
+```
+2. **Consumer Example**:
+```
+kafka-console-consumer.sh --topic my-topic --bootstrap-server MSK_BOOTSTRAP_SERVERS --from-beginning
+```
+3. **Application Integration**: Use Kafka clients in your application code for production use.
+</details>
+
+<details>
+<summary>
+### What should I do if I encounter connection issues with my MSK cluster?
+</summary>
+Check the following:
+- Ensure the bootstrap server endpoints, username, and password are correct.
+- Verify that your security groups and firewall rules allow access.
+- Ensure the cluster is running and has enough resources.
+- Check if the cluster is in an available state.
+- Verify your authentication configuration (SASL/SCRAM, IAM, or TLS).
+Otherwise, contact us.
+</details>
+
+<details>
+<summary>
+### What are the benefits of Amazon MSK over self-managed Kafka?
+</summary>
+Amazon MSK offers several advantages:
+- **Managed Operations**: No need to manage Kafka infrastructure
+- **High Availability**: Built-in replication and failover capabilities
+- **Security**: Integrated with AWS security services
+- **Monitoring**: CloudWatch integration for monitoring and alerting
+- **Scalability**: Easy scaling of broker instances and storage
+- **Compatibility**: Fully compatible with Apache Kafka
+</details>
+
+:::info
+AWS documentation: [Amazon MSK Documentation](https://docs.aws.amazon.com/msk/latest/developerguide/what-is-msk.html)
+:::
+
+## Set up your MSK
+### 1. Add MSK as a Dependency
+To integrate MSK with SleakOps:
+1. In the SleakOps console, go to the "Dependencies" section
+2. Choose "MSK" from the list of available dependency types. 
+For more detail see [Dependencies: Integrating Databases, Caching, and Messaging Services](/project/dependency/index.mdx).
+
+### 2. Set up your MSK.
+You will access the following form:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/msk/msk-create-p1.png"
+    alt="MSK create form"
+/>
+</Zoom>
+
+Here the parameters that SleakOps allows you to customize during the creation:
+
+| **Attribute** | **Description** |
+| --- | --- |
+| **Deployment Mode** | Choose between **Provisioned** (fixed capacity, full control over configuration) or **Serverless** (auto-scaling, pay-per-use for variable workloads). Provisioned mode is ideal for consistent workloads with specific performance requirements, while Serverless is perfect for development and variable traffic patterns. |
+| **Kafka Version** | *(Required for Provisioned mode)* Select the specific version of Apache Kafka for your MSK cluster. Choose from versions 2.8.1, 3.2.0, 3.3.2, 3.4.0, or 3.5.1. Each version includes specific Kafka features, performance improvements, and security updates. |
+| **Instance Type** | *(Required for Provisioned mode)* Define the instance type that specifies the hardware configuration for your Kafka brokers. Choose from t3 (burstable performance) or m5 (general purpose) instance types. This controls CPU, memory, and network performance for your streaming workloads. |
+| **Broker Nodes** | *(Required for Provisioned mode)* Number of broker nodes in your MSK cluster (2-15 nodes). Use 2 nodes for development environments. For production, use 3 or more nodes (must be multiple of 3) to ensure high availability and fault tolerance. More nodes provide better performance and availability. |
+| **Storage Size (GB)** | *(Required for Provisioned mode)* Storage size in GB per broker node (1-16384 GB). This determines how much data each broker can store locally. Consider your data retention requirements and throughput needs when setting this value. |
+
+### 3. Customize your variable's name for your MSK cluster.
+
+As explained, when a dependency is created, SleakOps generates a vargroup to hold all the needed attributes. 
+In this step you can change the name of the attributes in case it is needed. 
+SleakOps completes the values automatically. 
+After this step, your dependency is created.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/msk/msk-create-outputs.png"
+    alt="MSK create outputs"
+/>
+</Zoom> 
