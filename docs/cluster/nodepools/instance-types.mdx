@@ -1,0 +1,117 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Instance Types and Node Management
+
+In SleakOps, efficient instance type management is crucial for optimizing costs and performance of your clusters. This guide will help you understand the different available instance types and how to make informed decisions about their usage.
+
+## Available Instance Types
+
+### 1. Spot Instances
+
+Spot instances take advantage of unused capacity in AWS data centers, offering significant discounts (up to 90% less than On-Demand) but with the risk of interruption.
+
+**Characteristics:**
+- **Cost:** Up to 90% discount vs On-Demand
+- **Availability:** Variable, can be interrupted with 2 minutes notice
+- **Ideal use:** Fault-tolerant applications, batch processing, development environments
+
+### 2. On-Demand Instances
+
+On-Demand instances provide immediate and reliable access to compute resources with fixed pricing per hour or second.
+
+**Characteristics:**
+- **Cost:** Fixed price, higher than Spot
+- **Availability:** Guaranteed, no interruption risk
+- **Ideal use:** Critical applications, databases, production services
+
+### 3. Reserved Instances
+
+Reserved instances offer significant discounts (up to 75%) in exchange for a usage commitment of 1 or 3 years.
+
+**Characteristics:**
+- **Cost:** Up to 75% discount with commitment
+- **Availability:** Guaranteed for the committed period
+- **Ideal use:** Predictable workloads, stable production environments
+
+## FAQs
+
+<details>
+<summary>
+### How to evaluate if my application works with Spot instances?
+</summary>
+
+To determine if your application is compatible with Spot instances, evaluate the following aspects:
+
+**✅ IDEAL applications for Spot:**
+- **Stateless:** Don't maintain critical local state
+- **Fault-tolerant:** Can recover from interruptions
+- **Batch processing:** Tasks that can be restarted
+- **Development/Testing:** Non-critical environments
+- **Microservices:** With circuit breakers and retry logic
+
+**❌ Applications NOT recommended for Spot:**
+- **Critical databases:** Without automatic replication
+- **Real-time applications:** That require constant latency
+- **Long-running processes:** That cannot be easily restarted
+- **Payment systems:** That require high availability
+</details>
+
+<details>
+<summary>
+### When should I use On-Demand instances?
+</summary>
+
+Use On-Demand instances in the following scenarios:
+
+**Critical Applications:**
+- Payment and financial transaction systems
+- High-availability APIs (99.9%+ SLA)
+- Primary databases without automatic replication
+- Authentication and authorization services
+
+**Specific Workloads:**
+- Processes that cannot be interrupted
+- Applications with strict latency requirements
+- Legacy systems that are not fault-tolerant
+- Production environments without redundancy
+
+**Cost Considerations:**
+- When downtime cost exceeds Spot savings
+- For workloads with unpredictable usage patterns
+- In cases where guaranteed capacity is critical
+
+</details>
+
+<details>
+<summary>
+### Why does my cluster have N nodes? How to size correctly?
+</summary>
+
+The number of nodes in your cluster depends on several factors:
+
+**Sizing Factors:**
+
+1. **Workload:**
+   - Number of applications and their resource requirements
+   - Traffic patterns (peaks, valleys, seasonality)
+   - Required fault tolerance
+
+2. **Availability:**
+   - **Minimum:** 2 nodes for basic high availability
+   - **Recommended:** 3+ nodes for zone fault tolerance
+   - **Production:** 6+ nodes distributed across multiple AZs
+
+3. **Resources:**
+   - CPU and memory required per application
+   - Storage and network
+   - System overhead (Kubernetes, monitoring, etc.)
+
+**Practical Example:**
+- 10 applications require 2 CPU and 4GB RAM each
+- Each node has 4 CPU and 8GB RAM available
+- You need: (10 × 2 CPU) / 4 CPU = 5 nodes for load
+- Plus 2 nodes for redundancy = **7 total nodes**
+
+</details>
