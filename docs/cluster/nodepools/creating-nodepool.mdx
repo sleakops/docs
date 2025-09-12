@@ -33,10 +33,13 @@ In the create Node Pool modal enter:
 | **Setting** | **Description** |
 | --- | --- |
 | **Name** | Enter the name of your choice for your node pool. It cannot be repeated within a cluster.  |
-| **Instance Type** | Select between Spot and On Demand based on your needs. See [**What are the different kind of node pools?**](/cluster/nodepools)  |
-| **Architecture Type** | Select the architecture type to be used during the creation for your instances: (64-Bit) ARM or (64-Bit) X86, based on your performance and compatibility needs. Then you’ll be able of creating new instances using a different architecture.  |
-| **Max Memory**  | This sets the maximum memory the cluster can use as services scale. The autoscaler provisions instances based on demand, but this doesn't mean the cluster always uses the maximum memory; it just defines the upper limit for the autoscaler. |
-| **Max CPU** | This sets the maximum CPU the cluster can use as services scale. The autoscaler provisions instances based on demand, but this doesn't mean the cluster always uses the maximum CPU; it just defines the upper limit for the autoscaler. |
-| Storage | Set by default in 20GB, you can modify it based on your need.  |
+| **Instance Type** | Select one or more instance types (e.g. t3.medium, m5.large, c5.xlarge) based on your compute requirements. You can choose multiple instance types to provide flexibility for the autoscaler to provision the most cost-effective available instance. |
+| **Node Type** | Select one or more billing models for your instances. You can choose multiple options, and the system will prioritize them in the following order: **Reserved** (best price with commitment) → **Spot** (best price without commitment) → **On Demand** (highest price but most flexible). See [**What are the different kind of node pools?**](/cluster/nodepools) |
+| **Architecture Type** | Select the architecture type to be used during the creation for your instances: (64-Bit) ARM or (64-Bit) X86, based on your performance and compatibility needs. Then you'll be able of creating new instances using a different architecture.  |
+| **Memory Limit**  | This sets the maximum memory the cluster can use as services scale. The autoscaler provisions instances based on demand, but this doesn't mean the cluster always uses the maximum memory; it just defines the upper limit for the autoscaler. |
+| **CPU Limit** | This sets the maximum CPU the cluster can use as services scale. The autoscaler provisions instances based on demand, but this doesn't mean the cluster always uses the maximum CPU; it just defines the upper limit for the autoscaler. |
+| **Storage** | Set by default in 20GB, you can modify it based on your need.  |
+| **(Per Node) Minimum Memory** | Defines the minimum amount of memory that must be available on each node before the autoscaler considers the node as "utilized". This setting helps prevent over-provisioning by ensuring nodes maintain a minimum memory buffer for system processes and unexpected workload spikes. |
+| **(Per Node) Minimum CPU** | Defines the minimum amount of CPU that must be available on each node before the autoscaler considers the node as "utilized". This setting helps prevent over-provisioning by ensuring nodes maintain a minimum CPU buffer for system processes and unexpected workload spikes. |
 
-Once you’ve completed the form, click on *Create* in order to trigger the node pool creation into the selected cluster.
+Once you've completed the form, click on *Create* in order to trigger the node pool creation into the selected cluster.
