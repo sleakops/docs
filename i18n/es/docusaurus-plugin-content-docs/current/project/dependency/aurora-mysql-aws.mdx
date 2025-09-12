@@ -1,0 +1,155 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# AWS Aurora MySQL
+
+SleakOps proporciona una integración perfecta con Amazon Aurora MySQL, un servicio de base de datos relacional completamente administrado y compatible con MySQL. Aurora MySQL combina el rendimiento y la disponibilidad de bases de datos comerciales de alta gama con la simplicidad y rentabilidad de las bases de datos de código abierto. Al aprovechar SleakOps para esta integración, puedes gestionar eficientemente clústeres Aurora MySQL dentro de tu entorno EKS, asegurando alto rendimiento, escalabilidad y confiabilidad para tus aplicaciones.
+
+## Preguntas Frecuentes
+
+<details>
+<summary>
+### ¿Cómo gestiona SleakOps las credenciales de Aurora MySQL?
+</summary>
+Cuando creas una dependencia Aurora MySQL en SleakOps, se genera automáticamente un Vargroup para tu clúster de base de datos. Este Grupo de Variables almacena de forma segura las credenciales de Aurora MySQL y otros detalles importantes de configuración, como el endpoint del clúster y la información de acceso del usuario. Podrás gestionarlos desde la sección de [Vargroups](/project/vargroup/index.mdx).
+</details>
+
+<details>
+<summary>
+### ¿Puedo cambiar la versión de Aurora MySQL después de desplegar el clúster?
+</summary>
+Sí, Aurora MySQL soporta actualizaciones de versión del motor. Sin embargo, el proceso de actualización requiere planificación cuidadosa y puede involucrar tiempo de inactividad. Se recomienda probar el proceso de actualización en un entorno no productivo primero.
+</details>
+
+<details>
+<summary>
+### ¿Qué pasa si necesito más almacenamiento para mi clúster Aurora MySQL?
+</summary>
+Aurora MySQL escala automáticamente el almacenamiento de 10 GB hasta 128 TB sin requerir que provisiones almacenamiento por adelantado. El almacenamiento se escala automáticamente a medida que tus datos crecen, y solo pagas por el almacenamiento que uses.
+</details>
+
+<details>
+<summary>
+### ¿Cómo creo un dump de mi base de datos Aurora MySQL?
+</summary>
+Para crear un dump de tu base de datos Aurora MySQL:
+1. **Ejecuta el comando `mysqldump`**:  
+```
+mysqldump -h AURORA_MYSQL_ADDRESS -u AURORA_MYSQL_USERNAME -p --all-databases > dump.sql
+```
+Reemplaza `AURORA_MYSQL_ADDRESS`, `AURORA_MYSQL_USERNAME`, y `dump.sql` con los valores apropiados.
+2. **Consulta la Documentación**: Para más información sobre cómo crear un dump, consulta la [documentación oficial de MySQL <FiExternalLink/>](https://dev.mysql.com/doc/refman/8.0/en/mysqldump.html).
+</details>
+
+<details>
+<summary>
+### ¿Cómo importo un dump existente usando docker?
+</summary>
+Para importar un dump de base de datos a tu clúster Aurora MySQL:  
+1. **Conecta a la VPN**: Asegúrate de estar conectado a la VPN de la cuenta AWS donde se encuentra el clúster Aurora.
+2. **Ejecuta Contenedor Docker** (Recomendado): 
+   - Instala Docker en tu máquina local si no está instalado.  
+   - Ejecuta un contenedor MySQL Docker con el siguiente comando:
+   ```
+   docker run -it --name aurora-mysql-container -v ./initial_data/:/tmp/data/ -e MYSQL_ROOT_PASSWORD=AURORA_MYSQL_PASSWORD -d mysql bash
+   ```
+   - Conecta a la terminal del contenedor:
+   ```
+   docker exec -t -i aurora-mysql-container bash
+   ```
+   - Importa el archivo dump:
+   ```
+   mysql -h AURORA_MYSQL_ADDRESS -u AURORA_MYSQL_USERNAME -p < /tmp/data/dump.sql
+   ```
+   Reemplaza `AURORA_MYSQL_ADDRESS`, `AURORA_MYSQL_USERNAME`, y `dump.sql` con tus detalles específicos.
+</details>
+
+<details>
+<summary>
+### ¿Cómo importo un dump existente a mi máquina local?
+</summary>
+Alternativamente, puedes usar un cliente MySQL instalado en tu máquina local para importar el dump:
+```
+mysql -h AURORA_MYSQL_ADDRESS -u AURORA_MYSQL_USERNAME -p < dump.sql
+```
+</details>
+
+<details>
+<summary>
+### ¿Qué debo hacer si encuentro problemas de conexión con mi clúster Aurora MySQL?
+</summary>
+Verifica lo siguiente:
+- Asegúrate de que el endpoint del clúster, nombre de usuario y contraseña sean correctos.
+- Verifica que tus grupos de seguridad y reglas de firewall permitan el acceso.
+- Asegúrate de que el clúster esté ejecutándose y tenga suficientes recursos (CPU, memoria).
+- Verifica si el clúster está en estado disponible.
+De lo contrario, contáctanos.
+</details>
+
+<details>
+<summary>
+### ¿Cuáles son los beneficios de Aurora MySQL sobre MySQL estándar en RDS?
+</summary>
+Aurora MySQL ofrece varias ventajas:
+- **Rendimiento**: Hasta 5x más rápido que MySQL estándar en RDS
+- **Escalabilidad**: Escalado automático de almacenamiento hasta 128 TB
+- **Disponibilidad**: Respaldo continuo a S3 con recuperación punto en el tiempo
+- **Durabilidad**: Replicación de 6 vías a través de 3 Zonas de Disponibilidad
+- **Compatibilidad**: Compatible con MySQL con cambios mínimos de código
+- **Rentable**: Paga solo por el almacenamiento que uses
+</details>
+
+:::info
+Documentación de AWS: [Documentación de Amazon Aurora MySQL](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/CHAP_AuroraMySQL.html)
+:::
+
+## Configura tu Aurora MySQL
+### 1. Agrega Aurora MySQL como Dependencia
+Para integrar Aurora MySQL con SleakOps:
+1. En la consola de SleakOps, ve a la sección "Dependencies"
+2. Elige "Aurora MySQL" de la lista de tipos de dependencias disponibles. 
+Para más detalles, consulta [Dependencies: Integrating Databases, Caching, and Messaging Services](/project/dependency/index.mdx).
+
+### 2. Configura tu Aurora MySQL.
+Accederás al siguiente formulario:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/aurora-mysql/aurora-mysql-create-p1.png"
+    alt="Formulario de creación de Aurora MySQL"
+/>
+</Zoom>
+
+Aquí están los parámetros que SleakOps te permite personalizar durante la creación:
+
+| **Atributo** | **Descripción** |
+| --- | --- |
+| **Nombre de la Base de Datos** | Nombre para la base de datos Aurora MySQL. Debe seguir el patrón: letras minúsculas y números, no puede ser "db" o "database". |
+| **Versión del Motor de la Base de Datos** | Selecciona la versión específica del motor de la base de datos Aurora MySQL. La versión 3 es compatible con MySQL 8, la versión 2 con MySQL 5. |
+| **Modo del Motor de la Base de Datos** | Elige entre **Serverless** (auto-escalado, pago por uso para cargas de trabajo impredecibles) o **Provisioned** (capacidad fija, mejor para cargas de trabajo consistentes). |
+| **Nombre de Usuario Maestro de la Base de Datos** | Nombre de usuario maestro para el clúster Aurora MySQL. No puede ser "admin", "user", "database", o "name". |
+| **Auto-generar Contraseña** | Si está habilitado, el backend generará una contraseña segura automáticamente. |
+| **Contraseña Maestra de la Base de Datos** | Contraseña para el usuario maestro. Requerida si auto-generar está deshabilitado. No puede contener caracteres @, ', ", o /. |
+| **Clase de Instancia de la Base de Datos** | **Modo Serverless**: Fijo a `db.serverless`<br/>**Modo Provisioned**: Elige entre db.t3.medium, db.t4g.medium, db.t3.large, db.t4g.large, db.r8g.large, db.r8g.xlarge, db.r7i.large, db.r7i.xlarge.t3.medium. |
+| **Capacidad Mínima de Aurora** | *(Solo Serverless)* Unidades de Capacidad Mínima de Aurora (0.5-256). Cada unidad ≈ 2GB RAM. |
+| **Capacidad Máxima de Aurora** | *(Solo Serverless)* Unidades de Capacidad Máxima de Aurora (1-256). Cada unidad ≈ 2GB RAM. |
+| **Crear un RDS desde un snapshot** | Marca esto si restauras desde un snapshot de base de datos. |
+| **Identificador del Snapshot** | *(Requerido si restauras desde snapshot)* Identificador del snapshot RDS desde el cual restaurar. |
+| **Período de Retención de Respaldo** | Número de días (1-35) para los cuales se mantienen los respaldos automáticos. |
+| **Ventana de Respaldo** | Período para respaldos automatizados en formato HH:MM-HH:MM (UTC). |
+| **Réplicas de Lectura** | Configuración para réplicas de lectura de la base de datos. Cada réplica requiere un nombre y configuración de acceso público. |
+
+### 3. Personaliza el nombre de tus variables para tu clúster Aurora MySQL.
+
+Como se explicó, cuando se crea una dependencia, SleakOps genera un vargroup para contener todos los atributos necesarios. 
+En este paso puedes cambiar el nombre de los atributos en caso de que sea necesario. 
+SleakOps completa los valores automáticamente. 
+Después de este paso, tu dependencia es creada.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/aurora-mysql/aurora-mysql-create-outputs.png"
+    alt="Salidas de creación de Aurora MySQL"
+/>
+</Zoom>
