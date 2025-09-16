@@ -50,9 +50,9 @@ To determine if your application is compatible with Spot instances, evaluate the
 - **Batch processing:** Tasks that can be restarted
 - **Development/Testing:** Non-critical environments
 - **Microservices:** With circuit breakers and retry logic
+- **Tested with FIS:** Applications validated with [AWS Fault Injection Simulator](https://aws.amazon.com/fis) to test node interruptions
 
 **❌ Applications NOT recommended for Spot:**
-- **Critical databases:** Without automatic replication
 - **Real-time applications:** That require constant latency
 - **Long-running processes:** That cannot be easily restarted
 - **Payment systems:** That require high availability
@@ -68,7 +68,6 @@ Use On-Demand instances in the following scenarios:
 **Critical Applications:**
 - Payment and financial transaction systems
 - High-availability APIs (99.9%+ SLA)
-- Primary databases without automatic replication
 - Authentication and authorization services
 
 **Specific Workloads:**
@@ -81,37 +80,5 @@ Use On-Demand instances in the following scenarios:
 - When downtime cost exceeds Spot savings
 - For workloads with unpredictable usage patterns
 - In cases where guaranteed capacity is critical
-
-</details>
-
-<details>
-<summary>
-### Why does my cluster have N nodes? How to size correctly?
-</summary>
-
-The number of nodes in your cluster depends on several factors:
-
-**Sizing Factors:**
-
-1. **Workload:**
-   - Number of applications and their resource requirements
-   - Traffic patterns (peaks, valleys, seasonality)
-   - Required fault tolerance
-
-2. **Availability:**
-   - **Minimum:** 2 nodes for basic high availability
-   - **Recommended:** 3+ nodes for zone fault tolerance
-   - **Production:** 6+ nodes distributed across multiple AZs
-
-3. **Resources:**
-   - CPU and memory required per application
-   - Storage and network
-   - System overhead (Kubernetes, monitoring, etc.)
-
-**Practical Example:**
-- 10 applications require 2 CPU and 4GB RAM each
-- Each node has 4 CPU and 8GB RAM available
-- You need: (10 × 2 CPU) / 4 CPU = 5 nodes for load
-- Plus 2 nodes for redundancy = **7 total nodes**
 
 </details>

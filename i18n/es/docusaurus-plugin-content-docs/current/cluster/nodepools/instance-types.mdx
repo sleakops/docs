@@ -50,9 +50,9 @@ Para determinar si tu aplicación es compatible con instancias Spot, evalúa los
 - **Batch processing:** Tareas que se pueden reiniciar
 - **Development/Testing:** Entornos no críticos
 - **Microservicios:** Con circuit breakers y retry logic
+- **Tested with FIS:** Aplicaciones validadas con [AWS Fault Injection Simulator](https://aws.amazon.com/fis) para probar interrupciones de nodos
 
 **❌ Aplicaciones NO recomendadas para Spot:**
-- **Bases de datos críticas:** Sin replicación automática
 - **Aplicaciones de tiempo real:** Que requieren latencia constante
 - **Procesos largos:** Que no pueden reiniciarse fácilmente
 - **Sistemas de pago:** Que requieren alta disponibilidad
@@ -68,7 +68,6 @@ Usa instancias On-Demand en los siguientes escenarios:
 **Aplicaciones Críticas:**
 - Sistemas de pago y transacciones financieras
 - APIs de alta disponibilidad (99.9%+ SLA)
-- Bases de datos principales sin replicación automática
 - Servicios de autenticación y autorización
 
 **Cargas de Trabajo Específicas:**
@@ -81,37 +80,5 @@ Usa instancias On-Demand en los siguientes escenarios:
 - Cuando el costo de downtime supera el ahorro de Spot
 - Para workloads con patrones de uso impredecibles
 - En casos donde la capacidad garantizada es crítica
-
-</details>
-
-<details>
-<summary>
-### ¿Por qué mi cluster tiene N nodos? ¿Cómo dimensionar correctamente?
-</summary>
-
-El número de nodos en tu cluster depende de varios factores:
-
-**Factores de Dimensionamiento:**
-
-1. **Carga de Trabajo:**
-   - Número de aplicaciones y sus requisitos de recursos
-   - Patrones de tráfico (picos, valle, estacionalidad)
-   - Tolerancia a fallos requerida
-
-2. **Disponibilidad:**
-   - **Mínimo:** 2 nodos para alta disponibilidad básica
-   - **Recomendado:** 3+ nodos para tolerancia a fallos de zona
-   - **Producción:** 6+ nodos distribuidos en múltiples AZs
-
-3. **Recursos:**
-   - CPU y memoria requeridos por aplicación
-   - Almacenamiento y red
-   - Overhead del sistema (Kubernetes, monitoring, etc.)
-
-**Ejemplo Práctico:**
-- 10 aplicaciones requieren 2 CPU y 4GB RAM cada una
-- Cada nodo tiene 4 CPU y 8GB RAM disponibles
-- Necesitas: (10 × 2 CPU) / 4 CPU = 5 nodos para carga
-- Más 2 nodos para redundancia = **7 nodos totales**
 
 </details>
