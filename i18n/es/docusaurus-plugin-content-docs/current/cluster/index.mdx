@@ -53,6 +53,13 @@ En el proceso de creación de tu clúster EKS, la provisión de nodos se gestion
 
 <details>
 <summary>
+### ¿Cómo elegir los tipos de instancias correctos para mi clúster?
+</summary>
+Elegir los tipos de instancias correctos depende de los requisitos de tu aplicación, los objetivos de optimización de costos y las necesidades de disponibilidad. SleakOps proporciona diferentes node pools (Spot, On-Demand, Reserved) para ayudarte a optimizar costos mientras mantienes el rendimiento. Para obtener orientación detallada sobre tipos de instancias y dimensionamiento de clústeres, consulta [Tipos de Instancias y Manejo de Nodos](/cluster/nodepools/instance-types).
+</details>
+
+<details>
+<summary>
 ### ¿Cómo maneja SleakOps las actualizaciones de clúster?
 </summary>
 1. Notificamos a los usuarios sobre una nueva versión aproximadamente con 1 mes de anticipación.
@@ -97,13 +104,10 @@ Tarifa fija del servicio EKS: USD 0.10 por hora
 
 Para más información sobre las cuentas, consulta [Cuentas](/provider/accounts).
 
-En el panel izquierdo, verás un selector con los nombres de las cuentas. Selecciona la que utilizarás según cómo decidas gestionar tus clústeres y [entornos](/environment).
-
-Sugerimos seguir una configuración de *Esquema Múltiple*, que se alinea con las mejores prácticas. Para seguir este esquema, selecciona la cuenta de *desarrollo* para crear el clúster para tus entornos de pruebas y la cuenta de *producción* para el clúster de producción.
-
 <div style={{ display: 'flex', alignItems: 'flex-start' }}>
   <img src="/img/provider/provideraccountselect.png" alt="seleccion-cuenta-provider" style={{ marginRight: '20px', maxWidth: '200px' }} />
   <div>
+    <p>En el panel izquierdo, verás un selector con los nombres de las cuentas. Selecciona la que utilizarás según cómo decidas gestionar tus clústeres y [entornos](/environment).</p>
     <p>Sugerimos seguir una configuración de Esquema Múltiple, que se alinea con las mejores prácticas. Para seguir este esquema, selecciona la cuenta de desarrollo para crear el clúster para tus entornos de pruebas y la cuenta de producción para el clúster de producción.</p>
     <p>Consulta [Diseñando tu Infraestructura: Esquema Simple vs. Esquema Múltiple](/provider/schemas) para más información.</p>
   </div>
@@ -138,7 +142,7 @@ Aquí están los parámetros que SleakOps te permite personalizar durante la cre
 | **Nombre** | Identifica tu clúster. |
 | Descripción | Espacio opcional para describir lo que incluye este clúster. |
 | **Tipo de Arquitectura** | Selecciona el tipo de arquitectura a utilizar durante la creación de tus instancias: (64-Bit) ARM o (64-Bit) X86, según tus necesidades de rendimiento y compatibilidad. Luego podrás crear nuevas instancias usando una arquitectura diferente. |
-| Producción | Sugerido cuando el entorno de Producción está en este Clúster. Activa la función de "Alta Disponibilidad" (HA) para garantizar la disponibilidad constante y confiable de sistemas críticos. Con HA, el clúster EKS se distribuye en múltiples Zonas de Disponibilidad (AZs) para redundancia y tolerancia a fallos, asegurando operaciones ininterrumpidas incluso si una AZ presenta problemas. |
+| Producción | **Configuración de Alta Disponibilidad (HA)**: Cuando está habilitada, esta configuración transforma tu clúster en un entorno listo para producción distribuyendo el clúster EKS en múltiples Zonas de Disponibilidad (AZs). Esto proporciona redundancia y tolerancia a fallos, asegurando operaciones ininterrumpidas incluso si una AZ experimenta problemas. Los clústeres de producción también se benefician de monitoreo mejorado, respaldos automatizados y asignación optimizada de recursos para cargas de trabajo críticas. |
 | **Memoria Máxima** | Define la memoria máxima que el clúster puede usar a medida que los servicios escalan. El autoscaler provisiona instancias según la demanda, pero esto no significa que el clúster siempre usará la memoria máxima; simplemente define el límite superior para el autoscaler. |
 | **CPU Máxima** | Define la CPU máxima que el clúster puede usar a medida que los servicios escalan. El autoscaler provisiona instancias según la demanda, pero esto no significa que el clúster siempre usará la CPU máxima; simplemente define el límite superior para el autoscaler. |
 
