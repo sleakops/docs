@@ -27,6 +27,16 @@ When configuring your Dockerfile in SleakOps, you need to:
 ### How do I add the Dockerfile arguments?
 </summary>
 Once you specify the Dockerfile path, SleakOps analyzes it to identify any build arguments that are required. If necessary, SleakOps will prompt you to provide values for these arguments. You can update these arguments at any time through the SleakOps interface.
+
+:::tip DockerArgs from CLI
+You can also define DockerArgs when using the SleakOps CLI for builds. Use the `--docker-args` parameter to pass build arguments directly from the command line:
+
+```bash
+sleakops build -p myproject -b main --docker-args "ARG1=value1,ARG2=value2"
+```
+
+This is particularly useful for CI/CD pipelines where you want to pass different arguments based on the environment or build context.
+:::
 </details>
 
 <details>
@@ -45,6 +55,14 @@ You can add the by following the steps below.
 
 ## Set up your Dockerfile
 ### 1. Access to your project settings
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/project/dockerfile-settings.png"
+    alt="dockerfile settings page"
+/>
+</Zoom>
+
   1. **Complete the Dockerfile Path:** To enable SleakOps to search for the needed arguments, specify the Dockerfile Path and save the changes. SleakOps will then analyze your Dockerfile and render the required build arguments for you to provide.
 
 | **Dockerfile Path** | The Dockerfile is a critical component used to build your project into a container. The Dockerfile Path field requires the relative file path to your Dockerfile within the repository (e.g., /Dockerfile, /src/Dockerfile, or /app/Dockerfile). This file contains the instructions needed to create the container image, which SleakOps will build and later use for deployments. |

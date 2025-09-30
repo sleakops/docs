@@ -108,3 +108,66 @@ Para continuar, elige entre las siguientes guías:
 [Memcached](/project/dependency/memcached-aws).  
 [OpenSearch](/project/dependency/opensearch-aws).  
 [SQS](/project/dependency/sqs-aws).
+
+## Acceso a Dependencias
+
+El acceso a dependencias se refiere a los mecanismos de seguridad y conectividad que permiten que las cargas de trabajo de tu aplicación interactúen de forma segura con dependencias externas. SleakOps gestiona automáticamente estos patrones de acceso para asegurar una comunicación segura entre tus servicios y sus dependencias.
+
+### Gestión de Acceso
+
+#### Configuración Automática de Service Account
+Cuando creas una dependencia, SleakOps automáticamente:
+- **Crea roles IAM** con permisos apropiados para el tipo específico de dependencia
+- **Configura service accounts** en tu namespace de Kubernetes
+- **Establece conexiones seguras** entre tus cargas de trabajo y la dependencia
+- **Gestiona credenciales** a través de secrets de Kubernetes y roles IAM
+
+#### Seguridad de Red
+- **Integración VPC**: Las dependencias se crean dentro de la VPC de tu proyecto para acceso seguro de red
+- **Security Groups**: Configurados automáticamente para permitir el tráfico necesario entre servicios
+- **Endpoints Privados**: Las dependencias usan endpoints privados cuando están disponibles para minimizar la exposición
+
+### Patrones de Acceso
+
+#### Acceso a Base de Datos
+Para dependencias de base de datos (MySQL, PostgreSQL, etc.):
+- **Cadenas de Conexión**: Generadas automáticamente y almacenadas como secrets de Kubernetes
+- **Autenticación**: Gestionada a través de roles IAM y credenciales específicas de la base de datos
+- **SSL/TLS**: Las conexiones encriptadas se configuran por defecto
+- **Connection Pooling**: Gestión optimizada de conexiones para mejor rendimiento
+
+#### Acceso a Cache
+Para servicios de caché (Redis, Memcached):
+- **Configuración de Endpoint**: Configurada automáticamente en el entorno de tu aplicación
+- **Autenticación**: Acceso seguro a través de roles IAM y credenciales específicas del servicio
+- **Políticas de Red**: Acceso restringido solo a cargas de trabajo autorizadas
+
+#### Acceso a Almacenamiento
+Para servicios de almacenamiento (S3, etc.):
+- **Políticas de Bucket**: Configuradas automáticamente con acceso de menor privilegio
+- **Permisos IAM**: Las service accounts reciben solo los permisos necesarios
+- **Access Keys**: Gestionadas a través de roles IAM de AWS para mayor seguridad
+
+### Mejores Prácticas de Seguridad
+
+#### Principio de Menor Privilegio
+- **Permisos Mínimos**: Las dependencias reciben solo los permisos mínimos requeridos
+- **Acceso Específico de Recursos**: El acceso se limita a recursos específicos cuando es posible
+- **Auditorías Regulares**: SleakOps proporciona herramientas para revisar y auditar el acceso a dependencias
+
+#### Gestión de Credenciales
+- **Rotación Automática**: Las credenciales se rotan automáticamente cuando es posible
+- **Almacenamiento Seguro**: Todas las credenciales se almacenan como secrets de Kubernetes
+- **Sin Secrets Hardcodeados**: Las aplicaciones acceden a dependencias a través de variables de entorno
+
+:::info Monitoreo de Acceso
+SleakOps proporciona capacidades de monitoreo y logging para rastrear patrones de acceso a dependencias, ayudándote a identificar posibles problemas de seguridad y optimizar el rendimiento.
+:::
+
+:::tip Resolución de Problemas de Acceso
+Si encuentras problemas de acceso con dependencias:
+1. Verifica el estado de la dependencia en la consola de SleakOps
+2. Confirma que tu carga de trabajo tiene la service account correcta
+3. Revisa los permisos del rol IAM para la dependencia
+4. Verifica la conectividad de red y configuraciones de security groups
+:::
