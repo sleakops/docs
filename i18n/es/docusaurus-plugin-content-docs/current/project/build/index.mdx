@@ -27,3 +27,62 @@ Recuerda que necesitas un Build para actualizar el código que se ejecuta dentro
 SleakOps tiene su propia herramienta de línea de comandos (CLI) que puedes usar para automatizar Builds y Deployments en tu CI/CD. Más información [aquí](/cli.mdx).
 
 :::
+
+## Recursos de Build y Deploy
+
+Los recursos de build y deploy son los componentes de infraestructura que SleakOps crea y gestiona para soportar los procesos de construcción y despliegue de tu aplicación. Estos recursos se aprovisionan automáticamente en tu cuenta de AWS y son esenciales para el pipeline de CI/CD.
+
+### Recursos de Build
+
+Cuando creas un build, SleakOps aprovisiona los siguientes recursos:
+
+#### AWS ECR (Elastic Container Registry)
+- **Propósito**: Almacena tus imágenes Docker y Helm charts
+- **Ubicación**: Creado automáticamente en la cuenta de AWS de tu proyecto
+- **Nomenclatura**: Las imágenes se nombran según tu ProjectEnv (entorno + nombre del proyecto)
+- **Acceso**: Gestionado a través de cuentas de servicio de SleakOps y roles IAM
+
+#### Entorno de Construcción Kaniko
+- **Propósito**: Ejecuta construcciones Docker en un entorno seguro y containerizado
+- **Características**: 
+  - No requiere daemon de Docker
+  - Proceso de construcción seguro
+  - Optimizado para entornos de Kubernetes
+- **Configuración**: Configurado automáticamente basado en tu Dockerfile y argumentos de construcción
+
+### Recursos de Deploy
+
+Durante el despliegue, SleakOps gestiona estos recursos:
+
+#### Almacenamiento de Helm Chart
+- **Ubicación**: Almacenado en el mismo repositorio ECR que tus imágenes
+- **Versionado**: Cada despliegue crea una nueva versión del Helm chart
+- **Plantillas**: Generadas basadas en las configuraciones de tus cargas de trabajo
+
+#### Recursos de Kubernetes
+- **Namespace**: Namespace dedicado para tu ProjectEnv
+- **Service Account**: Gestiona permisos para tus cargas de trabajo
+- **Secrets**: Creados automáticamente para variables de entorno y datos sensibles
+- **ConfigMaps**: Almacenan datos de configuración no sensibles
+
+### Gestión de Recursos
+
+#### Limpieza Automática
+- **Imágenes Antiguas**: SleakOps gestiona automáticamente las políticas de retención de imágenes
+- **Builds Fallidos**: Los recursos de builds fallidos se limpian automáticamente
+- **Recursos Huérfanos**: Los procesos de limpieza regulares eliminan recursos no utilizados
+
+#### Monitoreo de Recursos
+- **Estado del Build**: Rastrea el progreso del build e identifica fallos
+- **Uso de Recursos**: Monitorea el almacenamiento ECR y el consumo de recursos de construcción
+- **Seguimiento de Costos**: Ve los costos asociados con los recursos de build y deploy
+
+:::info Propiedad de Recursos
+Todos los recursos de build y deploy se crean en tu propia cuenta de AWS. SleakOps no almacena ningún dato exclusivamente - todo permanece bajo tu control y propiedad.
+:::
+
+:::tip Optimización de Recursos
+- Usa tags de imagen apropiados para gestionar versiones de imagen
+- Revisa y limpia regularmente imágenes no utilizadas
+- Monitorea los costos de almacenamiento ECR y configura políticas de ciclo de vida si es necesario
+:::

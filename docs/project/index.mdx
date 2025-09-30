@@ -158,4 +158,57 @@ Here the parameters that SleakOps allows you to customize during the creation:
 | **Branch** | The branch represents a specific version or line of development within the repository. This allows you to deploy a particular version of your code (e.g., main, develop, or a feature-specific branch). The branch you select will determine the code that gets built and deployed within the associated environment.  |
 | **Dockerfile Path** | The Dockerfile is a critical component used to build your project into a container. The Dockerfile Path field requires the relative file path to your Dockerfile within the repository (e.g., /Dockerfile, /src/Dockerfile, or /app/Dockerfile). This file contains the instructions needed to create the container image, which SleakOps will build and later use for deployments.  |
 
-Once you’ve completed the form, click on Submit in order to trigger the Dockerfile validation and then the build.
+Once you've completed the form, click on Submit in order to trigger the Dockerfile validation and then the build.
+
+## ProjectAccess
+
+ProjectAccess allows you to configure custom IAM policies and roles for your project, providing fine-grained control over AWS resource permissions. This feature enables you to define specific access patterns that align with your security requirements and operational needs.
+
+### Custom Policies
+
+Custom policies allow you to create tailored IAM policies that grant specific permissions to your project's workloads. These policies should be created in the same AWS account where your project is deployed.
+
+#### Creating Custom Policies
+
+1. **Navigate to AWS IAM Console** in your project's AWS account
+2. **Create a new policy** with the specific permissions your application requires
+3. **Reference the policy** in SleakOps using the policy ARN
+
+:::tip Policy Best Practices
+- Follow the principle of least privilege - grant only the minimum permissions necessary
+- Use resource-specific ARNs when possible to limit access scope
+- Regularly review and audit policy permissions
+:::
+
+#### Referencing Custom Policies in SleakOps
+
+When configuring ProjectAccess, you can reference your custom policies by providing the policy ARN:
+
+```
+arn:aws:iam::ACCOUNT_ID:policy/YourCustomPolicyName
+```
+
+### AWS Managed Policies
+
+SleakOps also supports AWS managed policies, which are pre-configured policies maintained by AWS. These policies provide common permission sets for various AWS services.
+
+#### Common AWS Managed Policies
+
+- **AmazonS3ReadOnlyAccess**: Read-only access to S3 buckets
+- **AmazonRDSReadOnlyAccess**: Read-only access to RDS instances
+- **CloudWatchReadOnlyAccess**: Read-only access to CloudWatch metrics and logs
+- **AmazonEC2ReadOnlyAccess**: Read-only access to EC2 resources
+
+:::info Policy Association
+When associating roles or policies with your project, it's recommended to use the minimum number of policies necessary. This approach:
+- Reduces complexity in permission management
+- Improves security by limiting potential attack vectors
+- Makes troubleshooting easier when permission issues arise
+:::
+
+### Best Practices for Policy Management
+
+1. **Minimize Policy Count**: Associate the fewest number of policies possible while meeting your requirements
+2. **Regular Audits**: Periodically review and audit the policies associated with your projects
+3. **Environment-Specific Policies**: Consider using different policies for different environments (dev, staging, prod)
+4. **Documentation**: Maintain clear documentation of why specific policies are required for each project
