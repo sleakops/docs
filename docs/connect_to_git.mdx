@@ -43,15 +43,113 @@ Yes, you can do it by deleting de existing one and connecting the new one. Be su
 <summary>
 ### How do I connect a Self hosted Gitlab account?
 </summary>
-Get into the URL: `yourgitlab.com/-/profile/applications` and create a new app, call it Sleakops. When asked, use these values:
 
+Connecting a self-hosted GitLab instance requires creating an OAuth application in your GitLab installation, as each self-hosted instance has a unique URL and authentication system.
 
-| **Setting** | **Description** |
-| --- | --- |
-| **URL callback** | https://api.sleakops.com/api/integrations/self-gitlab/callback/ |
-| **scope** | Read & Write. |
+#### Prerequisites
 
-Once the application is created, add the Application ID and Secret generated inside the configuration of your [Sleakops account.](https://console.sleakops.com/settings/authorizations/)
+- Administrator access to your self-hosted GitLab instance
+- Your GitLab instance must be accessible from the internet (SleakOps needs to communicate with it)
+- HTTPS is strongly recommended for security
+
+#### Step 1: Create an OAuth Application in Your GitLab Instance
+
+1. **Access the Applications page**
+   - Navigate to your GitLab instance: `https://yourgitlab.com/-/profile/applications`
+   - Or go to: User Settings → Applications
+
+2. **Create a new application**
+   - Click "Add new application" or "New application"
+   - Fill in the following information:
+
+| **Field** | **Value** |
+|-----------|----------|
+| **Name** | SleakOps (or any descriptive name) |
+| **Redirect URI** | https://api.sleakops.com/api/integrations/self-gitlab/callback/ |
+| **Scopes** | Select `api` (this grants read and write access to the API) |
+
+:::warning
+The Redirect URI must be **exactly** as shown below (including the trailing slash):
+```
+https://api.sleakops.com/api/integrations/self-gitlab/callback/
+```
+Do not modify this URL.
+:::
+
+3. **Save the application**
+   - Click "Save application" or "Submit"
+   - You will be shown two important values:
+     - **Application ID** (Client ID)
+     - **Secret** (Client Secret)
+
+:::caution
+Copy both the Application ID and Secret immediately. The Secret will only be shown once and cannot be retrieved later.
+:::
+
+:::tip
+Store these credentials securely. If you lose the Secret, you'll need to regenerate the OAuth application.
+:::
+
+#### Step 2: Connect Your Self-Hosted GitLab to SleakOps
+
+1. **Navigate to SleakOps Authorizations**
+   - Log in to your [SleakOps account](https://console.sleakops.com/settings/authorizations/)
+   - Go to Settings → Authorizations
+
+2. **Select Self-Hosted GitLab**
+   - Click on "Self-Hosted GitLab" integration option
+
+3. **Enter your OAuth application details**
+   - **GitLab Instance URL**: Enter your GitLab instance URL (e.g., `https://gitlab.yourcompany.com`)
+     - Do not include a trailing slash
+     - Must start with `http://` or `https://`
+   - **Application ID**: Paste the Application ID from Step 1
+   - **Application Secret**: Paste the Secret from Step 1
+
+4. **Authorize SleakOps**
+   - Click "Connect" or "Authorize"
+   - You will be redirected to your GitLab instance
+   - Review the permissions and click "Authorize"
+   - You will be redirected back to SleakOps
+
+5. **Verify the connection**
+   - Once redirected, you should see your self-hosted GitLab account listed as connected
+   - You can now select repositories from your self-hosted GitLab instance when creating projects
+
+#### What permissions does SleakOps need?
+
+The `api` scope grants SleakOps the following permissions:
+
+- Read repository information and file contents
+- Create and manage branches
+- Create and update files (for automated deployments)
+- Create merge requests
+- Access commit information
+
+These permissions are required for SleakOps to clone your repositories, build container images, deploy applications, and manage infrastructure-as-code.
+
+#### Troubleshooting
+
+##### Connection fails with "Invalid URL" error
+- Ensure your GitLab instance URL does not end with a trailing slash
+- Verify the URL starts with `http://` or `https://`
+- Example: ✅ `https://gitlab.company.com` ❌ `https://gitlab.company.com/`
+
+##### Authorization redirects but connection fails
+- Verify the Redirect URI in your GitLab OAuth application matches exactly: `https://api.sleakops.com/api/integrations/self-gitlab/callback/`
+- Check that the Application ID and Secret are correct
+- Ensure the `api` scope was selected when creating the OAuth application
+
+##### Network/Firewall issues
+- Ensure your self-hosted GitLab instance is accessible from SleakOps servers
+- If your GitLab is behind a firewall, you may need to whitelist SleakOps IP addresses
+- Contact SleakOps support for IP whitelist information
+
+##### SSL/Certificate errors
+- Self-signed certificates may cause connection issues
+- Use a valid SSL certificate from a trusted certificate authority
+- Ensure your GitLab instance has proper HTTPS configuration
+
 </details>
 
 <details>
