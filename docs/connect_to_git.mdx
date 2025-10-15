@@ -66,7 +66,7 @@ Connecting a self-hosted GitLab instance requires creating an OAuth application 
 |-----------|----------|
 | **Name** | SleakOps (or any descriptive name) |
 | **Redirect URI** | https://api.sleakops.com/api/integrations/self-gitlab/callback/ |
-| **Scopes** | Select `api` (this grants read and write access to the API) |
+| **Scopes** | Select `api` and `offline_access` (required for persistent access and automatic token renewal) |
 
 :::warning
 The Redirect URI must be **exactly** as shown below (including the trailing slash):
@@ -118,13 +118,23 @@ Store these credentials securely. If you lose the Secret, you'll need to regener
 
 #### What permissions does SleakOps need?
 
-The `api` scope grants SleakOps the following permissions:
+SleakOps requires two scopes:
 
+**`api` scope** grants the following permissions:
 - Read repository information and file contents
 - Create and manage branches
 - Create and update files (for automated deployments)
 - Create merge requests
 - Access commit information
+
+**`offline_access` scope** allows SleakOps to:
+- Obtain a refresh token for long-term access
+- Automatically renew expired access tokens
+- Maintain persistent connection without requiring re-authorization
+
+:::warning
+Without `offline_access`, the access token will expire after ~2 hours and the integration will break until manually re-authorized.
+:::
 
 These permissions are required for SleakOps to clone your repositories, build container images, deploy applications, and manage infrastructure-as-code.
 
@@ -138,7 +148,7 @@ These permissions are required for SleakOps to clone your repositories, build co
 ##### Authorization redirects but connection fails
 - Verify the Redirect URI in your GitLab OAuth application matches exactly: `https://api.sleakops.com/api/integrations/self-gitlab/callback/`
 - Check that the Application ID and Secret are correct
-- Ensure the `api` scope was selected when creating the OAuth application
+- Ensure both `api` and `offline_access` scopes were selected when creating the OAuth application
 
 ##### Network/Firewall issues
 - Ensure your self-hosted GitLab instance is accessible from SleakOps servers
