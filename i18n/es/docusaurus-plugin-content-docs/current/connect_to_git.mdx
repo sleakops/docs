@@ -41,20 +41,6 @@ Accede a la sección *Configuración >> Autorizaciones* en SleakOps. Selecciona 
 Sí, puedes hacerlo eliminando la existente y conectando la nueva. Asegúrate de que la nueva cuenta tenga acceso a los proyectos que usas en SleakOps. 
 </details>
 
-<details>
-<summary>
-### ¿Cómo conecto una cuenta Gitlab autohospedada?
-</summary>
-Ingresa en la URL: `tugitlab.com/-/profile/applications` y crea una nueva aplicación, llámala Sleakops. Cuando se te pregunte, usa estos valores:
-
-
-| **Configuración** | **Descripción** |
-| --- | --- |
-| **URL de callback** | https://api.sleakops.com/api/integrations/gitlab/callback/ |
-| **ámbito** | Lectura y Escritura. |
-
-Una vez creada la aplicación, agrega el ID de Aplicación y el Secreto generados en la configuración de tu [cuenta Sleakops.](https://console.sleakops.com/settings/authorizations/)
-</details>
 
 <details>
 <summary>
@@ -63,6 +49,167 @@ Una vez creada la aplicación, agrega el ID de Aplicación y el Secreto generado
 Haciendo clic en el botón X junto al proveedor Git. Ten en cuenta que los proyectos actuales continuarán funcionando, pero no podrán recibir actualizaciones una vez que se elimine esta integración.
 
 Si estás usando GitHub, también necesitarás eliminar la aplicación Sleakops de tu cuenta de GitHub para completar el proceso de eliminación.
+</details>
+
+## Integraciones
+
+<details>
+<summary>
+### Github
+</summary>
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/project/git/setup-github.png"
+    alt="configurar-github"
+/>
+</Zoom>
+</details>
+
+<details>
+<summary>
+### Gitlab
+</summary>
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/project/git/setup-gitlab.png"
+    alt="configurar-gitlab"
+/>
+</Zoom>
+</details>
+
+<details>
+<summary>
+### Bitbucket
+</summary>
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/project/git/setup-bitbucket.png"
+    alt="configurar-bitbucket"
+/>
+</Zoom>
+</details>
+
+<details>
+<summary>
+### GitLab Autohospedado
+</summary>
+
+Conectar una instancia de GitLab autohospedada requiere crear una aplicación OAuth en tu instalación de GitLab, ya que cada instancia autohospedada tiene una URL y sistema de autenticación únicos.
+
+#### Requisitos Previos
+
+- Acceso de administrador a tu instancia de GitLab autohospedada
+- Tu instancia de GitLab debe ser accesible desde internet (SleakOps necesita comunicarse con ella)
+- Se recomienda encarecidamente usar HTTPS por seguridad
+
+#### Paso 1: Crear una Aplicación OAuth en Tu Instancia de GitLab
+
+1. **Acceder a la página de Aplicaciones**
+   - Navega a tu instancia de GitLab: `https://tugitlab.com/-/profile/applications`
+   - O ve a: Configuración de Usuario → Aplicaciones
+
+2. **Crear una nueva aplicación**
+   - Haz clic en "Agregar nueva aplicación" o "Nueva aplicación"
+   - Completa la siguiente información:
+
+| **Campo** | **Valor** |
+|-----------|----------|
+| **Nombre** | SleakOps (o cualquier nombre descriptivo) |
+| **URI de Redirección** | https://api.sleakops.com/api/integrations/self-gitlab/callback/ |
+| **Ámbitos** | Selecciona `api` y `offline_access` (requeridos para acceso persistente y renovación automática de tokens) |
+
+:::warning
+La URI de Redirección debe ser **exactamente** como se muestra a continuación (incluyendo la barra final):
+```
+https://api.sleakops.com/api/integrations/self-gitlab/callback/
+```
+No modifiques esta URL.
+:::
+
+3. **Guardar la aplicación**
+   - Haz clic en "Guardar aplicación" o "Enviar"
+   - Se te mostrarán dos valores importantes:
+     - **ID de Aplicación** (Client ID)
+     - **Secreto** (Client Secret)
+
+:::caution
+Copia inmediatamente el ID de Aplicación y el Secreto. El Secreto solo se mostrará una vez y no podrá recuperarse después.
+:::
+
+:::tip
+Guarda estas credenciales de forma segura. Si pierdes el Secreto, necesitarás regenerar la aplicación OAuth.
+:::
+
+#### Paso 2: Conectar Tu GitLab Autohospedado a SleakOps
+
+1. **Navegar a Autorizaciones de SleakOps**
+   - Inicia sesión en tu [cuenta de SleakOps](https://console.sleakops.com/settings/authorizations/)
+   - Ve a Configuración → Autorizaciones
+
+2. **Seleccionar GitLab Autohospedado**
+   - Haz clic en la opción de integración "GitLab Autohospedado"
+
+3. **Ingresar los detalles de tu aplicación OAuth**
+   - **URL de Instancia GitLab**: Ingresa la URL de tu instancia de GitLab (ej., `https://gitlab.tuempresa.com`)
+     - No incluyas una barra final
+     - Debe comenzar con `http://` o `https://`
+   - **ID de Aplicación**: Pega el ID de Aplicación del Paso 1
+   - **Secreto de Aplicación**: Pega el Secreto del Paso 1
+
+4. **Autorizar SleakOps**
+   - Haz clic en "Conectar" o "Autorizar"
+   - Serás redirigido a tu instancia de GitLab
+   - Revisa los permisos y haz clic en "Autorizar"
+   - Serás redirigido de vuelta a SleakOps
+
+5. **Verificar la conexión**
+   - Una vez redirigido, deberías ver tu cuenta de GitLab autohospedada listada como conectada
+   - Ahora puedes seleccionar repositorios de tu instancia de GitLab autohospedada al crear proyectos
+
+#### ¿Qué permisos necesita SleakOps?
+
+SleakOps requiere dos ámbitos:
+
+**Ámbito `api`** otorga los siguientes permisos:
+- Leer información del repositorio y contenido de archivos
+- Crear y administrar ramas
+- Crear y actualizar archivos (para despliegues automatizados)
+- Crear merge requests
+- Acceder a información de commits
+
+**Ámbito `offline_access`** permite a SleakOps:
+- Obtener un refresh token para acceso a largo plazo
+- Renovar automáticamente tokens de acceso expirados
+- Mantener conexión persistente sin requerir re-autorización
+
+:::warning
+Sin `offline_access`, el token de acceso expirará después de ~2 horas y la integración se romperá hasta ser re-autorizada manualmente.
+:::
+
+Estos permisos son necesarios para que SleakOps pueda clonar tus repositorios, construir imágenes de contenedores, desplegar aplicaciones y administrar infraestructura como código.
+
+#### Solución de Problemas
+
+##### La conexión falla con error "URL Inválida"
+- Asegúrate de que la URL de tu instancia de GitLab no termine con una barra final
+- Verifica que la URL comience con `http://` o `https://`
+- Ejemplo: ✅ `https://gitlab.empresa.com` ❌ `https://gitlab.empresa.com/`
+
+##### La autorización redirige pero la conexión falla
+- Verifica que la URI de Redirección en tu aplicación OAuth de GitLab coincida exactamente: `https://api.sleakops.com/api/integrations/self-gitlab/callback/`
+- Verifica que el ID de Aplicación y el Secreto sean correctos
+- Asegúrate de que ambos ámbitos `api` y `offline_access` fueron seleccionados al crear la aplicación OAuth
+
+##### Problemas de Red/Firewall
+- Asegúrate de que tu instancia de GitLab autohospedada sea accesible desde los servidores de SleakOps
+- Si tu GitLab está detrás de un firewall, podrías necesitar agregar las direcciones IP de SleakOps a la lista blanca
+- Contacta al soporte de SleakOps para información sobre las IP de la lista blanca
+
+##### Errores de SSL/Certificado
+- Los certificados autofirmados pueden causar problemas de conexión
+- Usa un certificado SSL válido de una autoridad certificadora confiable
+- Asegúrate de que tu instancia de GitLab tenga una configuración HTTPS adecuada
+
 </details>
 
 ## Configurar tu Cuenta Git
@@ -86,38 +233,3 @@ Haz clic en tu proveedor y sigue los pasos requeridos para cada uno para concede
 />
 </Zoom>
 
-<details>
-<summary>
-**Github**
-</summary>
-<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
-<img
-    src="/img/project/git/setup-github.png"
-    alt="configurar-github"
-/>
-</Zoom>
-</details>
-
-<details>
-<summary>
-**Gitlab**
-</summary>
-<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
-<img
-    src="/img/project/git/setup-gitlab.png"
-    alt="configurar-gitlab"
-/>
-</Zoom>
-</details>
-
-<details>
-<summary>
-**Bitbucket**
-</summary>
-<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
-<img
-    src="/img/project/git/setup-bitbucket.png"
-    alt="configurar-bitbucket"
-/>
-</Zoom>
-</details>
