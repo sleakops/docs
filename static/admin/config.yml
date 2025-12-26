@@ -1,0 +1,202 @@
+# Sveltia CMS Configuration for SleakOps Documentation
+# Authentication: Personal Access Token (PAT)
+# Users sign in with their GitHub PAT with 'repo' scope
+
+backend:
+  name: github
+  repo: sleakops/docs
+  branch: feat/sveltiaCMS
+
+# Media files configuration
+media_folder: static/img
+public_folder: /img
+
+# Site URL (update with your actual documentation URL)
+site_url: https://docs.sleakops.com
+
+# Logo for the CMS admin panel
+logo_url: /img/logo.svg
+
+# Slug configuration
+slug:
+  encoding: ascii
+  clean_accents: true
+
+# Collections (content types)
+collections:
+  # Main documentation pages (English in /docs)
+  - name: docs
+    label: "📄 Documentation (English)"
+    label_singular: Doc Page
+    folder: docs
+    create: true
+    extension: mdx
+    format: frontmatter
+    slug: "{{slug}}"
+    summary: "{{sidebar_label}} ({{sidebar_position}})"
+    sortable_fields:
+      fields: [sidebar_position, sidebar_label]
+      default:
+        field: sidebar_position
+        direction: Ascending
+    fields:
+      - name: sidebar_label
+        label: Sidebar Label
+        widget: string
+        hint: The label shown in the sidebar navigation
+
+      - name: sidebar_position
+        label: Sidebar Position
+        widget: number
+        required: false
+        hint: Order in the sidebar (lower numbers appear first)
+
+      - name: pagination_next
+        label: Next Page
+        widget: string
+        required: false
+        hint: Slug of the next page for pagination
+
+      - name: pagination_prev
+        label: Previous Page
+        widget: string
+        required: false
+        hint: Slug of the previous page for pagination
+
+      - name: body
+        label: Content
+        widget: markdown
+        hint: Main content of the documentation page (Markdown/MDX)
+
+  # Spanish translations
+  - name: docs_es
+    label: "🇪🇸 Documentación (Español)"
+    label_singular: Página de Doc (ES)
+    folder: i18n/es/docusaurus-plugin-content-docs/current
+    create: true
+    extension: mdx
+    format: frontmatter
+    slug: "{{slug}}"
+    summary: "{{sidebar_label}} ({{sidebar_position}})"
+    sortable_fields:
+      fields: [sidebar_position, sidebar_label]
+      default:
+        field: sidebar_position
+        direction: Ascending
+    fields:
+      - name: sidebar_label
+        label: Etiqueta del Sidebar
+        widget: string
+        hint: La etiqueta que se muestra en la navegación lateral
+
+      - name: sidebar_position
+        label: Posición en Sidebar
+        widget: number
+        required: false
+        hint: Orden en la barra lateral (números menores aparecen primero)
+
+      - name: pagination_next
+        label: Página Siguiente
+        widget: string
+        required: false
+        hint: Slug de la página siguiente para paginación
+
+      - name: pagination_prev
+        label: Página Anterior
+        widget: string
+        required: false
+        hint: Slug de la página anterior para paginación
+
+      - name: body
+        label: Contenido
+        widget: markdown
+        hint: Contenido principal de la página de documentación (Markdown/MDX)
+
+  # Cluster documentation subfolder (English)
+  - name: docs_cluster
+    label: "📁 Cluster Docs (EN)"
+    label_singular: Cluster Doc
+    folder: docs/cluster
+    create: true
+    extension: mdx
+    format: frontmatter
+    slug: "{{slug}}"
+    summary: "{{sidebar_label}}"
+    fields:
+      - name: sidebar_label
+        label: Sidebar Label
+        widget: string
+
+      - name: sidebar_position
+        label: Sidebar Position
+        widget: number
+        required: false
+
+      - name: body
+        label: Content
+        widget: markdown
+
+  # Project documentation subfolder (English)
+  - name: docs_project
+    label: "📁 Project Docs (EN)"
+    label_singular: Project Doc
+    folder: docs/project
+    create: true
+    extension: mdx
+    format: frontmatter
+    slug: "{{slug}}"
+    summary: "{{sidebar_label}}"
+    fields:
+      - name: sidebar_label
+        label: Sidebar Label
+        widget: string
+
+      - name: sidebar_position
+        label: Sidebar Position
+        widget: number
+        required: false
+
+      - name: body
+        label: Content
+        widget: markdown
+
+  # Blog posts
+  - name: blog
+    label: "📝 Blog"
+    label_singular: Blog Post
+    folder: blog
+    create: true
+    extension: md
+    format: frontmatter
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    summary: "{{title}} ({{date}})"
+    fields:
+      - name: title
+        label: Title
+        widget: string
+
+      - name: slug
+        label: Slug
+        widget: string
+        hint: URL-friendly identifier for the post
+
+      - name: date
+        label: Publish Date
+        widget: datetime
+        required: false
+
+      - name: authors
+        label: Authors
+        widget: list
+        allow_add: true
+        required: false
+
+      - name: tags
+        label: Tags
+        widget: list
+        allow_add: true
+        required: false
+
+      - name: body
+        label: Content
+        widget: markdown
