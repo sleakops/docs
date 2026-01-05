@@ -1,11 +1,10 @@
 SHELL := /bin/bash 
 
+run:  ## Run Docusaurus
+	docker compose up -d
 
 install:  ## Install Docusaurus
 	docker compose run --rm doc yarn
-
-run:  ## Run Docusaurus
-	docker compose up -d
 
 logs: ## View Docusaurus logs
 	docker compose logs -f doc
