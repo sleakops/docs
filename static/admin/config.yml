@@ -1,6 +1,5 @@
 # Sveltia CMS Configuration for SleakOps Documentation
-# Authentication: Personal Access Token (PAT)
-# Users sign in with their GitHub PAT with 'repo' scope
+# Authentication: GitHub OAuth via Cloudflare Workers
 
 backend:
   name: github
@@ -8,167 +7,382 @@ backend:
   branch: feat/sveltiaCMS
   base_url: https://sveltia-cms-auth.matias-izquierdo.workers.dev
 
-# Media files configuration
 media_folder: static/img
 public_folder: /img
-
-# Site URL (update with your actual documentation URL)
 site_url: https://docs.sleakops.com
-
-# Logo for the CMS admin panel
 logo_url: /img/logo.svg
 
-# Slug configuration
 slug:
   encoding: ascii
   clean_accents: true
 
-# Collections (content types)
 collections:
-  # ===========================================
-  # DOCUMENTATION
-  # ===========================================
-
-  # Main documentation pages (English in /docs)
-  - name: docs
-    label: "Documentation (English)"
-    label_singular: Doc Page
+  # ========== ROOT LEVEL DOCS ==========
+  - name: docs_root
+    label: "📄 Docs - Root"
     folder: docs
     create: true
     extension: mdx
     format: frontmatter
-    slug: "{{slug}}"
-    summary: "{{sidebar_label}} ({{sidebar_position}})"
-    sortable_fields:
-      fields: [sidebar_position, sidebar_label]
-      default:
-        field: sidebar_position
-        direction: Ascending
     fields:
-      - name: sidebar_label
-        label: Sidebar Label
-        widget: string
-        hint: The label shown in the sidebar navigation
+      - { name: sidebar_label, label: Sidebar Label, widget: string }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+        }
+      - { name: body, label: Content, widget: markdown }
 
-      - name: sidebar_position
-        label: Sidebar Position
-        widget: number
-        required: false
-        hint: Order in the sidebar (lower numbers appear first)
-
-      - name: body
-        label: Content
-        widget: markdown
-
-  # Spanish translations
-  - name: docs_es
-    label: "Documentación (Español)"
-    label_singular: Página de Doc (ES)
-    folder: i18n/es/docusaurus-plugin-content-docs/current
+  # ========== CLUSTER ==========
+  - name: docs_cluster
+    label: "🖥️ Cluster"
+    folder: docs/cluster
     create: true
     extension: mdx
     format: frontmatter
-    slug: "{{slug}}"
-    summary: "{{sidebar_label}} ({{sidebar_position}})"
-    sortable_fields:
-      fields: [sidebar_position, sidebar_label]
-      default:
-        field: sidebar_position
-        direction: Ascending
     fields:
-      - name: sidebar_label
-        label: Etiqueta del Sidebar
-        widget: string
+      - { name: sidebar_label, label: Sidebar Label, widget: string }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+        }
+      - { name: body, label: Content, widget: markdown }
 
-      - name: sidebar_position
-        label: Posición en Sidebar
-        widget: number
-        required: false
+  - name: docs_cluster_addons
+    label: "🖥️ Cluster → Addons"
+    folder: docs/cluster/addons
+    create: true
+    extension: mdx
+    format: frontmatter
+    fields:
+      - { name: sidebar_label, label: Sidebar Label, widget: string }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+        }
+      - { name: body, label: Content, widget: markdown }
 
-      - name: body
-        label: Contenido
-        widget: markdown
+  - name: docs_cluster_nodepools
+    label: "🖥️ Cluster → Nodepools"
+    folder: docs/cluster/nodepools
+    create: true
+    extension: mdx
+    format: frontmatter
+    fields:
+      - { name: sidebar_label, label: Sidebar Label, widget: string }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+        }
+      - { name: body, label: Content, widget: markdown }
 
-  # ===========================================
-  # TUTORIALS
-  # ===========================================
+  # ========== DOMAIN ==========
+  - name: docs_domain
+    label: "🌐 Domain"
+    folder: docs/domain
+    create: true
+    extension: mdx
+    format: frontmatter
+    fields:
+      - { name: sidebar_label, label: Sidebar Label, widget: string }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+        }
+      - { name: body, label: Content, widget: markdown }
 
-  # Tutorials (English) - uses the quickstart folder
+  # ========== ENVIRONMENT ==========
+  - name: docs_environment
+    label: "🏗️ Environment"
+    folder: docs/environment
+    create: true
+    extension: mdx
+    format: frontmatter
+    fields:
+      - { name: sidebar_label, label: Sidebar Label, widget: string }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+        }
+      - { name: body, label: Content, widget: markdown }
+
+  # ========== NETWORK ==========
+  - name: docs_network
+    label: "🔌 Network"
+    folder: docs/network
+    create: true
+    extension: mdx
+    format: frontmatter
+    fields:
+      - { name: sidebar_label, label: Sidebar Label, widget: string }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+        }
+      - { name: body, label: Content, widget: markdown }
+
+  # ========== PROJECT ==========
+  - name: docs_project
+    label: "📦 Project"
+    folder: docs/project
+    create: true
+    extension: mdx
+    format: frontmatter
+    fields:
+      - { name: sidebar_label, label: Sidebar Label, widget: string }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+        }
+      - { name: body, label: Content, widget: markdown }
+
+  - name: docs_project_build
+    label: "📦 Project → Build"
+    folder: docs/project/build
+    create: true
+    extension: mdx
+    format: frontmatter
+    fields:
+      - { name: sidebar_label, label: Sidebar Label, widget: string }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+        }
+      - { name: body, label: Content, widget: markdown }
+
+  - name: docs_project_chart
+    label: "📦 Project → Chart"
+    folder: docs/project/chart
+    create: true
+    extension: mdx
+    format: frontmatter
+    fields:
+      - { name: sidebar_label, label: Sidebar Label, widget: string }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+        }
+      - { name: body, label: Content, widget: markdown }
+
+  - name: docs_project_dependency
+    label: "📦 Project → Dependency"
+    folder: docs/project/dependency
+    create: true
+    extension: mdx
+    format: frontmatter
+    fields:
+      - { name: sidebar_label, label: Sidebar Label, widget: string }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+        }
+      - { name: body, label: Content, widget: markdown }
+
+  - name: docs_project_deployment
+    label: "📦 Project → Deployment"
+    folder: docs/project/deployment
+    create: true
+    extension: mdx
+    format: frontmatter
+    fields:
+      - { name: sidebar_label, label: Sidebar Label, widget: string }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+        }
+      - { name: body, label: Content, widget: markdown }
+
+  - name: docs_project_vargroup
+    label: "📦 Project → Vargroup"
+    folder: docs/project/vargroup
+    create: true
+    extension: mdx
+    format: frontmatter
+    fields:
+      - { name: sidebar_label, label: Sidebar Label, widget: string }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+        }
+      - { name: body, label: Content, widget: markdown }
+
+  - name: docs_project_workload
+    label: "📦 Project → Workload"
+    folder: docs/project/workload
+    create: true
+    extension: mdx
+    format: frontmatter
+    fields:
+      - { name: sidebar_label, label: Sidebar Label, widget: string }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+        }
+      - { name: body, label: Content, widget: markdown }
+
+  # ========== PROVIDER ==========
+  - name: docs_provider
+    label: "☁️ Provider"
+    folder: docs/provider
+    create: true
+    extension: mdx
+    format: frontmatter
+    fields:
+      - { name: sidebar_label, label: Sidebar Label, widget: string }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+        }
+      - { name: body, label: Content, widget: markdown }
+
+  # ========== USER ==========
+  - name: docs_user
+    label: "👤 User"
+    folder: docs/user
+    create: true
+    extension: mdx
+    format: frontmatter
+    fields:
+      - { name: sidebar_label, label: Sidebar Label, widget: string }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+        }
+      - { name: body, label: Content, widget: markdown }
+
+  # ========== TUTORIALS ==========
   - name: tutorials
-    label: "📚 Tutorials (EN)"
-    label_singular: Tutorial
+    label: "📚 Tutorials"
     folder: docs/quickstart
     create: true
     extension: mdx
     format: frontmatter
-    slug: "{{slug}}"
-    summary: "{{sidebar_label}}"
     nested:
       depth: 2
     fields:
-      - name: sidebar_label
-        label: Sidebar Label
-        widget: string
+      - { name: sidebar_label, label: Sidebar Label, widget: string }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+        }
+      - { name: body, label: Content, widget: markdown }
 
-      - name: sidebar_position
-        label: Sidebar Position
-        widget: number
-        required: false
+  # ========== SPANISH ==========
+  - name: docs_es_root
+    label: "🇪🇸 Docs - Root"
+    folder: i18n/es/docusaurus-plugin-content-docs/current
+    create: true
+    extension: mdx
+    format: frontmatter
+    fields:
+      - { name: sidebar_label, label: Etiqueta, widget: string }
+      - {
+          name: sidebar_position,
+          label: Posición,
+          widget: number,
+          required: false,
+        }
+      - { name: body, label: Contenido, widget: markdown }
 
-      - name: body
-        label: Content
-        widget: markdown
+  - name: docs_es_cluster
+    label: "🇪🇸 Cluster"
+    folder: i18n/es/docusaurus-plugin-content-docs/current/cluster
+    create: true
+    extension: mdx
+    format: frontmatter
+    nested: { depth: 3 }
+    fields:
+      - { name: sidebar_label, label: Etiqueta, widget: string }
+      - {
+          name: sidebar_position,
+          label: Posición,
+          widget: number,
+          required: false,
+        }
+      - { name: body, label: Contenido, widget: markdown }
 
-  # Tutorials (Spanish)
+  - name: docs_es_project
+    label: "🇪🇸 Project"
+    folder: i18n/es/docusaurus-plugin-content-docs/current/project
+    create: true
+    extension: mdx
+    format: frontmatter
+    nested: { depth: 3 }
+    fields:
+      - { name: sidebar_label, label: Etiqueta, widget: string }
+      - {
+          name: sidebar_position,
+          label: Posición,
+          widget: number,
+          required: false,
+        }
+      - { name: body, label: Contenido, widget: markdown }
+
   - name: tutorials_es
-    label: "📚 Tutoriales (ES)"
-    label_singular: Tutorial (ES)
+    label: "🇪🇸 Tutoriales"
     folder: i18n/es/docusaurus-plugin-content-docs/current/quickstart
     create: true
     extension: mdx
     format: frontmatter
-    slug: "{{slug}}"
-    summary: "{{sidebar_label}}"
-    nested:
-      depth: 2
+    nested: { depth: 2 }
     fields:
-      - name: sidebar_label
-        label: Etiqueta del Sidebar
-        widget: string
+      - { name: sidebar_label, label: Etiqueta, widget: string }
+      - {
+          name: sidebar_position,
+          label: Posición,
+          widget: number,
+          required: false,
+        }
+      - { name: body, label: Contenido, widget: markdown }
 
-      - name: sidebar_position
-        label: Posición en Sidebar
-        widget: number
-        required: false
-
-      - name: body
-        label: Contenido
-        widget: markdown
-
-  # ===========================================
-  # CHANGELOG
-  # ===========================================
-
-  # Changelog (English) - single file
+  # ========== CHANGELOG ==========
   - name: changelog
-    label: "📋 Changelog (EN)"
+    label: "📋 Changelog"
     files:
       - name: changelog
         label: Changelog
         file: docs/changelog.mdx
         fields:
-          - name: body
-            label: Content
-            widget: markdown
+          - { name: body, label: Content, widget: markdown }
 
-  # Changelog (Spanish) - single file
   - name: changelog_es
-    label: "📋 Changelog (ES)"
+    label: "🇪🇸 Changelog"
     files:
       - name: changelog_es
-        label: Changelog (Español)
+        label: Changelog (ES)
         file: i18n/es/docusaurus-plugin-content-docs/current/changelog.mdx
         fields:
-          - name: body
-            label: Contenido
-            widget: markdown
+          - { name: body, label: Contenido, widget: markdown }
