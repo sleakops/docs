@@ -1,11 +1,12 @@
 # .github/workflows/deploy.yml
 
-name: GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
     branches:
       - develop
+      - dev
 
 jobs:
   deploy:
@@ -14,36 +15,40 @@ jobs:
       contents: write
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
-    defaults:
-      run:
-        working-directory: .
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '20'
-        
-      - name: Get yarn cache
-        id: yarn-cache
-        run: echo "YARN_CACHE_DIR=$(yarn cache dir)" >> "${GITHUB_OUTPUT}"
+          node-version: "20"
+          cache: "yarn"
 
-      - name: Cache dependencies
-        uses: actions/cache@v3
-        with:
-          path: ${{ steps.yarn-cache.outputs.YARN_CACHE_DIR }}
-          key: ${{ runner.os }}-website-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-website-
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
 
-      - run: yarn install --frozen-lockfile
-      - run: yarn build
+      - name: Build
+        run: yarn build
+        env:
+          # Set base URL for dev branch to /docs/dev/
+          BASE_URL: ${{ github.ref == 'refs/heads/dev' && '/docs/dev/' || '/docs/' }}
 
-      - name: Deploy
-        uses: peaceiris/actions-gh-pages@v3
-        if: |
-          (github.ref == 'refs/heads/develop')
+      # Deploy develop branch to root
+      - name: Deploy (Production - develop)
+        if: github.ref == 'refs/heads/develop'
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./build
+          destination_dir: .
+          keep_files: true # Keep /dev directory
+
+      # Deploy dev branch to /dev subdirectory
+      - name: Deploy (Preview - dev)
+        if: github.ref == 'refs/heads/dev'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build
+          destination_dir: dev
+          keep_files: true # Keep root files
