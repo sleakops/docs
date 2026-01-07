@@ -1,0 +1,172 @@
+---
+sidebar_position: 3
+title: "Zona horaria y comportamiento de implementación de CronJob"
+description: "Comprendiendo la configuración de zona horaria de CronJob y el comportamiento de ejecución durante despliegues"
+date: "2024-10-24"
+category: "workload"
+tags: ["cronjob", "zona horaria", "despliegue", "programación", "kubernetes"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Zona horaria y comportamiento de implementación de CronJob
+
+**Fecha:** 24 de octubre de 2024  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** CronJob, Zona horaria, Despliegue, Programación, Kubernetes
+
+## Descripción del problema
+
+**Contexto:** El usuario necesita configurar CronJobs para que se ejecuten a horas específicas (por ejemplo, 17:30 diariamente) y desea entender el manejo de la zona horaria y el comportamiento de ejecución durante los despliegues.
+
+**Síntomas observados:**
+
+- El CronJob parece ejecutarse durante el despliegue/lanzamiento
+- Incertidumbre sobre la configuración de la zona horaria del clúster
+- Necesidad de una programación precisa en horas locales específicas
+- Preocupación por ejecuciones no deseadas
+
+**Configuración relevante:**
+
+- Expresión cron: `30 17 * * *` (diariamente a las 17:30)
+- Zona horaria objetivo: Argentina (UTC-3)
+- Zona horaria del clúster: UTC
+- Desencadenantes de despliegue: lanzamientos manuales
+
+**Condiciones de error:**
+
+- El CronJob se ejecuta durante el despliegue en lugar de en el horario programado
+- Confusión de zona horaria entre UTC y hora local
+- Múltiples ejecuciones cuando solo se desea una diaria
+
+## Solución detallada
+
+<TroubleshootingItem id="timezone-configuration" summary="Comprendiendo la zona horaria del clúster">
+
+Los clústeres de Kubernetes en SleakOps están configurados con **zona horaria UTC** por defecto. Esto significa:
+
+- Todos los horarios de CronJob se interpretan en tiempo UTC
+- Su expresión cron `30 17 * * *` se ejecuta a las 17:30 UTC
+- Para ejecutar a las 17:30 hora de Argentina (UTC-3), necesita `30 20 * * *`
+
+**Ejemplo de conversión de hora:**
+
+- Hora Argentina: 17:30 (UTC-3)
+- Equivalente UTC: 20:30
+- Expresión cron correcta: `30 20 * * *`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deployment-behavior" summary="Comportamiento de CronJob durante despliegues">
+
+Los CronJobs **NO** deberían ejecutarse durante los despliegues. Si esto sucede, indica un problema de configuración:
+
+**Comportamiento normal:**
+
+- Los CronJobs solo se ejecutan según su programación
+- Los despliegues actualizan la definición del CronJob pero no desencadenan ejecuciones
+- Los trabajos programados existentes continúan ejecutándose
+
+**Si el CronJob se ejecuta durante el despliegue, revise:**
+
+1. **RestartPolicy**: Debe ser `OnFailure` o `Never`
+2. **Historial de trabajos**: Verifique `successfulJobsHistoryLimit` y `failedJobsHistoryLimit`
+3. **Concurrencia**: Configure `concurrencyPolicy: Forbid` para evitar solapamientos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="correct-configuration" summary="Configuración recomendada para CronJob">
+
+Para un trabajo diario a las 17:30 hora de Argentina:
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: daily-job
+spec:
+  schedule: "30 20 * * *" # 20:30 UTC = 17:30 Argentina
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: job-container
+              image: your-image
+              command: ["your-command"]
+```
+
+**Configuraciones clave:**
+
+- `concurrencyPolicy: Forbid`: Previene múltiples instancias
+- `successfulJobsHistoryLimit: 3`: Conserva los últimos 3 trabajos exitosos
+- `restartPolicy: OnFailure`: Reinicia solo en caso de fallo
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="timezone-alternatives" summary="Soluciones alternativas para la zona horaria">
+
+Si necesita un control más preciso de la zona horaria:
+
+**Opción 1: Soporte de zona horaria en Kubernetes 1.25+**
+
+```yaml
+spec:
+  schedule: "30 17 * * *"
+  timeZone: "America/Argentina/Buenos_Aires"
+```
+
+**Opción 2: Manejo de zona horaria a nivel de aplicación**
+
+```bash
+# En su contenedor
+export TZ=America/Argentina/Buenos_Aires
+date  # Mostrará la hora de Argentina
+```
+
+**Opción 3: Cálculo manual en UTC**
+
+- Siempre calcule el equivalente UTC de la hora local deseada
+- Considere los cambios por horario de verano
+- Actualice las expresiones cron cuando cambie el horario de verano
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Solución de problemas de CronJob">
+
+**Verifique el estado del CronJob:**
+
+```bash
+kubectl get cronjobs
+kubectl describe cronjob your-cronjob-name
+```
+
+**Revise el historial de trabajos:**
+
+```bash
+kubectl get jobs
+kubectl logs job/your-job-name
+```
+
+**Problemas comunes:**
+
+1. **Cálculo incorrecto de zona horaria**: Verifique la conversión a UTC
+2. **El despliegue desencadena ejecución**: Revise la configuración del trabajo
+3. **Múltiples ejecuciones**: Configure `concurrencyPolicy: Forbid`
+4. **Trabajos que no se ejecutan**: Verifique la sintaxis cron y la hora del clúster
+
+**Verifique la hora del clúster:**
+
+```bash
+kubectl run temp-pod --image=busybox --rm -it -- date
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 24 de octubre de 2024 basada en una consulta real de un usuario._

@@ -1,0 +1,254 @@
+---
+sidebar_position: 3
+title: "Guía de Configuración del Entorno de Producción"
+description: "Guía completa para configurar entornos de producción con migración de bases de datos y dominios personalizados"
+date: "2024-01-15"
+category: "proyecto"
+tags:
+  [
+    "producción",
+    "despliegue",
+    "base de datos",
+    "migración",
+    "dominio",
+    "entorno",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Guía de Configuración del Entorno de Producción
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Producción, Despliegue, Base de datos, Migración, Dominio, Entorno
+
+## Descripción del Problema
+
+**Contexto:** El usuario necesita configurar un entorno de producción replicando la configuración de staging, incluyendo dependencias y grupos de variables, mientras gestiona la migración de base de datos y la configuración de dominio personalizado.
+
+**Síntomas Observados:**
+
+- Necesidad de replicar la configuración del entorno staging a producción
+- Requisito de modificar la variable RAILS_ENV de staging a producción
+- Necesidad de procedimientos de volcado/restauración de base de datos para despliegues fuera de horario
+- Configuración de dominio personalizado necesaria para acceso en producción
+
+**Configuración Relevante:**
+
+- Entorno origen: Staging
+- Entorno destino: Producción
+- Framework: Aplicación Rails
+- Dominio personalizado: hub.supra.social
+- Base de datos: Requiere capacidad de volcado/restauración
+
+**Condiciones de Error:**
+
+- Configuración manual del entorno requerida
+- Migración de base de datos necesaria durante horas no laborables
+- Configuración de dominio para acceso en producción
+
+## Solución Detallada
+
+<TroubleshootingItem id="environment-replication" summary="Replicando el Entorno Staging a Producción">
+
+Para replicar la configuración de tu entorno staging:
+
+1. **Accede al Panel de SleakOps**
+
+   - Navega a tu proyecto
+   - Ve a la sección **Entornos**
+
+2. **Crear Entorno de Producción**
+
+   ```bash
+   # Usando la CLI de SleakOps
+   sleakops env create production --from-template staging
+   ```
+
+3. **Copiar Dependencias**
+
+   - En el panel, ve a la pestaña **Dependencias**
+   - Selecciona todas las dependencias de staging
+   - Haz clic en **Clonar al Entorno** → Selecciona **Producción**
+
+4. **Copiar Grupos de Variables**
+   - Navega a **Variables** → **Grupos**
+   - Selecciona el grupo de variables de staging
+   - Haz clic en **Duplicar** → Nómbralo para producción
+   - **Importante**: Cambia `RAILS_ENV` de `staging` a `production`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="database-migration" summary="Procedimientos de Volcado y Restauración de Base de Datos">
+
+### Creando Volcado de Base de Datos
+
+```bash
+# Conectarse al pod de base de datos de staging
+kubectl exec -it <staging-db-pod> -- bash
+
+# Crear volcado (ejemplo PostgreSQL)
+pg_dump -U <usuario> -h localhost <nombre_base_de_datos> > /tmp/production_dump.sql
+
+# Copiar volcado a máquina local
+kubectl cp <staging-db-pod>:/tmp/production_dump.sql ./production_dump.sql
+```
+
+### Restaurando en Base de Datos de Producción
+
+```bash
+# Copiar volcado al pod de base de datos de producción
+kubectl cp ./production_dump.sql <production-db-pod>:/tmp/production_dump.sql
+
+# Conectarse al pod de base de datos de producción
+kubectl exec -it <production-db-pod> -- bash
+
+# Restaurar base de datos
+psql -U <usuario> -h localhost <nombre_base_de_datos> < /tmp/production_dump.sql
+```
+
+### Script Automatizado para Despliegue Fuera de Horario
+
+```bash
+#!/bin/bash
+# production-deploy.sh
+
+set -e
+
+echo "Iniciando migración de base de datos en producción a las $(date)"
+
+# Paso 1: Crear respaldo de la base de datos actual en producción
+echo "Creando respaldo de producción..."
+kubectl exec -it <prod-db-pod> -- pg_dump -U <usuario> <db> > prod_backup_$(date +%Y%m%d_%H%M%S).sql
+
+# Paso 2: Aplicar nuevo volcado
+echo "Aplicando nuevo volcado de base de datos..."
+kubectl cp ./production_dump.sql <prod-db-pod>:/tmp/
+kubectl exec -it <prod-db-pod> -- psql -U <usuario> <db> < /tmp/production_dump.sql
+
+# Paso 3: Reiniciar pods de la aplicación
+echo "Reiniciando aplicación..."
+kubectl rollout restart deployment/<nombre-app> -n <namespace>
+
+echo "Migración completada a las $(date)"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="domain-configuration" summary="Configuración de Dominio Personalizado (hub.supra.social)">
+
+### Configurar Dominio Personalizado en SleakOps
+
+1. **En el Panel de SleakOps:**
+
+   - Ve al **Entorno de Producción**
+   - Navega a **Red** → **Dominios**
+   - Haz clic en **Agregar Dominio Personalizado**
+   - Ingresa: `hub.supra.social`
+
+2. **Configuración DNS:**
+
+   ```dns
+   # Agrega un registro CNAME en tu proveedor DNS
+   hub.supra.social. CNAME <url-generada-por-sleakops>
+   ```
+
+3. **Certificado SSL:**
+   - SleakOps aprovisionará automáticamente el certificado SSL
+   - Espera la validación del certificado (usualmente 5-10 minutos)
+
+### Verificar Configuración del Dominio
+
+```bash
+# Verificar resolución DNS
+nslookup hub.supra.social
+
+# Probar acceso HTTPS
+curl -I https://hub.supra.social
+
+# Verificar certificado
+openssl s_client -connect hub.supra.social:443 -servername hub.supra.social
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deployment-checklist" summary="Lista de Verificación para Despliegue en Producción">
+
+### Pre-Despliegue (Antes de las 7 PM)
+
+- [ ] Verificar que el entorno staging esté estable
+- [ ] Crear volcado de base de datos desde staging
+- [ ] Probar restauración del volcado en desarrollo
+- [ ] Preparar script de despliegue
+- [ ] Notificar a interesados sobre ventana de mantenimiento
+
+### Durante el Despliegue (7 PM - Horas No Laborables)
+
+- [ ] Crear respaldo de base de datos en producción
+- [ ] Aplicar nuevo volcado de base de datos
+- [ ] Actualizar variables de entorno (RAILS_ENV=production)
+- [ ] Desplegar aplicación con nueva configuración
+- [ ] Verificar accesibilidad del dominio
+- [ ] Ejecutar pruebas básicas
+
+### Post-Despliegue
+
+- [ ] Monitorear logs de la aplicación
+- [ ] Verificar funcionamiento de todas las funcionalidades
+- [ ] Revisar métricas de rendimiento
+- [ ] Notificar al equipo sobre despliegue exitoso
+
+### Plan de Reversión (Si ocurren problemas)
+
+```bash
+# Restaurar respaldo previo de base de datos
+kubectl cp prod_backup_<timestamp>.sql <prod-db-pod>:/tmp/
+kubectl exec -it <prod-db-pod> -- psql -U <usuario> <db> < /tmp/prod_backup_<timestamp>.sql
+
+# Revertir a versión anterior de la aplicación
+kubectl rollout undo deployment/<nombre-app> -n <namespace>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Problemas Comunes y Soluciones">
+
+### Problemas de Conexión a la Base de Datos
+
+```bash
+# Verificar estado del pod de base de datos
+kubectl get pods -l app=database
+
+# Revisar logs de la base de datos
+kubectl logs <nombre-pod-db>
+
+# Probar conectividad a base de datos
+kubectl exec -it <pod-app> -- rails db:migrate:status
+```
+
+### Dominio No Accesible
+
+1. **Verificar propagación DNS:**
+
+   ```bash
+   dig hub.supra.social
+   ```
+
+2. **Verificar configuración de ingress:**
+
+   ```bash
+   kubectl get ingress -n <namespace>
+   kubectl describe ingress <nombre-ingress>
+   ```
+
+3. **Comprobar estado del certificado:**
+   ```bash
+   kubectl get certificates -n <namespace>
+   ```
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

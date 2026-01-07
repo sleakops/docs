@@ -1,0 +1,254 @@
+---
+sidebar_position: 15
+title: "Gestión de Cuotas de GitHub Actions y Optimización de CI/CD"
+description: "Gestión de cuotas de GitHub Actions y optimización de la eficiencia de la canalización CI/CD en SleakOps"
+date: "2024-12-11"
+category: "proyecto"
+tags: ["github-actions", "ci-cd", "cuota", "optimización", "despliegue"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Gestión de Cuotas de GitHub Actions y Optimización de CI/CD
+
+**Fecha:** 11 de diciembre de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** GitHub Actions, CI/CD, Cuota, Optimización, Despliegue
+
+## Descripción del Problema
+
+**Contexto:** Las organizaciones que usan SleakOps con GitHub Actions para canalizaciones CI/CD pueden encontrar limitaciones de cuota, especialmente al ejecutar múltiples despliegues en entornos de desarrollo y producción.
+
+**Síntomas Observados:**
+
+- Cuota de GitHub Actions consumida más rápido de lo esperado
+- Despliegues que tardan significativamente más de lo usual (más de 50 minutos)
+- Número reducido de compilaciones exitosas comparado con meses anteriores
+- Agotamiento inesperado de cuota a mitad de mes
+
+**Configuración Relevante:**
+
+- Múltiples entornos: Desarrollo y Producción
+- Rendimiento histórico: ~100 compilaciones por mes anteriormente
+- Problema actual: agotamiento de cuota con menos compilaciones
+- Supervisión de despliegues: monitoreo manual requerido
+
+**Condiciones de Error:**
+
+- El agotamiento de cuota ocurre más temprano en el mes
+- Tiempos de despliegue más largos consumiendo más minutos
+- Despliegues sin supervisión que llevan a un uso inesperado de cuota
+
+## Solución Detallada
+
+<TroubleshootingItem id="github-quota-changes" summary="Entendiendo los Cambios en la Cuota de GitHub Actions">
+
+GitHub ha realizado varios cambios en sus cuotas del nivel gratuito a lo largo del tiempo:
+
+**Límites actuales del Nivel Gratuito de GitHub (2024):**
+
+- **Repositorios públicos**: Minutos ilimitados
+- **Repositorios privados**: 2,000 minutos/mes para cuentas gratuitas
+- **Cuentas de organización**: 2,000 minutos/mes (nivel gratuito)
+
+**Cambios Recientes:**
+
+- GitHub no ha reducido significativamente las cuotas gratuitas recientemente
+- Sin embargo, ha mejorado la granularidad de facturación y monitoreo
+- Los patrones de uso pueden haber cambiado debido a tiempos de ejecución más largos de trabajos
+
+**Pasos para Verificación:**
+
+1. Ir a GitHub → Configuración → Facturación y planes
+2. Revisar "Uso este mes" bajo Actions
+3. Revisar patrones históricos de uso
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deployment-optimization" summary="Optimizando el Rendimiento del Despliegue">
+
+Para reducir el consumo de minutos de GitHub Actions:
+
+**1. Optimizar Procesos de Construcción:**
+
+```yaml
+# .github/workflows/deploy.yml
+name: Despliegue Optimizado
+on:
+  push:
+    branches: [main, develop]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Usar caché para reducir tiempo de construcción
+      - name: Cachear dependencias
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+
+      # Trabajos paralelos para diferentes entornos
+      - name: Construir y probar
+        run: |
+          npm ci
+          npm run build
+          npm test
+```
+
+**2. Despliegues Específicos por Entorno:**
+
+```yaml
+# Flujo de trabajo separado para dev/prod
+strategy:
+  matrix:
+    environment: [development, production]
+steps:
+  - name: Desplegar a ${{ matrix.environment }}
+    if: |
+      (matrix.environment == 'development' && github.ref == 'refs/heads/develop') ||
+      (matrix.environment == 'production' && github.ref == 'refs/heads/main')
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-setup" summary="Configurando el Monitoreo de Despliegues">
+
+**Configuración de Monitoreo Automatizado:**
+
+1. **Notificaciones en Slack/Teams:**
+
+```yaml
+- name: Notificar inicio de despliegue
+  uses: 8398a7/action-slack@v3
+  with:
+    status: custom
+    custom_payload: |
+      {
+        text: "🚀 Despliegue iniciado para ${{ github.repository }}",
+        blocks: [
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: "Entorno: ${{ matrix.environment }}\nRama: ${{ github.ref }}"
+            }
+          }
+        ]
+      }
+```
+
+2. **Configuración de Tiempo Máximo:**
+
+```yaml
+jobs:
+  deploy:
+    timeout-minutes: 15 # Prevenir trabajos fuera de control
+    steps:
+      - name: Desplegar con límite de tiempo
+        timeout-minutes: 10
+        run: |
+          # Tus comandos de despliegue
+```
+
+3. **Integración con el Panel de SleakOps:**
+
+- Habilitar notificaciones de despliegue en el panel de SleakOps
+- Configurar alertas para despliegues prolongados
+- Configurar rollback automático en caso de timeout
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="quota-management" summary="Estrategias de Gestión de Cuotas">
+
+**1. Monitoreo de Uso:**
+
+```bash
+# Verificar uso actual vía CLI de GitHub
+gh api /user/settings/billing/actions
+
+# Monitorear ejecuciones de workflow
+gh run list --limit 50 --json status,conclusion,createdAt,name
+```
+
+**2. Optimización de Costos:**
+
+- Usar runners autohospedados para compilaciones intensivas
+- Implementar despliegues condicionales
+- Cachear dependencias y artefactos de construcción
+- Usar estrategias de matriz eficientemente
+
+**3. Soluciones Alternativas:**
+
+```yaml
+# Despliegue condicional basado en cambios
+name: Despliegue Inteligente
+on:
+  push:
+    paths:
+      - "src/**"
+      - "package.json"
+      - "Dockerfile"
+
+jobs:
+  check-changes:
+    outputs:
+      should-deploy: ${{ steps.changes.outputs.src }}
+    steps:
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            src:
+              - 'src/**'
+              - 'package.json'
+
+  deploy:
+    needs: check-changes
+    if: needs.check-changes.outputs.should-deploy == 'true'
+    # ... pasos de despliegue
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-specific" summary="Optimizaciones Específicas para SleakOps">
+
+**1. Configuraciones Específicas por Clúster:**
+
+- Configurar flujos de trabajo separados para QA y Producción
+- Usar variables de entorno de SleakOps para lógica condicional
+- Implementar estrategias de despliegue progresivo
+
+**2. Gestión de Recursos:**
+
+```yaml
+# Flujo de trabajo optimizado para SleakOps
+env:
+  SLEAKOPS_ENV: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+
+jobs:
+  deploy:
+    steps:
+      - name: Desplegar en SleakOps
+        run: |
+          # Usar CLI de SleakOps con configuraciones optimizadas
+          sleakops deploy \
+            --environment $SLEAKOPS_ENV \
+            --timeout 300 \
+            --max-retries 2
+```
+
+**3. Integración de Monitoreo:**
+
+- Habilitar webhooks de despliegue en SleakOps
+- Configurar políticas de rollback automático
+- Configurar límites de recursos para pods de construcción
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 11 de diciembre de 2024 basada en una consulta real de usuario._

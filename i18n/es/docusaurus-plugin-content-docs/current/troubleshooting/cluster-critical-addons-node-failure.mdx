@@ -1,0 +1,188 @@
+---
+sidebar_position: 3
+title: "Fallo del Nodo de Complementos Críticos en Producción"
+description: "Solución para fallos del nodo CriticalAddonsOnly que causan tiempo de inactividad en producción"
+date: "2024-01-15"
+category: "cluster"
+tags:
+  [
+    "eks",
+    "complementos-críticos",
+    "alta-disponibilidad",
+    "producción",
+    "autoscaling",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Fallo del Nodo de Complementos Críticos en Producción
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Clúster  
+**Etiquetas:** EKS, Complementos Críticos, Alta Disponibilidad, Producción, AutoScaling
+
+## Descripción del Problema
+
+**Contexto:** El clúster EKS de producción experimenta tiempo de inactividad debido a la ausencia del nodo CriticalAddonsOnly, provocando fallos en el sistema y falta de disponibilidad del servicio.
+
+**Síntomas Observados:**
+
+- Sistemas de producción caídos
+- Nodo CriticalAddonsOnly ausente en el clúster
+- Complementos críticos de Kubernetes no pueden ser programados
+- Interrupción del servicio que afecta a los usuarios finales
+
+**Configuración Relevante:**
+
+- Entorno: Clúster EKS de producción
+- Tipo de nodo: Nodo dedicado CriticalAddonsOnly
+- Costo actual: ~10 USD/mes
+- Costo con alta disponibilidad: ~50 USD/mes
+
+**Condiciones de Error:**
+
+- Punto único de fallo en la programación de complementos críticos
+- No hay nodos de respaldo para componentes críticos del sistema
+- El grupo de AutoScaling carece de diversidad en tipos de instancia
+
+## Solución Detallada
+
+<TroubleshootingItem id="immediate-fix" summary="Solución Inmediata: Añadir Tipos de Instancia al Grupo de AutoScaling">
+
+Para una resolución inmediata sin costos adicionales:
+
+1. **Acceder a la Consola AWS**
+
+   - Navegar a EC2 → Grupos de Auto Scaling
+   - Encontrar el Grupo de Auto Scaling CriticalAddons de su clúster
+
+2. **Editar la Plantilla de Lanzamiento**
+
+   ```bash
+   # Ejemplo de tipos de instancia para añadir
+   - t3.medium
+   - t3.large
+   - m5.large
+   - m5.xlarge
+   ```
+
+3. **Actualizar el Grupo de AutoScaling**
+
+   - Ir a la sección "Tipos de Instancia"
+   - Añadir múltiples tipos de instancia compatibles
+   - Esto provee opciones de respaldo cuando el tipo principal no está disponible
+
+4. **Forzar Reemplazo del Nodo**
+   ```bash
+   # Forzar creación de nuevo nodo
+   kubectl drain <nodo-fallido> --ignore-daemonsets --delete-emptydir-data
+   kubectl delete node <nodo-fallido>
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="high-availability-setup" summary="Recomendado: Habilitar Alta Disponibilidad">
+
+Para entornos de producción, implemente alta disponibilidad:
+
+1. **Habilitar HA en el Panel de SleakOps**
+
+   - Ir a Configuración del Clúster
+   - Navegar a la sección "Complementos Críticos"
+   - Activar la opción "Alta Disponibilidad"
+   - Incremento de costo: ~10 → 50 USD/mes
+
+2. **Beneficios de la Configuración HA**
+
+   - Múltiples nodos CriticalAddons distribuidos en zonas de disponibilidad
+   - Capacidades automáticas de conmutación por error
+   - Cero tiempo de inactividad para componentes críticos
+   - Fiabilidad de nivel producción
+
+3. **Ejemplo de Configuración**
+   ```yaml
+   critical_addons:
+     high_availability: true
+     min_nodes: 2
+     max_nodes: 3
+     instance_types: ["t3.medium", "t3.large", "m5.large"]
+     availability_zones: ["us-east-1a", "us-east-1b", "us-east-1c"]
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-measures" summary="Prevención y Mejores Prácticas">
+
+**Para Clústeres de Producción:**
+
+1. **Siempre Habilitar Alta Disponibilidad**
+
+   - Crítico para cargas de trabajo en producción
+   - Previene puntos únicos de fallo
+   - Incremento mínimo de costo para máxima confiabilidad
+
+2. **Diversidad en Tipos de Instancia**
+
+   ```yaml
+   # Buena práctica: múltiples tipos de instancia
+   instance_types:
+     - "t3.medium" # Elección primaria
+     - "t3.large" # Opción de respaldo
+     - "m5.large" # Familia alternativa
+     - "m5.xlarge" # Respaldo más grande
+   ```
+
+3. **Distribución Multi-Zona (AZ)**
+
+   - Distribuir nodos entre zonas de disponibilidad
+   - Protege contra fallos a nivel de zona
+   - Asegura disponibilidad de complementos durante interrupciones
+
+4. **Configuración de Monitoreo**
+
+   ```bash
+   # Monitorear pods de complementos críticos
+   kubectl get pods -n kube-system -l k8s-app=critical-addon
+
+   # Verificar estado de preparación de nodos
+   kubectl get nodes -l node-role.kubernetes.io/critical-addons
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="maintenance-window" summary="Consideraciones para Ventana de Mantenimiento">
+
+**Momento para los Cambios:**
+
+- **Durante Horas Laborales:** Seguro para configuraciones HA y adición de tipos de instancia
+- **Sin Tiempo de Inactividad Requerido:** Son modificaciones menores
+- **Monitoreo en Tiempo Real:** Puede realizarse mientras se supervisan los sistemas
+
+**Pasos para Implementación Segura:**
+
+1. **Verificación Previa al Cambio**
+
+   ```bash
+   # Verificar estado actual del clúster
+   kubectl get nodes
+   kubectl get pods -n kube-system
+   ```
+
+2. **Implementar Cambios**
+
+   - Añadir tipos de instancia al Grupo de AutoScaling
+   - O habilitar Alta Disponibilidad mediante SleakOps
+
+3. **Validación Posterior al Cambio**
+   ```bash
+   # Verificar nueva configuración
+   kubectl get nodes -o wide
+   kubectl describe node <nodo-critical-addon>
+   ```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

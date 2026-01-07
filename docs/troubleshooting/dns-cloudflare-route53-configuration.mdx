@@ -1,0 +1,196 @@
+---
+sidebar_position: 3
+title: "DNS Configuration with Cloudflare and Route53"
+description: "How to configure DNS records when using Cloudflare with AWS Route53 delegation"
+date: "2024-12-19"
+category: "provider"
+tags: ["dns", "cloudflare", "route53", "aws", "configuration"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# DNS Configuration with Cloudflare and Route53
+
+**Date:** December 19, 2024  
+**Category:** Provider  
+**Tags:** DNS, Cloudflare, Route53, AWS, Configuration
+
+## Problem Description
+
+**Context:** Users need to configure DNS records when using Cloudflare as their DNS provider while having AWS services that require Route53 delegation for subdomains.
+
+**Observed Symptoms:**
+
+- DNS resolution fails for subdomains pointing to AWS Load Balancers
+- Services are not accessible through their configured domain names
+- DNS propagation issues between Cloudflare and Route53
+- CNAME/A record configuration conflicts
+
+**Relevant Configuration:**
+
+- DNS Provider: Cloudflare
+- AWS Service: ELB (Elastic Load Balancer)
+- Domain delegation: Route53 for specific subdomains
+- Record types: CNAME or A records
+
+**Error Conditions:**
+
+- Domain resolution timeouts
+- Services unreachable via configured domains
+- DNS delegation not working properly
+- Load balancer endpoints not resolving
+
+## Detailed Solution
+
+<TroubleshootingItem id="dns-delegation-setup" summary="Setting up DNS delegation between Cloudflare and Route53">
+
+When using Cloudflare as your primary DNS provider but need Route53 for AWS services:
+
+1. **In Route53 (AWS Console):**
+
+   - Create a hosted zone for your subdomain
+   - Note the NS (Name Server) records provided by Route53
+
+2. **In Cloudflare:**
+
+   - Create NS records pointing your subdomain to Route53 name servers
+   - Example: `subdomain.yourdomain.com` → Route53 NS records
+
+3. **Verify delegation:**
+   ```bash
+   dig NS subdomain.yourdomain.com
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="load-balancer-dns-records" summary="Configuring DNS records for AWS Load Balancers">
+
+For AWS Load Balancers, you need to create the appropriate DNS records:
+
+**In Cloudflare (for direct configuration):**
+
+```
+Type: CNAME
+Name: corebackupgenerator
+Value: internal-k8s-autolabproduction-fc0a036b93-1779329228.us-east-1.elb.amazonaws.com
+TTL: Auto
+Proxy status: DNS only (gray cloud)
+```
+
+**In Route53 (if using delegation):**
+
+```
+Type: A (Alias)
+Name: corebackupgenerator.autolab.com.co
+Alias Target: internal-k8s-autolabproduction-fc0a036b93-1779329228.us-east-1.elb.amazonaws.com
+Routing Policy: Simple
+```
+
+**Important:** Use A (Alias) records in Route53 for better performance and automatic IP resolution.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cloudflare-proxy-settings" summary="Cloudflare proxy settings for AWS services">
+
+When configuring DNS records in Cloudflare for AWS services:
+
+1. **Disable Cloudflare Proxy (Gray Cloud):**
+
+   - Click the orange cloud icon to make it gray
+   - This ensures direct connection to AWS services
+   - Required for non-HTTP services or custom ports
+
+2. **SSL/TLS Settings:**
+
+   - Set SSL/TLS encryption mode to "Full" or "Full (strict)"
+   - Ensure certificates match between Cloudflare and AWS
+
+3. **Page Rules (if needed):**
+   - Create page rules to bypass Cloudflare for specific subdomains
+   - Useful for API endpoints or WebSocket connections
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-dns" summary="Troubleshooting DNS resolution issues">
+
+**Diagnostic Commands:**
+
+1. **Check DNS propagation:**
+
+   ```bash
+   dig corebackupgenerator.autolab.com.co
+   nslookup corebackupgenerator.autolab.com.co
+   ```
+
+2. **Test from different DNS servers:**
+
+   ```bash
+   dig @8.8.8.8 corebackupgenerator.autolab.com.co
+   dig @1.1.1.1 corebackupgenerator.autolab.com.co
+   ```
+
+3. **Check delegation:**
+   ```bash
+   dig NS autolab.com.co
+   dig NS corebackupgenerator.autolab.com.co
+   ```
+
+**Common Issues:**
+
+- **TTL too high:** Reduce TTL to 300 seconds during changes
+- **Proxy enabled:** Disable Cloudflare proxy for AWS services
+- **Wrong record type:** Use CNAME for external domains, A for IP addresses
+- **Missing delegation:** Ensure NS records are properly configured
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="DNS configuration best practices">
+
+**For Cloudflare + AWS Setup:**
+
+1. **Use subdomain delegation:**
+
+   - Delegate specific subdomains to Route53
+   - Keep main domain management in Cloudflare
+
+2. **Record type selection:**
+
+   - Use A (Alias) records in Route53 for AWS resources
+   - Use CNAME records in Cloudflare for external domains
+
+3. **Monitoring and validation:**
+
+   - Set up DNS monitoring
+   - Regularly test resolution from different locations
+   - Monitor SSL certificate validity
+
+4. **Documentation:**
+   - Document all DNS delegations
+   - Keep track of which records are managed where
+   - Maintain emergency contact information
+
+**Example Configuration:**
+
+```yaml
+# Cloudflare Records
+autolab.com.co:
+  - Type: A
+    Value: 192.168.1.1
+  - Type: NS (for k8s subdomain)
+    Value: Route53 NS servers
+
+# Route53 Records (k8s.autolab.com.co zone)
+k8s.autolab.com.co:
+  - Type: A (Alias)
+    Target: ELB DNS name
+
+corebackupgenerator.autolab.com.co:
+  - Type: A (Alias)
+    Target: internal-k8s-autolabproduction-fc0a036b93-1779329228.us-east-1.elb.amazonaws.com
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

@@ -1,0 +1,222 @@
+---
+sidebar_position: 3
+title: "Pritunl VPN DNS Resolution Issues"
+description: "Troubleshooting DNS resolution problems with Pritunl VPN connections"
+date: "2024-01-15"
+category: "user"
+tags: ["vpn", "pritunl", "dns", "networking", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Pritunl VPN DNS Resolution Issues
+
+**Date:** January 15, 2024  
+**Category:** User  
+**Tags:** VPN, Pritunl, DNS, Networking, Troubleshooting
+
+## Problem Description
+
+**Context:** Users experience intermittent DNS resolution problems when connecting to SleakOps infrastructure through Pritunl VPN from different locations and operating systems.
+
+**Observed Symptoms:**
+
+- Pritunl VPN connection works intermittently
+- DNS resolution fails on some operating systems
+- Connection issues vary by geographic location
+- Problem appears inconsistently across different client systems
+
+**Relevant Configuration:**
+
+- VPN Client: Pritunl
+- Connection locations: Multiple IPs across Argentina
+- Production DNS server: 10.130.0.2
+- Multiple operating systems affected
+
+**Error Conditions:**
+
+- DNS resolution failures occur sporadically
+- Problem varies by operating system
+- Issues appear when connecting from different geographic locations
+- Inconsistent behavior across connection attempts
+
+## Detailed Solution
+
+<TroubleshootingItem id="pritunl-reset-options" summary="Reset Pritunl DNS and Networking">
+
+The first troubleshooting step is to reset Pritunl's DNS and networking configurations:
+
+**Steps to reset:**
+
+1. Open your Pritunl client
+2. Go to **Settings** or **Preferences**
+3. Look for **Advanced Options** or **Network Settings**
+4. Click on **Reset DNS**
+5. Click on **Reset Networking**
+6. Restart the Pritunl client
+7. Reconnect to your VPN profile
+
+**What this does:**
+
+- Clears cached DNS entries
+- Resets network interface configurations
+- Forces fresh DNS resolver setup
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-dns-configuration" summary="Configure Production DNS Server">
+
+If the reset doesn't resolve the issue, manually configure the production DNS server:
+
+**Add DNS Server 10.130.0.2:**
+
+**On Windows:**
+
+1. Go to **Network and Sharing Center**
+2. Click on your active network connection
+3. Click **Properties**
+4. Select **Internet Protocol Version 4 (TCP/IPv4)**
+5. Click **Properties**
+6. Select **Use the following DNS server addresses**
+7. Add `10.130.0.2` as primary DNS
+8. Click **OK**
+
+**On macOS:**
+
+1. Go to **System Preferences** → **Network**
+2. Select your network connection
+3. Click **Advanced**
+4. Go to **DNS** tab
+5. Click **+** and add `10.130.0.2`
+6. Click **OK**
+
+**On Linux:**
+
+```bash
+# Edit resolv.conf
+sudo nano /etc/resolv.conf
+
+# Add this line at the top
+nameserver 10.130.0.2
+
+# Or use systemd-resolved
+sudo systemctl edit systemd-resolved
+
+# Add:
+[Resolve]
+DNS=10.130.0.2
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="pritunl-profile-dns" summary="Configure DNS in Pritunl Profile">
+
+You can also configure DNS directly in your Pritunl connection profile:
+
+1. Open Pritunl client
+2. Find your connection profile
+3. Click the **gear icon** or **Edit**
+4. Look for **DNS Settings** or **Advanced**
+5. Add `10.130.0.2` to the DNS servers list
+6. Save the profile
+7. Reconnect
+
+**Alternative method:**
+
+```bash
+# If using Pritunl from command line
+pritunl-client add [profile-file]
+pritunl-client start [profile-id] --dns 10.130.0.2
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="os-specific-troubleshooting" summary="Operating System Specific Solutions">
+
+**Windows Specific:**
+
+- Disable IPv6 if not needed: `netsh interface ipv6 set global randomizeidentifiers=disabled`
+- Flush DNS cache: `ipconfig /flushdns`
+- Reset Winsock: `netsh winsock reset`
+
+**macOS Specific:**
+
+- Flush DNS cache: `sudo dscacheutil -flushcache`
+- Reset network settings: `sudo ifconfig en0 down && sudo ifconfig en0 up`
+
+**Linux Specific:**
+
+- Restart NetworkManager: `sudo systemctl restart NetworkManager`
+- Flush DNS cache: `sudo systemd-resolve --flush-caches`
+- Check DNS resolution: `nslookup [domain] 10.130.0.2`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="geographic-considerations" summary="Geographic Location Considerations">
+
+For users connecting from different locations in Argentina:
+
+**Connection Optimization:**
+
+1. Choose the closest Pritunl server location
+2. Test different connection protocols (UDP vs TCP)
+3. Adjust MTU size if needed:
+
+   ```bash
+   # Test optimal MTU
+   ping -f -l 1472 [server-ip]
+
+   # Set MTU in Pritunl
+   # Add to profile: tun-mtu 1500
+   ```
+
+**Network Quality Testing:**
+
+```bash
+# Test DNS resolution speed
+dig @10.130.0.2 [your-domain]
+
+# Test connection quality
+ping -c 10 10.130.0.2
+
+# Trace route to identify issues
+traceroute 10.130.0.2
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Verify DNS Resolution">
+
+After applying the fixes, verify DNS resolution is working:
+
+**Test Commands:**
+
+```bash
+# Test DNS resolution
+nslookup google.com 10.130.0.2
+dig @10.130.0.2 your-internal-domain.com
+
+# Test internal services
+ping internal-service.sleakops.local
+curl -I https://your-api.sleakops.com
+
+# Check current DNS servers
+# On Linux/macOS:
+cat /etc/resolv.conf
+
+# On Windows:
+ipconfig /all | findstr "DNS Servers"
+```
+
+**Expected Results:**
+
+- DNS queries should resolve quickly
+- Internal domains should be accessible
+- No timeout errors
+- Consistent resolution across multiple attempts
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

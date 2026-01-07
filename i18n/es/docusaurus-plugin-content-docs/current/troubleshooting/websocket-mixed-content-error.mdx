@@ -1,0 +1,203 @@
+---
+sidebar_position: 3
+title: "Error de Contenido Mixto en WebSocket - Se Requiere Protocolo WSS"
+description: "Solución para el error de contenido mixto en WebSocket al conectar desde HTTPS a un endpoint WS"
+date: "2024-12-18"
+category: "general"
+tags: ["websocket", "https", "ssl", "contenido-mixto", "seguridad"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Error de Contenido Mixto en WebSocket - Se Requiere Protocolo WSS
+
+**Fecha:** 18 de diciembre de 2024  
+**Categoría:** General  
+**Etiquetas:** WebSocket, HTTPS, SSL, Contenido Mixto, Seguridad
+
+## Descripción del Problema
+
+**Contexto:** Al intentar establecer una conexión WebSocket desde una página HTTPS a un endpoint WebSocket usando el protocolo `ws://`, los navegadores bloquean la conexión debido a políticas de seguridad de contenido mixto.
+
+**Síntomas Observados:**
+
+- Error de Contenido Mixto en la consola del navegador
+- La conexión WebSocket no se establece
+- Mensaje de error: "Esta solicitud ha sido bloqueada; este endpoint debe estar disponible a través de WSS"
+- Intento de conexión desde página HTTPS a endpoint `ws://` es rechazado
+
+**Configuración Relevante:**
+
+- Frontend servido sobre: HTTPS
+- Protocolo del endpoint WebSocket: `ws://` (inseguro)
+- Política de seguridad del navegador: bloqueo de contenido mixto activado
+- Formato de URL WebSocket: `ws://domain/ws/path/?token=...`
+
+**Condiciones de Error:**
+
+- El error ocurre cuando una página HTTPS intenta conectarse a un endpoint `ws://`
+- Navegadores modernos aplican políticas de contenido mixto
+- La conexión es bloqueada antes de establecerse
+- El problema afecta a todos los contextos seguros (páginas HTTPS)
+
+## Solución Detallada
+
+<TroubleshootingItem id="protocol-change" summary="Cambiar el protocolo WebSocket a WSS">
+
+La solución principal es usar el protocolo seguro de WebSocket (`wss://`) en lugar del protocolo inseguro (`ws://`):
+
+**Antes (causa error):**
+
+```javascript
+const websocket = new WebSocket("ws://apiqa.simplee.cl/ws/lead/?token=...");
+```
+
+**Después (correcto):**
+
+```javascript
+const websocket = new WebSocket("wss://apiqa.simplee.cl/ws/lead/?token=...");
+```
+
+Este cambio asegura que:
+
+- La conexión use cifrado SSL/TLS
+- Se cumplan las políticas de contenido mixto del navegador
+- La comunicación sea segura de extremo a extremo
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="server-configuration" summary="Asegurar que el servidor soporte WSS">
+
+Verifica que tu servidor WebSocket esté configurado para manejar conexiones seguras:
+
+**Para aplicaciones Node.js:**
+
+```javascript
+const https = require("https");
+const WebSocket = require("ws");
+const fs = require("fs");
+
+const server = https.createServer({
+  cert: fs.readFileSync("ruta/al/cert.pem"),
+  key: fs.readFileSync("ruta/al/key.pem"),
+});
+
+const wss = new WebSocket.Server({ server });
+```
+
+**Para proxy inverso (Nginx):**
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name apiqa.simplee.cl;
+
+    ssl_certificate /ruta/al/cert.pem;
+    ssl_certificate_key /ruta/al/key.pem;
+
+    location /ws/ {
+        proxy_pass http://backend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+    }
+}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dynamic-protocol" summary="Selección dinámica del protocolo">
+
+Para aplicaciones que necesitan funcionar tanto en entornos HTTP como HTTPS, usa selección dinámica del protocolo:
+
+```javascript
+function getWebSocketURL(path) {
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const host = window.location.host;
+  return `${protocol}//${host}${path}`;
+}
+
+// Uso
+const wsUrl = getWebSocketURL("/ws/lead/?token=...");
+const websocket = new WebSocket(wsUrl);
+```
+
+O usa URLs relativas que heredan automáticamente el protocolo de la página:
+
+```javascript
+// Esto usa automáticamente wss:// en páginas HTTPS y ws:// en páginas HTTP
+const websocket = new WebSocket(
+  `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${
+    window.location.host
+  }/ws/lead/?token=...`
+);
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Pasos para solución de problemas">
+
+Si aún experimentas problemas después de cambiar a `wss://`:
+
+1. **Verifica el certificado SSL:**
+
+   ```bash
+   openssl s_client -connect apiqa.simplee.cl:443 -servername apiqa.simplee.cl
+   ```
+
+2. **Prueba el endpoint WebSocket:**
+
+   ```bash
+   # Usando la herramienta websocat
+   websocat wss://apiqa.simplee.cl/ws/lead/
+   ```
+
+3. **Revisa las herramientas de desarrollo del navegador:**
+
+   - Abre la pestaña Red (Network)
+   - Busca conexiones WebSocket
+   - Verifica errores SSL/TLS
+
+4. **Problemas comunes:**
+   - Certificados autofirmados (usa certificado SSL válido)
+   - Bloqueo de puertos (asegura que el puerto 443 esté abierto)
+   - Reglas de firewall (permite tráfico WSS)
+   - Configuración de balanceador de carga (asegura soporte para WebSocket)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="security-considerations" summary="Buenas prácticas de seguridad">
+
+Al implementar conexiones WSS:
+
+1. **Usa siempre WSS en producción:**
+
+   - Nunca uses `ws://` en entornos de producción
+   - Encripta toda la comunicación WebSocket
+
+2. **Valida certificados SSL:**
+
+   - Usa certificados de autoridades certificadoras confiables
+   - Evita certificados autofirmados en producción
+
+3. **Implementa autenticación adecuada:**
+
+   ```javascript
+   const token = getAuthToken(); // Tu mecanismo de autenticación
+   const websocket = new WebSocket(`wss://api.dominio.com/ws/?token=${token}`);
+   ```
+
+4. **Maneja errores de conexión de forma adecuada:**
+   ```javascript
+   websocket.onerror = function (error) {
+     console.error("Error en WebSocket:", error);
+     // Implementa lógica de reconexión
+   };
+   ```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 18 de diciembre de 2024 basada en una consulta real de usuario._

@@ -1,0 +1,367 @@
+---
+sidebar_position: 3
+title: "Ejecución Duplicada de Tareas en Celery Beat"
+description: "Solución para evitar que las tareas de Celery Beat se ejecuten múltiples veces al escalar pods del backend"
+date: "2024-12-23"
+category: "workload"
+tags: ["celery", "cronjob", "escalado", "backend", "tareas-duplicadas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Ejecución Duplicada de Tareas en Celery Beat
+
+**Fecha:** 23 de diciembre de 2024  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** Celery, Cronjob, Escalado, Backend, Tareas Duplicadas
+
+## Descripción del Problema
+
+**Contexto:** Al ejecutar una aplicación backend con múltiples pods en Kubernetes, las tareas programadas con Celery Beat se ejecutan múltiples veces, una por cada instancia de pod en ejecución.
+
+**Síntomas Observados:**
+
+- Las tareas programadas de Celery Beat se ejecutan múltiples veces (p. ej., 4 veces si hay 4 pods del backend)
+- Cada instancia de pod ejecuta su propio scheduler de Celery Beat
+- Las tareas que deberían ejecutarse una sola vez se duplican en todas las réplicas de pods
+- Posible inconsistencia de datos o desperdicio de recursos debido a ejecuciones duplicadas
+
+**Configuración Relevante:**
+
+- Despliegue backend: Múltiples pods (p. ej., 4 réplicas)
+- Scheduler de tareas: Celery Beat integrado en los pods del backend
+- Plataforma: Entorno Kubernetes de SleakOps
+- Tipo de carga: Servicio backend con tareas programadas
+
+**Condiciones de Error:**
+
+- El problema ocurre cuando el backend se escala a más de 1 réplica
+- Cada pod ejecuta Celery Beat de forma independiente
+- No hay coordinación entre instancias para las tareas programadas
+- Las tareas se ejecutan N veces donde N = número de réplicas del pod backend
+
+## Solución Detallada
+
+<TroubleshootingItem id="recommended-approach" summary="Solución Recomendada: Usar Kubernetes CronJobs">
+
+El enfoque recomendado es dejar de usar Celery Beat y migrar a Kubernetes CronJobs. Esto garantiza que las tareas se ejecuten solo una vez sin importar la cantidad de pods del backend.
+
+**Beneficios de los CronJobs:**
+
+- Ejecución única garantizada por programación
+- Programación nativa de Kubernetes
+- Mejor aislamiento de recursos
+- Monitoreo y depuración más sencilla
+- Sin dependencia del escalado de pods del backend
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="migration-steps" summary="Cómo migrar de Celery Beat a CronJobs">
+
+**Paso 1: Identificar las Tareas Actuales de Celery Beat**
+
+Lista todas tus tareas programadas actuales en la configuración de Celery:
+
+```python
+# Ejemplo de configuración actual de celery beat
+from celery.schedules import crontab
+
+beat_schedule = {
+    'send-daily-report': {
+        'task': 'myapp.tasks.send_daily_report',
+        'schedule': crontab(hour=9, minute=0),
+    },
+    'cleanup-old-data': {
+        'task': 'myapp.tasks.cleanup_old_data',
+        'schedule': crontab(hour=2, minute=0),
+    },
+}
+```
+
+**Paso 2: Crear Ejecuciones CronJob en SleakOps**
+
+Para cada tarea de Celery Beat, crea una ejecución CronJob separada:
+
+1. Ve a tu proyecto en SleakOps
+2. Navega a la sección **Ejecuciones**
+3. Haz clic en **Agregar Ejecución**
+4. Selecciona el tipo **CronJob**
+5. Configura la programación y el comando
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cronjob-configuration" summary="Ejemplos de Configuración de CronJob">
+
+**Ejemplo 1: CronJob para Reporte Diario**
+
+```yaml
+# Configuración CronJob en SleakOps
+name: daily-report-cronjob
+type: cronjob
+schedule: "0 9 * * *" # Todos los días a las 9:00 AM
+image: your-backend-image:latest
+command: ["python", "manage.py", "send_daily_report"]
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "100m"
+  limits:
+    memory: "512Mi"
+    cpu: "200m"
+```
+
+**Ejemplo 2: CronJob para Limpieza de Datos**
+
+```yaml
+# Configuración CronJob en SleakOps
+name: cleanup-cronjob
+type: cronjob
+schedule: "0 2 * * *" # Todos los días a las 2:00 AM
+image: your-backend-image:latest
+command: ["python", "manage.py", "cleanup_old_data"]
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "50m"
+  limits:
+    memory: "256Mi"
+    cpu: "100m"
+```
+
+**Formato de Programación Cron:**
+
+- "0 9 \* \* \*" - Diario a las 9:00 AM
+- "_/15 _ \* \* \*" - Cada 15 minutos
+- "0 _/6 _ \* \*" - Cada 6 horas
+- "0 0 \* \* 0" - Semanalmente los domingos a medianoche
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="remove-celery-beat" summary="Eliminar Celery Beat del Backend">
+
+Después de crear los CronJobs, elimina Celery Beat de tu backend:
+
+**Paso 1: Actualizar Configuración del Backend**
+
+```python
+# Eliminar o comentar beat_schedule
+# beat_schedule = {
+#     'send-daily-report': {
+#         'task': 'myapp.tasks.send_daily_report',
+#         'schedule': crontab(hour=9, minute=0),
+#     },
+# }
+
+# Mantener solo la configuración de la app Celery para tareas asíncronas
+app = Celery('myapp')
+app.config_from_object('django.conf:settings', namespace='CELERY')
+```
+
+**Paso 2: Actualizar Despliegue**
+
+Asegúrate de que tu despliegue backend ya no inicie Celery Beat:
+
+```dockerfile
+# Eliminar celery beat del comando de inicio
+# ANTES: CMD ["celery", "-A", "myapp", "beat", "--loglevel=info"]
+# AHORA: Solo ejecutar el servidor web
+CMD ["gunicorn", "myapp.wsgi:application"]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Soluciones Alternativas (No Recomendadas)">
+
+Si debes continuar usando Celery Beat, aquí algunas opciones alternativas:
+
+**Opción 1: Pod Dedicado para Celery Beat**
+
+Crear un despliegue separado solo para Celery Beat con réplica = 1:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-beat
+spec:
+  replicas: 1 # Mantener siempre en 1
+  selector:
+    matchLabels:
+      app: celery-beat
+  template:
+    spec:
+      containers:
+        - name: celery-beat
+          image: your-backend-image:latest
+          command: ["celery", "-A", "myapp", "beat", "--loglevel=info"]
+```
+
+**Opción 2: Elección de Líder (Compleja)**
+
+Implementar elección de líder para que solo un pod ejecute Celery Beat, pero esto añade complejidad y no es recomendable.
+
+**Por qué los CronJobs son Mejores:**
+
+- Arquitectura más simple
+- Función nativa de Kubernetes
+- Mejor gestión de recursos
+- Depuración más sencilla
+- Sin punto único de falla
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-cronjobs" summary="Monitoreo y Verificación">
+
+Después de migrar a CronJobs, monitorea su ejecución para asegurar que todo funcione correctamente:
+
+**Paso 1: Verificar Estado de CronJobs en SleakOps**
+
+1. Ve a la sección **Ejecuciones** de tu proyecto
+2. Verifica que tus CronJobs aparezcan en la lista
+3. Revisa los tiempos de **Última Ejecución** y **Próxima Ejecución**
+4. Monitorea la columna **Estado** para detectar fallas
+
+**Paso 2: Ver Logs de CronJobs**
+
+```bash
+# Verificar historial de ejecución de CronJobs
+kubectl get cronjobs
+
+# Ver ejecuciones de trabajos recientes
+kubectl get jobs
+
+# Revisar logs de una ejecución específica
+kubectl logs job/daily-report-cronjob-<timestamp>
+```
+
+**Paso 3: Configurar Alertas (Opcional)**
+
+Configura alertas para ejecuciones fallidas de CronJob:
+
+```yaml
+# Ejemplo de configuración de alertas
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cronjob-alerts
+data:
+  alert-rules.yaml: |
+    groups:
+    - name: cronjob.rules
+      rules:
+      - alert: CronJobFailed
+        expr: kube_job_status_failed > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CronJob {{ $labels.job_name }} falló"
+```
+
+**Paso 4: Verificar No Hay Ejecuciones Duplicadas**
+
+Monitorea los logs de tu aplicación para confirmar que las tareas ya no se ejecutan múltiples veces:
+
+```bash
+# Revisar logs de aplicación para ejecuciones duplicadas de tareas
+kubectl logs -l app=your-backend-app | grep "task_name"
+
+# Deberías ver una sola ejecución por tiempo programado, no múltiples
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-checklist" summary="Lista de Verificación de Migración">
+
+Usa esta lista de verificación para confirmar que tu migración fue exitosa:
+
+**Lista Pre-Migración:**
+
+- [ ] Documentar todas las tareas actuales de Celery Beat y sus horarios
+- [ ] Identificar los comandos necesarios para ejecutar cada tarea
+- [ ] Planificar el cronograma de migración para evitar interrupciones del servicio
+- [ ] Preparar plan de rollback si es necesario
+
+**Lista Post-Migración:**
+
+- [ ] Todos los CronJobs están creados y visibles en SleakOps
+- [ ] Los horarios de CronJob coinciden con los horarios originales de Celery Beat
+- [ ] La primera ejecución de cada CronJob se completa exitosamente
+- [ ] No hay ejecuciones duplicadas de tareas en los logs de aplicación
+- [ ] Configuración de Celery Beat eliminada del código backend
+- [ ] El despliegue backend ya no inicia el proceso Celery Beat
+- [ ] El uso de recursos está optimizado (sin procesos Celery Beat inactivos)
+
+**Lista de Pruebas:**
+
+- [ ] Escalar pods backend hacia arriba y abajo - verificar que las tareas sigan ejecutándose una vez
+- [ ] Activar manualmente un CronJob para probar ejecución
+- [ ] Verificar manejo de fallas y lógica de reintento de CronJob
+- [ ] Confirmar que las tareas programadas mantienen el tiempo esperado
+- [ ] Confirmar que las interacciones con base de datos/servicios externos funcionen correctamente
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-issues" summary="Problemas Comunes y Soluciones">
+
+**Problema 1: CronJob No Se Ejecuta**
+
+```bash
+# Verificar configuración de CronJob
+kubectl describe cronjob your-cronjob-name
+
+# Causas comunes:
+# - Formato incorrecto de programación cron
+# - Variables de entorno requeridas faltantes
+# - Errores de pull de imagen
+# - Restricciones de recursos
+```
+
+**Solución:**
+- Verifica la sintaxis de programación cron usando validadores cron en línea
+- Asegúrate de que todas las variables de entorno estén configuradas correctamente
+- Verifica que la imagen de contenedor sea accesible
+- Revisa las solicitudes y límites de recursos
+
+**Problema 2: CronJob Falla pero la Tarea de Celery Tendría Éxito**
+
+Diferencias comunes al migrar desde Celery Beat:
+
+```python
+# Celery Beat se ejecuta en contexto de aplicación
+# CronJob se ejecuta como contenedor separado - asegurar:
+
+# 1. Las conexiones de base de datos están configuradas correctamente
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'HOST': os.environ.get('DB_HOST'),
+        # ... otras configuraciones
+    }
+}
+
+# 2. Todas las variables de entorno requeridas están disponibles
+# 3. La tarea puede ejecutarse independientemente sin contexto de worker Celery
+```
+
+**Problema 3: Comportamiento Diferente de Zona Horaria**
+
+```yaml
+# Asegurar zona horaria consistente en CronJob
+spec:
+  schedule: "0 9 * * *"
+  timeZone: "UTC"  # Establecer zona horaria explícitamente
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: task
+            env:
+            - name: TZ
+              value: "UTC"
+```
+
+</TroubleshootingItem>
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 23 de diciembre de 2024 basada en una consulta real de usuario._

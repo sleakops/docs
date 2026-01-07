@@ -1,0 +1,188 @@
+---
+sidebar_position: 3
+title: "Jobs Display Timeout Error Despite Successful Execution"
+description: "Solution for jobs showing timeout error in UI while actually running successfully"
+date: "2025-02-10"
+category: "workload"
+tags: ["jobs", "timeout", "ui", "display", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Jobs Display Timeout Error Despite Successful Execution
+
+**Date:** February 10, 2025  
+**Category:** Workload  
+**Tags:** Jobs, Timeout, UI, Display, Troubleshooting
+
+## Problem Description
+
+**Context:** Long-running jobs in SleakOps that take several hours to complete are displaying timeout errors in the UI, even though they are executing successfully in the background.
+
+**Observed Symptoms:**
+
+- Jobs show "Time Out" error status in the SleakOps dashboard
+- Jobs are actually running and completing successfully
+- The timeout error appears to be a display issue, not an actual execution failure
+- Long-running jobs (several hours) are more likely to experience this issue
+
+**Relevant Configuration:**
+
+- Job type: Long-running batch jobs
+- Execution time: Several hours
+- Platform: SleakOps job management system
+- Status display: Shows timeout error incorrectly
+
+**Error Conditions:**
+
+- Error appears in UI after extended execution time
+- Jobs continue running despite timeout display
+- Issue affects job status visibility and monitoring
+- Problem occurs with jobs that exceed certain time thresholds
+
+## Detailed Solution
+
+<TroubleshootingItem id="understanding-issue" summary="Understanding the timeout display issue">
+
+This is a known UI display issue where:
+
+1. **Jobs continue executing normally** in the background
+2. **The UI timeout is cosmetic** - it doesn't affect actual job execution
+3. **Job completion status** may not update correctly in real-time
+4. **The underlying job infrastructure** continues working as expected
+
+This is a platform-level issue that requires a fix from the SleakOps development team.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="How to verify your job is actually running">
+
+To confirm your job is executing properly despite the timeout display:
+
+1. **Check job logs directly:**
+
+   ```bash
+   # Access job logs through kubectl if available
+   kubectl logs -f job/your-job-name
+   ```
+
+2. **Monitor resource usage:**
+
+   - Check CPU/memory usage in the cluster
+   - Verify if your job pods are still active
+
+3. **Check job output:**
+
+   - Monitor any output files or databases your job writes to
+   - Verify intermediate results are being generated
+
+4. **Use kubectl to check job status:**
+   ```bash
+   kubectl get jobs
+   kubectl describe job your-job-name
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="workaround-monitoring" summary="Workaround for monitoring long-running jobs">
+
+While waiting for the platform fix, you can:
+
+1. **Set up external monitoring:**
+
+   ```yaml
+   # Add health check endpoints to your job
+   apiVersion: batch/v1
+   kind: Job
+   metadata:
+     name: long-running-job
+   spec:
+     template:
+       spec:
+         containers:
+           - name: worker
+             image: your-image
+             # Add periodic status updates
+             command: ["/bin/sh"]
+             args:
+               [
+                 "-c",
+                 "your-job-command && echo 'Job completed successfully' > /tmp/status",
+               ]
+   ```
+
+2. **Implement progress logging:**
+
+   - Add regular progress updates to your job code
+   - Use structured logging to track job phases
+   - Consider using external status endpoints
+
+3. **Use job completion notifications:**
+   - Configure webhooks or notifications for job completion
+   - Set up alerts for actual job failures vs. UI timeouts
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Best practices for long-running jobs">
+
+To minimize issues with long-running jobs:
+
+1. **Implement checkpointing:**
+
+   ```python
+   # Example: Save progress periodically
+   def save_checkpoint(progress_data):
+       with open('/tmp/checkpoint.json', 'w') as f:
+           json.dump(progress_data, f)
+
+   def load_checkpoint():
+       try:
+           with open('/tmp/checkpoint.json', 'r') as f:
+               return json.load(f)
+       except FileNotFoundError:
+           return None
+   ```
+
+2. **Break down large jobs:**
+
+   - Consider splitting very long jobs into smaller chunks
+   - Use job dependencies to chain smaller jobs together
+   - Implement proper error handling and retry logic
+
+3. **Add health checks:**
+   ```yaml
+   # Add liveness and readiness probes
+   livenessProbe:
+     exec:
+       command:
+         - /bin/sh
+         - -c
+         - "test -f /tmp/job-alive"
+     initialDelaySeconds: 30
+     periodSeconds: 60
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="platform-fix-timeline" summary="Expected platform fix timeline">
+
+The SleakOps development team is aware of this issue and is working on a fix. The timeline includes:
+
+1. **Short-term (few days):** Platform fix deployment
+2. **Medium-term:** Enhanced job monitoring and status display
+3. **Long-term:** Improved handling of long-running workloads
+
+**What the fix will address:**
+
+- Correct timeout handling for long-running jobs
+- Improved UI status updates
+- Better real-time job monitoring
+- Enhanced job lifecycle management
+
+**No action required from users** - the fix will be applied automatically to the platform.
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on February 10, 2025 based on a real user query._

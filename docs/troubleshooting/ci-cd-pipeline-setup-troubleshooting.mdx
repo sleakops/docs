@@ -1,0 +1,189 @@
+---
+sidebar_position: 3
+title: "CI/CD Pipeline Not Triggering on Branch Push"
+description: "Troubleshooting guide for CI/CD pipelines that don't trigger automatic builds and deployments"
+date: "2024-03-14"
+category: "project"
+tags: ["ci-cd", "pipeline", "git", "deployment", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# CI/CD Pipeline Not Triggering on Branch Push
+
+**Date:** March 14, 2024  
+**Category:** Project  
+**Tags:** CI/CD, Pipeline, Git, Deployment, Troubleshooting
+
+## Problem Description
+
+**Context:** User pushes code changes to a development branch but the CI/CD pipeline doesn't automatically trigger to create new container images and deploy updates to the environment.
+
+**Observed Symptoms:**
+
+- Code pushes to dev branch don't trigger pipeline execution
+- New container images are not being built automatically
+- Deployments don't update with the latest code changes
+- Pipeline appears to be inactive or misconfigured
+
+**Relevant Configuration:**
+
+- Target branch: Development branch (e.g., `dev`, `develop`)
+- Repository: Git-based source control
+- Pipeline: SleakOps CI/CD integration
+- Expected behavior: Automatic build and deployment on push
+
+**Error Conditions:**
+
+- Pipeline doesn't trigger after git push
+- No build activity visible in project dashboard
+- Deployment remains on previous version
+- No error messages or pipeline logs generated
+
+## Detailed Solution
+
+<TroubleshootingItem id="branch-configuration" summary="Verify Target Branch Configuration">
+
+First, ensure your project is configured to watch the correct branch:
+
+1. Navigate to **Project > Settings > General Config**
+2. Check the **Target Branch** setting
+3. Verify it matches the branch you're pushing to (e.g., `dev`, `develop`, `main`)
+4. Save changes if you need to update the branch name
+
+**Common Issues:**
+
+- Project configured for `main` but pushing to `dev`
+- Branch name mismatch (e.g., `develop` vs `development`)
+- Case sensitivity issues in branch names
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="pipeline-yaml-setup" summary="Configure Pipeline YAML File">
+
+Ensure your repository has a properly configured pipeline file:
+
+1. Go to **Project > Settings > Git Pipelines**
+2. Review the YAML example provided
+3. Create or update your pipeline file in your repository
+4. Common file names: `.sleakops.yml`, `.sleakops/pipeline.yml`
+
+**Example Pipeline Configuration:**
+
+```yaml
+version: "1"
+pipeline:
+  triggers:
+    - branch: dev
+      on: push
+  stages:
+    - name: build
+      steps:
+        - name: build-image
+          action: docker-build
+          dockerfile: Dockerfile
+    - name: deploy
+      steps:
+        - name: deploy-to-dev
+          action: deploy
+          environment: development
+```
+
+**Key Points:**
+
+- Ensure the `branch` in triggers matches your target branch
+- Include both `build` and `deploy` stages
+- Verify the pipeline file is in the repository root or `.sleakops/` directory
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="api-key-setup" summary="Configure SLEAKOPS_KEY Variable">
+
+Set up the required API key for pipeline authentication:
+
+1. Go to **Settings > CLI** in your SleakOps dashboard
+2. Generate or copy your API key
+3. In your Git repository settings, add a new environment variable:
+   - **Name:** `SLEAKOPS_KEY`
+   - **Value:** Your API key from step 2
+   - **Scope:** Available to pipeline/CI processes
+
+**For Different Git Providers:**
+
+**GitHub:**
+
+- Go to Repository > Settings > Secrets and variables > Actions
+- Add new repository secret: `SLEAKOPS_KEY`
+
+**GitLab:**
+
+- Go to Project > Settings > CI/CD > Variables
+- Add variable: `SLEAKOPS_KEY` (mark as protected if needed)
+
+**Bitbucket:**
+
+- Go to Repository > Repository settings > Pipelines > Repository variables
+- Add variable: `SLEAKOPS_KEY`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Verify Configuration and Test">
+
+After completing the setup, verify everything is working:
+
+1. **Check Pipeline Status:**
+
+   - Go to your project dashboard
+   - Look for pipeline activity in the **Deployments** or **Builds** section
+
+2. **Test with a Small Change:**
+
+   - Make a minor change to your code
+   - Commit and push to your target branch
+   - Monitor the pipeline execution
+
+3. **Review Logs:**
+
+   - Check pipeline logs for any error messages
+   - Verify build and deployment steps are executing
+
+4. **Common Verification Points:**
+   - Pipeline file is committed to the repository
+   - Branch names match exactly (case-sensitive)
+   - API key is valid and has necessary permissions
+   - Repository webhook is configured (usually automatic)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-tips" summary="Additional Troubleshooting Tips">
+
+If the pipeline still doesn't trigger:
+
+**Check Webhook Configuration:**
+
+- Verify your Git provider has the correct webhook URL
+- Test webhook delivery in your Git provider's settings
+
+**Validate API Key Permissions:**
+
+- Ensure the API key has project deployment permissions
+- Try regenerating the API key if it's old
+
+**Review Pipeline Syntax:**
+
+- Validate YAML syntax using an online YAML validator
+- Check for indentation errors in the pipeline file
+
+**Contact Support:**
+If issues persist, provide the following information:
+
+- Project name and ID
+- Target branch name
+- Recent commit SHA that should have triggered the pipeline
+- Any error messages from the dashboard
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on March 14, 2024 based on a real user query._

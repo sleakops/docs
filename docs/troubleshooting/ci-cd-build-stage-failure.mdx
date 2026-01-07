@@ -1,0 +1,179 @@
+---
+sidebar_position: 3
+title: "CI/CD Build Stage Failure"
+description: "Troubleshooting CI/CD pipeline build failures in specific environments"
+date: "2024-10-10"
+category: "project"
+tags: ["ci-cd", "build", "pipeline", "deployment", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# CI/CD Build Stage Failure
+
+**Date:** October 10, 2024  
+**Category:** Project  
+**Tags:** CI/CD, Build, Pipeline, Deployment, Troubleshooting
+
+## Problem Description
+
+**Context:** User experiences CI/CD pipeline build failures in the 'stage' environment while the same code works correctly in 'develop' environment and locally. The build job fails before reaching the compilation stage.
+
+**Observed Symptoms:**
+
+- Build fails in 'stage' environment but works in 'develop'
+- Local compilation and execution work correctly
+- Error occurs before the build job reaches the cluster
+- Pipeline fails at the build stage, preventing deployment
+- Last successful commit continues running while new commits fail to build
+
+**Relevant Configuration:**
+
+- Project: byron-backoffice-service-dev-develop
+- Environment: 'stage' (failing) vs 'develop' (working)
+- Last successful commit: d419a838b44f1c11b22adf68f6cf984170def38f
+- CI/CD pipeline configured through SleakOps
+
+**Error Conditions:**
+
+- Error occurs during CI/CD build stage
+- Failure happens before compilation attempt
+- Only affects 'stage' environment
+- Prevents new deployments from being created
+
+## Detailed Solution
+
+<TroubleshootingItem id="initial-diagnosis" summary="Initial troubleshooting steps">
+
+When CI/CD builds fail in one environment but work in another, the issue is typically related to:
+
+1. **Environment-specific CI/CD configuration files**
+2. **Different environment variables or secrets**
+3. **Branch-specific pipeline configurations**
+4. **Resource constraints in the target environment**
+
+Start by comparing the CI/CD configuration files between environments.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verify-cicd-file" summary="Verify CI/CD configuration file">
+
+To check if the CI/CD file is correctly configured:
+
+1. **Access your SleakOps project dashboard**
+2. **Navigate to the CI/CD section**
+3. **Compare the pipeline configuration** between 'develop' and 'stage'
+4. **Verify the CI/CD file was copied correctly** from SleakOps
+
+**Common issues to check:**
+
+```yaml
+# Check for environment-specific differences
+stages:
+  - build
+  - test
+  - deploy
+
+variables:
+  ENVIRONMENT: "stage" # Make sure this matches
+
+build:
+  stage: build
+  script:
+    - echo "Building for $ENVIRONMENT"
+    # Verify build commands are identical
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="rebuild-pipeline" summary="Rebuild the pipeline">
+
+To trigger a fresh build:
+
+**Option 1: From SleakOps Dashboard**
+
+1. Go to your project in SleakOps
+2. Navigate to the **Deployments** section
+3. Click the **"Build"** button for the stage environment
+4. Monitor the build logs for specific error messages
+
+**Option 2: From Git Repository**
+
+1. Make a small commit (like updating a comment)
+2. Push to the branch that triggers the stage pipeline
+3. Monitor the pipeline execution
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="environment-comparison" summary="Compare environment configurations">
+
+Since 'develop' works but 'stage' fails, compare these configurations:
+
+**Environment Variables:**
+
+- Check if all required environment variables are set for 'stage'
+- Verify secrets and credentials are properly configured
+- Ensure database connections and external service URLs are correct
+
+**Resource Allocation:**
+
+- Verify the 'stage' environment has sufficient resources
+- Check if there are any resource quotas or limits
+- Ensure the cluster has available capacity
+
+**Branch Configuration:**
+
+```yaml
+# Check if pipeline triggers are correctly configured
+only:
+  - develop # for develop environment
+  - stage # for stage environment
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="debug-build-logs" summary="Analyze build logs for specific errors">
+
+To get more detailed information about the failure:
+
+1. **Access the build logs** in your CI/CD platform (GitHub Actions, GitLab CI, etc.)
+2. **Look for the exact error message** that occurs before compilation
+3. **Check for common pre-build failures:**
+   - Docker image pull failures
+   - Missing dependencies or tools
+   - Permission issues
+   - Network connectivity problems
+
+**Common pre-build error patterns:**
+
+```bash
+# Docker-related errors
+Error: Failed to pull image
+Error: Cannot connect to Docker daemon
+
+# Permission errors
+Permission denied
+Access denied
+
+# Network/connectivity errors
+Connection timeout
+DNS resolution failed
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="rollback-strategy" summary="Temporary rollback if needed">
+
+If you need immediate functionality while troubleshooting:
+
+1. **Keep the current working deployment** (commit d419a838b44f1c11b22adf68f6cf984170def38f)
+2. **Create a hotfix branch** from the last working commit if urgent changes are needed
+3. **Test fixes in 'develop' first** before applying to 'stage'
+
+This ensures your application remains functional while investigating the root cause.
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on October 10, 2024 based on a real user query._

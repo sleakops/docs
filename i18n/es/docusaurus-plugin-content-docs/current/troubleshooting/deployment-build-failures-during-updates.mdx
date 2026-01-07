@@ -1,0 +1,155 @@
+---
+sidebar_position: 3
+title: "Fallos de Construcción de Despliegue Durante Actualizaciones de la Plataforma"
+description: "Solución para fallos de construcción que ocurren durante actualizaciones programadas de la plataforma"
+date: "2024-10-14"
+category: "proyecto"
+tags: ["despliegue", "construcción", "actualizaciones", "solución-de-problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Fallos de Construcción de Despliegue Durante Actualizaciones de la Plataforma
+
+**Fecha:** 14 de octubre de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Despliegue, Construcción, Actualizaciones, Solución de problemas
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios experimentan fallos en el despliegue al intentar hacer públicos sus proyectos durante actualizaciones programadas de la plataforma. El proceso de construcción falla temporalmente mientras la plataforma SleakOps está en mantenimiento o actualización.
+
+**Síntomas Observados:**
+
+- Errores de despliegue al cambiar la visibilidad del proyecto a público
+- Fallos en la construcción durante ventanas de tiempo específicas
+- El error ocurre sin tiempo de inactividad en los servicios en ejecución
+- Incapacidad temporal para desplegar nuevos cambios
+
+**Configuración Relevante:**
+
+- Tipo de proyecto: Entorno de desarrollo
+- Acción intentada: Cambiar la visibilidad del proyecto a público
+- Estado de la plataforma: En mantenimiento/actualización programada
+- Disponibilidad del servicio: Sin tiempo de inactividad para servicios en ejecución
+
+**Condiciones del Error:**
+
+- El error ocurre durante actualizaciones programadas de la plataforma
+- El proceso de construcción falla temporalmente
+- La canalización de despliegue se ve afectada
+- Los servicios en ejecución permanecen sin afectación
+
+## Solución Detallada
+
+<TroubleshootingItem id="understanding-build-failures" summary="Entendiendo los fallos de construcción durante actualizaciones">
+
+Los fallos de construcción durante las actualizaciones de la plataforma son problemas temporales que ocurren cuando:
+
+1. **Se están actualizando componentes de la plataforma**: La infraestructura central de construcción está en mantenimiento
+2. **Las canalizaciones de construcción están temporalmente no disponibles**: Los sistemas CI/CD pueden estar reiniciándose
+3. **Cambios en la asignación de recursos**: Los recursos de construcción se redistribuyen temporalmente
+4. **Actualizaciones de configuración**: Se están modificando ajustes de la plataforma
+
+**Importante**: Estos fallos no afectan las aplicaciones en ejecución, solo los nuevos despliegues.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-resolution" summary="Pasos inmediatos para la resolución">
+
+Al enfrentar fallos de construcción durante actualizaciones:
+
+1. **Esperar a que la actualización finalice**: La mayoría de las actualizaciones de la plataforma se completan en 15-30 minutos
+2. **Reintentar el despliegue**: Una vez finalizadas las actualizaciones, intente nuevamente la acción original
+3. **Verificar el estado de la plataforma**: Monitorear la página de estado de SleakOps o las notificaciones
+4. **Verificar el estado del proyecto**: Asegurarse de que la configuración del proyecto permanezca intacta
+
+```bash
+# Ejemplo: Reintentar despliegue después de la actualización
+# No se requieren comandos especiales - simplemente reintente a través de la interfaz de usuario
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-strategies" summary="Prevención y mejores prácticas">
+
+Para minimizar el impacto de las actualizaciones programadas:
+
+1. **Programar los despliegues adecuadamente**:
+
+   - Evitar despliegues durante ventanas de mantenimiento anunciadas
+   - Planificar despliegues críticos fuera de los horarios de actualización
+
+2. **Monitorear las comunicaciones de la plataforma**:
+
+   - Suscribirse a las actualizaciones de estado de SleakOps
+   - Revisar notificaciones por correo electrónico sobre mantenimientos programados
+
+3. **Implementar estrategias de despliegue**:
+   - Usar entornos de staging para pruebas
+   - Desplegar durante períodos de baja actividad
+   - Tener planes de reversión listos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-persistent-issues" summary="Solución de problemas para fallos persistentes">
+
+Si los fallos de construcción persisten después de que las actualizaciones de la plataforma hayan finalizado:
+
+1. **Verificar la configuración del proyecto**:
+
+   ```yaml
+   # Verifique la configuración de su proyecto
+   visibility: public
+   environment: development
+   build_status: ready
+   ```
+
+2. **Limpiar caché de construcción**:
+
+   - Ir a Configuración del Proyecto
+   - Navegar a Configuración de Construcción
+   - Seleccionar "Limpiar Caché de Construcción"
+   - Reintentar el despliegue
+
+3. **Verificar cuotas de recursos**:
+
+   - Verificar los límites de su cuenta
+   - Asegurarse de tener minutos de construcción disponibles
+   - Revisar cuotas de almacenamiento
+
+4. **Contactar soporte si es necesario**:
+   - Proporcionar mensajes de error específicos
+   - Incluir detalles del proyecto y tiempos
+   - Usar "Responder a todos" para una resolución más rápida
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-during-updates" summary="Monitoreo de servicios durante actualizaciones">
+
+Durante las actualizaciones de la plataforma, monitoree sus servicios:
+
+1. **Los servicios en ejecución permanecen disponibles**:
+
+   - No se espera tiempo de inactividad para despliegues activos
+   - Las aplicaciones existentes continúan funcionando normalmente
+   - Solo se ven afectados los nuevos builds/despliegues
+
+2. **Verificación de chequeo de salud**:
+
+   ```bash
+   # Verifique que sus servicios siguen respondiendo
+   curl -I https://your-app.sleakops.dev
+   # Debe devolver 200 OK
+   ```
+
+3. **Monitoreo de logs**:
+   - Revisar logs de la aplicación por anomalías
+   - Monitorear uso de recursos durante actualizaciones
+   - Verificar que las conexiones a la base de datos permanezcan estables
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 14 de octubre de 2024 basada en una consulta real de un usuario._

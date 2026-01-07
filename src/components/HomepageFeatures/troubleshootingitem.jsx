@@ -1,12 +1,12 @@
 import React, { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 
-const FAQItem = ({ id, summary, children }) => {
+const TroubleshootingItem = ({ id, summary, children }) => {
   const detailsRef = useRef(null);
   const location = useLocation();
 
   useEffect(() => {
-    // Check if the current hash matches this FAQ's ID
+    // Check if the current hash matches this troubleshooting item's ID
     if (location.hash === `#${id}`) {
       if (detailsRef.current) {
         detailsRef.current.open = true;
@@ -23,4 +23,4 @@ const FAQItem = ({ id, summary, children }) => {
   );
 };
 
-export default FAQItem;
+export default TroubleshootingItem;

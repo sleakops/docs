@@ -1,0 +1,168 @@
+---
+sidebar_position: 3
+title: "Kubernetes Cluster Upgrade Process"
+description: "How to handle cluster upgrades in SleakOps platform"
+date: "2024-12-19"
+category: "cluster"
+tags: ["kubernetes", "upgrade", "cluster", "maintenance"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Kubernetes Cluster Upgrade Process
+
+**Date:** December 19, 2024  
+**Category:** Cluster  
+**Tags:** Kubernetes, Upgrade, Cluster, Maintenance
+
+## Problem Description
+
+**Context:** Users see an "Upgrade Required" notification in the Cluster section of their SleakOps dashboard and need guidance on how to proceed with the Kubernetes cluster upgrade.
+
+**Observed Symptoms:**
+
+- "Upgrade Required" banner appears in the Cluster - Production section
+- Uncertainty about the upgrade process and potential downtime
+- Concerns about service interruption during the upgrade
+- Questions about code, version, or database compatibility
+
+**Relevant Configuration:**
+
+- Platform: SleakOps managed Kubernetes cluster
+- Environment: Production cluster
+- Upgrade type: Kubernetes version upgrade with core components and addons
+
+**Error Conditions:**
+
+- No actual errors, but upgrade notification requires action
+- Potential compatibility issues with external resources
+- Risk of service disruption if not properly planned
+
+## Detailed Solution
+
+<TroubleshootingItem id="upgrade-process" summary="How to proceed with the cluster upgrade">
+
+When you see the "Upgrade Required" notification:
+
+1. **Click Accept** on the upgrade notification in your SleakOps dashboard
+2. The system will automatically begin the upgrade process
+3. **No manual intervention** is required during the upgrade
+
+The upgrade process is fully automated and managed by SleakOps.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="upgrade-timeline" summary="Expected duration and downtime">
+
+**Duration:** Approximately 1 hour for the complete upgrade process
+
+**Downtime:**
+
+- **No downtime expected** for properly configured services
+- Services with multiple pod replicas will continue running
+- Single-pod services may experience brief interruptions during node upgrades
+
+**Process order:**
+
+1. Core SleakOps nodes are upgraded one by one (rolling upgrade)
+2. Internal addons are upgraded after nodes complete
+3. All components listed in the upgrade notification are updated
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="preparation-checklist" summary="What to verify before upgrading">
+
+**Application Readiness:**
+
+- Ensure your applications have **multiple pod replicas** for high availability
+- Verify that your services can handle rolling restarts
+- Check that your applications don't rely on specific node assignments
+
+**External Resources:**
+
+- Review any **external installations** in your cluster (not managed by SleakOps)
+- Check the Kubernetes changelog for deprecated resources
+- Verify compatibility of custom operators or third-party tools
+
+**Database Considerations:**
+
+- No special database preparations needed for SleakOps managed upgrades
+- Ensure database connections can handle brief network interruptions
+- Verify that persistent volumes are properly configured
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="compatibility-check" summary="Checking for deprecated resources">
+
+Before accepting the upgrade:
+
+1. **Review the Kubernetes changelog** provided in the upgrade notification
+2. **Check for deprecated APIs** that your external tools might use:
+   ```bash
+   kubectl api-resources --verbs=list --namespaced -o name | xargs -n 1 kubectl get --show-kind --ignore-not-found
+   ```
+3. **Update any external tools** that use deprecated Kubernetes APIs
+4. **Test critical applications** in a staging environment if possible
+
+**Common deprecated resources to check:**
+
+- Old API versions for Deployments, Services, Ingress
+- Custom Resource Definitions (CRDs) with deprecated schemas
+- Network policies using deprecated APIs
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-upgrade" summary="Monitoring the upgrade process">
+
+During the upgrade:
+
+1. **Monitor your applications** through your usual monitoring tools
+2. **Check the SleakOps dashboard** for upgrade progress
+3. **Watch for any alerts** from your monitoring systems
+
+**Signs of successful upgrade:**
+
+- Nodes show updated Kubernetes version
+- All pods are running and healthy
+- Services respond normally
+- No persistent error logs
+
+**If issues occur:**
+
+- Contact SleakOps support immediately
+- Provide specific error messages or symptoms
+- Include the upgrade notification details
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="post-upgrade-verification" summary="Post-upgrade verification steps">
+
+After the upgrade completes:
+
+1. **Verify cluster status:**
+
+   ```bash
+   kubectl get nodes
+   kubectl get pods --all-namespaces
+   ```
+
+2. **Check application health:**
+
+   - Test critical application endpoints
+   - Verify database connectivity
+   - Confirm monitoring and logging are working
+
+3. **Review upgrade logs:**
+
+   - Check SleakOps dashboard for upgrade summary
+   - Review any warnings or notices
+
+4. **Update documentation:**
+   - Record the new Kubernetes version
+   - Update any version-specific configurations
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

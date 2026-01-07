@@ -1,0 +1,147 @@
+---
+sidebar_position: 3
+title: "Programa y Proceso de Actualización del Clúster EKS"
+description: "Comprendiendo la frecuencia, el proceso y la gestión de actualizaciones del clúster EKS en SleakOps"
+date: "2025-02-06"
+category: "cluster"
+tags: ["eks", "actualización", "kubernetes", "mantenimiento", "aws"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Programa y Proceso de Actualización del Clúster EKS
+
+**Fecha:** 6 de febrero de 2025  
+**Categoría:** Clúster  
+**Etiquetas:** EKS, Actualización, Kubernetes, Mantenimiento, AWS
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios necesitan entender cómo se gestionan las actualizaciones del clúster EKS en SleakOps, incluyendo la frecuencia, el proceso y si se requiere intervención manual.
+
+**Síntomas Observados:**
+
+- Preguntas sobre la frecuencia y el momento de las actualizaciones
+- Preocupaciones sobre el tiempo de inactividad durante las actualizaciones
+- Incertidumbre sobre procesos de actualización manual vs automática
+- Necesidad de claridad sobre la hoja de ruta de actualizaciones y progresión de versiones
+
+**Configuración Relevante:**
+
+- Versión actual de EKS: 1.29
+- Versión objetivo: 1.32 (planificada para el primer semestre)
+- Frecuencia de actualizaciones: 2 actualizaciones mayores por año
+- Plataforma: AWS EKS gestionado por SleakOps
+
+**Condiciones de Error:**
+
+- Posible interrupción del servicio durante las actualizaciones
+- Riesgo de problemas de compatibilidad con modificaciones manuales en el clúster
+- Necesidad de coordinación entre el equipo de SleakOps y los usuarios
+
+## Solución Detallada
+
+<TroubleshootingItem id="upgrade-frequency" summary="Frecuencia y Programa de Actualización de EKS">
+
+SleakOps gestiona las actualizaciones del clúster EKS con el siguiente programa:
+
+- **Frecuencia**: 2 actualizaciones mayores de versión de Kubernetes por año
+- **Estado Actual**: Versión 1.29
+- **Objetivo**: Versión 1.32 para finales del primer semestre de 2025
+- **Actualizaciones Restantes**: 3 actualizaciones de versión (1.29 → 1.30 → 1.31 → 1.32)
+
+**Cronograma de Actualizaciones:**
+
+- Las actualizaciones se programan típicamente durante ventanas de mantenimiento
+- Los usuarios reciben notificaciones anticipadas por correo electrónico
+- Las fechas específicas se comunican antes de cada actualización
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="upgrade-management" summary="Quién Gestiona las Actualizaciones">
+
+SleakOps se encarga de todas las actualizaciones del clúster EKS:
+
+- **Gestión Automática**: El equipo de SleakOps administra y ejecuta todas las actualizaciones
+- **Sin Intervención Manual**: Los usuarios no necesitan realizar actualizaciones manuales a través de la Consola AWS
+- **Pruebas Previas**: Se realizan pruebas extensas antes de las actualizaciones en producción
+- **Monitoreo**: El equipo de SleakOps supervisa el proceso de actualización
+
+**Actualizaciones Bajo Demanda:**
+En algunos casos, SleakOps ofrece un flujo de trabajo dentro de la plataforma para que los usuarios puedan activar actualizaciones bajo demanda cuando sea necesario.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="downtime-considerations" summary="Tiempo de Inactividad e Impacto en el Servicio">
+
+**Tiempo de Inactividad Esperado:**
+
+- Las actualizaciones están diseñadas para minimizar el tiempo de inactividad
+- Las pruebas previas a la actualización reducen el riesgo de problemas
+- La mayoría de las actualizaciones no deberían causar interrupción del servicio
+
+**Riesgos Potenciales:**
+
+- Las modificaciones manuales en los clústeres pueden causar problemas de compatibilidad
+- Las configuraciones personalizadas no gestionadas por SleakOps podrían verse afectadas
+- Los usuarios deben evitar cambios manuales para prevenir complicaciones en la actualización
+
+**Recomendaciones:**
+
+- Mantenerse alerta durante las ventanas de actualización
+- Evitar modificaciones manuales en el clúster
+- Reportar cualquier problema inmediatamente al soporte de SleakOps
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="upgrade-preparation" summary="Cómo Prepararse para las Actualizaciones">
+
+**Antes de las Actualizaciones:**
+
+1. **Revisar Aplicaciones**: Asegurarse de que las aplicaciones sean compatibles con la versión objetivo de Kubernetes
+2. **Respaldar Datos Críticos**: Aunque SleakOps gestiona esto, asegure respaldos de los datos de la aplicación
+3. **Monitorear Comunicaciones**: Estar atento a las notificaciones de actualización de SleakOps
+4. **Evitar Cambios Manuales**: No realizar modificaciones manuales en el clúster antes de las actualizaciones
+
+**Durante las Actualizaciones:**
+
+1. **Estar Disponible**: Estar disponible para responder a cualquier problema
+2. **Monitorear Aplicaciones**: Verificar el estado de las aplicaciones tras la finalización de la actualización
+3. **Reportar Problemas**: Contactar a SleakOps inmediatamente si surgen inconvenientes
+
+**Después de las Actualizaciones:**
+
+1. **Verificar Funcionalidad**: Probar las funcionalidades críticas de la aplicación
+2. **Revisar Registros**: Analizar los registros de la aplicación y del sistema para detectar problemas
+3. **Actualizar Dependencias**: Asegurar que las dependencias de la aplicación sean compatibles con la nueva versión de Kubernetes
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="version-compatibility" summary="Compatibilidad de Versiones de Kubernetes">
+
+**Ruta Actual de Actualización:**
+
+```
+Actual: 1.29 → Objetivo: 1.32
+Secuencia de actualización: 1.29 → 1.30 → 1.31 → 1.32
+```
+
+**Consideraciones de Compatibilidad:**
+
+- Cada actualización mantiene compatibilidad hacia atrás para la mayoría de funciones
+- Las APIs obsoletas pueden eliminarse en versiones más nuevas
+- Los recursos personalizados y operadores deben verificarse para compatibilidad
+- Las integraciones de terceros pueden requerir actualizaciones
+
+**Mejores Prácticas:**
+
+- Mantener las aplicaciones actualizadas para usar las APIs actuales de Kubernetes
+- Evitar usar funciones obsoletas
+- Probar aplicaciones en entornos de desarrollo con versiones más nuevas de Kubernetes
+- Seguir las políticas de desuso de Kubernetes
+
+</TroubleshootingItem>
+
+---
+
+_Este FAQ fue generado automáticamente el 6 de febrero de 2025 basado en una consulta real de usuario._

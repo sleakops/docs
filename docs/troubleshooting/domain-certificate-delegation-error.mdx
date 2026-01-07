@@ -1,0 +1,165 @@
+---
+sidebar_position: 3
+title: "Domain Certificate Delegation Error During Deployment"
+description: "Solution for ACMModule DoesNotExist error when deploying with domain certificates"
+date: "2024-12-19"
+category: "project"
+tags: ["deployment", "domain", "certificate", "acm", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Domain Certificate Delegation Error During Deployment
+
+**Date:** December 19, 2024  
+**Category:** Project  
+**Tags:** Deployment, Domain, Certificate, ACM, Troubleshooting
+
+## Problem Description
+
+**Context:** User experiences deployment failure when trying to register a production domain in SleakOps. The error occurs during the certificate delegation process for domain management.
+
+**Observed Symptoms:**
+
+- Deployment fails with `Modules.DoesNotExist` error
+- Error specifically mentions `ACMModule` not found
+- Issue prevents domain registration for production environment
+- Error occurs during ingress values generation
+
+**Relevant Configuration:**
+
+- Domain: `hub.supra.social` (production domain)
+- Certificate management: AWS ACM integration
+- Deployment process: Helm chart values generation
+- Platform: SleakOps domain management system
+
+**Error Conditions:**
+
+- Error occurs during `create_values_config_map` execution
+- Specifically fails at `domain.acm_certificate_info(raise_exceptions=True)`
+- ACMModule query returns no results
+- Prevents completion of deployment process
+
+## Detailed Solution
+
+<TroubleshootingItem id="certificate-delegation" summary="Re-delegate certificates through SleakOps console">
+
+When encountering certificate delegation issues, follow these steps:
+
+1. **Access SleakOps Console**
+
+   - Navigate to your project dashboard
+   - Go to **Domains** section
+
+2. **Re-delegate Certificates**
+
+   - Find the affected domain (`hub.supra.social`)
+   - Click on **Certificate Management**
+   - Select **Re-delegate Certificate**
+   - Follow the console prompts to complete delegation
+
+3. **Verify Delegation Status**
+   - Check that certificate status shows as "Active"
+   - Ensure ACM module is properly associated with the domain
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="hz-task-relaunch" summary="Relaunch HZ task before deployment">
+
+If certificate delegation fails, try relaunching the HZ (Hosted Zone) task:
+
+1. **Access Task Management**
+
+   - Go to **Infrastructure** → **Tasks**
+   - Look for HZ-related tasks
+
+2. **Relaunch HZ Task**
+
+   - Select the most recent HZ task
+   - Click **Relaunch** or **Retry**
+   - Wait for task completion
+
+3. **Proceed with Deployment**
+   - After HZ task completes successfully
+   - Attempt deployment again
+   - Certificate delegation should now work properly
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="domain-cleanup" summary="Clean up unused domain entries">
+
+To prevent conflicts with unused domains:
+
+1. **Identify Unused Domains**
+
+   - Review domain list in SleakOps console
+   - Identify domains that were never properly registered
+
+2. **Remove Unused Entries**
+
+   - Select unused domain entries (e.g., Disker domains)
+   - Click **Delete** or **Remove**
+   - Confirm removal
+
+3. **Verify Clean State**
+   - Ensure only active, properly configured domains remain
+   - Check that each domain has proper certificate delegation
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dns-verification" summary="Verify DNS configuration">
+
+Before attempting deployment, verify DNS settings:
+
+1. **Check DNS Records**
+
+   - Verify that DNS records for `supra.social` are correct
+   - Ensure no external changes were made outside SleakOps
+
+2. **Validate Subdomain Configuration**
+
+   - Check that `hub.supra.social` is properly configured
+   - Verify subdomain delegation is working
+
+3. **Test Resolution**
+
+   ```bash
+   # Test DNS resolution
+   nslookup hub.supra.social
+
+   # Check certificate status
+   openssl s_client -connect hub.supra.social:443 -servername hub.supra.social
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Additional troubleshooting steps">
+
+If the problem persists after certificate re-delegation:
+
+1. **Check Module Status**
+
+   - Verify ACMModule is enabled for your project
+   - Contact support if module appears missing
+
+2. **Review Recent Changes**
+
+   - Check if any DNS changes were made externally
+   - Verify no conflicting certificate requests exist
+
+3. **Monitor Deployment Logs**
+
+   - Check deployment logs for additional error details
+   - Look for certificate validation failures
+
+4. **Contact Support**
+   - If issue persists, provide:
+     - Domain name affected
+     - Complete error traceback
+     - Recent changes made to DNS or certificates
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

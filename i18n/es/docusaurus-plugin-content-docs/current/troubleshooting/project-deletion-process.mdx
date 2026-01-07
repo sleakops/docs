@@ -1,0 +1,195 @@
+---
+sidebar_position: 15
+title: "Cómo Eliminar un Proyecto en SleakOps"
+description: "Guía completa para eliminar proyectos de forma segura y entender qué se elimina"
+date: "2024-03-13"
+category: "proyecto"
+tags: ["proyecto", "eliminación", "gestión", "limpieza"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Cómo Eliminar un Proyecto en SleakOps
+
+**Fecha:** 13 de marzo de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Proyecto, Eliminación, Gestión, Limpieza
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios necesitan entender cómo eliminar correctamente proyectos en SleakOps y qué componentes se ven afectados cuando un proyecto es eliminado.
+
+**Síntomas Observados:**
+
+- No se encuentra la opción de eliminación de proyecto en la interfaz
+- Incertidumbre sobre qué se elimina junto con el proyecto
+- Necesidad de limpiar proyectos con problemas de nombres o deuda técnica
+- Preguntas sobre el impacto en recursos asociados
+
+**Configuración Relevante:**
+
+- El proyecto contiene: argumentos Docker, cargas de trabajo, dependencias, grupos de variables (vargroups)
+- Recursos asociados: configuraciones específicas del entorno
+- Dependencias: conexiones a bases de datos, servicios externos
+- Grupos de variables: compartidos entre proyectos o específicos de cargas de trabajo
+
+**Condiciones de Error:**
+
+- Opción de eliminación no visible en los lugares esperados
+- Incertidumbre sobre eliminaciones en cascada
+- Riesgo de perder datos importantes de configuración
+
+## Solución Detallada
+
+<TroubleshootingItem id="preparation-steps" summary="Qué documentar antes de eliminar un proyecto">
+
+Antes de eliminar un proyecto, asegúrate de documentar los siguientes componentes:
+
+**1. Argumentos Docker**
+
+- Anota todos los argumentos docker personalizados configurados para el proyecto
+- Documenta cualquier configuración especial de compilación
+
+**2. Cargas de Trabajo**
+
+- Lista todas las cargas de trabajo dentro del proyecto
+- Documenta sus configuraciones y ajustes
+
+**3. Dependencias**
+
+- Registra todas las dependencias del proyecto (bases de datos, cachés, etc.)
+- Anota las cadenas de conexión y configuraciones
+
+**4. Grupos de Variables (VarGroups)**
+
+- Documenta los vargroups asociados al proyecto
+- Anota los vargroups asociados a cargas de trabajo específicas
+- Verifica si algún vargroup está compartido con otros proyectos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deletion-location" summary="Dónde encontrar la opción para eliminar el proyecto">
+
+Para eliminar un proyecto en SleakOps:
+
+1. Navega a tu **Panel del Proyecto**
+2. Ve a **Configuración del Proyecto**
+3. Haz clic en **Configuración General**
+4. Desplázate hacia abajo hasta encontrar el botón **Eliminar Proyecto**
+
+**Nota:** El botón de eliminación generalmente se encuentra al final de la página de Configuración General y puede estar estilizado con un color rojo o de advertencia.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="what-gets-deleted" summary="Qué componentes se eliminan con el proyecto">
+
+Cuando eliminas un proyecto, los siguientes componentes son **eliminados automáticamente**:
+
+**✅ Eliminados con el Proyecto:**
+
+- El proyecto en sí
+- Todas las cargas de trabajo dentro del proyecto
+- Dependencias específicas del proyecto
+- Grupos de variables asociados exclusivamente al proyecto
+- Grupos de variables asociados a cargas de trabajo en el proyecto
+- Configuraciones docker específicas del proyecto
+- Configuraciones de entorno para este proyecto
+
+**⚠️ Potencialmente Afectados:**
+
+- Grupos de variables compartidos (si son usados por otros proyectos)
+- Dependencias externas (bases de datos, servicios) - estos pueden requerir limpieza manual
+
+**❌ No Eliminados:**
+
+- Infraestructura del clúster
+- Otros proyectos en el mismo clúster
+- Recursos compartidos usados por múltiples proyectos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deletion-process" summary="Proceso paso a paso para eliminar">
+
+**Paso 1: Respaldar Datos Importantes**
+
+```bash
+# Exportar configuración del proyecto (si está disponible vía CLI)
+sleakops project export --project-name tu-nombre-de-proyecto
+```
+
+**Paso 2: Documentar Dependencias**
+
+- Toma capturas de pantalla de las configuraciones de dependencias
+- Anota las cadenas de conexión a bases de datos
+- Documenta cualquier variable de entorno personalizada
+
+**Paso 3: Verificar Recursos Compartidos**
+
+- Verifica qué vargroups están compartidos con otros proyectos
+- Asegúrate de que ningún otro proyecto dependa de los recursos de este proyecto
+
+**Paso 4: Realizar la Eliminación**
+
+1. Ve a **Configuración del Proyecto > Configuración General**
+2. Desplázate hasta el final de la página
+3. Haz clic en **Eliminar Proyecto**
+4. Confirma la eliminación cuando se te solicite
+5. Espera a que el proceso de eliminación se complete
+
+**Paso 5: Verificar Limpieza**
+
+- Comprueba que el proyecto ya no aparece en tu lista de proyectos
+- Verifica que las cargas de trabajo asociadas hayan sido eliminadas
+- Confirma que los vargroups exclusivos han sido eliminados
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="recreation-best-practices" summary="Buenas prácticas al recrear proyectos">
+
+Si estás eliminando un proyecto para recrearlo (por ejemplo, para corregir problemas de nombres):
+
+**Convenciones de Nombres:**
+
+- Evita sufijos redundantes (por ejemplo, no uses nombre del proyecto y ambiente en el nombre)
+- Usa nombres claros y descriptivos: `admin` en lugar de `sostengo-admin-prod-prod`
+- Recuerda que los sufijos de ambiente se agregan automáticamente
+
+**Gestión de Configuración:**
+
+- Usa las configuraciones documentadas del proyecto eliminado
+- Aplica las lecciones aprendidas para evitar deuda técnica
+- Considera usar enfoques de Infraestructura como Código para futuros proyectos
+
+**Consideraciones de Tiempo:**
+
+- Planifica la eliminación y recreación durante ventanas de mantenimiento
+- Asegura que todos los miembros del equipo estén informados de los cambios
+- Ten planes de reversión en caso de problemas
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Solución de problemas en la eliminación">
+
+**Si no encuentras la opción de eliminación:**
+
+- Verifica tus permisos de usuario - puede que necesites acceso de administrador
+- Asegúrate de estar en el contexto correcto del proyecto
+- Intenta refrescar la página o limpiar la caché del navegador
+
+**Si la eliminación falla:**
+
+- Revisa si hay despliegues activos que deban detenerse primero
+- Verifica que no haya cargas de trabajo en ejecución
+- Contacta soporte si el proyecto parece estar atascado en estado de eliminación
+
+**Después de la eliminación:**
+
+- Si los recursos parecen seguir existiendo, espera unos minutos para la propagación
+- Revisa los registros de actividad para el estado de eliminación
+- Contacta soporte si la limpieza parece incompleta
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 13 de marzo de 2024 basada en una consulta real de usuario._

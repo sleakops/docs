@@ -1,0 +1,208 @@
+---
+sidebar_position: 3
+title: "CORS Configuration and Troubleshooting"
+description: "How to diagnose and fix CORS errors in applications deployed on SleakOps"
+date: "2024-12-19"
+category: "workload"
+tags: ["cors", "frontend", "backend", "api", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# CORS Configuration and Troubleshooting
+
+**Date:** December 19, 2024  
+**Category:** Workload  
+**Tags:** CORS, Frontend, Backend, API, Troubleshooting
+
+## Problem Description
+
+**Context:** Users experience CORS (Cross-Origin Resource Sharing) errors when their frontend application tries to communicate with their backend API, even though CORS appears to be properly configured.
+
+**Observed Symptoms:**
+
+- CORS error messages in browser console when making API calls
+- Frontend requests to backend API are blocked
+- Error occurs despite having CORS configuration in place
+- Application worked previously but now shows CORS errors
+
+**Relevant Configuration:**
+
+- Frontend and backend deployed on SleakOps
+- CORS configuration present in backend code
+- API endpoints accessible but blocked by browser CORS policy
+
+**Error Conditions:**
+
+- Error appears when frontend makes requests to backend
+- May occur on all requests or specific endpoints
+- Browser blocks the request before it reaches the server
+- Error persists despite apparent correct CORS setup
+
+## Detailed Solution
+
+<TroubleshootingItem id="understanding-cors" summary="Understanding CORS in SleakOps">
+
+SleakOps infrastructure does not interfere with CORS configuration. CORS is handled entirely at the application level, meaning:
+
+- **Infrastructure Level**: SleakOps load balancers and ingress controllers pass through CORS headers without modification
+- **Application Level**: Your backend application is responsible for setting proper CORS headers
+- **Browser Enforcement**: CORS is enforced by the browser, not by the server infrastructure
+
+This means CORS issues are typically related to your application configuration, not the platform.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="content-type-verification" summary="Verify Content-Type Configuration">
+
+One of the most common CORS issues is related to Content-Type headers:
+
+**Check your CORS configuration allows the Content-Type you're sending:**
+
+```javascript
+// Example: Express.js CORS configuration
+const cors = require("cors");
+
+app.use(
+  cors({
+    origin: ["http://localhost:3000", "https://your-frontend-domain.com"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "Accept",
+    ],
+    credentials: true,
+  })
+);
+```
+
+**Common Content-Type values that need explicit permission:**
+
+- `application/json`
+- `application/x-www-form-urlencoded`
+- `multipart/form-data`
+- `text/plain`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="backend-configuration-check" summary="Review Backend CORS Configuration">
+
+**Check if recent changes affected CORS settings:**
+
+1. **Verify CORS middleware is properly configured:**
+
+```python
+# Example: Flask-CORS configuration
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app, origins=[
+    "http://localhost:3000",
+    "https://your-frontend-domain.com"
+], supports_credentials=True)
+```
+
+2. **Ensure CORS headers are set for all relevant endpoints:**
+
+```javascript
+// Manual CORS headers (if not using middleware)
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "https://your-frontend-domain.com");
+  res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.header("Access-Control-Allow-Credentials", "true");
+
+  if (req.method === "OPTIONS") {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+```
+
+3. **Check for environment-specific configurations:**
+
+```yaml
+# Example: Environment variables for CORS
+CORS_ALLOWED_ORIGINS: "https://your-frontend.sleakops.app,http://localhost:3000"
+CORS_ALLOW_CREDENTIALS: "true"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="request-analysis" summary="Analyze Specific Requests">
+
+**Determine if the error affects all requests or specific ones:**
+
+1. **Test different endpoints:**
+
+```bash
+# Test with curl to see server response
+curl -H "Origin: https://your-frontend.com" \
+     -H "Access-Control-Request-Method: POST" \
+     -H "Access-Control-Request-Headers: Content-Type" \
+     -X OPTIONS \
+     https://your-api.sleakops.app/api/endpoint
+```
+
+2. **Check browser developer tools:**
+
+   - Open Network tab
+   - Look for preflight OPTIONS requests
+   - Check response headers for CORS headers
+   - Verify the actual request headers being sent
+
+3. **Common patterns:**
+   - **Simple requests** (GET, POST with simple content-types) may work
+   - **Complex requests** (custom headers, JSON content-type) may fail
+   - **Preflight requests** (OPTIONS) may be missing proper responses
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="frontend-library-check" summary="Review Frontend Request Configuration">
+
+**Check if frontend libraries are sending unexpected headers:**
+
+1. **Axios configuration:**
+
+```javascript
+// Ensure axios is not adding problematic headers
+const api = axios.create({
+  baseURL: "https://your-api.sleakops.app",
+  withCredentials: true,
+  headers: {
+    "Content-Type": "application/json",
+    // Remove any custom headers that might trigger preflight
+  },
+});
+```
+
+2. **Fetch API configuration:**
+
+```javascript
+// Proper fetch configuration
+fetch("https://your-api.sleakops.app/api/endpoint", {
+  method: "POST",
+  credentials: "include", // Only if you need cookies
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify(data),
+});
+```
+
+3. **Check for authentication headers:**
+
+```javascript
+// Ensure Authorization header is allowed in CORS
+const token = localStorage.getItem("token");
+if (token) {
+  headers["Authorization"] = `Bearer ${token}`;
+}
+```
+
+</TroubleshootingItem>
+
+_This FAQ was automatically generated on December 25, 2024 based on a real user query._

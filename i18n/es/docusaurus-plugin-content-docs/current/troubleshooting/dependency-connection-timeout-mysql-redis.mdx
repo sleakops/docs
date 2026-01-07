@@ -1,0 +1,237 @@
+---
+sidebar_position: 3
+title: "Problemas de Tiempo de Espera en la Conexión con MySQL y Redis"
+description: "Solución de problemas de tiempos de espera en conexiones a dependencias MySQL y Redis en entornos de producción"
+date: "2024-01-15"
+category: "dependency"
+tags:
+  ["mysql", "redis", "timeout", "connection", "troubleshooting", "networking"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de Tiempo de Espera en la Conexión con MySQL y Redis
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Dependencia  
+**Etiquetas:** MySQL, Redis, Tiempo de Espera, Conexión, Solución de Problemas, Redes
+
+## Descripción del Problema
+
+**Contexto:** Servicio API en producción que experimenta tiempos de espera simultáneos en la conexión tanto a la base de datos MySQL como a la caché Redis, mientras que otros servicios en el mismo entorno funcionan correctamente y las conexiones externas (VPN) tienen éxito.
+
+**Síntomas Observados:**
+
+- Tiempo de espera en conexión a MySQL: `Error: connect ETIMEDOUT`
+- Tiempo de espera en conexión a Redis: `ConnectionTimeoutError: Connection timeout`
+- Solo afecta a un servicio API específico en producción
+- Otros servicios pueden conectarse exitosamente a las mismas dependencias
+- Las conexiones externas vía VPN funcionan normalmente
+- Los servicios de base de datos y Redis están activos y accesibles
+
+**Configuración Relevante:**
+
+- Entorno: Servicio API en producción
+- Dependencias afectadas: Base de datos MySQL y caché Redis
+- Método de conexión: Red interna del clúster
+- Secretos y credenciales: Presentes y cargados correctamente
+- Acceso externo: Funciona vía VPN
+
+**Condiciones de Error:**
+
+- Los errores ocurren simultáneamente para MySQL y Redis
+- Problema aislado a un servicio/pod específico
+- Comportamiento intermitente - a veces funciona, otras falla
+- No se han realizado cambios recientes en la configuración
+
+## Solución Detallada
+
+<TroubleshootingItem id="initial-diagnosis" summary="Diagnóstico inicial del problema">
+
+Cuando un solo servicio pierde conectividad con múltiples dependencias mientras otros funcionan bien, esto típicamente indica:
+
+1. **Problemas de red en el pod**: El pod específico puede tener problemas de conectividad de red
+2. **Restricciones de recursos**: Límites de memoria/CPU causando agotamiento del pool de conexiones
+3. **Problemas de resolución DNS**: Problemas en el descubrimiento de servicios dentro del clúster
+4. **Cambios en grupos de seguridad/firewall**: Políticas de red que bloquean tráfico específico del pod
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-troubleshooting" summary="Pasos inmediatos para solución de problemas">
+
+**Paso 1: Reiniciar el servicio afectado**
+
+1. En el panel de SleakOps, vaya a su proyecto
+2. Encuentre el servicio API afectado
+3. Haga clic en **Reiniciar** para recrear los pods
+4. Monitoree los logs para verificar la recuperación de la conexión
+
+**Paso 2: Verificar uso de recursos del pod**
+
+```bash
+# Verificar consumo de recursos del pod
+kubectl top pods -n su-namespace
+
+# Revisar eventos del pod para problemas de recursos
+kubectl describe pod su-api-pod -n su-namespace
+```
+
+**Paso 3: Verificar conectividad de red desde el pod**
+
+```bash
+# Probar conectividad desde dentro del pod
+kubectl exec -it su-api-pod -n su-namespace -- sh
+
+# Probar conexión a MySQL
+telnet mysql-service 3306
+
+# Probar conexión a Redis
+telnet redis-service 6379
+
+# Verificar resolución DNS
+nslookup mysql-service
+nslookup redis-service
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="connection-pool-issues" summary="Configuración del pool de conexiones">
+
+Los tiempos de espera en conexiones a menudo ocurren debido a pools de conexiones agotados:
+
+**Configuración del Pool de Conexiones MySQL:**
+
+```javascript
+// Configuración recomendada para conexión MySQL
+const mysql = require("mysql2/promise");
+
+const pool = mysql.createPool({
+  host: process.env.MYSQL_HOST,
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DATABASE,
+  connectionLimit: 10,
+  acquireTimeout: 60000,
+  timeout: 60000,
+  reconnect: true,
+});
+```
+
+**Configuración de Conexión a Redis:**
+
+```javascript
+// Configuración recomendada para conexión Redis
+const redis = require("redis");
+
+const client = redis.createClient({
+  host: process.env.REDIS_HOST,
+  port: process.env.REDIS_PORT,
+  connectTimeout: 60000,
+  lazyConnect: true,
+  retryDelayOnFailover: 100,
+  maxRetriesPerRequest: 3,
+});
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="resource-limits" summary="Verificar y ajustar límites de recursos">
+
+Los recursos insuficientes pueden causar problemas de conexión:
+
+**En SleakOps:**
+
+1. Vaya a la **configuración del servicio API**
+2. Verifique los **Límites de Recursos**:
+   - Memoria: Aumentar si está cerca del límite
+   - CPU: Asegurar una asignación adecuada
+
+**Mínimos recomendados para servicios API:**
+
+```yaml
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "1Gi"
+    cpu: "500m"
+```
+
+**Monitorear uso de recursos:**
+
+```bash
+# Verificar uso actual de recursos
+kubectl top pod su-api-pod -n su-namespace
+
+# Revisar eventos de recursos
+kubectl get events -n su-namespace --sort-by='.lastTimestamp'
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="network-policies" summary="Verificar políticas de red y seguridad">
+
+Verifique si las políticas de red están bloqueando las conexiones:
+
+**Verificar políticas de red:**
+
+```bash
+# Listar políticas de red
+kubectl get networkpolicies -n su-namespace
+
+# Revisar detalles de una política específica
+kubectl describe networkpolicy nombre-politica -n su-namespace
+```
+
+**Probar conectividad del servicio:**
+
+```bash
+# Probar desde otro pod en el mismo namespace
+kubectl run test-pod --image=busybox --rm -it --restart=Never -- sh
+
+# Dentro del pod de prueba:
+telnet mysql-service.su-namespace.svc.cluster.local 3306
+telnet redis-service.su-namespace.svc.cluster.local 6379
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-solution" summary="Configurar monitoreo y alertas">
+
+Para prevenir problemas futuros, implemente monitoreo:
+
+**Monitoreo de conexiones:**
+
+```javascript
+// Añadir chequeos de salud de conexión
+const healthCheck = async () => {
+  try {
+    // Probar MySQL
+    await pool.execute("SELECT 1");
+
+    // Probar Redis
+    await redis.ping();
+
+    console.log("Dependencias saludables");
+  } catch (error) {
+    console.error("Fallo en chequeo de salud de dependencias:", error);
+  }
+};
+
+// Ejecutar chequeo cada 30 segundos
+setInterval(healthCheck, 30000);
+```
+
+**Agregar a su aplicación:**
+
+1. Implementar lógica de reintento de conexión
+2. Añadir patrones de circuito de corte
+3. Monitorear métricas del pool de conexiones
+4. Configurar alertas para fallos de conexión
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

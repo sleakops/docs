@@ -1,0 +1,359 @@
+---
+sidebar_position: 3
+title: "502 Error and Pod Logs Not Loading"
+description: "Troubleshooting 502 errors when pod logs cannot be accessed through the platform"
+date: "2025-01-27"
+category: "workload"
+tags: ["502-error", "pod-logs", "troubleshooting", "deployment", "networking"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# 502 Error and Pod Logs Not Loading
+
+**Date:** January 27, 2025  
+**Category:** Workload  
+**Tags:** 502 Error, Pod Logs, Troubleshooting, Deployment, Networking
+
+## Problem Description
+
+**Context:** User experiences a 502 error when accessing their application deployed on SleakOps, combined with inability to view pod logs through the platform interface.
+
+**Observed Symptoms:**
+
+- 502 Bad Gateway error when accessing the application URL
+- Pod logs button in the SleakOps interface doesn't open/load logs
+- Port forwarding through Lens results in blank screen with network errors
+- Docker container runs successfully when tested locally
+- Rollback to previous working build doesn't resolve the issue
+- Logs from other projects and deployments are accessible
+
+**Relevant Configuration:**
+
+- Environment: Development
+- Application: Monorepo-based application
+- Platform: SleakOps Kubernetes deployment
+- Local testing: Docker container works correctly
+- Previous state: Application was working with earlier builds
+
+**Error Conditions:**
+
+- Error occurs when accessing the application URL
+- Pod logs are specifically inaccessible for this deployment
+- Port forwarding fails with network errors
+- Issue persists after rollback attempts
+- Problem is isolated to specific pods/deployment
+
+## Detailed Solution
+
+<TroubleshootingItem id="initial-diagnosis" summary="Understanding 502 errors with inaccessible logs">
+
+When you encounter a 502 error combined with inaccessible pod logs, this typically indicates:
+
+1. **Pod startup issues**: The pod may be failing to start properly or crashing during initialization
+2. **Resource constraints**: Insufficient memory or CPU causing pod termination
+3. **Health check failures**: Readiness or liveness probes failing
+4. **Network connectivity issues**: Problems with service-to-pod communication
+5. **Container runtime issues**: Problems specific to the Kubernetes environment vs local Docker
+
+The fact that logs are inaccessible suggests the pods may be in a crash loop or failing state.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="kubectl-diagnosis" summary="Using kubectl for direct pod inspection">
+
+When the SleakOps interface can't show logs, use kubectl directly:
+
+```bash
+# Get pod status and events
+kubectl get pods -n <your-namespace>
+kubectl describe pod <pod-name> -n <your-namespace>
+
+# Get logs from crashed/restarting pods
+kubectl logs <pod-name> -n <your-namespace> --previous
+
+# Get real-time logs
+kubectl logs -f <pod-name> -n <your-namespace>
+
+# Check events for the namespace
+kubectl get events -n <your-namespace> --sort-by='.lastTimestamp'
+```
+
+Look for:
+
+- Pod restart counts
+- Exit codes in pod description
+- Recent events showing errors
+- Resource limit exceeded messages
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="resource-investigation" summary="Checking resource constraints">
+
+Resource issues are common when local Docker works but Kubernetes deployment fails:
+
+```bash
+# Check resource usage
+kubectl top pods -n <your-namespace>
+
+# Check resource limits in deployment
+kubectl get deployment <deployment-name> -n <your-namespace> -o yaml | grep -A 10 resources
+
+# Check node resources
+kubectl describe nodes
+```
+
+**Common solutions:**
+
+1. **Increase memory limits**:
+
+```yaml
+resources:
+  limits:
+    memory: "1Gi" # Increase from default
+    cpu: "500m"
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+```
+
+2. **Check for memory leaks** in your application
+3. **Optimize container startup** to reduce resource spikes
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="health-check-config" summary="Configuring health checks properly">
+
+Incorrect health checks can cause 502 errors:
+
+```yaml
+# Example of proper health check configuration
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8080
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+```
+
+**Key considerations:**
+
+- Ensure health check endpoints exist in your application
+- Set appropriate `initialDelaySeconds` for app startup time
+- Use different endpoints for liveness vs readiness if possible
+- Consider disabling health checks temporarily for debugging
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="environment-differences" summary="Addressing Docker vs Kubernetes environment differences">
+
+When Docker works locally but Kubernetes fails, check:
+
+**1. Environment Variables:**
+
+```bash
+# Compare environment variables
+kubectl exec <pod-name> -n <your-namespace> -- env
+```
+
+**2. File System Permissions:**
+
+- Kubernetes runs with different user contexts
+- Check if your app writes to specific directories
+- Ensure proper file permissions in Dockerfile
+
+**3. Network Configuration:**
+
+- Kubernetes networking differs from Docker
+- Check if your app binds to `0.0.0.0` not `localhost`
+- Verify port configurations match service definitions
+
+**4. Dependencies and External Services:**
+
+- Database connections may differ
+- External API endpoints might be unreachable
+- DNS resolution differences
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-specific-debugging" summary="SleakOps platform-specific debugging steps">
+
+For SleakOps-specific issues:
+
+**1. Check Build Logs:**
+
+- Review the build process in SleakOps dashboard
+- Look for any warnings or errors during image creation
+- Verify all build steps completed successfully
+
+**2. Deployment Configuration:**
+
+- Check if deployment configuration changed
+- Verify environment variables are properly set
+- Ensure secrets and configmaps are accessible
+
+**3. Service Configuration:**
+
+- Verify service is properly routing to pods
+- Check ingress configuration if applicable
+- Ensure load balancer is healthy
+
+**4. Platform Resources:**
+
+- Check if cluster has sufficient resources
+- Verify no platform-wide issues
+- Contact SleakOps support if platform interface is unresponsive
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="emergency-recovery" summary="Emergency recovery steps">
+
+If the issue is urgent and needs immediate resolution:
+
+**1. Force Pod Restart:**
+
+```bash
+kubectl delete pod <pod-name> -n <your-namespace>
+```
+
+**2. Scale Down and Up:**
+
+```bash
+kubectl scale deployment <deployment-name> --replicas=0 -n <your-namespace>
+kubectl scale deployment <deployment-name> --replicas=1 -n <your-namespace>
+```
+
+**3. Temporary Resource Increase:**
+
+- Temporarily increase resource limits in deployment
+- Scale down other non-critical services if cluster resources are limited
+
+```bash
+# Quick resource patch
+kubectl patch deployment <deployment-name> -n <your-namespace> -p '{"spec":{"template":{"spec":{"containers":[{"name":"<container-name>","resources":{"limits":{"memory":"2Gi","cpu":"1000m"}}}]}}}}'
+```
+
+**4. Emergency Rollback:**
+
+```bash
+# Check rollout history
+kubectl rollout history deployment/<deployment-name> -n <your-namespace>
+
+# Rollback to previous version
+kubectl rollout undo deployment/<deployment-name> -n <your-namespace>
+
+# Rollback to specific revision
+kubectl rollout undo deployment/<deployment-name> --to-revision=2 -n <your-namespace>
+```
+
+**5. Alternative Access Methods:**
+
+If the platform interface is unresponsive:
+
+```bash
+# Port forward to access application directly
+kubectl port-forward pod/<pod-name> 8080:8080 -n <your-namespace>
+
+# Create a temporary service for testing
+kubectl expose pod <pod-name> --port=80 --target-port=8080 --name=temp-service -n <your-namespace>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-monitoring" summary="Prevention and monitoring setup">
+
+To prevent similar issues in the future:
+
+**1. Enhanced Monitoring:**
+
+```yaml
+# Prometheus monitoring for your app
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: app-monitor
+spec:
+  selector:
+    matchLabels:
+      app: your-app
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+```
+
+**2. Alerting Configuration:**
+
+```yaml
+# AlertManager rules
+groups:
+  - name: application-alerts
+    rules:
+      - alert: PodCrashLooping
+        expr: rate(kube_pod_container_status_restarts_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Pod {{ $labels.pod }} is crash looping"
+
+      - alert: HighPod502Errors
+        expr: rate(nginx_ingress_controller_requests{status="502"}[5m]) > 0.1
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High 502 error rate detected"
+```
+
+**3. Health Check Best Practices:**
+
+- Implement comprehensive health endpoints
+- Test health checks during development
+- Monitor health check response times
+- Use gradual rollout strategies
+
+**4. Resource Planning:**
+
+- Set appropriate resource requests and limits
+- Monitor resource usage patterns
+- Plan for traffic spikes
+- Implement horizontal pod autoscaling
+
+**5. Testing Strategy:**
+
+```bash
+# Create a testing checklist
+echo "Deployment Testing Checklist:
+1. Local Docker container test
+2. Resource limit verification
+3. Health check endpoint test
+4. Environment variable validation
+5. Network connectivity test
+6. Load testing with expected traffic
+7. Rollback procedure verification" > deployment-checklist.txt
+```
+
+**6. Documentation:**
+
+- Document all environment-specific configurations
+- Maintain troubleshooting runbooks
+- Keep emergency contact information updated
+- Document rollback procedures
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 27, 2025 based on a real user query._

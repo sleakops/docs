@@ -1,0 +1,178 @@
+---
+sidebar_position: 3
+title: "Cluster Addons Missing After Migration"
+description: "How to locate and restore cluster addons after platform migration"
+date: "2024-10-15"
+category: "cluster"
+tags: ["migration", "addons", "loki", "grafana", "monitoring"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Cluster Addons Missing After Migration
+
+**Date:** October 15, 2024  
+**Category:** Cluster  
+**Tags:** Migration, Addons, Loki, Grafana, Monitoring
+
+## Problem Description
+
+**Context:** After a cluster migration in SleakOps, users cannot locate previously installed addons such as Loki, Grafana, and other monitoring tools in the new interface.
+
+**Observed Symptoms:**
+
+- Cluster addons (Loki, Grafana, etc.) are not visible in the new interface
+- Previously configured monitoring tools appear to be missing
+- Users cannot access monitoring dashboards that were available before migration
+- Uncertainty about addon status after platform migration
+
+**Relevant Configuration:**
+
+- Platform: SleakOps with new interface
+- Affected addons: Loki, Grafana, and other monitoring tools
+- Migration context: Recent cluster migration performed
+- Interface: Updated/new SleakOps interface
+
+**Error Conditions:**
+
+- Addons not visible immediately after migration
+- Occurs when accessing the new interface post-migration
+- Affects monitoring and logging capabilities
+- May impact operational visibility
+
+## Detailed Solution
+
+<TroubleshootingItem id="addon-deactivation-explanation" summary="Why addons are temporarily unavailable">
+
+During cluster migrations, SleakOps temporarily deactivates addons to ensure:
+
+1. **Data integrity**: Prevents data corruption during the migration process
+2. **Resource management**: Avoids conflicts between old and new cluster configurations
+3. **Clean migration**: Ensures addons are properly reconfigured for the new environment
+4. **State consistency**: Maintains consistent addon states across the migration
+
+This is a standard procedure and addons are reactivated once the migration is complete.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="locating-addons-new-interface" summary="How to locate addons in the new interface">
+
+To find your addons in the updated SleakOps interface:
+
+1. **Navigate to Cluster Management**:
+
+   - Go to your cluster dashboard
+   - Look for the "Addons" or "Extensions" section
+
+2. **Check the Monitoring Section**:
+
+   - Access the "Monitoring" tab
+   - Look for Grafana, Loki, and other monitoring tools
+
+3. **Verify Addon Status**:
+
+   - Check if addons show as "Active" or "Pending"
+   - Some addons may need a few minutes to fully initialize
+
+4. **Access Grafana Dashboard**:
+   ```
+   # Typical Grafana access pattern
+   https://grafana.[your-cluster-domain]
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="addon-reactivation-process" summary="Reactivating addons after migration">
+
+If addons are still not visible:
+
+1. **Wait for automatic reactivation**:
+
+   - Most addons reactivate automatically within 10-15 minutes
+   - Check the cluster status for any pending operations
+
+2. **Manual reactivation if needed**:
+
+   - Go to Cluster Settings → Addons
+   - Toggle off and on any addons that appear inactive
+   - Save the configuration
+
+3. **Verify addon health**:
+
+   ```bash
+   # Check addon pods status
+   kubectl get pods -n monitoring
+   kubectl get pods -n logging
+   ```
+
+4. **Contact support if issues persist**:
+   - If addons don't appear after 30 minutes
+   - If you encounter errors during reactivation
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="post-migration-verification" summary="Verifying addon functionality">
+
+After addons are visible, verify they're working correctly:
+
+1. **Grafana Dashboard Access**:
+
+   - Log into Grafana using your SleakOps credentials
+   - Verify dashboards are displaying data
+   - Check that data sources are connected
+
+2. **Loki Log Aggregation**:
+
+   - Verify logs are being collected
+   - Check log retention policies
+   - Test log queries in Grafana
+
+3. **Monitoring Alerts**:
+
+   - Verify alert rules are active
+   - Test notification channels
+   - Check alert history
+
+4. **Performance Metrics**:
+   - Confirm metrics collection is working
+   - Verify historical data availability
+   - Check metric retention settings
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-missing-addons" summary="Troubleshooting persistent addon issues">
+
+If addons remain unavailable:
+
+1. **Check cluster resources**:
+
+   ```bash
+   kubectl get nodes
+   kubectl top nodes
+   ```
+
+2. **Verify namespace status**:
+
+   ```bash
+   kubectl get namespaces
+   kubectl get pods --all-namespaces
+   ```
+
+3. **Review addon logs**:
+
+   ```bash
+   kubectl logs -n monitoring deployment/grafana
+   kubectl logs -n logging deployment/loki
+   ```
+
+4. **Common solutions**:
+   - Restart addon deployments
+   - Check for resource constraints
+   - Verify network policies
+   - Review storage class availability
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on October 15, 2024 based on a real user query._

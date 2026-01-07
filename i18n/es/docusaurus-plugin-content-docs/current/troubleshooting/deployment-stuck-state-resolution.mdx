@@ -1,0 +1,181 @@
+---
+sidebar_position: 3
+title: "Despliegue Atascado en Estado Pendiente"
+description: "Solución para despliegues que se quedan atascados y bloquean despliegues posteriores"
+date: "2024-12-28"
+category: "proyecto"
+tags: ["despliegue", "atascado", "solución de problemas", "compilación"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Despliegue Atascado en Estado Pendiente
+
+**Fecha:** 28 de diciembre de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Despliegue, Atascado, Solución de Problemas, Compilación
+
+## Descripción del Problema
+
+**Contexto:** El usuario experimenta un despliegue que queda atascado en estado pendiente, impidiendo que se creen nuevos despliegues. El pod de despliegue no se crea y las compilaciones permanecen en estado "iniciando" indefinidamente.
+
+**Síntomas Observados:**
+
+- Despliegue atascado en estado pendiente sin crear pods
+- No se pueden crear nuevos despliegues para el mismo proyecto
+- Múltiples compilaciones atascadas en estado "iniciando"
+- No se muestran mensajes de error en la interfaz
+- El despliegue parece estar bloqueando toda la canalización de despliegue
+
+**Configuración Relevante:**
+
+- Entorno: Producción
+- Proyecto: Cualquier proyecto que experimente despliegues atascados
+- Estado de compilación: "Iniciando" (indefinidamente)
+- Estado de despliegue: Pendiente/Atascado
+
+**Condiciones de Error:**
+
+- Ocurre durante el proceso de creación del despliegue
+- Bloquea intentos de despliegue posteriores
+- Las compilaciones no avanzan más allá del estado "iniciando"
+- No se activa ningún mecanismo automático de recuperación
+
+## Solución Detallada
+
+<TroubleshootingItem id="immediate-resolution" summary="Pasos para resolución inmediata">
+
+Si encuentras un despliegue atascado, contacta inmediatamente al equipo de soporte de SleakOps. La resolución normalmente implica:
+
+1. **Actualización del Estado de la Tarea:** El equipo de soporte identificará tareas con estados desactualizados
+2. **Corrección Manual del Estado:** Actualizar los estados de las tareas para reflejar la realidad actual
+3. **Desbloqueo de la Canalización:** Limpiar la cola de despliegue para permitir nuevos despliegues
+
+**Información de Contacto:**
+
+- Correo electrónico: support@sleakops.com
+- Incluye el nombre de tu proyecto y detalles del despliegue
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-measures" summary="Prevención y monitoreo">
+
+Para minimizar la ocurrencia de despliegues atascados:
+
+**Monitorea tus Despliegues:**
+
+```bash
+# Revisa el estado de despliegue regularmente
+sleakops deployment list --project tu-proyecto
+
+# Monitorea el progreso de compilaciones
+sleakops build list --status starting
+```
+
+**Establece Tiempos de Espera Razonables:**
+
+- Configura tiempos de espera adecuados para compilaciones en la configuración de tu proyecto
+- Monitorea compilaciones de larga duración que puedan indicar problemas
+
+**Chequeos de Salud Regulares:**
+
+- Verifica la salud de la canalización de despliegue antes de lanzamientos críticos
+- Prueba despliegues primero en entorno de staging
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Pasos de autodiagnóstico">
+
+Antes de contactar soporte, prueba estos pasos de diagnóstico:
+
+**1. Revisa los Logs del Despliegue:**
+
+```bash
+sleakops deployment logs --deployment-id <deployment-id>
+```
+
+**2. Verifica Disponibilidad de Recursos:**
+
+- Comprueba si tu clúster tiene recursos suficientes
+- Verifica la capacidad de nodos y límites de pods
+
+**3. Revisa los Logs de Compilación:**
+
+```bash
+sleakops build logs --build-id <build-id>
+```
+
+**4. Verifica el Estado del Proyecto:**
+
+```bash
+sleakops project status --project <nombre-proyecto>
+```
+
+**5. Verifica Dependencias:**
+
+- Asegúrate de que todos los servicios requeridos estén en ejecución
+- Revisa la conectividad con la base de datos
+- Verifica la disponibilidad de servicios externos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="escalation-process" summary="Cuándo escalar a soporte">
+
+Escala al soporte de SleakOps cuando:
+
+**Escalación Inmediata Requerida:**
+
+- Despliegues en producción están bloqueados
+- Múltiples compilaciones atascadas por más de 30 minutos
+- Operaciones críticas del negocio están afectadas
+
+**Información a Incluir:**
+
+- Nombre del proyecto y entorno
+- ID y marca temporal del despliegue
+- IDs de compilaciones que están atascadas
+- Cualquier mensaje de error o logs
+- Descripción del impacto en el negocio
+
+**Respuesta de Soporte:**
+
+- Problemas en producción: Dentro de 2 horas
+- Problemas no producción: Dentro de 24 horas
+- Fallas críticas: Respuesta inmediata
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="post-resolution" summary="Verificación post-resolución">
+
+Después de que soporte resuelva el problema:
+
+**1. Verifica la Canalización de Despliegue:**
+
+```bash
+# Prueba un despliegue simple
+sleakops deploy --project <nombre-proyecto> --environment staging
+```
+
+**2. Revisa el Sistema de Compilación:**
+
+```bash
+# Dispara una nueva compilación
+sleakops build create --project <nombre-proyecto>
+```
+
+**3. Monitorea para Reincidencias:**
+
+- Observa de cerca los despliegues posteriores
+- Reporta cualquier problema similar inmediatamente
+- Documenta cualquier patrón observado
+
+**4. Actualiza el Monitoreo:**
+
+- Configura alertas para despliegues atascados
+- Configura notificaciones para compilaciones de larga duración
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 28 de diciembre de 2024 basada en una consulta real de usuario._

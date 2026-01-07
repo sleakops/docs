@@ -1,0 +1,169 @@
+---
+sidebar_position: 3
+title: "Build Status Discrepancy Between Platform and Lens"
+description: "Solution for build status showing as 'creating' in platform while Lens shows successful completion"
+date: "2024-01-15"
+category: "project"
+tags: ["build", "deployment", "lens", "status", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Build Status Discrepancy Between Platform and Lens
+
+**Date:** January 15, 2024  
+**Category:** Project  
+**Tags:** Build, Deployment, Lens, Status, Troubleshooting
+
+## Problem Description
+
+**Context:** User experiences a discrepancy between the build status shown in the SleakOps platform and what is observed in Lens (Kubernetes IDE). The platform shows the build as stuck in "creating" status while Lens indicates the build completed successfully.
+
+**Observed Symptoms:**
+
+- Build status stuck at "creating" in SleakOps platform
+- Lens shows the build completed successfully
+- Status synchronization issue between platform UI and actual Kubernetes state
+- Build appears to be functioning despite platform status
+
+**Relevant Configuration:**
+
+- Environment: Production
+- Platform: SleakOps
+- Monitoring tool: Lens
+- Build process: Appears to complete successfully in cluster
+
+**Error Conditions:**
+
+- Status discrepancy occurs during build process
+- Platform UI does not reflect actual Kubernetes state
+- Issue persists even after successful build completion
+- May affect deployment workflow visibility
+
+## Detailed Solution
+
+<TroubleshootingItem id="status-verification" summary="Verify actual build status">
+
+To confirm the real status of your build:
+
+1. **Check Kubernetes resources directly:**
+
+   ```bash
+   kubectl get pods -n <your-namespace>
+   kubectl get deployments -n <your-namespace>
+   kubectl describe deployment <your-deployment>
+   ```
+
+2. **In Lens:**
+
+   - Navigate to Workloads → Deployments
+   - Check the status of your application
+   - Verify pod readiness and running state
+
+3. **Check build logs:**
+   ```bash
+   kubectl logs -f deployment/<your-deployment>
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="platform-refresh" summary="Force platform status refresh">
+
+To resolve the status synchronization issue:
+
+1. **Refresh the SleakOps dashboard:**
+
+   - Hard refresh the browser (Ctrl+F5 or Cmd+Shift+R)
+   - Clear browser cache if necessary
+
+2. **Trigger a status sync:**
+
+   - Navigate to your project in SleakOps
+   - Click on "Refresh Status" if available
+   - Or trigger a minor configuration update to force sync
+
+3. **Check platform logs:**
+   - Contact support to verify if there are any controller sync issues
+   - Platform may need to reconcile the actual cluster state
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-causes" summary="Common causes of status discrepancy">
+
+This issue typically occurs due to:
+
+1. **Controller synchronization delays:**
+
+   - Platform controller may be experiencing delays
+   - Network connectivity issues between platform and cluster
+
+2. **Webhook or event processing issues:**
+
+   - Kubernetes events not properly reaching the platform
+   - Event processing queue backlog
+
+3. **Resource state caching:**
+
+   - Platform may be showing cached state
+   - Actual cluster state has progressed beyond cached version
+
+4. **API rate limiting:**
+   - Platform may be rate-limited when querying cluster status
+   - Causes delayed status updates
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-actions" summary="Immediate actions to take">
+
+If your build is actually working (confirmed via Lens):
+
+1. **Continue with your workflow:**
+
+   - The application is likely functioning correctly
+   - Platform status will eventually sync
+
+2. **Monitor application health:**
+
+   ```bash
+   # Check application endpoints
+   kubectl get svc -n <your-namespace>
+
+   # Test application connectivity
+   kubectl port-forward svc/<your-service> 8080:80
+   ```
+
+3. **Document the issue:**
+   - Take screenshots of both platform and Lens status
+   - Note the timestamp when discrepancy was observed
+   - This helps support team investigate the root cause
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention" summary="Preventing future occurrences">
+
+To minimize status discrepancy issues:
+
+1. **Use multiple monitoring tools:**
+
+   - Don't rely solely on platform UI
+   - Keep Lens or kubectl handy for verification
+
+2. **Set up monitoring alerts:**
+
+   - Configure alerts based on actual pod/deployment status
+   - Use Prometheus/Grafana for independent monitoring
+
+3. **Regular platform updates:**
+
+   - Ensure SleakOps platform is updated to latest version
+   - Updates often include sync improvements
+
+4. **Report status issues promptly:**
+   - Early reporting helps identify patterns
+   - Assists platform team in improving synchronization
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

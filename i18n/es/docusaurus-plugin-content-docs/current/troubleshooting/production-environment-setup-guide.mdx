@@ -1,0 +1,687 @@
+---
+sidebar_position: 3
+title: "Guía de Configuración del Entorno de Producción"
+description: "Guía paso a paso para crear y configurar entornos de producción en SleakOps"
+date: "2024-12-19"
+category: "proyecto"
+tags: ["producción", "entorno", "despliegue", "configuración", "ajustes"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Guía de Configuración del Entorno de Producción
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Producción, Entorno, Despliegue, Configuración, Ajustes
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios necesitan crear un entorno de producción en SleakOps para desplegar aplicaciones desde la rama principal, separado de los entornos de desarrollo que típicamente usan ramas develop.
+
+**Síntomas Observados:**
+
+- Necesidad de crear un nuevo entorno de producción desde cero
+- Requisito de separar los despliegues de producción de los de desarrollo
+- Necesidad de migrar o replicar configuraciones existentes de desarrollo
+- Requisitos de migración de base de datos para datos de producción
+
+**Configuración Relevante:**
+
+- Tipo de entorno: Producción (entorno raíz)
+- Estrategia de ramas: rama main para producción vs develop para staging
+- Base de datos: PostgreSQL con posibles necesidades de migración de datos
+- Configuración de dominio: dominios específicos para producción
+
+**Condiciones de Error:**
+
+- Falta de un proceso claro paso a paso para la configuración de producción
+- Incertidumbre sobre la replicación de recursos desde desarrollo
+- Complejidad en la migración de base de datos
+
+## Solución Detallada
+
+<TroubleshootingItem id="create-production-environment" summary="Paso 1: Crear Entorno de Producción">
+
+### Creando el Entorno de Producción
+
+1. **Navegar a Entornos**
+
+   - Ve a tu panel de control de SleakOps
+   - Haz clic en **Entornos** en la barra lateral
+
+2. **Crear Nuevo Entorno**
+
+   - Haz clic en **"Crear Entorno"**
+   - Pon el nombre como `prod` o `producción`
+   - **Importante**: Marca este entorno como **"Entorno Raíz"**
+
+3. **Configurar Ajustes de Dominio**
+   - Configura tus dominios de producción
+   - Configura certificados SSL si es necesario
+   - Asegúrate de que las configuraciones DNS apunten a tu infraestructura de producción
+
+### Ejemplo de Configuración del Entorno
+
+```yaml
+name: prod
+type: root
+domain_config:
+  primary_domain: "myapp.com"
+  ssl_enabled: true
+  certificate_type: "letsencrypt"
+branch_strategy:
+  default_branch: "main"
+  auto_deploy: true
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="replicate-resources" summary="Paso 2: Replicar Recursos de Desarrollo">
+
+### Proceso de Replicación de Recursos
+
+Necesitas recrear todos los recursos de tu entorno de desarrollo:
+
+#### Proyectos
+
+1. **Crear Nuevo Proyecto**
+   - Usa la misma configuración que en desarrollo
+   - Cambia la rama de `develop` a `main`
+   - Actualiza las variables de entorno para producción
+
+#### Dependencias
+
+1. **Dependencias de Base de Datos**
+
+   - Crea instancias de PostgreSQL para producción
+   - Configura con un tamaño apropiado para producción
+   - Configura respaldo y monitoreo
+
+2. **Dependencias de Caché**
+   - Redis u otras soluciones de caché
+   - Configura con especificaciones para producción
+
+#### Ejecuciones (Workloads)
+
+1. **Servicios Web**
+
+   - Replica las configuraciones de servicios web
+   - Ajusta los límites de recursos para la carga de producción
+   - Configura chequeos de salud y monitoreo
+
+2. **Servicios Worker**
+   - Procesadores de trabajos en segundo plano
+   - Tareas programadas y cron jobs
+
+#### Grupos de Variables
+
+1. **Variables de Entorno**
+   - Crea grupos de variables específicos para producción
+   - Actualiza claves API, conexiones de base de datos
+   - Establece flags de características para producción
+
+### Lista de Verificación para Configuración de Producción
+
+- [ ] Entorno creado y marcado como raíz
+- [ ] Proyectos configurados con rama main
+- [ ] Dependencias de base de datos creadas
+- [ ] Dependencias de caché configuradas
+- [ ] Servicios web replicados
+- [ ] Servicios worker configurados
+- [ ] Grupos de variables para producción creados
+- [ ] Dominio y SSL configurados
+- [ ] Monitoreo y alertas habilitados
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="database-migration" summary="Paso 3: Migración de Base de Datos (Si es Necesario)">
+
+### Proceso de Importación de Volcado de Base de Datos
+
+Si necesitas migrar datos desde desarrollo a producción:
+
+#### Requisitos Previos
+
+1. **Crear Volcado de Base de Datos**
+
+   ```bash
+   pg_dump -h dev-db-host -U username -d database_name > production_dump.sql
+   ```
+
+2. **Preparar Base de Datos de Producción**
+   - Asegúrate de que la instancia PostgreSQL de producción esté en ejecución
+   - Verifica las credenciales de conexión
+   - Asegura espacio de almacenamiento suficiente
+
+#### Proceso de Importación
+
+1. **Acceder a la Función de Importación de Base de Datos**
+
+   - Ve a tu dependencia PostgreSQL en el entorno de producción
+   - Busca la opción "Importar Base de Datos" o "Restaurar"
+
+2. **Subir e Importar**
+   - Sube tu archivo de volcado
+   - Ejecuta el proceso de importación
+   - Monitorea el progreso de la importación
+
+#### Verificación Post-Importación
+
+```sql
+-- Verificar integridad de datos
+SELECT COUNT(*) FROM your_main_table;
+
+-- Revisar cuentas de usuario
+SELECT COUNT(*) FROM users;
+
+-- Verificar datos específicos de la aplicación
+SELECT * FROM configuration_table LIMIT 5;
+```
+
+### Consideraciones Importantes
+
+- **Saneamiento de Datos**: Elimina o anonimiza datos sensibles de desarrollo
+- **Secretos de Producción**: Actualiza todas las claves API y contraseñas
+- **Flags de Características**: Desactiva características solo para desarrollo
+- **Configuración de Email**: Asegura la configuración de correo para producción
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deployment-strategy" summary="Paso 4: Estrategia de Despliegue y Puesta en Producción">
+
+### Lista de Verificación Pre-Producción
+
+#### Verificación Técnica
+
+- [ ] Todos los servicios están saludables y en ejecución
+- [ ] Las conexiones a base de datos funcionan
+- [ ] Integraciones con APIs externas configuradas
+- [ ] Certificados SSL válidos
+- [ ] Enrutamiento de dominio correcto
+- [ ] Monitoreo y registro activos
+
+#### Lista de Seguridad
+
+- [ ] Secretos de producción actualizados
+- [ ] Modos debug de desarrollo desactivados
+- [ ] Controles de acceso configurados correctamente
+- [ ] Procedimientos de respaldo establecidos
+- [ ] Escaneo de seguridad completado
+
+### Proceso de Despliegue
+
+1. **Despliegue Inicial**
+
+   ```bash
+   # Asegúrate que la rama main está lista
+   git checkout main
+   git pull origin main
+
+   # Despliega a través de SleakOps
+   # Esto se activará automáticamente según tu configuración
+   ```
+
+2. **Pruebas Iniciales (Smoke Testing)**
+
+   - Prueba los flujos críticos de usuario
+   - Verifica la conectividad con la base de datos
+   - Revisa integraciones con servicios externos
+   - Valida monitoreo y alertas
+
+3. **Preparación para Puesta en Producción**
+   - Programa ventana de mantenimiento si es necesario
+   - Prepara procedimientos de reversión
+   - Configura monitoreo en tiempo real
+   - Notifica a los interesados sobre el cronograma de puesta en producción
+
+### Monitoreo en Producción
+
+```yaml
+# Ejemplo de configuración de monitoreo
+monitoring:
+  health_checks:
+    - endpoint: "/health"
+      interval: "30s"
+      timeout: "5s"
+  alerts:
+    - type: "response_time"
+      threshold: "2s"
+    - type: "error_rate"
+      threshold: "5%"
+  logging:
+    level: "info"
+    retention: "30d"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Mejores Prácticas para Entornos de Producción">
+
+### Guías para Dimensionamiento de Recursos
+
+#### Base de Datos
+
+- **Desarrollo**: t3.micro o t3.small
+- **Producción**: t3.medium o mayor según la carga
+- Habilitar respaldos automáticos
+- Configurar réplicas de lectura si es necesario
+
+#### Servicios de Aplicación
+
+- **CPU**: Comenzar con 2x los recursos de desarrollo
+- **Memoria**: Mínimo 2GB para aplicaciones web
+- **Réplicas**: Mínimo 2 para alta disponibilidad
+- **Autoescalado**: Configurar HPA para manejo de carga
+
+#### Configuración de Ejemplo
+
+```yaml
+resources:
+  requests:
+    memory: "1Gi"
+    cpu: "500m"
+  limits:
+    memory: "2Gi"
+    cpu: "1000m"
+replicas:
+  min: 2
+  max: 10
+autoscaling:
+  enabled: true
+  targetCPU: 70
+  targetMemory: 80
+```
+
+### Configuración de Seguridad
+
+#### Variables de Entorno Seguras
+
+```bash
+# Usar secretos seguros para producción
+DATABASE_URL=postgresql://prod_user:secure_password@prod-db:5432/prod_db
+API_SECRET_KEY=production_secret_key_here
+JWT_SECRET=production_jwt_secret
+ENCRYPTION_KEY=production_encryption_key
+
+# Configuraciones específicas de producción
+NODE_ENV=production
+DEBUG=false
+LOG_LEVEL=info
+```
+
+#### Configuración de Red
+
+- Usar HTTPS únicamente
+- Configurar CORS apropiadamente
+- Implementar rate limiting
+- Configurar firewall y políticas de red
+
+### Procedimientos de Respaldo
+
+#### Respaldo de Base de Datos
+
+```bash
+# Configurar respaldos automáticos diarios
+pg_dump -h prod-db-host -U username -d database_name | gzip > backup_$(date +%Y%m%d).sql.gz
+
+# Configurar retención de respaldos
+find /backups -name "backup_*.sql.gz" -mtime +30 -delete
+```
+
+#### Respaldo de Configuración
+
+- Versionar todas las configuraciones en Git
+- Documentar cambios de configuración
+- Mantener inventario de recursos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-alerting" summary="Configuración de Monitoreo y Alertas">
+
+### Métricas Clave a Monitorear
+
+#### Métricas de Aplicación
+
+```yaml
+# Configuración de métricas en Grafana
+metrics:
+  - name: "response_time"
+    query: "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))"
+    threshold: 2.0
+  - name: "error_rate"
+    query: "rate(http_requests_total{status=~'5..'}[5m]) / rate(http_requests_total[5m])"
+    threshold: 0.05
+  - name: "throughput"
+    query: "rate(http_requests_total[5m])"
+    threshold: 100
+```
+
+#### Métricas de Infraestructura
+
+```yaml
+infrastructure_alerts:
+  - name: "high_cpu_usage"
+    query: "cpu_usage_percent > 80"
+    duration: "5m"
+  - name: "high_memory_usage"
+    query: "memory_usage_percent > 85"
+    duration: "5m"
+  - name: "disk_space_low"
+    query: "disk_usage_percent > 90"
+    duration: "2m"
+```
+
+### Configuración de Alertas
+
+#### Alertas Críticas
+
+```yaml
+critical_alerts:
+  - name: "service_down"
+    condition: "up == 0"
+    notification: "immediate"
+    channels: ["slack", "email", "sms"]
+  - name: "database_connection_failed"
+    condition: "db_connections_failed > 0"
+    notification: "immediate"
+    channels: ["slack", "email"]
+```
+
+#### Alertas de Advertencia
+
+```yaml
+warning_alerts:
+  - name: "high_response_time"
+    condition: "response_time > 1.5"
+    duration: "10m"
+    channels: ["slack"]
+  - name: "increased_error_rate"
+    condition: "error_rate > 0.02"
+    duration: "5m"
+    channels: ["slack"]
+```
+
+### Dashboard de Producción
+
+```json
+{
+  "dashboard": {
+    "title": "Production Environment Overview",
+    "panels": [
+      {
+        "title": "Service Health",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job='production-app'}",
+            "legendFormat": "{{instance}}"
+          }
+        ]
+      },
+      {
+        "title": "Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "Requests/sec"
+          }
+        ]
+      },
+      {
+        "title": "Error Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{status=~'5..'}[5m]) / rate(http_requests_total[5m]) * 100",
+            "legendFormat": "Error %"
+          }
+        ]
+      },
+      {
+        "title": "Database Connections",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "pg_stat_database_numbackends",
+            "legendFormat": "Active Connections"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deployment-automation" summary="Automatización de Despliegues">
+
+### Pipeline de CI/CD para Producción
+
+#### Configuración de GitHub Actions
+
+```yaml
+name: Production Deployment
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy-production:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Run Tests
+        run: |
+          npm test
+          npm run test:integration
+          
+      - name: Security Scan
+        run: |
+          npm audit
+          npm run security:scan
+          
+      - name: Build Application
+        run: |
+          npm run build:production
+          
+      - name: Deploy to SleakOps
+        env:
+          SLEAKOPS_API_KEY: ${{ secrets.SLEAKOPS_API_KEY }}
+        run: |
+          # Trigger deployment via SleakOps API
+          curl -X POST "https://api.sleakops.com/deploy" \
+            -H "Authorization: Bearer $SLEAKOPS_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"environment": "production", "branch": "main"}'
+```
+
+#### Estrategia de Despliegue Blue-Green
+
+```yaml
+deployment_strategy:
+  type: "blue-green"
+  health_check:
+    endpoint: "/health"
+    timeout: "30s"
+    retries: 3
+  rollback:
+    automatic: true
+    threshold: "error_rate > 5%"
+  traffic_shifting:
+    initial: 10
+    increment: 25
+    interval: "5m"
+```
+
+### Procedimientos de Rollback
+
+#### Rollback Automático
+
+```bash
+#!/bin/bash
+# Script de rollback automático
+
+CURRENT_VERSION=$(kubectl get deployment production-app -o jsonpath='{.metadata.labels.version}')
+PREVIOUS_VERSION=$(kubectl rollout history deployment/production-app | tail -2 | head -1 | awk '{print $1}')
+
+echo "Rolling back from version $CURRENT_VERSION to $PREVIOUS_VERSION"
+
+kubectl rollout undo deployment/production-app
+kubectl rollout status deployment/production-app --timeout=300s
+
+if [ $? -eq 0 ]; then
+    echo "Rollback successful"
+    # Notificar al equipo
+    curl -X POST $SLACK_WEBHOOK -d '{"text":"Production rollback completed successfully"}'
+else
+    echo "Rollback failed"
+    exit 1
+fi
+```
+
+#### Rollback Manual
+
+```bash
+# Listar versiones disponibles
+kubectl rollout history deployment/production-app
+
+# Rollback a versión específica
+kubectl rollout undo deployment/production-app --to-revision=2
+
+# Verificar estado
+kubectl rollout status deployment/production-app
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="performance-optimization" summary="Optimización de Rendimiento">
+
+### Configuración de Cache
+
+#### Redis para Cache de Aplicación
+
+```yaml
+redis_config:
+  host: "production-redis"
+  port: 6379
+  password: "${REDIS_PASSWORD}"
+  db: 0
+  max_connections: 100
+  timeout: 5000
+  retry_attempts: 3
+```
+
+#### Cache de Base de Datos
+
+```sql
+-- Configurar parámetros de PostgreSQL para producción
+ALTER SYSTEM SET shared_buffers = '256MB';
+ALTER SYSTEM SET effective_cache_size = '1GB';
+ALTER SYSTEM SET maintenance_work_mem = '64MB';
+ALTER SYSTEM SET checkpoint_completion_target = 0.9;
+ALTER SYSTEM SET wal_buffers = '16MB';
+ALTER SYSTEM SET default_statistics_target = 100;
+SELECT pg_reload_conf();
+```
+
+### Optimización de Consultas
+
+#### Índices de Base de Datos
+
+```sql
+-- Crear índices para consultas frecuentes
+CREATE INDEX CONCURRENTLY idx_users_email ON users(email);
+CREATE INDEX CONCURRENTLY idx_orders_created_at ON orders(created_at);
+CREATE INDEX CONCURRENTLY idx_products_category_id ON products(category_id);
+
+-- Índices compuestos para consultas complejas
+CREATE INDEX CONCURRENTLY idx_orders_user_status ON orders(user_id, status);
+```
+
+#### Configuración de Connection Pool
+
+```javascript
+// Configuración de pool de conexiones para producción
+const pool = new Pool({
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  database: process.env.DB_NAME,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  max: 20, // máximo número de conexiones
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+});
+```
+
+### CDN y Optimización de Assets
+
+```yaml
+# Configuración de CDN
+cdn_config:
+  provider: "cloudflare"
+  cache_ttl: "1h"
+  compression: true
+  minification: true
+  image_optimization: true
+```
+
+</TroubleshootingItem>
+
+## Lista de Verificación Final
+
+### Pre-Lanzamiento
+
+- [ ] Entorno de producción creado y configurado
+- [ ] Todos los recursos replicados desde desarrollo
+- [ ] Base de datos migrada y verificada
+- [ ] Variables de entorno de producción configuradas
+- [ ] Certificados SSL instalados y verificados
+- [ ] Monitoreo y alertas configurados
+- [ ] Respaldos automáticos configurados
+- [ ] Pruebas de carga realizadas
+- [ ] Procedimientos de rollback probados
+- [ ] Documentación actualizada
+
+### Post-Lanzamiento
+
+- [ ] Monitoreo activo durante las primeras 24 horas
+- [ ] Verificación de métricas de rendimiento
+- [ ] Confirmación de funcionamiento de alertas
+- [ ] Revisión de logs para errores
+- [ ] Validación de respaldos
+- [ ] Comunicación con stakeholders
+- [ ] Documentación de lecciones aprendidas
+
+## Mejores Prácticas
+
+### Seguridad
+
+1. **Principio de menor privilegio** para accesos
+2. **Rotación regular** de secretos y contraseñas
+3. **Auditoría** de accesos y cambios
+4. **Encriptación** de datos en tránsito y reposo
+
+### Operaciones
+
+1. **Monitoreo proactivo** con alertas configuradas
+2. **Respaldos regulares** y pruebas de restauración
+3. **Documentación actualizada** de procedimientos
+4. **Revisiones regulares** de rendimiento y costos
+
+### Desarrollo
+
+1. **Feature flags** para control de funcionalidades
+2. **Despliegues graduales** con validación
+3. **Pruebas automatizadas** en pipeline CI/CD
+4. **Revisión de código** obligatoria para cambios
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de usuario._

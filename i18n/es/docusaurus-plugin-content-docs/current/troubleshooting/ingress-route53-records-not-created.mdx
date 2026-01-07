@@ -1,0 +1,192 @@
+---
+sidebar_position: 3
+title: "Registros de Ingress Route53 No Se Están Creando"
+description: "Solución para registros DNS faltantes en Route53 para servicios web públicos con configuración de ingress"
+date: "2024-05-23"
+category: "workload"
+tags: ["ingress", "route53", "dns", "webservice", "networking"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Registros de Ingress Route53 No Se Están Creando
+
+**Fecha:** 23 de mayo de 2024  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** Ingress, Route53, DNS, Servicio web, Redes
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios han configurado servicios web con ingress público en el entorno de producción de SleakOps, pero los registros DNS correspondientes no se están creando automáticamente en Route53.
+
+**Síntomas Observados:**
+
+- Servicio web configurado con ingress público (por ejemplo, organizations-api)
+- No se crea el registro DNS correspondiente en Route53
+- El servicio aparece como "interno" en lugar de "público" en algunos casos
+- Múltiples servicios potencialmente afectados por el mismo problema
+
+**Configuración Relevante:**
+
+- Entorno: Producción
+- Tipo de servicio: Servicio web con ingress público
+- Proveedor DNS: AWS Route53
+- Controlador de ingress: Kubernetes ingress
+
+**Condiciones de Error:**
+
+- Registros DNS faltantes para servicios web públicos
+- Servicios no accesibles mediante los nombres de dominio configurados
+- La configuración de ingress parece correcta pero la resolución DNS falla
+
+## Solución Detallada
+
+<TroubleshootingItem id="verify-ingress-config" summary="Verificar configuración de ingress">
+
+Primero, verifica si el ingress de tu servicio web está configurado correctamente:
+
+1. Ve a tu **Proyecto** → **Cargas de trabajo** → **Servicios web**
+2. Selecciona el servicio afectado (por ejemplo, organizations-api)
+3. Revisa la sección **Redes**
+4. Asegúrate que el **Tipo de Ingress** esté configurado como **Público**
+5. Verifica que la configuración del **Dominio** sea correcta
+
+```yaml
+# Configuración esperada
+ingress:
+  enabled: true
+  type: public
+  domain: organizations-api.tudominio.com
+  tls: true
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="check-external-dns" summary="Verificar estado del controlador External-DNS">
+
+SleakOps usa External-DNS para crear automáticamente registros en Route53. Verifica su estado:
+
+1. Accede a tu clúster vía **kubectl**
+2. Consulta el estado de los pods de External-DNS:
+
+```bash
+kubectl get pods -n kube-system | grep external-dns
+kubectl logs -n kube-system deployment/external-dns
+```
+
+3. Busca errores relacionados con:
+   - Permisos AWS
+   - Acceso a Route53
+   - Procesamiento de anotaciones de ingress
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="check-route53-permissions" summary="Verificar permisos de Route53">
+
+Asegúrate de que tu clúster tenga los permisos adecuados para gestionar registros de Route53:
+
+1. Verifica si la cuenta de servicio de External-DNS tiene el rol IAM correcto
+2. Los permisos requeridos incluyen:
+   - `route53:ChangeResourceRecordSets`
+   - `route53:ListHostedZones`
+   - `route53:ListResourceRecordSets`
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["route53:ChangeResourceRecordSets"],
+      "Resource": "arn:aws:route53:::hostedzone/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["route53:ListHostedZones", "route53:ListResourceRecordSets"],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-dns-verification" summary="Verificación manual de registros DNS">
+
+Para verificar manualmente y potencialmente corregir los registros DNS:
+
+1. **Revisa los registros actuales en Route53:**
+
+   - Ve a la Consola AWS → Route53 → Zonas alojadas
+   - Selecciona la zona alojada de tu dominio
+   - Busca registros A/CNAME faltantes
+
+2. **Obtén el endpoint del Load Balancer:**
+
+   ```bash
+   kubectl get ingress -n tu-namespace
+   kubectl describe ingress tu-ingress-servicio -n tu-namespace
+   ```
+
+3. **Crea manualmente el registro si es necesario:**
+   - Tipo de registro: A (Alias) o CNAME
+   - Nombre: organizations-api.tudominio.com
+   - Valor: nombre DNS del Load Balancer
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="service-visibility-toggle" summary="Cambiar servicio de interno a público">
+
+Si tu servicio aparece como "interno" en lugar de "público":
+
+1. Ve al **Panel de SleakOps** → **Tu Proyecto**
+2. Navega a **Cargas de trabajo** → **Servicios web**
+3. Selecciona el servicio (organizations-api)
+4. En la sección **Redes**:
+
+   - Cambia el **Tipo de Ingress** de "Interno" a "Público"
+   - Asegúrate que el **Dominio** esté configurado correctamente
+   - Guarda los cambios
+
+5. Espera de 5 a 10 minutos para la propagación DNS
+6. Verifica que el registro en Route53 se haya creado
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Pasos adicionales para solución de problemas">
+
+Si el problema persiste:
+
+1. **Revisa las anotaciones del ingress:**
+
+   ```bash
+   kubectl get ingress tu-servicio -o yaml
+   ```
+
+   Busca anotaciones de External-DNS como:
+
+   ```yaml
+   annotations:
+     external-dns.alpha.kubernetes.io/hostname: organizations-api.tudominio.com
+   ```
+
+2. **Reinicia External-DNS:**
+
+   ```bash
+   kubectl rollout restart deployment/external-dns -n kube-system
+   ```
+
+3. **Verifica registros conflictivos:**
+
+   - Asegúrate que no existan registros manuales en Route53 que entren en conflicto con los automáticos
+   - Elimina entradas DNS duplicadas o conflictivas
+
+4. **Verifica la zona alojada:**
+   - Confirma que la zona alojada correcta exista en Route53
+   - Revisa que la delegación del dominio esté configurada correctamente
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 23 de mayo de 2024 basada en una consulta real de usuario._

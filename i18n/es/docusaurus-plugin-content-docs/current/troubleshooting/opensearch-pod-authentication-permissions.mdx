@@ -1,0 +1,774 @@
+---
+sidebar_position: 3
+title: "Problemas de Autenticación y Permisos en Pods de OpenSearch"
+description: "Solución de problemas de conectividad y errores de autorización de OpenSearch desde pods de Kubernetes"
+date: "2025-02-19"
+category: "dependency"
+tags: ["opensearch", "autenticación", "permisos", "aws", "iam", "pod"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de Autenticación y Permisos en Pods de OpenSearch
+
+**Fecha:** 19 de febrero de 2025  
+**Categoría:** Dependencia  
+**Etiquetas:** OpenSearch, Autenticación, Permisos, AWS, IAM, Pod
+
+## Descripción del Problema
+
+**Contexto:** El usuario intenta conectarse a un clúster de OpenSearch desde un pod de Kubernetes pero encuentra errores de autorización a pesar de esperar que los permisos se configuren automáticamente.
+
+**Síntomas Observados:**
+
+- Error de autorización al realizar solicitudes curl a la URL de OpenSearch desde dentro de un pod
+- La conexión falla a pesar de que la dependencia de OpenSearch está configurada en SleakOps
+- Similar a problemas de permisos en S3: se encuentran credenciales pero carecen de permisos adecuados
+
+**Configuración Relevante:**
+
+- Dependencia de OpenSearch configurada en SleakOps
+- Pod ejecutándose en un clúster de Kubernetes
+- Infraestructura alojada en AWS
+- Se espera que los roles y políticas IAM se configuren automáticamente
+
+**Condiciones de Error:**
+
+- Error ocurre al hacer solicitudes HTTP a OpenSearch desde el pod
+- Fallo de autorización a pesar de la configuración de la dependencia
+- El problema persiste en diferentes intentos de conexión
+- Patrón similar a problemas de permisos en S3
+
+## Solución Detallada
+
+<TroubleshootingItem id="verify-authentication" summary="Verificar método de autenticación actual">
+
+Primero, determine cómo su pod se está autenticando actualmente con AWS:
+
+1. **Instale AWS CLI en su pod**:
+
+   ```bash
+   # Si no está instalado
+   curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+   unzip awscliv2.zip
+   sudo ./aws/install
+   ```
+
+2. **Verifique la identidad actual**:
+   ```bash
+   aws sts get-caller-identity
+   ```
+
+Esto le mostrará:
+
+- Si está usando identidad del pod o credenciales de entorno
+- El rol IAM que se está asumiendo
+- Información de cuenta y usuario
+
+### Verificar variables de entorno de AWS
+
+```bash
+# Verificar credenciales configuradas
+echo $AWS_ACCESS_KEY_ID
+echo $AWS_SECRET_ACCESS_KEY
+echo $AWS_SESSION_TOKEN
+echo $AWS_REGION
+
+# Verificar configuración del perfil
+aws configure list
+aws configure list-profiles
+```
+
+### Verificar Service Account de Kubernetes
+
+```bash
+# Desde dentro del pod
+cat /var/run/secrets/kubernetes.io/serviceaccount/token
+kubectl describe serviceaccount default -n <your-namespace>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="opensearch-permissions" summary="Permisos requeridos para OpenSearch">
+
+Para acceso completo a OpenSearch, su rol IAM necesita estas políticas:
+
+### Política IAM Básica para OpenSearch
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "es:ESHttpPost",
+        "es:ESHttpPut",
+        "es:ESHttpGet",
+        "es:ESHttpDelete",
+        "es:ESHttpHead"
+      ],
+      "Resource": "arn:aws:es:*:*:domain/your-opensearch-domain/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "es:DescribeDomain",
+        "es:DescribeDomains",
+        "es:DescribeDomainConfig",
+        "es:ListDomainNames",
+        "es:ListTags"
+      ],
+      "Resource": "arn:aws:es:*:*:domain/your-opensearch-domain"
+    }
+  ]
+}
+```
+
+### Permisos de Acceso Granular
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "es:ESHttpPost",
+        "es:ESHttpPut"
+      ],
+      "Resource": "arn:aws:es:*:*:domain/your-domain/logs-*/_doc",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "us-east-1"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "es:ESHttpGet"
+      ],
+      "Resource": "arn:aws:es:*:*:domain/your-domain/_search"
+    }
+  ]
+}
+```
+
+### Verificar permisos actuales
+
+```bash
+# Verificar qué políticas están adjuntas a su rol
+aws iam list-attached-role-policies --role-name <your-role-name>
+aws iam list-role-policies --role-name <your-role-name>
+
+# Obtener detalles de una política específica
+aws iam get-policy-version --policy-arn <policy-arn> --version-id v1
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="opensearch-access-configuration" summary="Configurar acceso a OpenSearch en AWS">
+
+### Configuración del Dominio OpenSearch
+
+1. **Política de Acceso del Dominio**:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": [
+          "arn:aws:iam::123456789012:role/your-pod-role",
+          "arn:aws:iam::123456789012:root"
+        ]
+      },
+      "Action": "es:*",
+      "Resource": "arn:aws:es:region:123456789012:domain/your-domain/*"
+    }
+  ]
+}
+```
+
+2. **Configuración de VPC (si aplica)**:
+
+```yaml
+# Para dominios dentro de VPC
+opensearch_config:
+  vpc_options:
+    security_group_ids:
+      - sg-12345678
+    subnet_ids:
+      - subnet-12345678
+      - subnet-87654321
+  domain_endpoint_options:
+    enforce_https: true
+    tls_security_policy: "Policy-Min-TLS-1-2-2019-07"
+```
+
+### Configuración Avanzada de Acceso
+
+```bash
+# Verificar configuración de VPC si está habilitada
+aws opensearch describe-domain --domain-name your-domain-name
+
+# Verificar grupos de seguridad
+aws ec2 describe-security-groups --group-ids sg-12345678
+```
+
+### Script de Verificación de Conectividad
+
+```bash
+#!/bin/bash
+# opensearch-connectivity-test.sh
+
+OPENSEARCH_ENDPOINT="https://your-domain.region.es.amazonaws.com"
+AWS_REGION="us-east-1"
+
+echo "Testing OpenSearch connectivity..."
+
+# Test 1: Basic connectivity
+echo "1. Testing basic connectivity..."
+curl -s --connect-timeout 5 "$OPENSEARCH_ENDPOINT" && echo "✓ Basic connectivity OK" || echo "✗ Cannot connect"
+
+# Test 2: AWS signature test
+echo "2. Testing with AWS signature..."
+aws opensearch describe-domain --domain-name your-domain --region $AWS_REGION
+
+# Test 3: HTTP operations test
+echo "3. Testing HTTP operations..."
+curl -X GET \
+  --aws-sigv4 "aws:amz:$AWS_REGION:es" \
+  --user "$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY" \
+  "$OPENSEARCH_ENDPOINT/_cluster/health"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshoot-authentication-errors" summary="Solucionar errores comunes de autenticación">
+
+### Error: "Access Denied" o 403 Forbidden
+
+```bash
+# Verificar configuración del dominio
+aws opensearch describe-domain-config --domain-name your-domain
+
+# Verificar política de acceso
+aws opensearch describe-domain --domain-name your-domain --query 'DomainStatus.AccessPolicies'
+```
+
+**Posibles causas:**
+
+1. **IP restringida**: El dominio puede estar restringido a IPs específicas
+2. **VPC mal configurada**: Problemas de conectividad de red
+3. **Política IAM insuficiente**: Falta de permisos en el rol
+4. **Configuración de cognito**: Autenticación adicional requerida
+
+### Error: "Signature mismatch"
+
+```bash
+# Verificar tiempo del sistema
+date
+timedatectl status
+
+# Sincronizar tiempo si es necesario
+sudo ntpdate -s time.nist.gov
+```
+
+### Error: "Invalid credentials"
+
+```python
+# Verificar credenciales en Python
+import boto3
+from botocore.exceptions import ClientError
+
+try:
+    client = boto3.client('opensearch', region_name='us-east-1')
+    response = client.describe_domain(DomainName='your-domain')
+    print("✓ Credentials are valid")
+    print(f"Domain status: {response['DomainStatus']['Processing']}")
+except ClientError as e:
+    print(f"✗ Credential error: {e}")
+```
+
+### Debugging de Conectividad de Red
+
+```bash
+# Test de conectividad de red
+nslookup your-domain.region.es.amazonaws.com
+ping your-domain.region.es.amazonaws.com
+
+# Verificar reglas de grupo de seguridad
+aws ec2 describe-security-groups --group-ids sg-12345678 \
+  --query 'SecurityGroups[0].IpPermissions[?FromPort==`443`]'
+
+# Test de puerto específico
+telnet your-domain.region.es.amazonaws.com 443
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-opensearch-configuration" summary="Configuración específica de OpenSearch en SleakOps">
+
+### Verificar Configuración de la Dependencia
+
+1. **Revisar la configuración de la dependencia** en el panel de SleakOps:
+
+```yaml
+# Ejemplo de configuración de dependencia OpenSearch
+dependencies:
+  opensearch:
+    type: opensearch-aws
+    configuration:
+      instance_type: "t3.small.search"
+      instance_count: 1
+      master_instance_type: "t3.small.search" 
+      master_instance_count: 1
+      volume_size: 20
+      volume_type: "gp3"
+      access_policies: |
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": "*"
+              },
+              "Action": "es:*",
+              "Resource": "arn:aws:es:*:*:domain/*"
+            }
+          ]
+        }
+```
+
+2. **Variables de salida esperadas**:
+
+```bash
+# Variables que deberían estar disponibles en su pod
+echo $OPENSEARCH_ENDPOINT
+echo $OPENSEARCH_DOMAIN_NAME
+echo $OPENSEARCH_REGION
+echo $OPENSEARCH_PORT
+```
+
+### Configuración de Service Account
+
+```yaml
+# service-account.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: opensearch-service-account
+  namespace: your-namespace
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/opensearch-role
+```
+
+### Configuración del Pod con IRSA
+
+```yaml
+# pod-with-irsa.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: opensearch-client
+  namespace: your-namespace
+spec:
+  serviceAccountName: opensearch-service-account
+  containers:
+  - name: app
+    image: your-app:latest
+    env:
+    - name: AWS_REGION
+      value: "us-east-1"
+    - name: OPENSEARCH_ENDPOINT
+      valueFrom:
+        secretKeyRef:
+          name: opensearch-credentials
+          key: endpoint
+```
+
+### Script de Verificación de SleakOps
+
+```bash
+#!/bin/bash
+# sleakops-opensearch-verify.sh
+
+echo "=== SleakOps OpenSearch Verification ==="
+
+# Verificar variables de entorno de la dependencia
+echo "1. Environment variables:"
+env | grep -i opensearch | sort
+
+# Verificar conectividad desde el pod
+echo "2. Connectivity test:"
+if [ -n "$OPENSEARCH_ENDPOINT" ]; then
+    curl -s --connect-timeout 5 "$OPENSEARCH_ENDPOINT/_cluster/health" \
+         --aws-sigv4 "aws:amz:${AWS_REGION:-us-east-1}:es" && \
+    echo "✓ OpenSearch accessible" || \
+    echo "✗ OpenSearch not accessible"
+else
+    echo "✗ OPENSEARCH_ENDPOINT not set"
+fi
+
+# Verificar permisos IAM
+echo "3. IAM permissions:"
+aws sts get-caller-identity
+aws opensearch list-domain-names --region ${AWS_REGION:-us-east-1}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="opensearch-client-examples" summary="Ejemplos de clientes OpenSearch correctamente configurados">
+
+### Cliente Python con boto3
+
+```python
+import boto3
+import json
+from opensearchpy import OpenSearch, RequestsHttpConnection
+from aws_requests_auth.aws_auth import AWSRequestsAuth
+
+def create_opensearch_client():
+    # Configuración de autenticación AWS
+    session = boto3.Session()
+    credentials = session.get_credentials()
+    region = session.region_name or 'us-east-1'
+    
+    awsauth = AWSRequestsAuth(
+        aws_access_key=credentials.access_key,
+        aws_secret_access_key=credentials.secret_key,
+        aws_token=credentials.token,
+        aws_host='your-domain.region.es.amazonaws.com',
+        aws_region=region,
+        aws_service='es'
+    )
+    
+    # Cliente OpenSearch
+    client = OpenSearch(
+        hosts=[{'host': 'your-domain.region.es.amazonaws.com', 'port': 443}],
+        http_auth=awsauth,
+        use_ssl=True,
+        verify_certs=True,
+        connection_class=RequestsHttpConnection
+    )
+    
+    return client
+
+# Uso del cliente
+try:
+    client = create_opensearch_client()
+    
+    # Test de conectividad
+    info = client.info()
+    print(f"✓ Connected to OpenSearch: {info['version']['number']}")
+    
+    # Ejemplo de búsqueda
+    response = client.search(
+        index="logs-*",
+        body={
+            "query": {"match_all": {}},
+            "size": 10
+        }
+    )
+    print(f"Found {response['hits']['total']['value']} documents")
+    
+except Exception as e:
+    print(f"✗ Error connecting to OpenSearch: {e}")
+```
+
+### Cliente Node.js
+
+```javascript
+// opensearch-client.js
+const { Client } = require('@opensearch-project/opensearch');
+const AWS = require('aws-sdk');
+
+async function createOpenSearchClient() {
+  // Configurar credenciales AWS
+  const credentials = await AWS.config.credentials.get();
+  
+  const client = new Client({
+    node: process.env.OPENSEARCH_ENDPOINT || 'https://your-domain.region.es.amazonaws.com',
+    auth: {
+      credentials: {
+        accessKeyId: credentials.accessKeyId,
+        secretAccessKey: credentials.secretAccessKey,
+        sessionToken: credentials.sessionToken
+      },
+      region: process.env.AWS_REGION || 'us-east-1',
+      service: 'es'
+    }
+  });
+
+  return client;
+}
+
+// Uso
+(async () => {
+  try {
+    const client = await createOpenSearchClient();
+    
+    // Test de conectividad
+    const info = await client.info();
+    console.log('✓ Connected to OpenSearch:', info.body.version.number);
+    
+    // Búsqueda de ejemplo
+    const response = await client.search({
+      index: 'logs-*',
+      body: {
+        query: { match_all: {} },
+        size: 10
+      }
+    });
+    
+    console.log(`Found ${response.body.hits.total.value} documents`);
+    
+  } catch (error) {
+    console.error('✗ Error connecting to OpenSearch:', error);
+  }
+})();
+```
+
+### Cliente con curl y AWS CLI
+
+```bash
+#!/bin/bash
+# opensearch-curl-client.sh
+
+ENDPOINT=${OPENSEARCH_ENDPOINT:-"https://your-domain.region.es.amazonaws.com"}
+REGION=${AWS_REGION:-"us-east-1"}
+
+# Función para hacer solicitudes firmadas
+opensearch_request() {
+    local method=$1
+    local path=$2
+    local data=$3
+    
+    if [ -n "$data" ]; then
+        aws opensearchserverless index \
+            --endpoint "$ENDPOINT" \
+            --region "$REGION" \
+            --index-name "$path" \
+            --document "$data"
+    else
+        curl -X "$method" \
+             --aws-sigv4 "aws:amz:$REGION:es" \
+             --user "$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY" \
+             "$ENDPOINT/$path"
+    fi
+}
+
+# Ejemplos de uso
+echo "=== OpenSearch API Examples ==="
+
+# Obtener información del clúster
+echo "1. Cluster info:"
+opensearch_request GET "_cluster/health"
+
+# Listar índices
+echo "2. List indices:"
+opensearch_request GET "_cat/indices?v"
+
+# Búsqueda simple
+echo "3. Simple search:"
+opensearch_request GET "logs-*/_search" '{"query":{"match_all":{}},"size":5}'
+
+# Crear un documento
+echo "4. Create document:"
+opensearch_request POST "logs-$(date +%Y.%m.%d)/_doc" '{
+  "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)'",
+  "level": "INFO",
+  "message": "Test log entry",
+  "service": "opensearch-test"
+}'
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-and-debugging" summary="Monitoreo y debugging avanzado de OpenSearch">
+
+### Configuración de Logging para Debugging
+
+```python
+# opensearch-debug-client.py
+import logging
+import boto3
+from opensearchpy import OpenSearch, RequestsHttpConnection
+from aws_requests_auth.aws_auth import AWSRequestsAuth
+
+# Habilitar logging detallado
+logging.basicConfig(level=logging.DEBUG)
+opensearch_logger = logging.getLogger('opensearch')
+opensearch_logger.setLevel(logging.DEBUG)
+
+# Cliente con logging extendido
+def create_debug_client():
+    session = boto3.Session()
+    credentials = session.get_credentials()
+    
+    # Log de credenciales (sin mostrar secretos)
+    print(f"AWS Region: {session.region_name}")
+    print(f"Access Key ID: {credentials.access_key[:8]}...")
+    
+    awsauth = AWSRequestsAuth(
+        aws_access_key=credentials.access_key,
+        aws_secret_access_key=credentials.secret_key,
+        aws_token=credentials.token,
+        aws_host='your-domain.region.es.amazonaws.com',
+        aws_region=session.region_name,
+        aws_service='es'
+    )
+    
+    client = OpenSearch(
+        hosts=[{'host': 'your-domain.region.es.amazonaws.com', 'port': 443}],
+        http_auth=awsauth,
+        use_ssl=True,
+        verify_certs=True,
+        connection_class=RequestsHttpConnection,
+        # Habilitar logging de requests
+        enable_log=True
+    )
+    
+    return client
+```
+
+### Monitoreo de Métricas de OpenSearch
+
+```bash
+#!/bin/bash
+# opensearch-metrics.sh
+
+DOMAIN_NAME="your-domain"
+REGION=${AWS_REGION:-"us-east-1"}
+
+echo "=== OpenSearch Domain Metrics ==="
+
+# Métricas del dominio
+aws cloudwatch get-metric-statistics \
+    --namespace AWS/ES \
+    --metric-name CPUUtilization \
+    --dimensions Name=DomainName,Value=$DOMAIN_NAME Name=ClientId,Value=$(aws sts get-caller-identity --query Account --output text) \
+    --start-time $(date -u -d '1 hour ago' +%Y-%m-%dT%H:%M:%S) \
+    --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
+    --period 300 \
+    --statistics Average \
+    --region $REGION
+
+# Estado del clúster
+aws opensearch describe-domain \
+    --domain-name $DOMAIN_NAME \
+    --region $REGION \
+    --query 'DomainStatus.{
+        Processing: Processing,
+        Created: Created,
+        Deleted: Deleted,
+        Endpoint: Endpoint,
+        EngineVersion: EngineVersion
+    }'
+
+# Configuración de acceso
+aws opensearch describe-domain-config \
+    --domain-name $DOMAIN_NAME \
+    --region $REGION \
+    --query 'DomainConfig.AccessPolicies.Options'
+```
+
+### Herramientas de Debugging
+
+```yaml
+# opensearch-debug-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: opensearch-debug
+  namespace: your-namespace
+spec:
+  serviceAccountName: opensearch-service-account
+  containers:
+  - name: debug
+    image: amazon/aws-cli:latest
+    command: ["/bin/sh"]
+    args: ["-c", "while true; do sleep 30; done"]
+    env:
+    - name: AWS_REGION
+      value: "us-east-1"
+    - name: OPENSEARCH_ENDPOINT
+      valueFrom:
+        secretKeyRef:
+          name: opensearch-credentials
+          key: endpoint
+    volumeMounts:
+    - name: debug-scripts
+      mountPath: /scripts
+  volumes:
+  - name: debug-scripts
+    configMap:
+      name: opensearch-debug-scripts
+      defaultMode: 0755
+```
+
+### Scripts de Validación Completa
+
+```bash
+#!/bin/bash
+# opensearch-full-validation.sh
+
+set -e
+
+echo "=== Complete OpenSearch Validation ==="
+
+# 1. Verificar variables de entorno
+echo "1. Environment verification:"
+required_vars=("OPENSEARCH_ENDPOINT" "AWS_REGION")
+for var in "${required_vars[@]}"; do
+    if [ -z "${!var}" ]; then
+        echo "✗ Missing required variable: $var"
+        exit 1
+    else
+        echo "✓ $var is set"
+    fi
+done
+
+# 2. Verificar credenciales AWS
+echo "2. AWS credentials verification:"
+aws sts get-caller-identity || {
+    echo "✗ AWS credentials not configured"
+    exit 1
+}
+
+# 3. Test de conectividad de red
+echo "3. Network connectivity:"
+timeout 5 bash -c "</dev/tcp/${OPENSEARCH_ENDPOINT#https://}/443" && \
+    echo "✓ Network connectivity OK" || \
+    echo "✗ Cannot connect to OpenSearch endpoint"
+
+# 4. Test de permisos IAM
+echo "4. IAM permissions test:"
+aws opensearch list-domain-names --region $AWS_REGION || {
+    echo "✗ No permissions to list domains"
+    exit 1
+}
+
+# 5. Test de API de OpenSearch
+echo "5. OpenSearch API test:"
+curl -s --aws-sigv4 "aws:amz:$AWS_REGION:es" \
+     --user "$AWS_ACCESS_KEY_ID:$AWS_SECRET_ACCESS_KEY" \
+     "$OPENSEARCH_ENDPOINT/_cluster/health" | \
+     jq '.status' || {
+    echo "✗ OpenSearch API not accessible"
+    exit 1
+}
+
+echo "✓ All validations passed successfully!"
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 19 de febrero de 2025 basada en una consulta real de usuario._

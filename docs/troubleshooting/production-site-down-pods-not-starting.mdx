@@ -1,0 +1,244 @@
+---
+sidebar_position: 1
+title: "Production Site Down - Pods Not Starting"
+description: "Troubleshooting guide for production outages when pods fail to start"
+date: "2024-01-15"
+category: "workload"
+tags: ["production", "pods", "outage", "troubleshooting", "kubernetes"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Production Site Down - Pods Not Starting
+
+**Date:** January 15, 2024  
+**Category:** Workload  
+**Tags:** Production, Pods, Outage, Troubleshooting, Kubernetes
+
+## Problem Description
+
+**Context:** Production website is experiencing a complete outage with pods failing to start or restart properly in the Kubernetes cluster.
+
+**Observed Symptoms:**
+
+- Production site is completely down
+- Pods are not starting or coming online
+- Application services are unavailable
+- Users cannot access the production environment
+
+**Relevant Configuration:**
+
+- Environment: Production
+- Platform: Kubernetes cluster
+- Issue scope: Complete site outage
+- Pod status: Failed to start
+
+**Error Conditions:**
+
+- Occurs in production environment
+- Affects all or most application pods
+- Results in complete service unavailability
+- May indicate cluster-wide issues
+
+## Detailed Solution
+
+<TroubleshootingItem id="immediate-assessment" summary="Immediate Assessment Steps">
+
+**Step 1: Check Pod Status**
+
+```bash
+# Check all pods in the namespace
+kubectl get pods -n <your-namespace>
+
+# Get detailed pod information
+kubectl describe pods -n <your-namespace>
+
+# Check pod logs
+kubectl logs <pod-name> -n <your-namespace> --previous
+```
+
+**Step 2: Check Node Status**
+
+```bash
+# Verify node health
+kubectl get nodes
+
+# Check node resources
+kubectl top nodes
+
+# Describe problematic nodes
+kubectl describe node <node-name>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-causes" summary="Common Causes and Quick Fixes">
+
+**Resource Exhaustion:**
+
+- Check if nodes have sufficient CPU/Memory
+- Verify storage capacity
+- Look for resource quotas being exceeded
+
+**Image Pull Issues:**
+
+```bash
+# Check if images can be pulled
+kubectl describe pod <pod-name> | grep -i "image"
+
+# Verify image registry connectivity
+kubectl get events --sort-by=.metadata.creationTimestamp
+```
+
+**Configuration Issues:**
+
+- Check ConfigMaps and Secrets
+- Verify environment variables
+- Validate service account permissions
+
+**Network Problems:**
+
+- Test cluster DNS resolution
+- Check service connectivity
+- Verify ingress controller status
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="systematic-diagnosis" summary="Systematic Diagnosis Process">
+
+**1. Check Cluster Events**
+
+```bash
+# Get recent cluster events
+kubectl get events --sort-by=.metadata.creationTimestamp -A
+
+# Filter for error events
+kubectl get events --field-selector type=Warning -A
+```
+
+**2. Verify Critical System Pods**
+
+```bash
+# Check kube-system pods
+kubectl get pods -n kube-system
+
+# Check ingress controller
+kubectl get pods -n ingress-nginx
+
+# Check monitoring stack
+kubectl get pods -n monitoring
+```
+
+**3. Check Resource Availability**
+
+```bash
+# Check node capacity
+kubectl describe nodes | grep -A 5 "Allocated resources"
+
+# Check persistent volumes
+kubectl get pv,pvc -A
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="recovery-actions" summary="Recovery Actions">
+
+**Immediate Recovery Steps:**
+
+1. **Restart Deployments**
+
+```bash
+# Restart specific deployment
+kubectl rollout restart deployment/<deployment-name> -n <namespace>
+
+# Restart all deployments in namespace
+kubectl get deployments -n <namespace> -o name | xargs -I {} kubectl rollout restart {} -n <namespace>
+```
+
+2. **Scale Resources if Needed**
+
+```bash
+# Scale up deployment
+kubectl scale deployment/<deployment-name> --replicas=3 -n <namespace>
+
+# Add more nodes if using cluster autoscaler
+kubectl get nodes --show-labels
+```
+
+3. **Clear Failed Pods**
+
+```bash
+# Delete failed pods to trigger recreation
+kubectl delete pods --field-selector=status.phase=Failed -n <namespace>
+
+# Delete pods stuck in pending state
+kubectl delete pods --field-selector=status.phase=Pending -n <namespace>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-monitoring" summary="Prevention and Monitoring">
+
+**Set Up Monitoring Alerts:**
+
+1. **Pod Health Monitoring**
+
+```yaml
+# Example Prometheus alert rule
+- alert: PodsNotReady
+  expr: kube_pod_status_ready{condition="false"} > 0
+  for: 5m
+  labels:
+    severity: critical
+  annotations:
+    summary: "Pods not ready in {{ $labels.namespace }}"
+```
+
+2. **Resource Monitoring**
+
+```yaml
+- alert: NodeResourceExhaustion
+  expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) < 0.1
+  for: 2m
+  labels:
+    severity: warning
+```
+
+**Best Practices:**
+
+- Implement health checks and readiness probes
+- Set appropriate resource requests and limits
+- Use horizontal pod autoscaling
+- Maintain staging environment for testing
+- Regular backup of critical configurations
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="escalation-contacts" summary="When to Escalate">
+
+**Escalate immediately if:**
+
+- Multiple nodes are down
+- Cluster control plane is unresponsive
+- Data corruption is suspected
+- Security breach is detected
+
+**Before escalating, gather:**
+
+- Cluster status output
+- Recent deployment history
+- Error logs and events
+- Resource utilization metrics
+- Timeline of when the issue started
+
+**Emergency Contacts:**
+
+- Platform team for cluster-level issues
+- Infrastructure team for node/network problems
+- Application team for service-specific issues
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

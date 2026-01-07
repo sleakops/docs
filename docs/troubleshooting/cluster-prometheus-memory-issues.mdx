@@ -1,0 +1,204 @@
+---
+sidebar_position: 3
+title: "Prometheus Memory Issues Causing Pod Hangs"
+description: "Solution for Prometheus memory issues that cause application pods to hang in production"
+date: "2024-12-23"
+category: "cluster"
+tags: ["prometheus", "memory", "monitoring", "troubleshooting", "pods"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Prometheus Memory Issues Causing Pod Hangs
+
+**Date:** December 23, 2024  
+**Category:** Cluster  
+**Tags:** Prometheus, Memory, Monitoring, Troubleshooting, Pods
+
+## Problem Description
+
+**Context:** Users experience application pods hanging in production environments, where pods appear healthy in monitoring tools like Lens but API requests become completely unresponsive. The issue is typically related to Prometheus memory consumption affecting node stability.
+
+**Observed Symptoms:**
+
+- Application pods show as "green" or healthy in Kubernetes monitoring tools
+- API requests hang completely without returning responses
+- Only some pods hang while others in the same deployment continue working normally
+- Load balancer distributes traffic to both working and hanging pods
+- Issue occurs primarily in production with high traffic, not in development
+- Pods don't crash or restart, they just become unresponsive
+
+**Relevant Configuration:**
+
+- Prometheus addon installed in cluster
+- Multiple application replicas (e.g., 15 replicas)
+- Production environment with significant traffic load
+- Pods distributed across multiple nodes
+
+**Error Conditions:**
+
+- Prometheus pod consuming excessive memory
+- Node resource exhaustion causing pod hangs
+- Intermittent failures affecting subset of pods
+- Poor user experience due to request timeouts
+
+## Detailed Solution
+
+<TroubleshootingItem id="root-cause-analysis" summary="Understanding the root cause">
+
+This issue typically occurs when:
+
+1. **Prometheus memory exhaustion**: The Prometheus pod starts consuming more RAM than allocated
+2. **Node resource starvation**: When Prometheus exhausts node resources, it affects all pods on that node
+3. **Partial service degradation**: Only pods on affected nodes hang, while others continue working
+4. **Third-party service latency**: External API calls may contribute to the problem by creating bottlenecks
+
+The key indicator is that pods appear healthy but become unresponsive to requests.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-fix" summary="Immediate fix: Increase Prometheus memory allocation">
+
+To resolve the immediate issue:
+
+1. **Access Prometheus addon configuration**:
+
+   - Go to your cluster's **Addons** section
+   - Find **Prometheus** in the addon list
+   - Click to open configuration
+
+2. **Increase minimum RAM allocation**:
+
+   - Locate the "RAM minimum" setting
+   - Increase the value to **2200 MB** (or higher based on your needs)
+   - Save the configuration
+
+3. **Apply the changes**:
+   - The system will update Prometheus with the new memory allocation
+   - This process may take up to 20 minutes to complete
+
+```yaml
+# Example Prometheus configuration
+prometheus:
+  resources:
+    requests:
+      memory: "2200Mi"
+    limits:
+      memory: "4000Mi"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="node-recovery" summary="Recover affected nodes">
+
+If nodes are already affected:
+
+1. **Identify the problematic Prometheus pod**:
+
+   - Look for Prometheus pod with containers showing orange/warning status
+   - Note which node is hosting this pod
+
+2. **Delete the affected node**:
+
+   - Click on the node name to open node details
+   - Select "Delete" to remove the node
+   - **Important**: Do this at the same time or just before updating Prometheus
+
+3. **Verify recovery**:
+   - Wait for the Prometheus pod to be rescheduled on a new node
+   - Check that all containers show green/healthy status
+   - Monitor application pods for restored functionality
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-setup" summary="Set up proper monitoring and APM">
+
+To prevent future issues and better diagnose problems:
+
+1. **Install Application Performance Monitoring (APM)**:
+
+   - **OpenTelemetry** (available as cluster addon, currently in beta)
+   - **New Relic** (external service)
+   - **Datadog** (external service)
+
+2. **Configure OpenTelemetry in SleakOps**:
+
+   - Go to **Cluster** → **Addons**
+   - Install **OpenTelemetry** addon
+   - Apply to your project services
+
+3. **Monitor third-party service latency**:
+   - Check response times from external APIs
+   - Identify potential bottlenecks in service dependencies
+   - Set up alerts for high latency or timeouts
+
+```yaml
+# Example OpenTelemetry configuration
+opentelemetry:
+  enabled: true
+  exporters:
+    - jaeger
+    - prometheus
+  sampling_rate: 0.1
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-strategies" summary="Prevention and best practices">
+
+**Resource Management:**
+
+- Set appropriate resource requests and limits for all applications
+- Monitor resource usage trends over time
+- Scale Prometheus resources proactively based on cluster size
+
+**Monitoring Setup:**
+
+- Implement comprehensive APM to track application performance
+- Set up alerts for resource exhaustion
+- Monitor third-party service dependencies
+
+**Troubleshooting Process:**
+
+- Create support tickets when issues occur with specific timeframes
+- Document exact symptoms and error conditions
+- Include relevant configuration details
+
+**Load Testing:**
+
+- Test applications under production-like traffic loads
+- Validate resource allocation in staging environments
+- Monitor for memory leaks and performance degradation
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-checklist" summary="Troubleshooting checklist">
+
+When experiencing similar issues:
+
+**Immediate Actions:**
+
+1. Check Prometheus pod status and resource usage
+2. Identify which nodes are affected
+3. Increase Prometheus memory allocation
+4. Delete affected nodes if necessary
+
+**Investigation Steps:**
+
+1. Note exact timeframes when issues occur
+2. Check Grafana dashboards for resource metrics
+3. Review application logs for errors or timeouts
+4. Monitor third-party service response times
+
+**Documentation:**
+
+1. Create support tickets with specific timeframes
+2. Include pod names and node information
+3. Describe exact symptoms observed
+4. Note any recent configuration changes
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 23, 2024 based on a real user query._

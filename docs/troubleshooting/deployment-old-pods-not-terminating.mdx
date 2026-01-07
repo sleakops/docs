@@ -1,0 +1,604 @@
+---
+sidebar_position: 3
+title: "Deployment Issue - Old Pods Not Terminating"
+description: "Solution for when new deployments create pods but old pods remain active and receive traffic"
+date: "2024-06-10"
+category: "workload"
+tags: ["deployment", "kubernetes", "pods", "traffic-routing", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Deployment Issue - Old Pods Not Terminating
+
+**Date:** June 10, 2024  
+**Category:** Workload  
+**Tags:** Deployment, Kubernetes, Pods, Traffic Routing, Troubleshooting
+
+## Problem Description
+
+**Context:** User experiences issues when deploying new builds where new pods are created successfully but old pods from previous deployments (created 2 days ago) remain active and continue receiving traffic instead of the new pods.
+
+**Observed Symptoms:**
+
+- New pod is created with the latest image tag
+- Old pods (2+ days old) are not being terminated
+- All traffic continues to be routed to old pods instead of new ones
+- New pod works correctly when accessed directly via port-forward
+- Health checks on new pod are passing
+- Attempting to manually delete old pods results in them restarting
+
+**Relevant Configuration:**
+
+- Project: `rattlesnake`
+- Environment: `development`
+- Image Tag: `7edb7463a22198fc4d79bac76cfcb2c0f94b3755`
+- Platform: Kubernetes (viewed through Lens)
+
+**Error Conditions:**
+
+- Issue occurs during deployment process
+- Old pods restart when manually deleted
+- Traffic routing does not switch to new pods
+- Problem has occurred previously with other projects
+
+## Detailed Solution
+
+<TroubleshootingItem id="initial-diagnosis" summary="Understanding the root cause">
+
+This issue typically occurs due to one of these Kubernetes deployment problems:
+
+1. **Deployment strategy misconfiguration**: Rolling update settings may be preventing old pods from terminating
+2. **Resource constraints**: Insufficient resources preventing new pods from becoming ready
+3. **Service selector mismatch**: Service is not pointing to the new pods
+4. **Readiness probe failures**: New pods may not be passing readiness checks
+5. **Multiple deployment controllers**: Conflicting controllers managing the same pods
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="check-deployment-status" summary="Check deployment and pod status">
+
+First, verify the current state of your deployment:
+
+```bash
+# Check deployment status
+kubectl get deployments -n <namespace>
+kubectl describe deployment <deployment-name> -n <namespace>
+
+# Check pods and their ages
+kubectl get pods -n <namespace> --show-labels
+kubectl get pods -n <namespace> -o wide
+
+# Check replica sets
+kubectl get replicasets -n <namespace>
+```
+
+Look for:
+
+- Multiple replica sets with pods
+- Pod readiness status
+- Deployment rollout status
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verify-service-endpoints" summary="Verify service endpoints and traffic routing">
+
+Check if the service is correctly pointing to the new pods:
+
+```bash
+# Check service endpoints
+kubectl get endpoints <service-name> -n <namespace>
+kubectl describe service <service-name> -n <namespace>
+
+# Compare service selector with pod labels
+kubectl get service <service-name> -n <namespace> -o yaml
+kubectl get pods -n <namespace> --show-labels
+```
+
+The service selector should match the labels on your new pods, not the old ones.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="check-readiness-probes" summary="Verify readiness and liveness probes">
+
+Even though port-forward works, check if readiness probes are configured correctly:
+
+```bash
+# Check pod readiness status
+kubectl describe pod <new-pod-name> -n <namespace>
+
+# Look for readiness probe configuration
+kubectl get pod <new-pod-name> -n <namespace> -o yaml | grep -A 10 readinessProbe
+```
+
+If readiness probes are failing, the service won't route traffic to the new pods.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="force-deployment-rollout" summary="Force a proper deployment rollout">
+
+If the deployment is stuck, force a complete rollout:
+
+```bash
+# Check rollout status
+kubectl rollout status deployment/<deployment-name> -n <namespace>
+
+# Force restart the deployment
+kubectl rollout restart deployment/<deployment-name> -n <namespace>
+
+# Wait for rollout to complete
+kubectl rollout status deployment/<deployment-name> -n <namespace> --timeout=300s
+
+# Check if old replica sets are being terminated
+kubectl get replicasets -n <namespace>
+```
+
+**Alternative approach - Scale down and up:**
+
+```bash
+# Scale down to 0 replicas
+kubectl scale deployment <deployment-name> --replicas=0 -n <namespace>
+
+# Wait for all pods to terminate
+kubectl get pods -n <namespace> -w
+
+# Scale back up
+kubectl scale deployment <deployment-name> --replicas=<desired-count> -n <namespace>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="check-multiple-controllers" summary="Check for multiple deployment controllers">
+
+Verify there aren't multiple controllers managing the same pods:
+
+```bash
+# Check for multiple deployments with same selector
+kubectl get deployments -n <namespace> -o wide
+
+# Check for other controllers (DaemonSets, StatefulSets, etc.)
+kubectl get all -n <namespace>
+
+# Look for duplicate resource names or selectors
+kubectl get pods -n <namespace> -o yaml | grep -A 5 "ownerReferences"
+
+# Check for orphaned replica sets
+kubectl get replicasets -n <namespace> --show-labels
+```
+
+**If you find multiple controllers:**
+
+```bash
+# Delete duplicate or old deployments
+kubectl delete deployment <old-deployment-name> -n <namespace>
+
+# Delete orphaned replica sets
+kubectl delete replicaset <old-replicaset-name> -n <namespace>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="resource-constraints-check" summary="Check for resource constraints">
+
+Verify that the cluster has enough resources for the new pods:
+
+```bash
+# Check node resource usage
+kubectl top nodes
+
+# Check resource requests vs limits
+kubectl describe nodes | grep -A 5 "Allocated resources"
+
+# Check pod resource consumption
+kubectl top pods -n <namespace>
+
+# Check for pending pods due to resource constraints
+kubectl get pods -n <namespace> | grep Pending
+kubectl describe pod <pending-pod-name> -n <namespace>
+```
+
+**Common resource issues:**
+
+- CPU or memory requests too high
+- Node resource exhaustion
+- Storage constraints
+- GPU or other specialized resource unavailability
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="investigate-pod-startup" summary="Investigate pod startup issues">
+
+Check why new pods might not be becoming ready:
+
+```bash
+# Check pod events and logs
+kubectl describe pod <new-pod-name> -n <namespace>
+kubectl logs <new-pod-name> -n <namespace> --previous
+
+# Check init containers if present
+kubectl logs <new-pod-name> -c <init-container-name> -n <namespace>
+
+# Check readiness probe failures
+kubectl get events -n <namespace> --field-selector involvedObject.name=<new-pod-name>
+```
+
+**Common startup issues:**
+
+```yaml
+# Example of proper readiness probe configuration
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deployment-strategy-fix" summary="Fix deployment strategy configuration">
+
+Check and fix your deployment strategy:
+
+```bash
+# Check current deployment strategy
+kubectl get deployment <deployment-name> -n <namespace> -o yaml | grep -A 10 strategy
+```
+
+**Recommended rolling update strategy:**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: your-app
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1 # Maximum pods that can be unavailable
+      maxSurge: 1 # Maximum extra pods during update
+  template:
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: your-app
+          image: your-app:latest
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+```
+
+**Apply the fix:**
+
+```bash
+# Edit deployment directly
+kubectl edit deployment <deployment-name> -n <namespace>
+
+# Or apply from file
+kubectl apply -f deployment.yaml -n <namespace>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="service-routing-fix" summary="Fix service routing issues">
+
+Ensure your service is correctly configured to route to new pods:
+
+```bash
+# Check service configuration
+kubectl get service <service-name> -n <namespace> -o yaml
+```
+
+**Verify service selector matches pod labels:**
+
+```yaml
+# Service configuration
+apiVersion: v1
+kind: Service
+metadata:
+  name: your-app-service
+spec:
+  selector:
+    app: your-app # Must match pod labels
+    version: current # Avoid version-specific selectors
+  ports:
+    - port: 80
+      targetPort: 8080
+```
+
+**Check pod labels:**
+
+```bash
+# Verify pod labels match service selector
+kubectl get pods -n <namespace> --show-labels | grep <app-name>
+
+# If labels don't match, update them
+kubectl label pod <pod-name> version=current -n <namespace>
+```
+
+**Force service endpoint refresh:**
+
+```bash
+# Delete and recreate endpoints if stuck
+kubectl delete endpoints <service-name> -n <namespace>
+
+# Service will automatically recreate endpoints
+kubectl get endpoints <service-name> -n <namespace>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cleanup-old-resources" summary="Clean up old resources">
+
+Remove old replica sets and pods that are no longer needed:
+
+```bash
+# List all replica sets
+kubectl get replicasets -n <namespace>
+
+# Delete old replica sets (keep latest 2-3 for rollback)
+kubectl delete replicaset <old-replicaset-name> -n <namespace>
+
+# Clean up failed pods
+kubectl get pods -n <namespace> | grep -E "(Error|CrashLoopBackOff|ImagePullBackOff)"
+kubectl delete pod <failed-pod-name> -n <namespace>
+
+# Set revision history limit to prevent accumulation
+kubectl patch deployment <deployment-name> -n <namespace> -p '{"spec":{"revisionHistoryLimit":3}}'
+```
+
+**Automated cleanup script:**
+
+```bash
+#!/bin/bash
+# cleanup-old-resources.sh
+
+NAMESPACE=${1:-default}
+DEPLOYMENT=${2}
+
+echo "Cleaning up old resources for deployment: $DEPLOYMENT in namespace: $NAMESPACE"
+
+# Get current replica set
+CURRENT_RS=$(kubectl get deployment $DEPLOYMENT -n $NAMESPACE -o jsonpath='{.status.conditions[?(@.type=="Progressing")].reason}')
+
+# Delete old replica sets (keep latest 3)
+kubectl get replicasets -n $NAMESPACE -l app=$DEPLOYMENT --sort-by='.metadata.creationTimestamp' | tail -n +4 | awk '{print $1}' | xargs -r kubectl delete replicaset -n $NAMESPACE
+
+# Force delete stuck pods
+kubectl get pods -n $NAMESPACE -l app=$DEPLOYMENT | grep Terminating | awk '{print $1}' | xargs -r kubectl delete pod --force --grace-period=0 -n $NAMESPACE
+
+echo "Cleanup completed"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="emergency-procedures" summary="Emergency procedures for production">
+
+If this issue occurs in production and needs immediate resolution:
+
+**1. Emergency traffic routing:**
+
+```bash
+# Create temporary service to route to specific pod
+kubectl expose pod <new-pod-name> --port=80 --target-port=8080 --name=emergency-service -n <namespace>
+
+# Update main service to point to emergency service
+kubectl patch service <main-service> -n <namespace> -p '{"spec":{"selector":{"pod-name":"<new-pod-name>"}}}'
+```
+
+**2. Force delete old pods:**
+
+```bash
+# Force delete old pods immediately
+kubectl delete pod <old-pod-name> --force --grace-period=0 -n <namespace>
+
+# If pods are stuck in terminating state
+kubectl patch pod <old-pod-name> -n <namespace> -p '{"metadata":{"finalizers":null}}'
+```
+
+**3. Backup and restore approach:**
+
+```bash
+# Backup current deployment
+kubectl get deployment <deployment-name> -n <namespace> -o yaml > deployment-backup.yaml
+
+# Create new deployment with different name
+sed 's/name: <deployment-name>/name: <deployment-name>-new/' deployment-backup.yaml | kubectl apply -f -
+
+# Update service to point to new deployment
+kubectl patch service <service-name> -n <namespace> -p '{"spec":{"selector":{"app":"<deployment-name>-new"}}}'
+
+# Delete old deployment once new one is stable
+kubectl delete deployment <deployment-name> -n <namespace>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-and-prevention" summary="Set up monitoring and prevention">
+
+**1. Deployment monitoring:**
+
+```bash
+# Monitor deployment rollouts
+kubectl get events -n <namespace> --sort-by='.lastTimestamp' | grep Deployment
+
+# Set up alerts for stuck deployments
+kubectl get deployments -n <namespace> -o json | jq '.items[] | select(.status.readyReplicas != .status.replicas)'
+```
+
+**2. Automated health checks:**
+
+```yaml
+# Enhanced readiness probe
+readinessProbe:
+  httpGet:
+    path: /health/ready
+    port: 8080
+    httpHeaders:
+      - name: Host
+        value: localhost
+  initialDelaySeconds: 15
+  periodSeconds: 5
+  timeoutSeconds: 3
+  successThreshold: 1
+  failureThreshold: 3
+
+# Startup probe for slow-starting containers
+startupProbe:
+  httpGet:
+    path: /health/startup
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 30 # 5 minutes max startup time
+```
+
+**3. Deployment automation script:**
+
+```bash
+#!/bin/bash
+# safe-deploy.sh
+
+DEPLOYMENT=$1
+NAMESPACE=${2:-default}
+IMAGE=$3
+
+echo "Starting safe deployment of $DEPLOYMENT with image $IMAGE"
+
+# Update deployment
+kubectl set image deployment/$DEPLOYMENT container=$IMAGE -n $NAMESPACE
+
+# Wait for rollout
+kubectl rollout status deployment/$DEPLOYMENT -n $NAMESPACE --timeout=300s
+
+# Verify health
+READY_REPLICAS=$(kubectl get deployment $DEPLOYMENT -n $NAMESPACE -o jsonpath='{.status.readyReplicas}')
+DESIRED_REPLICAS=$(kubectl get deployment $DEPLOYMENT -n $NAMESPACE -o jsonpath='{.spec.replicas}')
+
+if [ "$READY_REPLICAS" = "$DESIRED_REPLICAS" ]; then
+  echo "✅ Deployment successful"
+  # Clean up old replica sets
+  kubectl delete replicaset $(kubectl get replicasets -n $NAMESPACE -l app=$DEPLOYMENT --sort-by='.metadata.creationTimestamp' | tail -n +4 | awk '{print $1}') -n $NAMESPACE 2>/dev/null || true
+else
+  echo "❌ Deployment failed, rolling back"
+  kubectl rollout undo deployment/$DEPLOYMENT -n $NAMESPACE
+  exit 1
+fi
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Best practices to prevent this issue">
+
+**1. Deployment configuration best practices:**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: your-app
+  labels:
+    app: your-app
+spec:
+  replicas: 3
+  revisionHistoryLimit: 3 # Limit old replica sets
+  selector:
+    matchLabels:
+      app: your-app
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25% # Allow 25% of pods to be unavailable
+      maxSurge: 25% # Allow 25% extra pods during update
+  template:
+    metadata:
+      labels:
+        app: your-app
+        version: "{{ .Values.version }}" # Use templating for versions
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: your-app
+          image: your-app:{{ .Values.tag }}
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+```
+
+**2. Service configuration best practices:**
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: your-app-service
+  labels:
+    app: your-app
+spec:
+  selector:
+    app: your-app # Don't include version in selector
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+  type: ClusterIP
+```
+
+**3. CI/CD integration:**
+
+```yaml
+# GitLab CI example
+deploy:
+  stage: deploy
+  script:
+    - kubectl set image deployment/your-app your-app=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    - kubectl rollout status deployment/your-app --timeout=300s
+    - kubectl get pods -l app=your-app
+  only:
+    - main
+  environment:
+    name: production
+  when: manual
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on June 10, 2024 based on a real user query._

@@ -1,0 +1,192 @@
+---
+sidebar_position: 3
+title: "Ingress Route53 Records Not Being Created"
+description: "Solution for missing DNS records in Route53 for public webservices with ingress configuration"
+date: "2024-05-23"
+category: "workload"
+tags: ["ingress", "route53", "dns", "webservice", "networking"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Ingress Route53 Records Not Being Created
+
+**Date:** May 23, 2024  
+**Category:** Workload  
+**Tags:** Ingress, Route53, DNS, Webservice, Networking
+
+## Problem Description
+
+**Context:** Users have configured webservices with public ingress in SleakOps production environment, but the corresponding DNS records are not being automatically created in Route53.
+
+**Observed Symptoms:**
+
+- Webservice configured with public ingress (e.g., organizations-api)
+- No corresponding DNS record created in Route53
+- Service appears as "internal" instead of "public" in some cases
+- Multiple services potentially affected by the same issue
+
+**Relevant Configuration:**
+
+- Environment: Production
+- Service type: Webservice with public ingress
+- DNS provider: AWS Route53
+- Ingress controller: Kubernetes ingress
+
+**Error Conditions:**
+
+- DNS records missing for public webservices
+- Services not accessible via configured domain names
+- Ingress configuration appears correct but DNS resolution fails
+
+## Detailed Solution
+
+<TroubleshootingItem id="verify-ingress-config" summary="Verify ingress configuration">
+
+First, check if your webservice ingress is properly configured:
+
+1. Go to your **Project** → **Workloads** → **Webservices**
+2. Select the affected service (e.g., organizations-api)
+3. Check the **Networking** section
+4. Ensure **Ingress Type** is set to **Public**
+5. Verify the **Domain** configuration is correct
+
+```yaml
+# Expected configuration
+ingress:
+  enabled: true
+  type: public
+  domain: organizations-api.yourdomain.com
+  tls: true
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="check-external-dns" summary="Verify External-DNS controller status">
+
+SleakOps uses External-DNS to automatically create Route53 records. Check its status:
+
+1. Access your cluster via **kubectl**
+2. Check External-DNS pods status:
+
+```bash
+kubectl get pods -n kube-system | grep external-dns
+kubectl logs -n kube-system deployment/external-dns
+```
+
+3. Look for errors related to:
+   - AWS permissions
+   - Route53 access
+   - Ingress annotation processing
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="check-route53-permissions" summary="Verify Route53 permissions">
+
+Ensure your cluster has proper permissions to manage Route53 records:
+
+1. Check if the External-DNS service account has the correct IAM role
+2. Required permissions include:
+   - `route53:ChangeResourceRecordSets`
+   - `route53:ListHostedZones`
+   - `route53:ListResourceRecordSets`
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["route53:ChangeResourceRecordSets"],
+      "Resource": "arn:aws:route53:::hostedzone/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["route53:ListHostedZones", "route53:ListResourceRecordSets"],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-dns-verification" summary="Manual DNS record verification">
+
+To manually verify and potentially fix DNS records:
+
+1. **Check current Route53 records:**
+
+   - Go to AWS Console → Route53 → Hosted Zones
+   - Select your domain's hosted zone
+   - Look for missing A/CNAME records
+
+2. **Get the Load Balancer endpoint:**
+
+   ```bash
+   kubectl get ingress -n your-namespace
+   kubectl describe ingress your-service-ingress -n your-namespace
+   ```
+
+3. **Manually create the record if needed:**
+   - Record type: A (Alias) or CNAME
+   - Name: organizations-api.yourdomain.com
+   - Value: Load Balancer DNS name
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="service-visibility-toggle" summary="Change service from internal to public">
+
+If your service appears as "internal" instead of "public":
+
+1. Go to **SleakOps Dashboard** → **Your Project**
+2. Navigate to **Workloads** → **Webservices**
+3. Select the service (organizations-api)
+4. In **Networking** section:
+
+   - Change **Ingress Type** from "Internal" to "Public"
+   - Ensure **Domain** is properly configured
+   - Save changes
+
+5. Wait 5-10 minutes for DNS propagation
+6. Verify the Route53 record is created
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Additional troubleshooting steps">
+
+If the issue persists:
+
+1. **Check ingress annotations:**
+
+   ```bash
+   kubectl get ingress your-service -o yaml
+   ```
+
+   Look for External-DNS annotations like:
+
+   ```yaml
+   annotations:
+     external-dns.alpha.kubernetes.io/hostname: organizations-api.yourdomain.com
+   ```
+
+2. **Restart External-DNS:**
+
+   ```bash
+   kubectl rollout restart deployment/external-dns -n kube-system
+   ```
+
+3. **Check for conflicting records:**
+
+   - Ensure no manual Route53 records conflict with automatic ones
+   - Remove any duplicate or conflicting DNS entries
+
+4. **Verify hosted zone:**
+   - Confirm the correct hosted zone exists in Route53
+   - Check if the domain delegation is properly configured
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on May 23, 2024 based on a real user query._

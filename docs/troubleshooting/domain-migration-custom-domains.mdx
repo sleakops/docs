@@ -1,0 +1,228 @@
+---
+sidebar_position: 3
+title: "Domain Migration and Custom Domain Configuration"
+description: "How to migrate applications to new domains and configure custom domains in SleakOps"
+date: "2024-01-15"
+category: "project"
+tags: ["domain", "migration", "dns", "alias", "custom-domain"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Domain Migration and Custom Domain Configuration
+
+**Date:** January 15, 2024  
+**Category:** Project  
+**Tags:** Domain, Migration, DNS, Alias, Custom Domain
+
+## Problem Description
+
+**Context:** Users need to migrate their applications from one domain to another or configure custom domains for their SleakOps deployments.
+
+**Observed Symptoms:**
+
+- Need to change application URLs from old domain to new domain
+- Want to use newly acquired domain for existing applications
+- Require guidance on DNS configuration for custom domains
+- Need to understand migration options and their implications
+
+**Relevant Configuration:**
+
+- Current domain: `byroncode.com`
+- New domain: `ordenapp.com.ar`
+- Application: Frontend/landing page
+- Platform: SleakOps execution environment
+
+**Error Conditions:**
+
+- Applications currently accessible only through old domain
+- Need to transition without service disruption
+- DNS records need manual configuration
+
+## Detailed Solution
+
+<TroubleshootingItem id="domain-alias-option" summary="Adding Domain Alias (Quick Solution)">
+
+For simple URL changes without full migration, you can add a domain alias to your existing execution:
+
+**Steps:**
+
+1. Navigate to your execution in the SleakOps dashboard
+2. Go to **Settings** → **Domain Configuration**
+3. Click **Add Alias**
+4. Enter your new domain (e.g., `ordenapp.com.ar`)
+5. Save the configuration
+
+**DNS Configuration:**
+After creating the alias, you'll receive DNS records that need to be manually added to your domain registrar:
+
+```
+Type: CNAME
+Name: www
+Value: [provided-by-sleakops].sleakops.io
+
+Type: A
+Name: @
+Value: [IP-address-provided]
+```
+
+**Benefits:**
+
+- Quick implementation
+- No service disruption
+- Maintains existing configuration
+- Both domains work simultaneously
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="full-migration-option" summary="Full Domain Migration">
+
+For complete migration of all services from the old domain to the new one:
+
+**Prerequisites:**
+
+- Coordinate with SleakOps support team
+- Schedule maintenance window
+- Backup current configuration
+
+**Migration Process:**
+
+1. **Pre-migration planning:**
+
+   - Document all current services and configurations
+   - Identify dependencies
+   - Plan rollback strategy
+
+2. **Domain configuration:**
+
+   - Update primary domain in project settings
+   - Reconfigure SSL certificates
+   - Update environment variables
+
+3. **DNS updates:**
+
+   - Point new domain to SleakOps infrastructure
+   - Update all subdomains
+   - Configure proper TTL values
+
+4. **Testing and validation:**
+   - Verify all services are accessible
+   - Test SSL certificate validity
+   - Confirm all integrations work
+
+**Note:** This option requires coordination with the SleakOps team and may involve service downtime.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="new-environment-approach" summary="Creating New Environment with Custom Domain">
+
+With the latest SleakOps version, you can create new environments with custom URLs:
+
+**When to use:**
+
+- For development environments
+- When you want a fresh start
+- For testing new domain configuration
+
+**Steps:**
+
+1. Create a new environment in SleakOps
+2. During setup, specify your custom domain
+3. Configure DNS records as provided
+4. Deploy your application to the new environment
+
+**Considerations:**
+
+- Dependencies need to be recreated
+- Database migrations may be required
+- Environment variables need reconfiguration
+- Suitable mainly for development environments
+
+```yaml
+# Example environment configuration
+environment:
+  name: "production-new-domain"
+  domain: "ordenapp.com.ar"
+  ssl: true
+  auto_deploy: true
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dns-configuration-guide" summary="DNS Configuration Guide">
+
+**Common DNS Records for SleakOps:**
+
+```
+# Root domain
+Type: A
+Name: @
+Value: [IP provided by SleakOps]
+TTL: 300
+
+# WWW subdomain
+Type: CNAME
+Name: www
+Value: [hostname].sleakops.io
+TTL: 300
+
+# API subdomain (if applicable)
+Type: CNAME
+Name: api
+Value: [api-hostname].sleakops.io
+TTL: 300
+```
+
+**DNS Propagation:**
+
+- Changes can take 24-48 hours to fully propagate
+- Use tools like `dig` or online DNS checkers to verify
+- Lower TTL values speed up changes but increase DNS queries
+
+**Verification Commands:**
+
+```bash
+# Check A record
+dig ordenapp.com.ar A
+
+# Check CNAME record
+dig www.ordenapp.com.ar CNAME
+
+# Check from specific DNS server
+dig @8.8.8.8 ordenapp.com.ar
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Best Practices and Recommendations">
+
+**For Production Environments:**
+
+1. **Use domain aliases first** - Test the new domain alongside the old one
+2. **Plan maintenance windows** - For full migrations, schedule during low-traffic periods
+3. **Monitor after changes** - Watch for SSL certificate issues and DNS propagation
+4. **Keep old domain active** - Maintain redirects for SEO and user experience
+
+**SSL Certificate Considerations:**
+
+- SleakOps automatically provisions SSL certificates for custom domains
+- Certificate generation may take 5-10 minutes
+- Ensure DNS records are correct before SSL provisioning
+
+**Rollback Strategy:**
+
+- Keep original DNS records documented
+- Have a plan to revert changes quickly
+- Test rollback procedure in development first
+
+**Communication:**
+
+- Notify users of domain changes in advance
+- Update documentation and links
+- Configure proper redirects from old to new domain
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

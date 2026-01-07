@@ -1,0 +1,128 @@
+---
+sidebar_position: 3
+title: "Dependencies Monitoring Graphs Not Displaying"
+description: "Solution for RDS and OpenSearch monitoring graphs showing empty or not loading properly"
+date: "2025-01-22"
+category: "dependency"
+tags: ["monitoring", "rds", "opensearch", "graphs", "dependencies"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Dependencies Monitoring Graphs Not Displaying
+
+**Date:** January 22, 2025  
+**Category:** Dependency  
+**Tags:** Monitoring, RDS, OpenSearch, Graphs, Dependencies
+
+## Problem Description
+
+**Context:** When accessing the monitoring section for dependencies (RDS, OpenSearch, etc.) in SleakOps, the monitoring page loads but the usage graphs do not display any data or remain empty.
+
+**Observed Symptoms:**
+
+- Monitoring page loads successfully
+- Graphs appear empty or show no data
+- Issue affects both RDS and OpenSearch dependencies
+- Problem occurs specifically with older dependencies
+
+**Relevant Configuration:**
+
+- Dependency type: RDS, OpenSearch
+- Monitoring: Enabled
+- Dependencies created before a specific platform update
+- Graph visualization: Empty/blank
+
+**Error Conditions:**
+
+- Occurs on dependencies created before monitoring variable storage was implemented
+- Affects multiple dependency types (RDS, OpenSearch)
+- Monitoring data collection works but visualization fails
+- Problem is consistent across affected dependencies
+
+## Detailed Solution
+
+<TroubleshootingItem id="root-cause" summary="Understanding the root cause">
+
+This issue occurs due to a missing variable in the platform's database that is required for monitoring graph visualization. When certain dependencies were created, this monitoring variable was not stored, causing the graphs to fail to display data even though the monitoring system is collecting metrics.
+
+The problem specifically affects:
+
+- Dependencies created before the monitoring variable storage was implemented
+- Both RDS and OpenSearch dependencies
+- Any dependency that relies on this specific monitoring configuration
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-workaround" summary="Immediate workaround options">
+
+While waiting for the platform fix, you can try these workarounds:
+
+1. **Check CloudWatch directly**: Access your AWS CloudWatch console to view RDS and OpenSearch metrics directly
+2. **Use AWS CLI**: Query metrics using AWS CLI commands:
+
+```bash
+# For RDS metrics
+aws cloudwatch get-metric-statistics \
+  --namespace AWS/RDS \
+  --metric-name CPUUtilization \
+  --dimensions Name=DBInstanceIdentifier,Value=your-db-instance \
+  --start-time 2025-01-22T00:00:00Z \
+  --end-time 2025-01-22T23:59:59Z \
+  --period 3600 \
+  --statistics Average
+
+# For OpenSearch metrics
+aws cloudwatch get-metric-statistics \
+  --namespace AWS/ES \
+  --metric-name CPUUtilization \
+  --dimensions Name=DomainName,Value=your-domain,Name=ClientId,Value=your-account-id \
+  --start-time 2025-01-22T00:00:00Z \
+  --end-time 2025-01-22T23:59:59Z \
+  --period 3600 \
+  --statistics Average
+```
+
+3. **Set up temporary monitoring**: Create custom CloudWatch dashboards for affected dependencies
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="platform-fix" summary="Platform fix in progress">
+
+The SleakOps team is working on a comprehensive solution that will:
+
+1. **Identify all affected dependencies**: Scan the database for dependencies missing the monitoring variable
+2. **Populate missing variables**: Add the required monitoring configuration to existing dependencies
+3. **Prevent future occurrences**: Ensure all new dependencies include the monitoring variable from creation
+
+**Expected timeline**: The fix is being implemented as a complete solution rather than individual patches to ensure all affected users benefit simultaneously.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="How to verify if your dependency is affected">
+
+To check if your dependencies are affected by this issue:
+
+1. **Navigate to Dependencies** in your SleakOps dashboard
+2. **Select your RDS or OpenSearch dependency**
+3. **Go to the Monitoring tab**
+4. **Check if graphs display data**:
+   - If graphs are empty but the page loads → You're affected by this issue
+   - If graphs show data → Your dependency is working correctly
+   - If the page doesn't load → This might be a different issue
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention" summary="Preventing this issue for new dependencies">
+
+For new dependencies created after the platform fix:
+
+1. **Verify monitoring setup**: After creating a new dependency, check that monitoring graphs display data within 5-10 minutes
+2. **Test different time ranges**: Ensure graphs work for different time periods (1 hour, 24 hours, 7 days)
+3. **Contact support early**: If new dependencies show this issue, report it immediately as it might indicate the fix needs adjustment
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 22, 2025 based on a real user query._

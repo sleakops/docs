@@ -1,0 +1,170 @@
+---
+sidebar_position: 3
+title: "Problemas de Desconexión de la Conexión VPN"
+description: "Solución de problemas de desconexiones VPN y actualización de credenciales en SleakOps"
+date: "2024-08-01"
+category: "usuario"
+tags: ["vpn", "conexión", "credenciales", "solución de problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de Desconexión de la Conexión VPN
+
+**Fecha:** 1 de agosto de 2024  
+**Categoría:** Usuario  
+**Etiquetas:** VPN, Conexión, Credenciales, Solución de problemas
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios experimentan desconexiones intermitentes de la VPN al acceder a los servicios de SleakOps, requiriendo la actualización de credenciales y reconexión para restaurar el acceso a recursos internos como los paneles de Grafana.
+
+**Síntomas Observados:**
+
+- La conexión VPN se cae inesperadamente
+- Incapacidad para acceder a servicios internos (p. ej., ingreso a Grafana)
+- Problemas de conexión resueltos tras actualización de credenciales
+- Los servicios funcionan correctamente cuando la VPN está conectada adecuadamente
+
+**Configuración Relevante:**
+
+- Cliente VPN: configuración proporcionada por SleakOps
+- Servicios objetivo: puntos de ingreso internos (p. ej., Grafana)
+- Autenticación: credenciales de usuario para acceso VPN
+
+**Condiciones de Error:**
+
+- La VPN se desconecta sin acción del usuario
+- Los servicios internos se vuelven inaccesibles
+- La reconexión puede fallar con credenciales antiguas
+- El problema se resuelve tras refrescar las credenciales
+
+## Solución Detallada
+
+<TroubleshootingItem id="immediate-reconnection" summary="Pasos para reconexión inmediata">
+
+Cuando experimente desconexión de la VPN:
+
+1. **Desconéctese completamente** de la VPN
+2. **Espere 10-15 segundos** antes de intentar reconectar
+3. **Reconéctese a la VPN** usando su cliente
+4. **Pruebe el acceso** a los servicios internos
+
+Si la reconexión falla, proceda a los pasos de actualización de credenciales.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="credential-update" summary="Cómo actualizar las credenciales VPN">
+
+Para actualizar sus credenciales VPN:
+
+1. **Acceda al Panel de SleakOps**
+
+   - Inicie sesión en su cuenta de SleakOps
+   - Navegue a **Configuración de Usuario** o **Acceso VPN**
+
+2. **Genere nuevas credenciales**
+
+   - Haga clic en **"Regenerar Credenciales VPN"**
+   - Descargue el nuevo archivo de configuración
+
+3. **Actualice su cliente VPN**
+   - Elimine el perfil VPN antiguo
+   - Importe la nueva configuración
+   - Conéctese usando las credenciales actualizadas
+
+```bash
+# Para clientes OpenVPN
+sudo openvpn --config /ruta/a/nueva-config.ovpn
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="connection-verification" summary="Verificar conexión VPN y acceso">
+
+Después de reconectarse, verifique su acceso:
+
+1. **Revise el estado de la VPN**
+
+   ```bash
+   # Verifique su dirección IP
+   curl ifconfig.me
+
+   # Debe mostrar rango IP de la VPN SleakOps
+   ```
+
+2. **Pruebe el acceso a servicios internos**
+
+   ```bash
+   # Prueba de acceso a Grafana (ejemplo)
+   curl -I https://grafana.prod.su-dominio.com/login
+
+   # Debe devolver HTTP 200 o redirección
+   ```
+
+3. **Verifique la resolución DNS**
+   ```bash
+   # Prueba de resolución DNS interna
+   nslookup grafana.prod.su-dominio.com
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevent-disconnections" summary="Prevenir desconexiones futuras">
+
+Para minimizar las desconexiones de VPN:
+
+1. **Habilite la reconexión automática** en la configuración de su cliente VPN
+2. **Use opciones keep-alive** si están disponibles
+3. **Verifique la estabilidad de la red** en su conexión local
+4. **Actualice el cliente VPN** a la última versión
+
+**Para clientes OpenVPN:**
+
+```conf
+# Añada a su archivo .ovpn
+keepalive 10 120
+ping-timer-rem
+persist-tun
+persist-key
+```
+
+**Para administradores de red:**
+
+- Configure el firewall para permitir tráfico VPN
+- Asegure que el puerto UDP 1194 (o el puerto configurado) esté abierto
+- Verifique que el equipo de red no corte conexiones prolongadas
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-tips" summary="Consejos adicionales para solución de problemas">
+
+**Si los problemas persisten:**
+
+1. **Revise los registros del sistema**
+
+   ```bash
+   # En Linux/macOS
+   tail -f /var/log/openvpn.log
+
+   # En Windows
+   # Revise el Visor de Eventos > Registros de Aplicaciones y Servicios > OpenVPN
+   ```
+
+2. **Pruebe diferentes métodos de conexión**
+
+   - Intente TCP en lugar de UDP
+   - Use diferentes puntos de acceso VPN si están disponibles
+   - Pruebe desde distintas ubicaciones de red
+
+3. **Contacte soporte con detalles**
+   - Versión del cliente VPN
+   - Sistema operativo
+   - Mensajes de error de los registros
+   - Hora en que ocurrió la desconexión
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2025 basada en una consulta real de usuario._

@@ -1,0 +1,184 @@
+---
+sidebar_position: 3
+title: "Django Migration Conflicts During Database Import"
+description: "Solution for Django migration errors when importing database dumps with different migration states"
+date: "2024-12-20"
+category: "project"
+tags: ["django", "migrations", "database", "import", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Django Migration Conflicts During Database Import
+
+**Date:** December 20, 2024  
+**Category:** Project  
+**Tags:** Django, Migrations, Database, Import, Troubleshooting
+
+## Problem Description
+
+**Context:** When importing a database dump into a Django application deployed on SleakOps, the pre-upgrade hook responsible for running Django migrations fails because the system doesn't recognize that certain migrations have already been applied.
+
+**Observed Symptoms:**
+
+- Pre-upgrade hook fails during deployment
+- Django migration system doesn't recognize previously applied migrations
+- Database import process fails
+- Migration conflicts between dump state and current codebase
+
+**Relevant Configuration:**
+
+- Framework: Django with Django REST Framework
+- Database: PostgreSQL (typical for SleakOps deployments)
+- Deployment: Kubernetes with pre-upgrade hooks
+- Migration apps: cobranza, django_celery_results, and others
+
+**Error Conditions:**
+
+- Error occurs during pre-upgrade hook execution
+- Happens when database dump contains different migration states than current code
+- Affects multiple Django apps with pending migrations
+- Problem persists until migration states are synchronized
+
+## Detailed Solution
+
+<TroubleshootingItem id="root-cause-analysis" summary="Understanding the root cause">
+
+This issue occurs when:
+
+1. **Database dump origin**: The dump was created from a database where the project was running on a different branch
+2. **Migration state mismatch**: The migration history in the dump doesn't match the current codebase migrations
+3. **Django migration tracking**: Django's `django_migrations` table contains records that don't align with current migration files
+
+The key indicator is seeing migrations marked as `[ ]` (not applied) when running `python manage.py showmigrations`, even though the database contains the actual schema changes.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-diagnosis" summary="Diagnosing migration state conflicts">
+
+To diagnose the issue, connect to your application pod and run:
+
+```bash
+# Check current migration status
+python manage.py showmigrations
+
+# Look for apps with mixed states like:
+# cobranza
+#  [X] 0001_initial
+#  [ ] 0002_initial  # <-- This indicates a conflict
+```
+
+Also check the database directly:
+
+```sql
+-- Connect to your database and check migration records
+SELECT app, name, applied FROM django_migrations
+WHERE app IN ('cobranza', 'django_celery_results')
+ORDER BY app, applied;
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="solution-fake-migrations" summary="Resolving with fake migrations">
+
+The most effective solution is to mark the conflicting migrations as applied without actually running them:
+
+```bash
+# Connect to your application pod
+kubectl exec -it <pod-name> -- bash
+
+# Mark specific migrations as fake-applied
+python manage.py migrate cobranza 0002_initial --fake
+python manage.py migrate django_celery_results 0011_taskresult_periodic_task_name --fake
+
+# Verify the fix
+python manage.py showmigrations
+```
+
+For multiple migrations:
+
+```bash
+# Mark all pending migrations as fake for a specific app
+python manage.py migrate cobranza --fake
+
+# Or mark all pending migrations across all apps
+python manage.py migrate --fake
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-best-practices" summary="Preventing future migration conflicts">
+
+To avoid this issue in the future:
+
+1. **Consistent branch dumps**: Always create database dumps from the same branch you'll deploy to
+
+2. **Migration synchronization**: Before creating dumps, ensure migrations are up to date:
+
+   ```bash
+   python manage.py migrate
+   python manage.py showmigrations  # Verify all are applied
+   ```
+
+3. **Clean import process**: When importing dumps:
+
+   ```bash
+   # After import, immediately check migration state
+   python manage.py showmigrations
+   # Fix any conflicts before deployment
+   ```
+
+4. **Environment consistency**: Use the same Django version and app versions between dump creation and import environments
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-specific-handling" summary="Handling in SleakOps deployments">
+
+For SleakOps deployments with pre-upgrade hooks:
+
+1. **Temporary hook modification**: If you need to deploy immediately, you can temporarily modify the pre-upgrade hook to use `--fake-initial`:
+
+   ```yaml
+   # In your deployment configuration
+   preUpgradeHook:
+     command: |
+       python manage.py migrate --fake-initial
+   ```
+
+2. **Post-deployment fix**: After successful deployment, connect to the pod and run the proper fake migrations as described above
+
+3. **Restore normal hook**: Once fixed, restore the normal migration hook:
+   ```yaml
+   preUpgradeHook:
+     command: |
+       python manage.py migrate
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Verifying the solution">
+
+After applying the fix:
+
+1. **Check migration status**:
+
+   ```bash
+   python manage.py showmigrations
+   # All migrations should show [X]
+   ```
+
+2. **Test application functionality**:
+
+   - Verify database operations work correctly
+   - Check that all models are accessible
+   - Test critical application features
+
+3. **Successful deployment**:
+   - The next deployment should complete without migration errors
+   - Pre-upgrade hooks should execute successfully
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 20, 2024 based on a real user query._

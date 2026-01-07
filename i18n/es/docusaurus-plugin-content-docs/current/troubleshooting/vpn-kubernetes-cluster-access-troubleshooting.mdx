@@ -1,0 +1,222 @@
+---
+sidebar_position: 3
+title: "Problemas de Conexión VPN con el Acceso al Cluster Kubernetes"
+description: "Solución de problemas de conectividad VPN al acceder a clusters Kubernetes a través de Lens"
+date: "2025-01-28"
+category: "usuario"
+tags: ["vpn", "kubernetes", "lens", "conectividad", "solución de problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de Conexión VPN con el Acceso al Cluster Kubernetes
+
+**Fecha:** 28 de enero de 2025  
+**Categoría:** Usuario  
+**Etiquetas:** VPN, Kubernetes, Lens, Conectividad, Solución de Problemas
+
+## Descripción del Problema
+
+**Contexto:** El usuario se conecta correctamente a la VPN usando Pritunl pero no puede acceder al cluster Kubernetes a través del IDE Lens. Los intentos de conexión resultan en errores de tiempo de espera, y hay dudas sobre la resolución DNS y la configuración del segmento de red.
+
+**Síntomas Observados:**
+
+- La conexión VPN con Pritunl parece exitosa
+- Lens muestra errores de tiempo de espera al intentar conectarse al cluster Kubernetes
+- El cluster resuelve a una IP pública en lugar de una IP interna
+- La VPN asigna un segmento de red diferente al esperado para el cluster Kubernetes
+- La consola de AWS muestra notificaciones de actualización del cluster
+
+**Configuración Relevante:**
+
+- Cliente VPN: Pritunl
+- IDE Kubernetes: Lens
+- Plataforma: AWS EKS
+- Método de conexión: importación de kubeconfig
+- Resolución DNS: intento de configuración DNS forzada
+
+**Condiciones de Error:**
+
+- Ocurren errores de tiempo de espera cuando Lens intenta conectar
+- El problema persiste a pesar de la conexión VPN exitosa
+- La resolución DNS apunta a IP pública en lugar del endpoint privado del cluster
+- El problema ocurre incluso con configuraciones DNS forzadas
+
+## Solución Detallada
+
+<TroubleshootingItem id="dns-resolution-check" summary="Verificar la resolución DNS y el endpoint del cluster">
+
+Primero, verifica que tu VPN esté resolviendo correctamente el endpoint interno del cluster:
+
+1. **Revisa tu archivo kubeconfig** para encontrar el endpoint del cluster:
+
+   ```bash
+   cat ~/.kube/config | grep server
+   ```
+
+2. **Prueba la resolución DNS** con la VPN conectada:
+
+   ```bash
+   nslookup your-cluster-endpoint.amazonaws.com
+   ping your-cluster-endpoint.amazonaws.com
+   ```
+
+3. **Prueba la conectividad HTTP**:
+   ```bash
+   curl -k https://your-cluster-endpoint.amazonaws.com
+   ```
+
+El cluster debería resolverse a una dirección IP privada (rango 10.x.x.x o 172.x.x.x) cuando la VPN está activa.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="vpn-conflicts" summary="Verificar conflictos de VPN e interferencia en la red">
+
+Múltiples conexiones VPN pueden interferir con la resolución DNS:
+
+1. **Desconecta todas las demás conexiones VPN**:
+
+   - Revisa la bandeja del sistema para clientes VPN activos
+   - Deshabilita cualquier conexión VPN corporativa
+   - Cierra otras aplicaciones VPN
+
+2. **Verifica que Pritunl sea la única VPN activa**:
+
+   ```bash
+   # En Windows
+   ipconfig /all
+
+   # En macOS/Linux
+   ifconfig
+   ```
+
+3. **Revisa la tabla de rutas**:
+
+   ```bash
+   # Windows
+   route print
+
+   # macOS/Linux
+   route -n
+   ```
+
+Asegúrate de que la ruta VPN tenga prioridad sobre otras interfaces de red.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="lens-configuration" summary="Reconfigurar Lens con la VPN activa">
+
+Lens puede almacenar en caché la resolución del endpoint del cluster:
+
+1. **Cierra Lens completamente**
+2. **Asegúrate de que la VPN esté conectada y estable**
+3. **Borra la caché de Lens** (opcional):
+
+   - Windows: `%APPDATA%\Lens`
+   - macOS: `~/Library/Application Support/Lens`
+   - Linux: `~/.config/Lens`
+
+4. **Reinicia Lens y vuelve a importar el kubeconfig**:
+
+   - Archivo → Añadir Cluster
+   - Importa nuevamente tu archivo kubeconfig
+   - Prueba la conexión
+
+5. **Verifica el contexto del cluster**:
+   ```bash
+   kubectl config current-context
+   kubectl cluster-info
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="network-diagnostics" summary="Diagnósticos avanzados de red">
+
+Si la solución básica no funciona:
+
+1. **Verifica el rango IP asignado por la VPN**:
+
+   ```bash
+   # Encuentra tu interfaz VPN
+   ip addr show | grep tun
+   # o
+   ifconfig | grep -A 5 tun
+   ```
+
+2. **Verifica que puedas alcanzar la red del cluster**:
+
+   ```bash
+   # Intenta alcanzar la red interna del cluster
+   ping 10.0.0.1  # Reemplaza con la red de tu cluster
+   ```
+
+3. **Prueba kubectl directamente**:
+
+   ```bash
+   kubectl get nodes
+   kubectl get pods --all-namespaces
+   ```
+
+4. **Revisa la configuración DNS**:
+
+   ```bash
+   # Windows
+   nslookup
+   server
+
+   # macOS/Linux
+   cat /etc/resolv.conf
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="aws-console-updates" summary="Gestionar notificaciones de actualización del cluster en AWS">
+
+Respecto a la notificación de actualización del cluster en la consola AWS:
+
+1. **Esto es normal** - AWS notifica regularmente sobre actualizaciones disponibles
+2. **No actualices durante la solución de problemas** - Prioriza la conectividad primero
+3. **Las actualizaciones deben planificarse** - Coordina con tu equipo de SleakOps
+
+**Para verificar la versión del cluster**:
+
+```bash
+kubectl version --short
+```
+
+**Nota**: Las actualizaciones del cluster normalmente no causan problemas de conectividad VPN.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-access-methods" summary="Métodos alternativos de acceso">
+
+Si Lens continúa presentando problemas:
+
+1. **Usa kubectl directamente**:
+
+   ```bash
+   kubectl get nodes
+   kubectl get pods
+   ```
+
+2. **Prueba otros IDEs para Kubernetes**:
+
+   - K9s (basado en terminal)
+   - Octant (basado en web)
+   - VS Code con extensión de Kubernetes
+
+3. **Acceso basado en web** (si está disponible):
+
+   - Kubernetes Dashboard
+   - Interfaz web de SleakOps
+
+4. **Verifica con soporte de SleakOps**:
+   - Confirma la configuración VPN
+   - Revisa la accesibilidad del cluster
+   - Verifica permisos de usuario
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 28 de enero de 2025 basada en una consulta real de usuario._

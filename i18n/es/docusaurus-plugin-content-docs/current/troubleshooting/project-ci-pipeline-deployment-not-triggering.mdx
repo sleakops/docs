@@ -1,0 +1,227 @@
+---
+sidebar_position: 15
+title: "El pipeline de CI no se activa al hacer push en la rama"
+description: "Solución para despliegues que no se ejecutan al hacer push en la rama configurada"
+date: "2024-03-18"
+category: "proyecto"
+tags: ["ci", "pipeline", "despliegue", "github", "staging"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# El pipeline de CI no se activa al hacer push en la rama
+
+**Fecha:** 18 de marzo de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** CI, Pipeline, Despliegue, GitHub, Staging
+
+## Descripción del problema
+
+**Contexto:** El usuario ha configurado un proyecto con una rama específica (staging) para despliegues, pero al hacer push de código en esa rama, el pipeline de CI/CD no se ejecuta y los despliegues no se activan.
+
+**Síntomas observados:**
+
+- El push a la rama staging no dispara despliegues
+- No hay ejecución visible del pipeline en GitHub Actions
+- El proyecto parece estar configurado correctamente con la rama deseada
+- El proceso de despliegue automático esperado no funciona
+
+**Configuración relevante:**
+
+- Rama objetivo: `staging`
+- Plataforma: GitHub con GitHub Actions
+- Ubicación de archivos CI/CD: `.github/workflows/`
+- Configuración del proyecto en SleakOps
+
+**Condiciones de error:**
+
+- El pipeline no se activa tras el push a la rama staging
+- No se muestran mensajes de error inicialmente
+- La automatización del despliegue no funciona como se espera
+
+## Solución detallada
+
+<TroubleshootingItem id="verify-branch-configuration" summary="Verificar configuración de la rama del proyecto">
+
+Primero, asegúrate de que tu proyecto está configurado con la rama correcta:
+
+1. Ve a tu **Panel de Proyecto de SleakOps**
+2. Navega a **Configuración del Proyecto**
+3. Revisa la sección **Configuración del Pipeline**
+4. Verifica que la **Rama Objetivo** esté establecida en `staging`
+5. Guarda los cambios si realizaste alguna modificación
+
+La configuración debe coincidir con la rama a la que haces push.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="check-ci-file-structure" summary="Revisar estructura de archivos CI/CD">
+
+Verifica que los archivos del workflow de GitHub Actions estén correctamente estructurados:
+
+1. Comprueba que los archivos existan en el directorio `.github/workflows/`
+2. Asegúrate de que los archivos tengan extensión `.yml` o `.yaml`
+3. Verifica que el workflow se active en la rama correcta
+
+Ejemplo de configuración del workflow:
+
+```yaml
+name: Despliegue SleakOps
+
+on:
+  push:
+    branches:
+      - staging # Asegúrate que coincida con tu rama configurada
+  pull_request:
+    branches:
+      - staging
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v3
+
+      - name: Desplegar en SleakOps
+        uses: sleakops/deploy-action@v1
+        with:
+          api-key: ${{ secrets.SLEAKOPS_API_KEY }}
+          project-id: ${{ secrets.SLEAKOPS_PROJECT_ID }}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="example-workflow-file" summary="Ejemplo completo de archivo de workflow">
+
+Aquí tienes un ejemplo completo de archivo workflow que puedes usar tal cual para SleakOps:
+
+```yaml
+# .github/workflows/sleakops-deploy.yml
+name: Pipeline CI/CD de SleakOps
+
+on:
+  push:
+    branches:
+      - staging
+      - main
+  pull_request:
+    branches:
+      - staging
+      - main
+
+env:
+  SLEAKOPS_API_URL: https://api.sleakops.com
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v3
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Ejecutar pruebas
+        run: npm test
+
+      - name: Construir aplicación
+        run: npm run build
+
+      - name: Desplegar en SleakOps
+        uses: sleakops/deploy-action@v1
+        with:
+          api-key: ${{ secrets.SLEAKOPS_API_KEY }}
+          project-id: ${{ secrets.SLEAKOPS_PROJECT_ID }}
+          environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+Guarda este archivo como `.github/workflows/sleakops-deploy.yml` en tu repositorio.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verify-github-actions" summary="Verificar ejecución de GitHub Actions">
+
+Después de fusionar un PR a staging, verifica la ejecución de la acción:
+
+1. Ve a tu **repositorio en GitHub**
+2. Haz clic en la pestaña **Actions**
+3. Busca ejecuciones del workflow después de tu push/merge reciente
+4. Haz clic en cualquier ejecución fallida para ver los registros detallados de error
+5. Revisa la sección **Jobs** para fallos específicos en pasos
+
+Problemas comunes a revisar:
+
+- Secretos faltantes (SLEAKOPS_API_KEY, SLEAKOPS_PROJECT_ID)
+- Nombres de ramas incorrectos en los triggers del workflow
+- Errores de sintaxis en archivos YAML
+- Problemas de permisos con tokens de GitHub
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Pasos adicionales para solución de problemas">
+
+Si el pipeline aún no se activa:
+
+1. **Verifica permisos del repositorio:**
+
+   - Asegúrate que GitHub Actions esté habilitado para tu repositorio
+   - Revisa permisos del workflow en la configuración del repositorio
+
+2. **Valida sintaxis YAML:**
+
+   ```bash
+   # Usa un validador YAML o el verificador integrado de GitHub
+   yamllint .github/workflows/sleakops-deploy.yml
+   ```
+
+3. **Prueba con un workflow simple:**
+
+   ```yaml
+   name: Workflow de prueba
+   on:
+     push:
+       branches: [staging]
+   jobs:
+     test:
+       runs-on: ubuntu-latest
+       steps:
+         - run: echo "Pipeline activado correctamente"
+   ```
+
+4. **Verifica integración con SleakOps:**
+   - Confirma que las claves API estén correctamente configuradas en los Secrets de GitHub
+   - Asegúrate que el ID del proyecto coincida con tu proyecto en SleakOps
+   - Revisa el panel de SleakOps para detectar problemas de integración
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="secrets-configuration" summary="Configurar secretos requeridos">
+
+Asegúrate de que los siguientes secretos estén configurados en tu repositorio de GitHub:
+
+1. Ve a **Configuración del repositorio** → **Secrets and variables** → **Actions**
+2. Añade los siguientes secretos del repositorio:
+
+| Nombre del secreto    | Descripción                  | Dónde encontrar                                |
+| --------------------- | ---------------------------- | ---------------------------------------------- |
+| `SLEAKOPS_API_KEY`    | Tu clave API de SleakOps     | Panel de SleakOps → Configuración → Claves API |
+| `SLEAKOPS_PROJECT_ID` | Identificador de tu proyecto | Proyecto SleakOps → Configuración → General    |
+
+3. Verifica que los secretos sean accesibles en tu workflow revisando los logs de Actions
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 18 de marzo de 2024 basada en una consulta real de usuario._

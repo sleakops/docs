@@ -1,0 +1,501 @@
+---
+sidebar_position: 3
+title: "Project Stuck in Analyzing State - Missing Dockerfile"
+description: "Solution for projects that remain permanently stuck in analyzing state due to missing Dockerfile"
+date: "2024-12-11"
+category: "project"
+tags: ["dockerfile", "analyzing", "deployment", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Project Stuck in Analyzing State - Missing Dockerfile
+
+**Date:** December 11, 2024  
+**Category:** Project  
+**Tags:** Dockerfile, Analyzing, Deployment, Troubleshooting
+
+## Problem Description
+
+**Context:** A new project in SleakOps gets stuck permanently in the "analyzing" state and cannot proceed with the deployment process.
+
+**Observed Symptoms:**
+
+- Project remains in "analyzing" state indefinitely
+- No progress in the deployment pipeline
+- Build process does not advance to next stages
+- No clear error messages displayed in the UI
+
+**Relevant Configuration:**
+
+- Project type: New project
+- Status: Stuck in analyzing phase
+- Repository: Connected to source code repository
+- Dockerfile: Missing or not detected
+
+**Error Conditions:**
+
+- Error occurs during initial project analysis
+- Happens when SleakOps cannot find a Dockerfile in the repository
+- Problem persists until Dockerfile is properly configured
+- May occur if Dockerfile was added after the initial analysis
+
+## Detailed Solution
+
+<TroubleshootingItem id="dockerfile-verification" summary="Verify Dockerfile presence and location">
+
+First, check if your repository contains a Dockerfile:
+
+1. **Check repository root**: Ensure there's a file named `Dockerfile` (case-sensitive) in the root directory
+2. **Verify file contents**: The Dockerfile should contain valid Docker instructions
+3. **Check file permissions**: Ensure the file is readable and properly committed to the repository
+
+```bash
+# Example of a basic Dockerfile structure
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-creation" summary="Create a Dockerfile if missing">
+
+If your repository doesn't have a Dockerfile, you need to create one:
+
+1. **Create the file**: Add a file named `Dockerfile` in your repository root
+2. **Choose appropriate base image**: Select based on your application technology
+3. **Define build steps**: Include all necessary commands to build your application
+4. **Commit and push**: Make sure to commit the Dockerfile to your repository
+
+**Common Dockerfile templates:**
+
+```dockerfile
+# Node.js application
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+EXPOSE 3000
+CMD ["node", "server.js"]
+```
+
+```dockerfile
+# Python application
+FROM python:3.9-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+EXPOSE 8000
+CMD ["python", "app.py"]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="project-reanalysis" summary="Trigger project reanalysis">
+
+After adding or fixing the Dockerfile:
+
+1. **Commit changes**: Ensure the Dockerfile is committed to your repository
+2. **Trigger reanalysis**: In SleakOps dashboard:
+   - Go to your project
+   - Look for "Re-analyze" or "Refresh" button
+   - Click to trigger a new analysis
+3. **Monitor progress**: Watch the project status change from "analyzing" to the next phase
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-validation" summary="Validate Dockerfile syntax">
+
+Before committing, validate your Dockerfile:
+
+```bash
+# Test Dockerfile locally
+docker build -t test-image .
+
+# Check for syntax errors
+docker run --rm -i hadolint/hadolint < Dockerfile
+```
+
+**Common Dockerfile issues:**
+
+- Missing `FROM` instruction
+- Incorrect file paths in `COPY` commands
+- Missing executable permissions
+- Wrong working directory setup
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Alternative solutions if problem persists">
+
+If the project remains stuck after adding a Dockerfile:
+
+1. **Check repository permissions**: Ensure SleakOps has access to read the repository
+2. **Verify branch**: Make sure you're working on the correct branch
+3. **Clear cache**: Try disconnecting and reconnecting the repository
+4. **Contact support**: If the issue persists, provide:
+   - Repository URL
+   - Dockerfile contents
+   - Project configuration details
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-best-practices" summary="Dockerfile best practices for SleakOps">
+
+Follow these best practices when creating Dockerfiles for SleakOps:
+
+1. **Use appropriate base images**:
+
+```dockerfile
+# For production, use specific versions and slim/alpine variants
+FROM node:18-alpine
+# Instead of: FROM node:latest
+```
+
+2. **Optimize layer caching**:
+
+```dockerfile
+# Copy package files first for better caching
+COPY package*.json ./
+RUN npm ci --only=production
+# Then copy application code
+COPY . .
+```
+
+3. **Set proper working directory**:
+
+```dockerfile
+# Always set a working directory
+WORKDIR /app
+# Avoid using root directory
+```
+
+4. **Handle file permissions correctly**:
+
+```dockerfile
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nextjs -u 1001
+USER nextjs
+```
+
+5. **Configure health checks**:
+
+```dockerfile
+# Add health check for better container management
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="technology-specific-dockerfiles" summary="Technology-specific Dockerfile examples">
+
+Complete Dockerfile examples for different technologies:
+
+**Node.js with TypeScript:**
+
+```dockerfile
+FROM node:18-alpine AS base
+
+# Install dependencies only when needed
+FROM base AS deps
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Rebuild the source code only when needed
+FROM base AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# Production image
+FROM base AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nextjs -u 1001
+
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/dist ./dist
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+
+USER nextjs
+
+EXPOSE 3000
+CMD ["node", "dist/index.js"]
+```
+
+**Python Django Application:**
+
+```dockerfile
+FROM python:3.11-slim
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Set work directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy project
+COPY . .
+
+# Create non-root user
+RUN adduser --disabled-password --gecos '' appuser
+RUN chown -R appuser:appuser /app
+USER appuser
+
+# Run the application
+EXPOSE 8000
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "myproject.wsgi:application"]
+```
+
+**Java Spring Boot:**
+
+```dockerfile
+FROM openjdk:17-jdk-slim AS build
+
+WORKDIR /app
+COPY gradle* ./
+COPY gradle ./gradle
+COPY build.gradle settings.gradle ./
+RUN ./gradlew dependencies
+
+COPY src ./src
+RUN ./gradlew build -x test
+
+FROM openjdk:17-jre-slim
+WORKDIR /app
+
+RUN addgroup --system spring && adduser --system spring --ingroup spring
+USER spring:spring
+
+COPY --from=build /app/build/libs/*.jar app.jar
+
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8080/actuator/health || exit 1
+
+ENTRYPOINT ["java", "-jar", "app.jar"]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-troubleshooting" summary="Advanced Dockerfile troubleshooting">
+
+Debug common Dockerfile issues:
+
+1. **Build context issues**:
+
+```bash
+# Check what files are being sent to Docker build context
+echo "FROM alpine" | docker build -
+
+# Use .dockerignore to exclude unnecessary files
+cat > .dockerignore << EOF
+node_modules
+npm-debug.log
+.git
+.gitignore
+README.md
+.env
+.nyc_output
+coverage
+.cache
+EOF
+```
+
+2. **Multi-stage build optimization**:
+
+```dockerfile
+# Separate build and runtime stages
+FROM node:18-alpine AS development
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+EXPOSE 3000
+CMD ["npm", "run", "dev"]
+
+FROM node:18-alpine AS production
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+3. **Debugging build failures**:
+
+```bash
+# Build with verbose output
+docker build --progress=plain --no-cache -t debug-image .
+
+# Inspect intermediate layers
+docker run -it <intermediate-layer-id> /bin/sh
+
+# Check build logs
+docker build --progress=plain . 2>&1 | tee build.log
+```
+
+4. **Environment-specific configurations**:
+
+```dockerfile
+# Use ARG for build-time variables
+ARG NODE_ENV=production
+ARG BUILD_VERSION
+
+# Use ENV for runtime variables
+ENV NODE_ENV=${NODE_ENV}
+ENV BUILD_VERSION=${BUILD_VERSION}
+
+# Conditional commands based on environment
+RUN if [ "$NODE_ENV" = "development" ]; then npm install; else npm ci --only=production; fi
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="repository-integration" summary="Repository integration troubleshooting">
+
+Resolve repository-related issues that prevent analysis:
+
+1. **Check repository connectivity**:
+
+```bash
+# Verify SleakOps can access your repository
+# In SleakOps dashboard:
+# 1. Go to Project Settings
+# 2. Check Repository Connection Status
+# 3. Test connection if available
+```
+
+2. **Branch configuration**:
+
+- Ensure SleakOps is monitoring the correct branch
+- Check if Dockerfile exists in the monitored branch
+- Verify branch protection rules don't block SleakOps
+
+3. **Repository permissions**:
+
+```yaml
+# For GitHub, ensure SleakOps has these permissions:
+permissions:
+  - contents: read
+  - metadata: read
+  - pull_requests: read (if using PR workflows)
+```
+
+4. **Webhook configuration**:
+
+- Verify webhooks are configured for repository updates
+- Check webhook delivery logs for failures
+- Ensure webhook URLs are accessible from your repository
+
+5. **File path issues**:
+
+```bash
+# Ensure Dockerfile is in the expected location
+ls -la Dockerfile  # Should be in repository root
+
+# Check for hidden characters or encoding issues
+file Dockerfile
+hexdump -C Dockerfile | head
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="advanced-project-configuration" summary="Advanced project configuration for analysis">
+
+Configure projects for optimal analysis:
+
+1. **Project structure requirements**:
+
+```text
+your-repository/
+├── Dockerfile              # Required in root
+├── .dockerignore           # Recommended
+├── package.json           # For Node.js projects
+├── requirements.txt       # For Python projects
+├── pom.xml               # For Java Maven projects
+├── build.gradle          # For Java Gradle projects
+└── src/                  # Application source code
+```
+
+2. **Environment-specific Dockerfiles**:
+
+```dockerfile
+# Dockerfile.development
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+EXPOSE 3000
+CMD ["npm", "run", "dev"]
+```
+
+```dockerfile
+# Dockerfile.production (or just Dockerfile)
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+3. **Configuration file handling**:
+
+```dockerfile
+# Handle multiple configuration files
+COPY config/ ./config/
+COPY public/ ./public/
+
+# Use build arguments for environment-specific configs
+ARG CONFIG_ENV=production
+COPY config/${CONFIG_ENV}.json ./config/active.json
+```
+
+4. **Resource optimization**:
+
+```dockerfile
+# Set appropriate resource limits in Dockerfile
+ENV NODE_OPTIONS="--max-old-space-size=2048"
+
+# Use multi-stage builds to reduce image size
+FROM node:18-alpine AS deps
+# ... dependency installation
+
+FROM node:18-alpine AS runner
+COPY --from=deps /app/node_modules ./node_modules
+# ... rest of application
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 11, 2024 based on a real user query._

@@ -1,0 +1,1292 @@
+---
+sidebar_position: 3
+title: "Desplegando Apache Superset con el Chart Helm de Bitnami"
+description: "Guía completa para desplegar Apache Superset usando el chart Helm de Bitnami con configuraciones personalizadas y tolerancias"
+date: "2024-12-20"
+category: "carga-de-trabajo"
+tags: ["superset", "bitnami", "helm", "kubernetes", "despliegue", "tolerancias"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Desplegando Apache Superset con el Chart Helm de Bitnami
+
+**Fecha:** 20 de diciembre de 2024  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** Superset, Bitnami, Helm, Kubernetes, Despliegue, Tolerancias
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios necesitan desplegar Apache Superset usando el chart Helm de Bitnami en un clúster de Kubernetes con configuraciones específicas que incluyen tolerancias para la inicialización de la base de datos y valores personalizados.
+
+**Síntomas Observados:**
+
+- Necesidad de añadir tolerancias a los pods de inicialización de la base de datos
+- El chart de Bitnami no soporta tolerancias para contenedores init vía valores
+- Requiere un script post-render para modificar las plantillas del chart
+- Gestión compleja de la configuración para el despliegue de Superset
+
+**Configuración Relevante:**
+
+- Chart: `bitnami/superset`
+- Namespace: `superset`
+- Archivo de valores personalizados: `values-def.yaml`
+- Script post-render: `add-tolerations.sh`
+
+**Condiciones de Error:**
+
+- Los pods de inicialización de la base de datos pueden fallar al programarse sin las tolerancias adecuadas
+- Los valores estándar de Helm no proporcionan opciones de personalización suficientes
+- Se requiere modificación manual del chart para casos de uso específicos
+
+## Solución Detallada
+
+<TroubleshootingItem id="helm-repo-setup" summary="Configuración del Repositorio Helm de Bitnami">
+
+Primero, agregue y actualice el repositorio Helm de Bitnami:
+
+```bash
+# Agregar repositorio Bitnami
+helm repo add bitnami https://charts.bitnami.com/bitnami
+
+# Actualizar repositorios para obtener los charts más recientes
+helm repo update
+
+# Verificar que el repositorio fue agregado
+helm repo list
+
+# Buscar la versión más reciente del chart
+helm search repo bitnami/superset --versions
+
+# Obtener información del chart
+helm show chart bitnami/superset
+helm show readme bitnami/superset
+```
+
+### Verificar prerequisitos
+
+```bash
+# Verificar que kubectl está configurado
+kubectl cluster-info
+
+# Verificar que Helm está instalado
+helm version
+
+# Verificar permisos en el namespace
+kubectl auth can-i create deployments --namespace superset
+
+# Crear namespace si no existe
+kubectl create namespace superset --dry-run=client -o yaml | kubectl apply -f -
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="post-renderer-script" summary="Creación del Script Post-Render">
+
+Cree un script post-render para añadir tolerancias a los pods de inicialización de la base de datos:
+
+```bash
+#!/bin/bash
+# Archivo: add-tolerations.sh
+
+set -e
+
+# Hacer el script ejecutable
+chmod +x add-tolerations.sh
+
+# Script post-render para añadir tolerancias
+cat <<'EOF' > add-tolerations.sh
+#!/bin/bash
+
+# Función para log con timestamp
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >&2
+}
+
+log "Aplicando post-render: añadiendo tolerancias..."
+
+# Leer manifiestos desde stdin
+manifests=$(cat)
+
+# Usar yq para modificar los manifiestos
+echo "$manifests" | yq eval '
+# Añadir tolerancias a Jobs (init containers para DB)
+(select(.kind == "Job") | .spec.template.spec.tolerations) = [
+  {
+    "key": "node-role.kubernetes.io/control-plane",
+    "operator": "Exists",
+    "effect": "NoSchedule"
+  },
+  {
+    "key": "CriticalAddonsOnly",
+    "operator": "Exists"
+  },
+  {
+    "key": "node.kubernetes.io/not-ready",
+    "operator": "Exists",
+    "effect": "NoExecute",
+    "tolerationSeconds": 300
+  },
+  {
+    "key": "node.kubernetes.io/unreachable",
+    "operator": "Exists",
+    "effect": "NoExecute",
+    "tolerationSeconds": 300
+  }
+] |
+# Añadir tolerancias a Deployments (aplicación principal)
+(select(.kind == "Deployment") | .spec.template.spec.tolerations) = [
+  {
+    "key": "node-role.kubernetes.io/control-plane",
+    "operator": "Exists",
+    "effect": "NoSchedule"
+  },
+  {
+    "key": "CriticalAddonsOnly",
+    "operator": "Exists"
+  }
+] |
+# Añadir tolerancias a StatefulSets (si hay alguno)
+(select(.kind == "StatefulSet") | .spec.template.spec.toleranations) = [
+  {
+    "key": "node-role.kubernetes.io/control-plane",
+    "operator": "Exists",
+    "effect": "NoSchedule"
+  },
+  {
+    "key": "CriticalAddonsOnly", 
+    "operator": "Exists"
+  }
+]'
+
+log "Post-render completado exitosamente"
+EOF
+
+# Hacer el script ejecutable
+chmod +x add-tolerations.sh
+
+# Verificar que yq está instalado
+if ! command -v yq &> /dev/null; then
+    echo "Instalando yq..."
+    # Para Linux
+    sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+    sudo chmod +x /usr/local/bin/yq
+    
+    # Para macOS (alternativa)
+    # brew install yq
+fi
+```
+
+### Script alternativo con sed (sin dependencias externas)
+
+```bash
+#!/bin/bash
+# add-tolerations-sed.sh - Versión alternativa usando sed
+
+cat <<'EOF' > add-tolerations-sed.sh
+#!/bin/bash
+
+set -e
+
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >&2
+}
+
+log "Aplicando tolerancias con sed..."
+
+# Leer todo el input
+input=$(cat)
+
+# Función para añadir tolerancias después de 'spec:'
+add_tolerations() {
+    local kind=$1
+    local tolerations='
+      tolerations:
+      - key: "node-role.kubernetes.io/control-plane"
+        operator: "Exists"
+        effect: "NoSchedule"
+      - key: "CriticalAddonsOnly"
+        operator: "Exists"
+      - key: "node.kubernetes.io/not-ready"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 300
+      - key: "node.kubernetes.io/unreachable"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 300'
+
+    echo "$input" | sed "/^kind: $kind$/,/^spec:/{
+        /^spec:/{
+            a\\
+$tolerations
+        }
+    }"
+}
+
+# Aplicar a diferentes tipos de recursos
+result="$input"
+for kind in Job Deployment StatefulSet; do
+    result=$(echo "$result" | add_tolerations "$kind")
+done
+
+echo "$result"
+
+log "Tolerancias añadidas exitosamente"
+EOF
+
+chmod +x add-tolerations-sed.sh
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="values-configuration" summary="Configuración del archivo values-def.yaml">
+
+Cree un archivo de valores personalizado para Superset:
+
+```yaml
+# values-def.yaml - Configuración completa de Superset
+
+# Configuración global
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: ""
+
+# Configuración de la imagen
+image:
+  registry: docker.io
+  repository: bitnami/superset
+  tag: ""
+  pullPolicy: IfNotPresent
+
+# Configuración de autenticación
+auth:
+  adminUser: admin
+  adminPassword: "SuperSecretPassword123!"
+  adminEmail: admin@example.com
+  secretKey: "THIS_IS_MY_SECRET_KEY_CHANGE_ME_IN_PRODUCTION"
+
+# Configuración de base de datos
+postgresql:
+  enabled: true
+  auth:
+    username: superset
+    password: "PostgresPassword123!"
+    database: superset
+  primary:
+    persistence:
+      enabled: true
+      size: 8Gi
+      storageClass: ""
+    resources:
+      requests:
+        memory: 256Mi
+        cpu: 250m
+      limits:
+        memory: 512Mi
+        cpu: 500m
+
+# Configuración de Redis (para caché y celery)
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    password: "RedisPassword123!"
+  master:
+    persistence:
+      enabled: true
+      size: 2Gi
+    resources:
+      requests:
+        memory: 128Mi
+        cpu: 100m
+      limits:
+        memory: 256Mi
+        cpu: 200m
+
+# Configuración de la aplicación principal
+superset:
+  # Configuración de recursos
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 250m
+    limits:
+      memory: 1Gi
+      cpu: 500m
+  
+  # Número de réplicas
+  replicaCount: 2
+  
+  # Configuración de autoescalado
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  
+  # Configuración de sondas de salud
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+    successThreshold: 1
+  
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+    successThreshold: 1
+  
+  # Variables de entorno adicionales
+  extraEnvVars:
+    - name: SUPERSET_LOAD_EXAMPLES
+      value: "yes"
+    - name: SUPERSET_SECRET_KEY
+      valueFrom:
+        secretKeyRef:
+          name: superset-secret
+          key: secret-key
+    - name: PYTHONPATH
+      value: "/app/pythonpath:/opt/bitnami/superset/lib/python3.9/site-packages"
+
+# Configuración de Celery Worker
+worker:
+  enabled: true
+  replicaCount: 2
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 200m
+    limits:
+      memory: 512Mi
+      cpu: 400m
+  
+  # Configuración específica de Celery
+  celery:
+    broker: redis
+    backend: redis
+    concurrency: 4
+
+# Configuración de Celery Beat (scheduler)
+beat:
+  enabled: true
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 100m
+    limits:
+      memory: 256Mi
+      cpu: 200m
+
+# Configuración de Flower (monitoreo de Celery)
+flower:
+  enabled: true
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 100m
+    limits:
+      memory: 256Mi
+      cpu: 200m
+
+# Configuración del servicio
+service:
+  type: ClusterIP
+  port: 8088
+  targetPort: 8088
+  annotations: {}
+
+# Configuración de Ingress
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: superset.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: superset-tls
+      hosts:
+        - superset.example.com
+
+# Configuración de persistencia para logs
+persistence:
+  enabled: true
+  size: 5Gi
+  storageClass: ""
+  accessModes:
+    - ReadWriteOnce
+
+# Configuración de seguridad
+securityContext:
+  enabled: true
+  fsGroup: 1001
+  runAsUser: 1001
+
+podSecurityContext:
+  enabled: true
+  fsGroup: 1001
+
+containerSecurityContext:
+  enabled: true
+  runAsUser: 1001
+  runAsNonRoot: true
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# Configuración de métricas
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: false
+    namespace: ""
+    annotations: {}
+    labels: {}
+
+# Configuración de init containers
+initContainers:
+  # Container para inicializar la base de datos
+  - name: wait-for-db
+    image: postgres:13
+    command: 
+      - sh
+      - -c
+      - |
+        until pg_isready -h $POSTGRES_HOST -p $POSTGRES_PORT -U $POSTGRES_USER; do
+          echo "Waiting for PostgreSQL..."
+          sleep 2
+        done
+        echo "PostgreSQL is ready!"
+    env:
+      - name: POSTGRES_HOST
+        value: "superset-postgresql"
+      - name: POSTGRES_PORT
+        value: "5432"
+      - name: POSTGRES_USER
+        value: "superset"
+
+# Configuración de NetworkPolicy
+networkPolicy:
+  enabled: false
+  ingress:
+    enabled: true
+    namespaceSelector: {}
+    podSelector: {}
+  egress:
+    enabled: true
+    namespaceSelector: {}
+    podSelector: {}
+
+# Tolerancias (serán sobrescritas por el post-renderer)
+tolerations: []
+
+# Afinidad de nodos
+nodeAffinity: {}
+
+# Anti-afinidad de pods
+podAntiAffinity: {}
+
+# Selector de nodos
+nodeSelector: {}
+```
+
+### Archivo de secrets separado
+
+```yaml
+# superset-secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: superset-secret
+  namespace: superset
+type: Opaque
+stringData:
+  secret-key: "THIS_IS_MY_SECRET_KEY_CHANGE_ME_IN_PRODUCTION_VERY_LONG_AND_SECURE"
+  admin-password: "SuperSecretPassword123!"
+  postgres-password: "PostgresPassword123!"
+  redis-password: "RedisPassword123!"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deployment-commands" summary="Comandos de despliegue con post-renderer">
+
+### Instalación inicial de Superset
+
+```bash
+#!/bin/bash
+# deploy-superset.sh
+
+set -e
+
+NAMESPACE="superset"
+RELEASE_NAME="superset"
+CHART="bitnami/superset"
+VALUES_FILE="values-def.yaml"
+POST_RENDERER="./add-tolerations.sh"
+
+echo "=== Desplegando Apache Superset ==="
+
+# 1. Crear namespace
+kubectl create namespace $NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+
+# 2. Aplicar secrets
+kubectl apply -f superset-secrets.yaml -n $NAMESPACE
+
+# 3. Verificar que el post-renderer existe y es ejecutable
+if [[ ! -x "$POST_RENDERER" ]]; then
+    echo "❌ Post-renderer script no encontrado o no es ejecutable: $POST_RENDERER"
+    exit 1
+fi
+
+# 4. Dry-run para verificar la configuración
+echo "Ejecutando dry-run..."
+helm upgrade --install $RELEASE_NAME $CHART \
+    --namespace $NAMESPACE \
+    --values $VALUES_FILE \
+    --post-renderer $POST_RENDERER \
+    --dry-run --debug
+
+# 5. Confirmar despliegue
+read -p "¿Continuar con el despliegue? (y/N): " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo "Desplegando Superset..."
+    
+    helm upgrade --install $RELEASE_NAME $CHART \
+        --namespace $NAMESPACE \
+        --values $VALUES_FILE \
+        --post-renderer $POST_RENDERER \
+        --wait \
+        --timeout 10m
+        
+    echo "✅ Superset desplegado exitosamente"
+else
+    echo "Despliegue cancelado"
+    exit 0
+fi
+
+# 6. Verificar estado del despliegue
+echo "=== Estado del Despliegue ==="
+kubectl get all -n $NAMESPACE
+kubectl get pvc -n $NAMESPACE
+kubectl get secrets -n $NAMESPACE
+
+# 7. Obtener información de acceso
+echo "=== Información de Acceso ==="
+echo "Namespace: $NAMESPACE"
+echo "Release: $RELEASE_NAME"
+
+# Port-forward para acceso local
+echo "Para acceder localmente, ejecute:"
+echo "kubectl port-forward --namespace $NAMESPACE svc/$RELEASE_NAME 8088:8088"
+echo "Luego visite: http://localhost:8088"
+
+# Credenciales
+echo ""
+echo "Credenciales de acceso:"
+echo "Usuario: admin"
+echo "Contraseña: $(kubectl get secret superset-secret -n $NAMESPACE -o jsonpath='{.data.admin-password}' | base64 -d)"
+```
+
+### Actualización del despliegue
+
+```bash
+#!/bin/bash
+# update-superset.sh
+
+NAMESPACE="superset"
+RELEASE_NAME="superset"
+CHART="bitnami/superset"
+VALUES_FILE="values-def.yaml"
+POST_RENDERER="./add-tolerations.sh"
+
+echo "=== Actualizando Apache Superset ==="
+
+# Actualizar repositorio Helm
+helm repo update
+
+# Verificar diferencias
+helm diff upgrade $RELEASE_NAME $CHART \
+    --namespace $NAMESPACE \
+    --values $VALUES_FILE \
+    --post-renderer $POST_RENDERER || echo "helm-diff plugin no instalado"
+
+# Ejecutar actualización
+helm upgrade $RELEASE_NAME $CHART \
+    --namespace $NAMESPACE \
+    --values $VALUES_FILE \
+    --post-renderer $POST_RENDERER \
+    --wait \
+    --timeout 15m
+
+echo "✅ Actualización completada"
+
+# Verificar estado
+kubectl rollout status deployment/$RELEASE_NAME -n $NAMESPACE
+```
+
+### Rollback en caso de problemas
+
+```bash
+#!/bin/bash
+# rollback-superset.sh
+
+NAMESPACE="superset"
+RELEASE_NAME="superset"
+
+echo "=== Rollback de Apache Superset ==="
+
+# Listar historial de releases
+echo "Historial de releases:"
+helm history $RELEASE_NAME -n $NAMESPACE
+
+# Obtener última versión estable
+LAST_REVISION=$(helm history $RELEASE_NAME -n $NAMESPACE --max 2 -o json | jq -r '.[1].revision // .[0].revision')
+
+read -p "¿Hacer rollback a la revisión $LAST_REVISION? (y/N): " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    helm rollback $RELEASE_NAME $LAST_REVISION -n $NAMESPACE --wait
+    echo "✅ Rollback completado"
+else
+    echo "Rollback cancelado"
+fi
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="database-initialization" summary="Configuración e inicialización de la base de datos">
+
+### Verificar conectividad de la base de datos
+
+```bash
+#!/bin/bash
+# verify-db-connection.sh
+
+NAMESPACE="superset"
+DB_HOST="superset-postgresql"
+DB_PORT="5432"
+DB_NAME="superset"
+DB_USER="superset"
+
+echo "=== Verificación de Base de Datos ==="
+
+# Obtener contraseña de la base de datos
+DB_PASSWORD=$(kubectl get secret superset-secret -n $NAMESPACE -o jsonpath='{.data.postgres-password}' | base64 -d)
+
+# Test de conectividad usando un pod temporal
+kubectl run postgres-client \
+    --rm -i --tty \
+    --namespace $NAMESPACE \
+    --image postgres:13 \
+    --restart=Never \
+    --command -- psql \
+    "postgresql://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME" \
+    -c "SELECT version();"
+
+echo "✅ Conectividad de base de datos verificada"
+```
+
+### Inicialización manual de la base de datos
+
+```bash
+#!/bin/bash
+# init-superset-db.sh
+
+NAMESPACE="superset"
+SUPERSET_POD=$(kubectl get pods -n $NAMESPACE -l app.kubernetes.io/component=superset -o jsonpath='{.items[0].metadata.name}')
+
+echo "=== Inicialización de Base de Datos Superset ==="
+echo "Pod seleccionado: $SUPERSET_POD"
+
+# 1. Inicializar la base de datos
+echo "1. Inicializando base de datos..."
+kubectl exec -n $NAMESPACE $SUPERSET_POD -- superset db upgrade
+
+# 2. Crear usuario administrador
+echo "2. Creando usuario administrador..."
+kubectl exec -n $NAMESPACE $SUPERSET_POD -- superset fab create-admin \
+    --username admin \
+    --firstname Superset \
+    --lastname Admin \
+    --email admin@example.com \
+    --password "$(kubectl get secret superset-secret -n $NAMESPACE -o jsonpath='{.data.admin-password}' | base64 -d)"
+
+# 3. Inicializar roles y permisos
+echo "3. Inicializando roles..."
+kubectl exec -n $NAMESPACE $SUPERSET_POD -- superset init
+
+# 4. Cargar ejemplos (opcional)
+echo "4. Cargando datos de ejemplo..."
+kubectl exec -n $NAMESPACE $SUPERSET_POD -- superset load_examples
+
+echo "✅ Inicialización de base de datos completada"
+```
+
+### Configuración de conexiones de base de datos
+
+```sql
+-- Ejemplo de conexiones que se pueden configurar en Superset
+-- PostgreSQL
+postgresql://user:password@host:5432/database
+
+-- MySQL
+mysql://user:password@host:3306/database
+
+-- SQLite
+sqlite:///path/to/database.db
+
+-- BigQuery
+bigquery://project_id/dataset_id
+
+-- Snowflake
+snowflake://user:password@account/database/schema
+
+-- Redshift
+redshift+psycopg2://user:password@host:5439/database
+```
+
+### Script de backup de base de datos
+
+```bash
+#!/bin/bash
+# backup-superset-db.sh
+
+NAMESPACE="superset"
+BACKUP_DIR="/tmp/superset-backups"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+DB_HOST="superset-postgresql"
+DB_PORT="5432"
+DB_NAME="superset"
+DB_USER="superset"
+
+echo "=== Backup de Base de Datos Superset ==="
+
+# Crear directorio de backup
+mkdir -p $BACKUP_DIR
+
+# Obtener contraseña
+DB_PASSWORD=$(kubectl get secret superset-secret -n $NAMESPACE -o jsonpath='{.data.postgres-password}' | base64 -d)
+
+# Crear backup usando pod temporal
+kubectl run postgres-backup \
+    --rm -i \
+    --namespace $NAMESPACE \
+    --image postgres:13 \
+    --restart=Never \
+    --command -- pg_dump \
+    "postgresql://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME" \
+    --verbose \
+    --format=custom \
+    --compress=9 > "$BACKUP_DIR/superset_backup_$TIMESTAMP.dump"
+
+echo "✅ Backup creado: $BACKUP_DIR/superset_backup_$TIMESTAMP.dump"
+
+# Verificar backup
+if [[ -f "$BACKUP_DIR/superset_backup_$TIMESTAMP.dump" ]]; then
+    size=$(du -h "$BACKUP_DIR/superset_backup_$TIMESTAMP.dump" | cut -f1)
+    echo "Tamaño del backup: $size"
+else
+    echo "❌ Error: Backup no creado"
+    exit 1
+fi
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-logging" summary="Configuración de monitoreo y logging">
+
+### Configuración de Prometheus metrics
+
+```yaml
+# superset-servicemonitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: superset-metrics
+  namespace: superset
+  labels:
+    app.kubernetes.io/name: superset
+    app.kubernetes.io/instance: superset
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: superset
+      app.kubernetes.io/component: superset
+  endpoints:
+  - port: http
+    path: /health
+    interval: 30s
+    scrapeTimeout: 10s
+  - port: http
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+```
+
+### Dashboard de Grafana para Superset
+
+```json
+{
+  "dashboard": {
+    "title": "Apache Superset Metrics",
+    "panels": [
+      {
+        "title": "Request Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(superset_request_total[5m])",
+            "legendFormat": "Requests/sec"
+          }
+        ]
+      },
+      {
+        "title": "Response Time",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(superset_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile"
+          }
+        ]
+      },
+      {
+        "title": "Database Connections",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "superset_database_connections_active",
+            "legendFormat": "Active connections"
+          }
+        ]
+      },
+      {
+        "title": "Error Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(superset_request_total{status=~\"4.*|5.*\"}[5m])",
+            "legendFormat": "Errors/sec"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Configuración de logging estructurado
+
+```yaml
+# superset-logging-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: superset-logging-config
+  namespace: superset
+data:
+  logging.conf: |
+    [loggers]
+    keys=root,superset
+
+    [handlers]
+    keys=console,file
+
+    [formatters]
+    keys=generic,json
+
+    [logger_root]
+    level=INFO
+    handlers=console
+
+    [logger_superset]
+    level=INFO
+    handlers=console,file
+    qualname=superset
+    propagate=0
+
+    [handler_console]
+    class=StreamHandler
+    formatter=json
+    args=(sys.stdout,)
+
+    [handler_file]
+    class=FileHandler
+    formatter=json
+    args=('/var/log/superset/superset.log',)
+
+    [formatter_generic]
+    format=%(asctime)s [%(levelname)s] %(name)s: %(message)s
+
+    [formatter_json]
+    class=pythonjsonlogger.jsonlogger.JsonFormatter
+    format=%(asctime)s %(name)s %(levelname)s %(message)s
+```
+
+### Script de monitoreo de salud
+
+```bash
+#!/bin/bash
+# monitor-superset-health.sh
+
+NAMESPACE="superset"
+RELEASE_NAME="superset"
+
+echo "=== Monitoreo de Salud Superset ==="
+
+# Función para verificar estado de pods
+check_pods() {
+    echo "Estado de pods:"
+    kubectl get pods -n $NAMESPACE -l app.kubernetes.io/instance=$RELEASE_NAME
+    
+    # Verificar pods no saludables
+    unhealthy_pods=$(kubectl get pods -n $NAMESPACE -l app.kubernetes.io/instance=$RELEASE_NAME --field-selector=status.phase!=Running -o name 2>/dev/null)
+    
+    if [[ -n $unhealthy_pods ]]; then
+        echo "⚠️ Pods no saludables encontrados:"
+        echo "$unhealthy_pods"
+        return 1
+    else
+        echo "✅ Todos los pods están saludables"
+        return 0
+    fi
+}
+
+# Función para verificar servicios
+check_services() {
+    echo "Estado de servicios:"
+    kubectl get svc -n $NAMESPACE -l app.kubernetes.io/instance=$RELEASE_NAME
+}
+
+# Función para test de conectividad HTTP
+check_http_health() {
+    echo "Verificando health endpoint..."
+    
+    # Port-forward en background
+    kubectl port-forward -n $NAMESPACE svc/$RELEASE_NAME 8088:8088 &
+    PF_PID=$!
+    
+    # Esperar que el port-forward esté listo
+    sleep 5
+    
+    # Test HTTP
+    if curl -f -s http://localhost:8088/health > /dev/null; then
+        echo "✅ Health endpoint respondiendo"
+        result=0
+    else
+        echo "❌ Health endpoint no responde"
+        result=1
+    fi
+    
+    # Terminar port-forward
+    kill $PF_PID 2>/dev/null
+    wait $PF_PID 2>/dev/null
+    
+    return $result
+}
+
+# Función para verificar base de datos
+check_database() {
+    echo "Verificando conectividad de base de datos..."
+    
+    DB_POD=$(kubectl get pods -n $NAMESPACE -l app.kubernetes.io/component=postgresql -o jsonpath='{.items[0].metadata.name}')
+    
+    if [[ -n $DB_POD ]]; then
+        if kubectl exec -n $NAMESPACE $DB_POD -- pg_isready > /dev/null 2>&1; then
+            echo "✅ Base de datos PostgreSQL saludable"
+            return 0
+        else
+            echo "❌ Base de datos PostgreSQL no responde"
+            return 1
+        fi
+    else
+        echo "⚠️ Pod de PostgreSQL no encontrado"
+        return 1
+    fi
+}
+
+# Función para verificar Redis
+check_redis() {
+    echo "Verificando Redis..."
+    
+    REDIS_POD=$(kubectl get pods -n $NAMESPACE -l app.kubernetes.io/component=master -o jsonpath='{.items[0].metadata.name}')
+    
+    if [[ -n $REDIS_POD ]]; then
+        if kubectl exec -n $NAMESPACE $REDIS_POD -- redis-cli ping | grep -q PONG; then
+            echo "✅ Redis saludable"
+            return 0
+        else
+            echo "❌ Redis no responde"
+            return 1
+        fi
+    else
+        echo "⚠️ Pod de Redis no encontrado"
+        return 1
+    fi
+}
+
+# Ejecutar todas las verificaciones
+checks=(check_pods check_services check_database check_redis check_http_health)
+failed_checks=0
+
+for check in "${checks[@]}"; do
+    echo ""
+    if ! $check; then
+        ((failed_checks++))
+    fi
+done
+
+echo ""
+echo "=== Resumen ==="
+if [[ $failed_checks -eq 0 ]]; then
+    echo "✅ Todas las verificaciones pasaron"
+    exit 0
+else
+    echo "❌ $failed_checks verificación(es) fallaron"
+    exit 1
+fi
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-common-issues" summary="Solución de problemas comunes">
+
+### Problema: Pods de inicialización fallan por tolerancias
+
+**Síntoma:** Los jobs de inicialización no se programan en nodos con taints
+
+**Solución:**
+
+```bash
+# Verificar que el post-renderer funciona
+helm template superset bitnami/superset \
+    --values values-def.yaml \
+    --post-renderer ./add-tolerations.sh | \
+    grep -A 20 "tolerations:"
+
+# Verificar taints en nodos
+kubectl get nodes -o custom-columns=NAME:.metadata.name,TAINTS:.spec.taints
+
+# Verificar tolerancias en pods desplegados
+kubectl get pods -n superset -o yaml | grep -A 10 tolerations
+```
+
+### Problema: Error de conexión a base de datos
+
+**Síntoma:** Superset no puede conectarse a PostgreSQL
+
+**Solución:**
+
+```bash
+#!/bin/bash
+# debug-db-connection.sh
+
+NAMESPACE="superset"
+
+echo "=== Debug de Conexión Base de Datos ==="
+
+# 1. Verificar estado del pod PostgreSQL
+echo "1. Estado de PostgreSQL:"
+kubectl get pods -n $NAMESPACE -l app.kubernetes.io/component=postgresql
+
+# 2. Verificar logs de PostgreSQL
+echo "2. Logs de PostgreSQL (últimas 50 líneas):"
+POSTGRES_POD=$(kubectl get pods -n $NAMESPACE -l app.kubernetes.io/component=postgresql -o jsonpath='{.items[0].metadata.name}')
+kubectl logs -n $NAMESPACE $POSTGRES_POD --tail=50
+
+# 3. Verificar variables de entorno en pod Superset
+echo "3. Variables de entorno en Superset:"
+SUPERSET_POD=$(kubectl get pods -n $NAMESPACE -l app.kubernetes.io/component=superset -o jsonpath='{.items[0].metadata.name}')
+kubectl exec -n $NAMESPACE $SUPERSET_POD -- env | grep -E "(DATABASE|POSTGRES|DB_)"
+
+# 4. Test de conectividad de red
+echo "4. Test de conectividad de red:"
+kubectl exec -n $NAMESPACE $SUPERSET_POD -- nslookup superset-postgresql
+
+# 5. Test de puerto
+echo "5. Test de puerto PostgreSQL:"
+kubectl exec -n $NAMESPACE $SUPERSET_POD -- timeout 5 bash -c "</dev/tcp/superset-postgresql/5432" && \
+    echo "✅ Puerto 5432 accesible" || \
+    echo "❌ Puerto 5432 no accesible"
+
+# 6. Verificar secrets
+echo "6. Verificar secrets:"
+kubectl get secret superset-secret -n $NAMESPACE -o jsonpath='{.data}' | jq 'keys'
+```
+
+### Problema: Alta latencia en dashboards
+
+**Síntoma:** Los dashboards cargan lentamente
+
+**Solución:**
+
+```yaml
+# Optimizaciones en values-def.yaml
+superset:
+  extraEnvVars:
+    # Cache configuration
+    - name: CACHE_TYPE
+      value: "redis"
+    - name: CACHE_REDIS_URL
+      value: "redis://superset-redis-master:6379/0"
+    
+    # Database connection pooling
+    - name: SQLALCHEMY_ENGINE_OPTIONS
+      value: '{"pool_size": 20, "pool_recycle": 3600, "pool_pre_ping": true}'
+    
+    # Performance tuning
+    - name: SUPERSET_WEBSERVER_TIMEOUT
+      value: "300"
+    - name: SUPERSET_WORKERS
+      value: "4"
+    
+  # Incrementar recursos
+  resources:
+    requests:
+      memory: 1Gi
+      cpu: 500m
+    limits:
+      memory: 2Gi
+      cpu: 1
+
+# Configuración de Redis para mejor cache
+redis:
+  master:
+    configuration: |-
+      maxmemory 512mb
+      maxmemory-policy allkeys-lru
+      save ""
+    resources:
+      requests:
+        memory: 512Mi
+        cpu: 250m
+      limits:
+        memory: 1Gi
+        cpu: 500m
+```
+
+### Problema: Error de autenticación LDAP/OAuth
+
+**Síntoma:** Usuarios no pueden autenticarse via LDAP u OAuth
+
+**Solución:**
+
+```python
+# Configuración LDAP en superset_config.py
+AUTH_TYPE = AUTH_LDAP
+AUTH_LDAP_SERVER = "ldap://ldap.example.com:389"
+AUTH_LDAP_USE_TLS = True
+
+# LDAP bind config
+AUTH_LDAP_BIND_USER = "cn=admin,dc=example,dc=com"
+AUTH_LDAP_BIND_PASSWORD = "password"
+
+# LDAP search config
+AUTH_LDAP_SEARCH = "dc=example,dc=com"
+AUTH_LDAP_UID_FIELD = "uid"
+
+# User info mapping
+AUTH_LDAP_FIRSTNAME_FIELD = "givenName"
+AUTH_LDAP_LASTNAME_FIELD = "sn"
+AUTH_LDAP_EMAIL_FIELD = "mail"
+
+# Role mapping
+AUTH_ROLES_MAPPING = {
+    "cn=superset_admin,ou=groups,dc=example,dc=com": ["Admin"],
+    "cn=superset_alpha,ou=groups,dc=example,dc=com": ["Alpha"],
+    "cn=superset_gamma,ou=groups,dc=example,dc=com": ["Gamma"]
+}
+```
+
+### Script de diagnostic completo
+
+```bash
+#!/bin/bash
+# superset-diagnostics.sh
+
+NAMESPACE="superset"
+OUTPUT_DIR="/tmp/superset-diagnostics-$(date +%Y%m%d_%H%M%S)"
+
+mkdir -p $OUTPUT_DIR
+
+echo "=== Superset Diagnostics ==="
+echo "Directorio de salida: $OUTPUT_DIR"
+
+# 1. Información del cluster
+echo "1. Recopilando información del cluster..."
+kubectl cluster-info > $OUTPUT_DIR/cluster-info.txt
+kubectl get nodes -o wide > $OUTPUT_DIR/nodes.txt
+kubectl get nodes -o yaml > $OUTPUT_DIR/nodes-full.yaml
+
+# 2. Estado de recursos
+echo "2. Recopilando estado de recursos..."
+kubectl get all -n $NAMESPACE > $OUTPUT_DIR/resources.txt
+kubectl get pvc -n $NAMESPACE > $OUTPUT_DIR/pvc.txt
+kubectl get secrets -n $NAMESPACE > $OUTPUT_DIR/secrets.txt
+kubectl get configmaps -n $NAMESPACE > $OUTPUT_DIR/configmaps.txt
+
+# 3. Manifiestos completos
+echo "3. Exportando manifiestos..."
+kubectl get deployment,statefulset,job -n $NAMESPACE -o yaml > $OUTPUT_DIR/manifests.yaml
+
+# 4. Logs de aplicación
+echo "4. Recopilando logs..."
+for pod in $(kubectl get pods -n $NAMESPACE -o jsonpath='{.items[*].metadata.name}'); do
+    echo "Logs de $pod..."
+    kubectl logs -n $NAMESPACE $pod --previous > $OUTPUT_DIR/logs-$pod-previous.log 2>/dev/null || true
+    kubectl logs -n $NAMESPACE $pod > $OUTPUT_DIR/logs-$pod.log 2>/dev/null || true
+done
+
+# 5. Descripción de pods
+echo "5. Describiendo pods..."
+for pod in $(kubectl get pods -n $NAMESPACE -o jsonpath='{.items[*].metadata.name}'); do
+    kubectl describe pod -n $NAMESPACE $pod > $OUTPUT_DIR/describe-$pod.txt
+done
+
+# 6. Eventos del namespace
+echo "6. Recopilando eventos..."
+kubectl get events -n $NAMESPACE --sort-by='.lastTimestamp' > $OUTPUT_DIR/events.txt
+
+# 7. Información de Helm
+echo "7. Información de Helm..."
+helm list -n $NAMESPACE > $OUTPUT_DIR/helm-releases.txt
+helm status superset -n $NAMESPACE > $OUTPUT_DIR/helm-status.txt
+helm history superset -n $NAMESPACE > $OUTPUT_DIR/helm-history.txt
+
+# 8. Test de conectividad
+echo "8. Tests de conectividad..."
+{
+    echo "=== DNS Tests ==="
+    kubectl run dns-test --rm -i --tty --image=busybox --restart=Never -- nslookup superset-postgresql.$NAMESPACE.svc.cluster.local || true
+    
+    echo -e "\n=== HTTP Tests ==="
+    kubectl run http-test --rm -i --tty --image=curlimages/curl --restart=Never -- curl -I http://superset.$NAMESPACE.svc.cluster.local:8088/health || true
+} > $OUTPUT_DIR/connectivity-tests.txt 2>&1
+
+echo "✅ Diagnósticos completados en: $OUTPUT_DIR"
+echo "Para compartir, crear un archivo tar: tar -czf superset-diagnostics.tar.gz -C $(dirname $OUTPUT_DIR) $(basename $OUTPUT_DIR)"
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 20 de diciembre de 2024 basada en una consulta real de usuario._

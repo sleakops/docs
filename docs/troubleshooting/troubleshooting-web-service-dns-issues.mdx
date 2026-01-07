@@ -1,0 +1,193 @@
+---
+sidebar_position: 3
+title: "Web Service DNS Configuration Issues"
+description: "Troubleshooting DNS delegation and web service connectivity problems"
+date: "2024-01-15"
+category: "project"
+tags:
+  ["dns", "web-service", "deployment", "troubleshooting", "domain-delegation"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Web Service DNS Configuration Issues
+
+**Date:** January 15, 2024  
+**Category:** Project  
+**Tags:** DNS, Web Service, Deployment, Troubleshooting, Domain Delegation
+
+## Problem Description
+
+**Context:** User creates a web service in SleakOps with successful build and deployment, but the service is not accessible via its domain name due to DNS configuration issues.
+
+**Observed Symptoms:**
+
+- Web service returns 404 error when accessed via domain
+- DNS propagation tools show no DNS records for the subdomain
+- Build and deployment processes complete successfully
+- Service appears healthy in Kubernetes cluster
+
+**Relevant Configuration:**
+
+- Service type: Web service
+- Domain: Custom subdomain (e.g., `subdomain.domain.com`)
+- Deployment status: Successful
+- Build status: Successful
+
+**Error Conditions:**
+
+- DNS records not propagating globally
+- Missing DNS delegation for subdomain
+- Service accessible via port-forward but not via domain
+- 404 errors when accessing via public URL
+
+## Detailed Solution
+
+<TroubleshootingItem id="initial-diagnosis" summary="Verify pod and container health">
+
+Before troubleshooting DNS issues, confirm your service is running correctly:
+
+1. **Check pod status in Lens or kubectl:**
+
+   - Pods should show as green/running
+   - Container health checks should be passing
+   - If pods are yellow, check logs for errors
+
+2. **Test local connectivity:**
+
+   ```bash
+   # Port-forward to test service locally
+   kubectl port-forward service/your-service-name 8080:80
+   # Then test: curl http://localhost:8080
+   ```
+
+3. **Verify health check configuration:**
+   - Ensure health check path is correct
+   - Test both HTTP and HTTPS endpoints
+   - Check for trailing slash requirements
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dns-validation" summary="Validate DNS configuration">
+
+Use DNS tools to diagnose delegation issues:
+
+1. **Check DNS delegation with dig:**
+
+   ```bash
+   # Check if subdomain is properly delegated
+   dig NS subdomain.yourdomain.com
+
+   # Should return AWS Route53 nameservers like:
+   # subdomain.yourdomain.com. 300 IN NS ns-xxx.awsdns-xx.com.
+   # subdomain.yourdomain.com. 300 IN NS ns-xxx.awsdns-xx.co.uk.
+   ```
+
+2. **Check A record resolution:**
+
+   ```bash
+   # Verify A record points to correct IP
+   dig A subdomain.yourdomain.com
+
+   # Should return load balancer IP
+   ```
+
+3. **Use online DNS propagation tools:**
+   - Check https://www.whatsmydns.net/
+   - Verify global DNS propagation
+   - Look for inconsistencies across regions
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dns-delegation-fix" summary="Fix DNS delegation issues">
+
+If DNS delegation is missing or incorrect:
+
+1. **Identify required DNS records:**
+
+   - Get the Route53 hosted zone nameservers from AWS Console
+   - Or check SleakOps dashboard for DNS configuration
+
+2. **Add NS records to parent domain:**
+
+   ```
+   # Add these NS records to your main domain DNS:
+   subdomain.yourdomain.com. IN NS ns-xxx.awsdns-xx.com.
+   subdomain.yourdomain.com. IN NS ns-xxx.awsdns-xx.co.uk.
+   subdomain.yourdomain.com. IN NS ns-xxx.awsdns-xx.net.
+   subdomain.yourdomain.com. IN NS ns-xxx.awsdns-xx.org.
+   ```
+
+3. **Wait for propagation:**
+   - DNS changes can take 24-48 hours to fully propagate
+   - Use `dig` to monitor propagation progress
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-troubleshooting" summary="Common troubleshooting steps">
+
+**Test different URL variations:**
+
+```bash
+# Test with and without trailing slash
+curl http://subdomain.yourdomain.com/
+curl http://subdomain.yourdomain.com
+
+# Test both HTTP and HTTPS
+curl https://subdomain.yourdomain.com/
+curl http://subdomain.yourdomain.com/
+```
+
+**Check ingress configuration:**
+
+```bash
+# Verify ingress is properly configured
+kubectl get ingress -n your-namespace
+kubectl describe ingress your-ingress-name -n your-namespace
+```
+
+**Monitor DNS propagation:**
+
+```bash
+# Check multiple DNS servers
+nslookup subdomain.yourdomain.com 8.8.8.8
+nslookup subdomain.yourdomain.com 1.1.1.1
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-tips" summary="Prevention and best practices">
+
+**Before creating web services:**
+
+1. **Verify domain delegation:**
+
+   - Ensure parent domain is properly configured
+   - Test DNS resolution for existing subdomains
+
+2. **Plan subdomain structure:**
+
+   - Use consistent naming conventions
+   - Consider wildcard delegation for multiple services
+
+3. **Monitor deployment process:**
+   - Check both build AND DNS configuration steps
+   - Verify ingress controller is running
+
+**After deployment:**
+
+1. **Wait for DNS propagation:**
+
+   - Allow 15-30 minutes for initial propagation
+   - Use multiple DNS checking tools
+
+2. **Test systematically:**
+   - Start with port-forward testing
+   - Then test via load balancer IP
+   - Finally test via domain name
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

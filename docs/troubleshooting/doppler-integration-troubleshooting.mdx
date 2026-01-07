@@ -1,0 +1,627 @@
+---
+sidebar_position: 3
+title: "Doppler Integration Issues in SleakOps"
+description: "Troubleshooting Doppler configuration and environment variable synchronization issues"
+date: "2024-12-19"
+category: "dependency"
+tags:
+  ["doppler", "environment-variables", "secrets", "configuration", "deployment"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Doppler Integration Issues in SleakOps
+
+**Date:** December 19, 2024  
+**Category:** Dependency  
+**Tags:** Doppler, Environment Variables, Secrets, Configuration, Deployment
+
+## Problem Description
+
+**Context:** Users integrating Doppler as an external service for environment variable management in SleakOps deployments experience issues where variables are not being updated during deployments, despite successful configuration.
+
+**Observed Symptoms:**
+
+- Environment variables not updating during recent deployments
+- Doppler service configured but variables remain stale
+- Deployments complete successfully but use outdated configuration
+- Rolling update strategy shows temporary replica count increase
+
+**Relevant Configuration:**
+
+- External service: Doppler for environment variable management
+- Deployment strategy: Rolling Update
+- Docker args: `DOPPLER_CONFIG = staging`
+- Project secrets and Doppler references configured in SleakOps
+
+**Error Conditions:**
+
+- Variables not refreshing on new deployments
+- Occurs specifically with Doppler-managed environment variables
+- Problem persists across multiple deployment attempts
+- Local secrets may still work while Doppler integration fails
+
+## Detailed Solution
+
+<TroubleshootingItem id="doppler-config-verification" summary="Verify Doppler Configuration in SleakOps">
+
+First, verify your Doppler configuration is correctly set up in SleakOps:
+
+1. **Check Docker Arguments:**
+
+   ```yaml
+   # In your SleakOps project configuration
+   docker_args:
+     DOPPLER_CONFIG: "staging" # or your environment name
+     DOPPLER_TOKEN: "${DOPPLER_TOKEN}" # should reference secret
+   ```
+
+2. **Verify Doppler Token Secret:**
+
+   - Go to **Project Settings** → **Secrets**
+   - Ensure `DOPPLER_TOKEN` is properly configured
+   - Token should have read access to the specified config
+
+3. **Check Doppler Config Reference:**
+   - Verify the config name matches exactly in Doppler dashboard
+   - Common configs: `dev`, `staging`, `production`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="doppler-token-validation" summary="Validate Doppler Token and Permissions">
+
+Ensure your Doppler token has the correct permissions:
+
+1. **Test Token Locally:**
+
+   ```bash
+   # Test if token can access the config
+   curl -H "Authorization: Bearer YOUR_DOPPLER_TOKEN" \
+        "https://api.doppler.com/v3/configs/config/secrets" \
+        -G -d project=YOUR_PROJECT -d config=staging
+   ```
+
+2. **Check Token Scope:**
+
+   - Token must have `read` access to the specific config
+   - Verify the token hasn't expired
+   - Ensure it's a **Service Token**, not a **Personal Token**
+
+3. **Regenerate Token if Needed:**
+   - Go to Doppler Dashboard → **Access** → **Service Tokens**
+   - Create new token with appropriate scope
+   - Update the secret in SleakOps
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deployment-refresh-strategy" summary="Force Environment Variable Refresh">
+
+To ensure environment variables are refreshed during deployment:
+
+1. **Trigger Complete Redeployment:**
+
+   ```bash
+   # Force restart all pods to pick up new variables
+   kubectl rollout restart deployment/your-app-name
+   ```
+
+2. **Check Pod Environment Variables:**
+
+   ```bash
+   # Verify variables are loaded correctly
+   kubectl exec -it pod/your-pod-name -- env | grep YOUR_VAR
+   ```
+
+3. **Use Deployment Annotations:**
+   Add a timestamp annotation to force pod recreation:
+   ```yaml
+   # This forces Kubernetes to recreate pods
+   spec:
+     template:
+       metadata:
+         annotations:
+           deployment.kubernetes.io/revision: "$(date +%s)"
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="doppler-sync-troubleshooting" summary="Troubleshoot Doppler Synchronization">
+
+If variables still aren't updating:
+
+1. **Check Doppler Logs:**
+
+   ```bash
+   # Check if Doppler CLI is working in your container
+   kubectl logs deployment/your-app -c your-container | grep -i doppler
+   ```
+
+2. **Verify Doppler CLI Installation:**
+
+   ```dockerfile
+   # Ensure Doppler CLI is installed in your Docker image
+   RUN curl -Ls https://cli.doppler.com/install.sh | sh
+
+   # Use Doppler to run your application
+   CMD ["doppler", "run", "--", "your-app-command"]
+   ```
+
+3. **Test Manual Sync:**
+
+   ```bash
+   # Inside your container, test manual sync
+   doppler secrets download --no-file --format env
+   ```
+
+4. **Check Network Connectivity:**
+   - Ensure your cluster can reach `api.doppler.com`
+   - Verify no firewall rules block the connection
+   - Test DNS resolution: `nslookup api.doppler.com`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-approaches" summary="Alternative Configuration Approaches">
+
+If Doppler integration continues to fail:
+
+1. **Use Kubernetes Secrets as Backup:**
+
+   ```yaml
+   # Create a Kubernetes secret with critical variables
+   apiVersion: v1
+   kind: Secret
+   metadata:
+     name: app-secrets
+   data:
+     DATABASE_URL: <base64-encoded-value>
+   ```
+
+2. **Implement Doppler Webhook:**
+
+   - Set up Doppler webhooks to trigger redeployments
+   - Automatically update secrets when Doppler config changes
+
+3. **Use Init Container Pattern:**
+
+   ```yaml
+   # Fetch secrets before main container starts
+   initContainers:
+     - name: doppler-sync
+       image: dopplerhq/cli:latest
+       command:
+         ["doppler", "secrets", "download", "--format", "env", "--no-file"]
+       volumeMounts:
+         - name: secrets-volume
+           mountPath: /secrets
+   ```
+
+4. **Hybrid Approach:**
+   - Use SleakOps secrets for critical variables
+   - Use Doppler for non-critical configuration
+   - Implement fallback mechanisms in your application
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="rolling-update-explanation" summary="Understanding Rolling Update Behavior">
+
+The temporary increase in replica count is normal during deployments:
+
+1. **Rolling Update Process:**
+
+   - Kubernetes creates new pods with updated configuration
+   - Keeps old pods running until new ones are ready
+   - Gradually shifts traffic to new pods
+   - Terminates old pods once new ones are healthy
+
+2. **Expected Behavior:**
+
+   - Temporary replica count: `desired + maxSurge`
+   - For 2 replicas with default settings: up to 3 pods temporarily
+   - Returns to desired count (2) after deployment completes
+
+3. **Monitor Deployment Progress:**
+   ```bash
+   kubectl rollout status deployment/your-app-name
+   kubectl get pods -w  # Watch pod status changes
+   ```
+
+4. **Control Rolling Update Parameters:**
+   ```yaml
+   spec:
+     strategy:
+       type: RollingUpdate
+       rollingUpdate:
+         maxSurge: 1          # Maximum extra pods during update
+         maxUnavailable: 0    # Minimum pods that must remain available
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="advanced-doppler-integration" summary="Advanced Doppler Integration Patterns">
+
+**1. Doppler Sidecar Container:**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-with-doppler
+spec:
+  template:
+    spec:
+      containers:
+      - name: app
+        image: your-app:latest
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: doppler-secrets
+              key: DATABASE_URL
+      
+      - name: doppler-sync
+        image: dopplerhq/cli:latest
+        command:
+        - /bin/sh
+        - -c
+        - |
+          while true; do
+            doppler secrets download --no-file --format k8s-secret | kubectl apply -f -
+            sleep 300  # Sync every 5 minutes
+          done
+        env:
+        - name: DOPPLER_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: doppler-token
+              key: token
+```
+
+**2. Doppler Kubernetes Operator:**
+
+```yaml
+# Install Doppler Operator
+kubectl apply -f https://github.com/DopplerHQ/kubernetes-operator/releases/latest/download/recommended.yaml
+
+# Create DopplerSecret resource
+apiVersion: secrets.doppler.com/v1alpha1
+kind: DopplerSecret
+metadata:
+  name: doppler-secret
+spec:
+  tokenSecret:
+    name: doppler-token-secret
+  managedSecret:
+    name: doppler-managed-secret
+    namespace: default
+  project: your-project
+  config: staging
+```
+
+**3. Automated Refresh with ConfigMap:**
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: doppler-sync-script
+data:
+  sync.sh: |
+    #!/bin/bash
+    set -e
+    
+    echo "Syncing secrets from Doppler..."
+    doppler secrets download --no-file --format env > /tmp/secrets.env
+    
+    # Compare with existing secrets
+    if ! cmp -s /tmp/secrets.env /shared/secrets.env; then
+      echo "Secrets changed, updating..."
+      cp /tmp/secrets.env /shared/secrets.env
+      
+      # Signal main container to reload
+      kill -HUP $(pgrep -f "your-main-process")
+    fi
+---
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  template:
+    spec:
+      volumes:
+      - name: shared-secrets
+        emptyDir: {}
+      - name: sync-script
+        configMap:
+          name: doppler-sync-script
+          defaultMode: 0755
+      
+      initContainers:
+      - name: doppler-init
+        image: dopplerhq/cli:latest
+        command: ["/scripts/sync.sh"]
+        volumeMounts:
+        - name: shared-secrets
+          mountPath: /shared
+        - name: sync-script
+          mountPath: /scripts
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-checklist" summary="Comprehensive Troubleshooting Checklist">
+
+**Environment Verification:**
+
+```bash
+# 1. Verify Doppler CLI is available
+kubectl exec -it deployment/your-app -- which doppler
+
+# 2. Test Doppler authentication
+kubectl exec -it deployment/your-app -- doppler me
+
+# 3. List available configs
+kubectl exec -it deployment/your-app -- doppler configs
+
+# 4. Test secret retrieval
+kubectl exec -it deployment/your-app -- doppler secrets
+
+# 5. Check environment variables
+kubectl exec -it deployment/your-app -- env | sort
+```
+
+**Network Connectivity Tests:**
+
+```bash
+# Test Doppler API connectivity from pod
+kubectl exec -it deployment/your-app -- curl -v https://api.doppler.com/v3/auth/me \
+  -H "Authorization: Bearer $DOPPLER_TOKEN"
+
+# Check DNS resolution
+kubectl exec -it deployment/your-app -- nslookup api.doppler.com
+
+# Test with verbose output
+kubectl exec -it deployment/your-app -- doppler secrets --debug
+```
+
+**Configuration Validation:**
+
+```bash
+# Verify token format (should be dp.st.xxx)
+echo $DOPPLER_TOKEN | grep -E '^dp\.st\.'
+
+# Check token permissions
+curl -H "Authorization: Bearer $DOPPLER_TOKEN" \
+     "https://api.doppler.com/v3/me" | jq '.access'
+
+# Validate project and config exist
+curl -H "Authorization: Bearer $DOPPLER_TOKEN" \
+     "https://api.doppler.com/v3/configs?project=YOUR_PROJECT" | jq '.configs'
+```
+
+**SleakOps Integration Check:**
+
+1. **Verify Secret Configuration:**
+   - Secret name matches reference in Docker args
+   - Secret value is properly base64 encoded
+   - Secret has correct scope (project/environment)
+
+2. **Check Deployment Logs:**
+   ```bash
+   kubectl logs deployment/your-app --previous | grep -i error
+   kubectl describe deployment your-app
+   ```
+
+3. **Validate Environment Variables:**
+   ```bash
+   # Check if Doppler variables are loaded
+   kubectl exec deployment/your-app -- env | grep -v '^KUBERNETES'
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-and-alerting" summary="Set Up Monitoring and Alerting">
+
+**1. Doppler Sync Monitoring:**
+
+```yaml
+# Create a monitoring job
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: doppler-health-check
+spec:
+  schedule: "*/5 * * * *"  # Every 5 minutes
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: health-check
+            image: dopplerhq/cli:latest
+            command:
+            - /bin/sh
+            - -c
+            - |
+              if ! doppler secrets --no-file > /dev/null 2>&1; then
+                echo "Doppler sync failed at $(date)"
+                # Send alert to monitoring system
+                curl -X POST "$WEBHOOK_URL" -d '{"text":"Doppler sync failed"}'
+                exit 1
+              fi
+              echo "Doppler sync successful at $(date)"
+```
+
+**2. Application Health Endpoint:**
+
+```javascript
+// Add health check endpoint to your application
+app.get('/health/secrets', (req, res) => {
+  const requiredVars = ['DATABASE_URL', 'API_KEY', 'JWT_SECRET'];
+  const missing = requiredVars.filter(varName => !process.env[varName]);
+  
+  if (missing.length > 0) {
+    return res.status(503).json({
+      status: 'unhealthy',
+      missing_variables: missing,
+      last_sync: process.env.DOPPLER_LAST_SYNC || 'unknown'
+    });
+  }
+  
+  res.json({
+    status: 'healthy',
+    secrets_loaded: requiredVars.length,
+    last_sync: process.env.DOPPLER_LAST_SYNC || 'unknown'
+  });
+});
+```
+
+**3. Prometheus Metrics:**
+
+```yaml
+# Monitor secret sync metrics
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: doppler-exporter
+data:
+  exporter.py: |
+    import time
+    import requests
+    import os
+    from prometheus_client import Gauge, start_http_server
+    
+    secret_count = Gauge('doppler_secrets_total', 'Total number of secrets')
+    sync_timestamp = Gauge('doppler_last_sync_timestamp', 'Last successful sync timestamp')
+    
+    def collect_metrics():
+        try:
+            # Use Doppler API to get secret count
+            response = requests.get(
+                'https://api.doppler.com/v3/configs/config/secrets',
+                headers={'Authorization': f'Bearer {os.environ["DOPPLER_TOKEN"]}'},
+                params={'project': os.environ['DOPPLER_PROJECT'], 'config': os.environ['DOPPLER_CONFIG']}
+            )
+            data = response.json()
+            secret_count.set(len(data['secrets']))
+            sync_timestamp.set(time.time())
+        except Exception as e:
+            print(f"Error collecting metrics: {e}")
+    
+    if __name__ == '__main__':
+        start_http_server(8000)
+        while True:
+            collect_metrics()
+            time.sleep(60)
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Best Practices for Doppler Integration">
+
+**1. Security Best Practices:**
+
+```bash
+# Use least privilege tokens
+# Create environment-specific tokens
+doppler service-tokens create staging-token --config staging --access read
+
+# Rotate tokens regularly
+doppler service-tokens delete old-token
+doppler service-tokens create new-token --config staging --access read
+```
+
+**2. Configuration Management:**
+
+```yaml
+# Use separate configs for each environment
+environments:
+  development:
+    doppler:
+      project: myapp
+      config: dev
+  staging:
+    doppler:
+      project: myapp
+      config: staging
+  production:
+    doppler:
+      project: myapp
+      config: prod
+```
+
+**3. Fallback Strategies:**
+
+```javascript
+// Implement graceful fallback in your application
+function getConfig(key, fallback = null) {
+  // Try Doppler first
+  let value = process.env[key];
+  
+  // Fallback to Kubernetes secrets
+  if (!value && process.env[`K8S_SECRET_${key}`]) {
+    value = process.env[`K8S_SECRET_${key}`];
+  }
+  
+  // Fallback to default value
+  if (!value && fallback !== null) {
+    value = fallback;
+  }
+  
+  if (!value) {
+    throw new Error(`Required configuration ${key} not found`);
+  }
+  
+  return value;
+}
+
+// Usage
+const databaseUrl = getConfig('DATABASE_URL');
+const apiKey = getConfig('API_KEY', 'development-key');
+```
+
+**4. Testing and Validation:**
+
+```bash
+#!/bin/bash
+# test-doppler-integration.sh
+
+set -e
+
+echo "Testing Doppler integration..."
+
+# Test 1: Authentication
+echo "1. Testing authentication..."
+doppler me > /dev/null || {
+  echo "❌ Authentication failed"
+  exit 1
+}
+echo "✅ Authentication successful"
+
+# Test 2: Config access
+echo "2. Testing config access..."
+doppler secrets --no-file > /dev/null || {
+  echo "❌ Config access failed"
+  exit 1
+}
+echo "✅ Config access successful"
+
+# Test 3: Required secrets present
+echo "3. Checking required secrets..."
+required_secrets=("DATABASE_URL" "API_KEY" "JWT_SECRET")
+for secret in "${required_secrets[@]}"; do
+  if doppler secrets get "$secret" --no-file > /dev/null 2>&1; then
+    echo "✅ $secret found"
+  else
+    echo "❌ $secret missing"
+    exit 1
+  fi
+done
+
+echo "🎉 All tests passed!"
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

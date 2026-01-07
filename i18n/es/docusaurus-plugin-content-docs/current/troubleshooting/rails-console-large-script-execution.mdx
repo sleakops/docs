@@ -1,0 +1,172 @@
+---
+sidebar_position: 15
+title: "Problema de Ejecución de Scripts Grandes en la Consola de Rails"
+description: "Solución para ejecutar scripts grandes en la consola de Rails a través de Lens"
+date: "2024-01-15"
+category: "workload"
+tags: ["rails", "consola", "lens", "kubectl", "ejecucion-de-scripts"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problema de Ejecución de Scripts Grandes en la Consola de Rails
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** Rails, Consola, Lens, kubectl, Ejecución de Scripts
+
+## Descripción del Problema
+
+**Contexto:** El usuario experimenta problemas al intentar pegar o ejecutar scripts grandes (aproximadamente 300 líneas) en la consola de Rails a través de la interfaz de Lens.
+
+**Síntomas Observados:**
+
+- `IOError: ungetbyte failed` al pegar scripts grandes
+- El error ocurre en `/usr/local/lib/ruby/3.1.0/reline/ansi.rb:259`
+- La consola se vuelve no responsiva con bloques grandes de código
+- El problema afecta específicamente a la consola IRB de Rails accedida mediante Lens
+
+**Configuración Relevante:**
+
+- Versión de Ruby: 3.1.0
+- Consola de Rails accedida a través de Lens
+- Tamaño del script: ~300 líneas
+- Ubicación del error: módulo Reline ANSI
+
+**Condiciones del Error:**
+
+- El error ocurre al pegar grandes cantidades de código
+- Sucede específicamente en la consola de Rails (IRB)
+- El problema aparece al usar la interfaz de consola de Lens
+- No ocurre con fragmentos de código pequeños
+
+## Solución Detallada
+
+<TroubleshootingItem id="kubectl-cp-solution" summary="Copiar archivos de script al pod usando kubectl cp">
+
+La solución más confiable es copiar tu script como archivo al pod y luego ejecutarlo:
+
+```bash
+# Copiar script desde la máquina local al pod
+kubectl cp /home/user/local/path/script.rb namespace/pod_name:/tmp/script.rb
+
+# Luego en la consola de Rails, cargar y ejecutar el script
+load '/tmp/script.rb'
+```
+
+**Proceso paso a paso:**
+
+1. Guarda tu script en un archivo local (ejemplo, `my_script.rb`)
+2. Usa `kubectl cp` para copiarlo al pod
+3. Accede a la consola de Rails a través de Lens
+4. Usa `load` o `require` para ejecutar el script
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="lens-terminal-alternative" summary="Usar el terminal de Lens en lugar de la consola de Rails">
+
+También puedes ejecutar scripts de Rails directamente desde el terminal:
+
+```bash
+# Acceder al terminal del pod a través de Lens
+# Luego ejecutar Rails runner con tu script
+rails runner /tmp/script.rb
+
+# O ejecutar código Ruby directamente
+ruby -e "$(cat /tmp/script.rb)"
+```
+
+Esto evita completamente las limitaciones de la consola IRB.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="file-management-considerations" summary="Consideraciones importantes para la gestión de archivos en el pod">
+
+**Recuerda que los sistemas de archivos de los pods son efímeros:**
+
+- Los archivos copiados a los pods se perderán cuando los pods se reinicien
+- Usa el directorio `/tmp` para scripts temporales
+- Para scripts persistentes, considera usar ConfigMaps o volúmenes montados
+
+**Creando un ConfigMap para scripts reutilizables:**
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rails-scripts
+data:
+  my-script.rb: |
+    # Contenido de tu script Ruby aquí
+    puts "Hola desde el script en ConfigMap"
+```
+
+Luego móntalo en tu despliegue y accede en `/scripts/my-script.rb`.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-execution-methods" summary="Métodos alternativos para la ejecución de scripts">
+
+**Método 1: Divide scripts grandes en partes más pequeñas**
+
+```ruby
+# En la consola de Rails, pega secciones más pequeñas a la vez
+# Esto evita el problema de desbordamiento del búfer
+```
+
+**Método 2: Usa sintaxis heredoc**
+
+```ruby
+# En la consola de Rails
+script_content = <<~RUBY
+  # Contenido de tu script aquí
+  # Esto puede manejar bloques grandes mejor
+RUBY
+
+eval(script_content)
+```
+
+**Método 3: Ejecutar desde la aplicación Rails**
+
+```ruby
+# Crea una tarea rake o un script para Rails runner
+# rails runner 'ruta/a/tu/script.rb'
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-kubectl-cp" summary="Solución de problemas del comando kubectl cp">
+
+Si `kubectl cp` no funciona:
+
+**Verifica el pod y el namespace:**
+
+```bash
+# Listar pods en el namespace
+kubectl get pods -n tu-namespace
+
+# Verificar que el pod esté corriendo
+kubectl describe pod nombre-del-pod -n tu-namespace
+```
+
+**Sintaxis correcta:**
+
+```bash
+# De local a pod
+kubectl cp ./archivo-local.rb namespace/nombre-pod:/tmp/archivo-remoto.rb
+
+# De pod a local
+kubectl cp namespace/nombre-pod:/tmp/archivo-remoto.rb ./archivo-local.rb
+```
+
+**Problemas comunes:**
+
+- Asegúrate que el directorio destino exista en el pod
+- Revisa permisos de archivo
+- Verifica que el contexto de kubectl sea el correcto
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

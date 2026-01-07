@@ -1,0 +1,232 @@
+---
+sidebar_position: 3
+title: "Problemas de Configuración de Conexión Redis"
+description: "Solución para problemas de conexión de dependencia Redis en proyectos SleakOps"
+date: "2024-01-15"
+category: "dependency"
+tags: ["redis", "conexión", "aws", "elasticache", "configuración"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de Configuración de Conexión Redis
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Dependencia  
+**Etiquetas:** Redis, Conexión, AWS, ElastiCache, Configuración
+
+## Descripción del Problema
+
+**Contexto:** El usuario creó una dependencia Redis para su proyecto SleakOps que generó el grupo de variables correspondiente, pero la aplicación Spring Boot no puede conectarse a la instancia Redis a pesar de tener la configuración correcta de URL y puerto.
+
+**Síntomas Observados:**
+
+- Dependencia Redis creada exitosamente en SleakOps
+- Grupo de variables generado con la variable `CACHE_REDIS_URL`
+- La aplicación Spring Boot falla al conectarse con `RedisConnectionException`
+- El error muestra "Unable to connect to cache-xxx.amazonaws.com:6379"
+- Los intentos de conexión terminan en tiempo de espera o son interrumpidos
+
+**Configuración Relevante:**
+
+- Instancia Redis: AWS ElastiCache
+- Versión Spring Data Redis: 3.3.2
+- Versión cliente Lettuce: 6.3.2.RELEASE
+- Formato actual de URL: `redis://cache-9ca54715.ojs75q.0001.use2.cache.amazonaws.com:6379`
+- Puerto: 6379 (puerto estándar de Redis)
+
+**Condiciones de Error:**
+
+- La conexión falla durante el inicio de la aplicación
+- El error ocurre cuando Spring intenta establecer una conexión reactiva a Redis
+- Se probaron múltiples formatos de URL sin éxito
+- El problema persiste con diferentes configuraciones de URL
+
+## Solución Detallada
+
+<TroubleshootingItem id="url-format-verification" summary="Verificar formato correcto de URL Redis">
+
+Para instancias Redis de AWS ElastiCache en SleakOps, el formato correcto de la URL debe ser:
+
+```
+redis://[hostname]:[puerto]/[número_de_base_de_datos]
+```
+
+**Configuración estándar:**
+
+```
+CACHE_REDIS_URL=redis://cache-9ca54715.ojs75q.0001.use2.cache.amazonaws.com:6379/0
+```
+
+**Puntos clave:**
+
+- Siempre incluir el número de base de datos (usualmente `/0` para la base de datos por defecto)
+- El puerto `6379` es el puerto estándar de Redis
+- Usar el prefijo de protocolo `redis://` para conexiones sin SSL
+- Usar `rediss://` para conexiones SSL si tu ElastiCache tiene cifrado en tránsito habilitado
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="network-connectivity-check" summary="Verificar conectividad de red y grupos de seguridad">
+
+El problema de conexión podría estar relacionado con la configuración de red:
+
+**1. Revisar Grupos de Seguridad:**
+
+- Asegúrate que el grupo de seguridad de tu clúster EKS permita tráfico saliente en el puerto 6379
+- Verifica que el grupo de seguridad de ElastiCache permita tráfico entrante desde tu clúster EKS
+
+**2. Configuración de Subredes:**
+
+- ElastiCache y el clúster EKS deben estar en la misma VPC
+- Las subredes deben tener una configuración de enrutamiento adecuada
+
+**3. Probar conectividad desde un pod:**
+
+```bash
+# Crear un pod de prueba
+kubectl run redis-test --image=redis:alpine --rm -it -- sh
+
+# Dentro del pod, probar conexión
+redis-cli -h cache-9ca54715.ojs75q.0001.use2.cache.amazonaws.com -p 6379 ping
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="spring-configuration" summary="Configuración Redis en Spring Boot">
+
+Asegúrate que tu aplicación Spring Boot esté configurada correctamente:
+
+**application.yml:**
+
+```yaml
+spring:
+  data:
+    redis:
+      url: ${CACHE_REDIS_URL}
+      timeout: 10s
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+```
+
+**O usando propiedades individuales:**
+
+```yaml
+spring:
+  data:
+    redis:
+      host: cache-9ca54715.ojs75q.0001.use2.cache.amazonaws.com
+      port: 6379
+      database: 0
+      timeout: 10s
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="ssl-configuration" summary="Verificar si se requiere SSL/TLS">
+
+Si tu instancia ElastiCache tiene cifrado en tránsito habilitado:
+
+**1. Usar protocolo `rediss://`:**
+
+```
+CACHE_REDIS_URL=rediss://cache-9ca54715.ojs75q.0001.use2.cache.amazonaws.com:6379/0
+```
+
+**2. Configurar SSL en Spring Boot:**
+
+```yaml
+spring:
+  data:
+    redis:
+      url: ${CACHE_REDIS_URL}
+      ssl:
+        enabled: true
+```
+
+**3. Verificar configuración de ElastiCache:**
+
+- Ir a Consola AWS → ElastiCache → Clústeres Redis
+- Verificar si "Encryption in transit" está habilitado
+- Si está habilitado, debes usar conexión SSL
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="variable-group-verification" summary="Verificar configuración del grupo de variables en SleakOps">
+
+En SleakOps, asegúrate que tus variables Redis estén configuradas correctamente:
+
+**1. Revisar grupo de variables:**
+
+- Ir a tu proyecto → Dependencias → Redis
+- Verificar que estén presentes todas las variables necesarias:
+  - `CACHE_REDIS_URL`
+  - `CACHE_REDIS_HOST` (si usas propiedades individuales)
+  - `CACHE_REDIS_PORT` (si usas propiedades individuales)
+
+**2. Formato de variables:**
+
+```
+CACHE_REDIS_URL=redis://cache-9ca54715.ojs75q.0001.use2.cache.amazonaws.com:6379/0
+CACHE_REDIS_HOST=cache-9ca54715.ojs75q.0001.use2.cache.amazonaws.com
+CACHE_REDIS_PORT=6379
+```
+
+**3. Aplicar cambios:**
+
+- Después de modificar variables, redepliega tu aplicación
+- Las variables se inyectan durante el despliegue
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Pasos adicionales para solución de problemas">
+
+**1. Habilitar registro de conexión Redis:**
+
+```yaml
+logging:
+  level:
+    org.springframework.data.redis: DEBUG
+    io.lettuce.core: DEBUG
+```
+
+**2. Revisar logs de la aplicación para errores detallados:**
+
+```bash
+kubectl logs -f deployment/your-app-name
+```
+
+**3. Verificar estado de ElastiCache:**
+
+- Consola AWS → ElastiCache → Clústeres Redis
+- Asegurarse que el estado sea "Available"
+- Revisar si hay ventanas de mantenimiento
+
+**4. Probar con Redis CLI desde máquina local:**
+
+```bash
+# Si tienes acceso VPN a la VPC
+redis-cli -h cache-9ca54715.ojs75q.0001.use2.cache.amazonaws.com -p 6379 ping
+```
+
+**5. Formatos comunes de URL para probar:**
+
+```
+# Conexión estándar
+redis://hostname:6379/0
+
+# Con autenticación (si AUTH está habilitado)
+redis://:password@hostname:6379/0
+
+# Conexión SSL
+rediss://hostname:6379/0
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

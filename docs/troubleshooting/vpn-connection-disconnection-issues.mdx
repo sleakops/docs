@@ -1,0 +1,170 @@
+---
+sidebar_position: 3
+title: "VPN Connection Disconnection Issues"
+description: "Troubleshooting VPN disconnections and credential updates in SleakOps"
+date: "2024-08-01"
+category: "user"
+tags: ["vpn", "connection", "credentials", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# VPN Connection Disconnection Issues
+
+**Date:** August 1, 2024  
+**Category:** User  
+**Tags:** VPN, Connection, Credentials, Troubleshooting
+
+## Problem Description
+
+**Context:** Users experience intermittent VPN disconnections when accessing SleakOps services, requiring credential updates and reconnection to restore access to internal resources like Grafana dashboards.
+
+**Observed Symptoms:**
+
+- VPN connection drops unexpectedly
+- Unable to access internal services (e.g., Grafana ingress)
+- Connection issues resolved after credential update
+- Services work correctly when VPN is properly connected
+
+**Relevant Configuration:**
+
+- VPN client: SleakOps provided VPN configuration
+- Target services: Internal ingress endpoints (e.g., Grafana)
+- Authentication: User credentials for VPN access
+
+**Error Conditions:**
+
+- VPN disconnects without user action
+- Internal services become inaccessible
+- Reconnection may fail with old credentials
+- Issue resolves after credential refresh
+
+## Detailed Solution
+
+<TroubleshootingItem id="immediate-reconnection" summary="Immediate reconnection steps">
+
+When experiencing VPN disconnection:
+
+1. **Disconnect completely** from the VPN
+2. **Wait 10-15 seconds** before attempting to reconnect
+3. **Reconnect to the VPN** using your client
+4. **Test access** to internal services
+
+If reconnection fails, proceed to credential update steps.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="credential-update" summary="How to update VPN credentials">
+
+To update your VPN credentials:
+
+1. **Access SleakOps Dashboard**
+
+   - Log in to your SleakOps account
+   - Navigate to **User Settings** or **VPN Access**
+
+2. **Generate new credentials**
+
+   - Click **"Regenerate VPN Credentials"**
+   - Download the new configuration file
+
+3. **Update your VPN client**
+   - Remove old VPN profile
+   - Import the new configuration
+   - Connect using updated credentials
+
+```bash
+# For OpenVPN clients
+sudo openvpn --config /path/to/new-config.ovpn
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="connection-verification" summary="Verify VPN connection and access">
+
+After reconnecting, verify your access:
+
+1. **Check VPN status**
+
+   ```bash
+   # Check your IP address
+   curl ifconfig.me
+
+   # Should show SleakOps VPN IP range
+   ```
+
+2. **Test internal service access**
+
+   ```bash
+   # Test Grafana access (example)
+   curl -I https://grafana.prod.your-domain.com/login
+
+   # Should return HTTP 200 or redirect
+   ```
+
+3. **Verify DNS resolution**
+   ```bash
+   # Test internal DNS resolution
+   nslookup grafana.prod.your-domain.com
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevent-disconnections" summary="Prevent future disconnections">
+
+To minimize VPN disconnections:
+
+1. **Enable auto-reconnect** in your VPN client settings
+2. **Use keep-alive options** if available
+3. **Check network stability** on your local connection
+4. **Update VPN client** to the latest version
+
+**For OpenVPN clients:**
+
+```conf
+# Add to your .ovpn file
+keepalive 10 120
+ping-timer-rem
+persist-tun
+persist-key
+```
+
+**For network administrators:**
+
+- Configure firewall to allow VPN traffic
+- Ensure UDP port 1194 (or configured port) is open
+- Check for network equipment that might drop long connections
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-tips" summary="Additional troubleshooting tips">
+
+**If problems persist:**
+
+1. **Check system logs**
+
+   ```bash
+   # On Linux/macOS
+   tail -f /var/log/openvpn.log
+
+   # On Windows
+   # Check Event Viewer > Applications and Services Logs > OpenVPN
+   ```
+
+2. **Test different connection methods**
+
+   - Try TCP instead of UDP
+   - Use different VPN server endpoints if available
+   - Test from different network locations
+
+3. **Contact support with details**
+   - VPN client version
+   - Operating system
+   - Error messages from logs
+   - Time when disconnection occurred
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2025 based on a real user query._

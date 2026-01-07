@@ -1,0 +1,191 @@
+---
+sidebar_position: 3
+title: "Deployment Stuck in Starting State"
+description: "Solution for deployments stuck in starting state and unable to cancel or modify configuration"
+date: "2025-01-27"
+category: "project"
+tags: ["deployment", "dockerfile", "build", "troubleshooting", "starting-state"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Deployment Stuck in Starting State
+
+**Date:** January 27, 2025  
+**Category:** Project  
+**Tags:** Deployment, Dockerfile, Build, Troubleshooting, Starting State
+
+## Problem Description
+
+**Context:** User experiences a deployment that becomes stuck in "starting" state for hours, preventing cancellation and blocking configuration changes to Dockerfile settings.
+
+**Observed Symptoms:**
+
+- Deployment shows "starting" status for extended periods (hours instead of minutes)
+- Cannot cancel the stuck deployment
+- Unable to modify Dockerfile configuration settings while deployment is in starting state
+- Build process appears to hang or fail silently
+- Platform shows "a few seconds ago" but actual time elapsed is much longer
+
+**Relevant Configuration:**
+
+- Multi-stage Dockerfile with Gradle build
+- Private GitHub repository dependencies requiring authentication
+- Docker build arguments: `GITHUB_USER` and `GITHUB_TOKEN`
+- Java application with Spring Boot
+- Complex startup script with environment variable validation
+
+**Error Conditions:**
+
+- Dockerfile detection issues causing inconsistent state
+- Missing or incorrectly configured Docker build arguments
+- Dockerfile not found in repository root
+- Build process fails but doesn't properly report failure status
+
+## Detailed Solution
+
+<TroubleshootingItem id="immediate-resolution" summary="How to resolve stuck deployments">
+
+When a deployment gets stuck in starting state:
+
+1. **Contact Support**: The platform may need manual intervention to unlock the stuck state
+2. **Wait for Manual Unlock**: Support team can manually destuck the deployment from the backend
+3. **Verify Status**: Once unlocked, the deployment should either complete or show proper error status
+4. **Check Application Health**: Ensure the application has proper health checks configured
+
+**Note**: This typically requires platform administrator intervention and cannot be resolved by users directly.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-configuration" summary="Proper Dockerfile configuration for private repositories">
+
+For applications requiring private GitHub repository access:
+
+```dockerfile
+# Build Stage
+FROM gradle:jdk21-alpine AS build
+
+WORKDIR /workspace
+COPY . .
+
+# Define build arguments for GitHub authentication
+ARG GITHUB_USER
+ARG GITHUB_TOKEN
+
+# Set environment variables for GitHub access
+ENV GITHUB_USER=$GITHUB_USER
+ENV GITHUB_TOKEN=$GITHUB_TOKEN
+
+# Configure Gradle properties for private repository access
+RUN echo "gpr.user=$GITHUB_USER" >> ~/.gradle/gradle.properties && \
+    echo "gpr.key=$GITHUB_TOKEN" >> ~/.gradle/gradle.properties
+
+# Build the application
+RUN gradle clean assemble --no-daemon
+```
+
+**Important**: Ensure Docker build arguments are properly configured in SleakOps project settings.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="docker-args-setup" summary="Configure Docker build arguments in SleakOps">
+
+To configure Docker build arguments:
+
+1. Go to **Project Settings** → **Dockerfile Settings**
+2. Add the required build arguments:
+   - `GITHUB_USER`: Your GitHub username
+   - `GITHUB_TOKEN`: Personal access token with repository access
+3. **Save Changes**: Ensure the configuration is properly saved
+4. **Verify**: Check that the arguments appear in the configuration
+
+**Troubleshooting**:
+
+- If save button is disabled, contact support to unlock the configuration
+- Ensure tokens have proper permissions for private repository access
+- Use fine-grained personal access tokens when possible
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-location" summary="Dockerfile location and detection issues">
+
+Common Dockerfile detection problems:
+
+1. **Dockerfile Location**: Must be in the repository root or specified path
+2. **Branch Selection**: Ensure you're deploying from the correct branch
+3. **File Naming**: Use exact name `Dockerfile` (case-sensitive)
+4. **Path Configuration**: If Dockerfile is in a subdirectory, specify the build context path
+
+**Verification Steps**:
+
+```bash
+# Check if Dockerfile exists in root
+ls -la Dockerfile
+
+# Verify current branch
+git branch --show-current
+
+# Check file permissions
+ls -la Dockerfile
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="health-checks" summary="Configure proper health checks">
+
+Ensure your application has proper health checks:
+
+```dockerfile
+# Add health check to Dockerfile
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:${HEALTH_PORT}/health || exit 1
+```
+
+**In your startup script**:
+
+```bash
+# Validate required environment variables
+REQUIRED_VARS=(
+    "PORT"
+    "HEALTH_PORT"
+    "PRIVATE_API_KEY"
+    "MONGODB_URI"
+    "MONGODB_DATABASE"
+    # ... other required vars
+)
+
+for var in "${REQUIRED_VARS[@]}"; do
+    if [[ -z "${!var:-}" ]]; then
+        echo "[ERROR] Environment variable $var is not set." >&2
+        exit 1
+    fi
+done
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention" summary="Prevent future deployment issues">
+
+To prevent deployments from getting stuck:
+
+1. **Test Dockerfile Locally**: Always test your Dockerfile builds locally first
+2. **Validate Environment Variables**: Ensure all required environment variables are set
+3. **Use Proper Health Checks**: Implement comprehensive health checks
+4. **Monitor Build Logs**: Check build logs for early error detection
+5. **Gradual Deployment**: Test with minimal configuration first, then add complexity
+
+**Local Testing**:
+
+```bash
+# Build locally to test
+docker build --build-arg GITHUB_USER=your_user --build-arg GITHUB_TOKEN=your_token .
+
+# Test run locally
+docker run -p 8080:8080 your-image
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 27, 2025 based on a real user query._

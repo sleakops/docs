@@ -1,0 +1,185 @@
+---
+sidebar_position: 3
+title: "Vargroups Environment Variables Not Available in Application"
+description: "Solution for applications not receiving all expected environment variables from Vargroups"
+date: "2024-12-30"
+category: "project"
+tags: ["vargroups", "environment-variables", "project", "configuration"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Vargroups Environment Variables Not Available in Application
+
+**Date:** December 30, 2024  
+**Category:** Project  
+**Tags:** Vargroups, Environment Variables, Project, Configuration
+
+## Problem Description
+
+**Context:** User has created multiple Vargroups but their application is only receiving environment variables from one specific Vargroup ('simplee-web'), while other expected environment variables are missing.
+
+**Observed Symptoms:**
+
+- Application only shows environment variables from one Vargroup
+- Missing environment variables that should be available
+- Other Vargroups appear to not be affecting the application
+- Application may not be reading environment variables correctly from the Pod
+
+**Relevant Configuration:**
+
+- Application: Web application (simplee.cl)
+- Available Vargroup: 'simplee-web'
+- Platform: SleakOps project environment
+- Missing: Additional Vargroups with required environment variables
+
+**Error Conditions:**
+
+- Environment variables from other Vargroups are not reaching the application
+- Only one Vargroup's variables are being applied
+- Application functionality may be impacted by missing variables
+
+## Detailed Solution
+
+<TroubleshootingItem id="vargroup-scope" summary="Understanding Vargroup Project Scope">
+
+Vargroups in SleakOps are **project-scoped**, meaning:
+
+- Each Vargroup only affects the specific Project where it was created
+- Vargroups from other Projects are not accessible
+- You need to create all required Vargroups within the same Project
+
+**To verify your current Vargroups:**
+
+1. Navigate to your Project in SleakOps
+2. Go to **Configuration** → **Vargroups**
+3. Check which Vargroups exist in this specific Project
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="create-missing-vargroups" summary="Creating Missing Vargroups">
+
+If you're missing Vargroups in your current Project:
+
+1. **Navigate to Project Settings:**
+
+   - Go to your Project dashboard
+   - Select **Configuration** → **Vargroups**
+
+2. **Create New Vargroup:**
+
+   - Click **Add Vargroup**
+   - Enter a descriptive name
+   - Add all required environment variables
+
+3. **Configure Variables:**
+
+   ```bash
+   # Example Vargroup configuration
+   DATABASE_URL=postgresql://user:pass@host:5432/db
+   API_KEY=your-api-key-here
+   ENVIRONMENT=production
+   ```
+
+4. **Apply Changes:**
+   - Save the Vargroup
+   - Redeploy your application to apply new variables
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verify-application-reading" summary="Verify Application is Reading Environment Variables">
+
+Ensure your application code is properly reading environment variables:
+
+**For Node.js applications:**
+
+```javascript
+// Check if variables are available
+console.log("Available env vars:", Object.keys(process.env));
+
+// Access specific variables
+const dbUrl = process.env.DATABASE_URL;
+const apiKey = process.env.API_KEY;
+```
+
+**For Python applications:**
+
+```python
+import os
+
+# Check available variables
+print('Available env vars:', list(os.environ.keys()))
+
+# Access specific variables
+db_url = os.environ.get('DATABASE_URL')
+api_key = os.environ.get('API_KEY')
+```
+
+**Debug in Pod:**
+
+```bash
+# Connect to your pod and check environment
+kubectl exec -it <pod-name> -- env | grep -i <variable-name>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Troubleshooting Missing Variables">
+
+**Step 1: Verify Vargroup Assignment**
+
+- Ensure all required Vargroups are created in the correct Project
+- Check that Vargroups are properly assigned to your application
+
+**Step 2: Check Deployment Status**
+
+- After creating new Vargroups, trigger a new deployment
+- Environment variables are applied during deployment time
+
+**Step 3: Validate Variable Names**
+
+- Ensure variable names match exactly (case-sensitive)
+- Check for typos in variable names
+
+**Step 4: Application Code Review**
+
+- Verify your application is reading from `process.env` or equivalent
+- Check if variables are being used in the correct scope
+
+**Step 5: Pod-level Verification**
+
+```bash
+# Check environment variables in the running pod
+kubectl get pods -n <namespace>
+kubectl exec -it <pod-name> -n <namespace> -- printenv
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-issues" summary="Common Issues and Solutions">
+
+**Issue 1: Variables Not Updated After Changes**
+
+- **Solution:** Redeploy the application after Vargroup changes
+- Environment variables are injected at container startup
+
+**Issue 2: Case Sensitivity**
+
+- **Solution:** Ensure exact case matching between Vargroup and application code
+- Linux containers are case-sensitive
+
+**Issue 3: Variable Overriding**
+
+- **Solution:** Check if multiple Vargroups define the same variable
+- Later Vargroups may override earlier ones
+
+**Issue 4: Application Not Reading Environment**
+
+- **Solution:** Verify application framework properly loads environment variables
+- Some frameworks require explicit configuration
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 30, 2024 based on a real user query._

@@ -1,0 +1,236 @@
+---
+sidebar_position: 3
+title: "Lens with WSL and AWS CLI Configuration"
+description: "Solution for Lens authentication issues when using WSL with AWS CLI"
+date: "2024-12-19"
+category: "user"
+tags: ["lens", "wsl", "aws-cli", "authentication", "windows"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Lens with WSL and AWS CLI Configuration
+
+**Date:** December 19, 2024  
+**Category:** User  
+**Tags:** Lens, WSL, AWS CLI, Authentication, Windows
+
+## Problem Description
+
+**Context:** Team member using Windows with WSL is trying to access a Kubernetes cluster through Lens but encounters authentication errors due to AWS CLI not being found in the Windows environment.
+
+**Observed Symptoms:**
+
+- Lens cannot authenticate with the Kubernetes cluster
+- Error message: "executable aws not found"
+- Authentication proxy fails to start properly
+- Connection to cluster fails with Internal Server Error (500)
+
+**Relevant Configuration:**
+
+- Operating System: Windows with WSL
+- Tool: Lens (Kubernetes IDE)
+- Authentication: AWS CLI credential plugin
+- Environment: Mixed Windows/WSL setup
+
+**Error Conditions:**
+
+- Lens opens Windows terminal instead of WSL terminal
+- AWS CLI is installed in WSL but not in Windows
+- Credential plugin cannot find AWS executable
+- Authentication fails during cluster connection
+
+## Detailed Solution
+
+<TroubleshootingItem id="install-lens-wsl" summary="Install Lens directly in WSL (Recommended)">
+
+The best approach is to install Lens directly within the WSL environment:
+
+### Prerequisites
+
+- WSL2 with Ubuntu or similar Linux distribution
+- X11 forwarding or WSLg for GUI applications
+
+### Installation Steps
+
+1. **Enable GUI support in WSL:**
+
+   ```bash
+   # For WSL2 with WSLg (Windows 11)
+   # WSLg is included by default, no additional setup needed
+
+   # For older Windows versions, install X11 server
+   # Install VcXsrv or similar X11 server on Windows
+   export DISPLAY=:0
+   ```
+
+2. **Install Lens in WSL:**
+
+   ```bash
+   # Download Lens AppImage
+   wget https://api.k8slens.dev/binaries/Lens-2023.12.151757-latest.x86_64.AppImage
+
+   # Make it executable
+   chmod +x Lens-2023.12.151757-latest.x86_64.AppImage
+
+   # Run Lens
+   ./Lens-2023.12.151757-latest.x86_64.AppImage
+   ```
+
+3. **Verify AWS CLI access:**
+   ```bash
+   # Ensure AWS CLI is properly configured
+   aws --version
+   aws sts get-caller-identity
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="configure-kubeconfig" summary="Configure kubeconfig in WSL">
+
+Ensure your kubeconfig is properly configured within WSL:
+
+1. **Update kubeconfig:**
+
+   ```bash
+   # Update kubeconfig for your EKS cluster
+   aws eks update-kubeconfig --region <your-region> --name <cluster-name>
+   ```
+
+2. **Verify cluster access:**
+
+   ```bash
+   # Test cluster connectivity
+   kubectl get nodes
+   kubectl cluster-info
+   ```
+
+3. **Check kubeconfig location:**
+   ```bash
+   # Ensure kubeconfig is in the expected location
+   ls -la ~/.kube/config
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-windows-install" summary="Alternative: Install AWS CLI on Windows">
+
+If you prefer to keep Lens on Windows, install AWS CLI on Windows:
+
+### Installation Steps
+
+1. **Download AWS CLI for Windows:**
+
+   - Visit: https://aws.amazon.com/cli/
+   - Download the Windows installer
+   - Run the installer with administrator privileges
+
+2. **Configure AWS CLI:**
+
+   ```cmd
+   # Open Command Prompt or PowerShell
+   aws configure
+   # Enter your AWS Access Key ID, Secret Access Key, region, and output format
+   ```
+
+3. **Copy WSL credentials (if needed):**
+
+   ```cmd
+   # Copy credentials from WSL to Windows
+   # From WSL, copy ~/.aws/ directory contents to Windows %USERPROFILE%\.aws\
+   ```
+
+4. **Update kubeconfig on Windows:**
+   ```cmd
+   aws eks update-kubeconfig --region <your-region> --name <cluster-name>
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Troubleshooting common issues">
+
+### Common Issues and Solutions
+
+**Issue 1: X11 forwarding not working**
+
+```bash
+# Install required packages
+sudo apt update
+sudo apt install x11-apps
+
+# Test X11 forwarding
+xeyes
+```
+
+**Issue 2: AWS credentials not found**
+
+```bash
+# Check AWS credentials
+aws configure list
+cat ~/.aws/credentials
+cat ~/.aws/config
+```
+
+**Issue 3: Kubeconfig path issues**
+
+```bash
+# Set KUBECONFIG environment variable
+export KUBECONFIG=~/.kube/config
+
+# Add to ~/.bashrc for persistence
+echo 'export KUBECONFIG=~/.kube/config' >> ~/.bashrc
+```
+
+**Issue 4: Permission denied errors**
+
+```bash
+# Fix kubeconfig permissions
+chmod 600 ~/.kube/config
+chown $USER:$USER ~/.kube/config
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Best practices for WSL + Kubernetes development">
+
+### Recommended Setup
+
+1. **Use WSL2 for all Kubernetes tools:**
+
+   - Install kubectl, helm, aws-cli in WSL
+   - Keep all configurations in WSL environment
+   - Use WSL for all cluster interactions
+
+2. **Environment consistency:**
+
+   ```bash
+   # Add to ~/.bashrc
+   export KUBECONFIG=~/.kube/config
+   export AWS_PROFILE=default
+   export AWS_REGION=us-west-2
+   ```
+
+3. **Tool installation script:**
+
+   ```bash
+   #!/bin/bash
+   # install-k8s-tools.sh
+
+   # Install kubectl
+   curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+   sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+   # Install AWS CLI
+   curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+   unzip awscliv2.zip
+   sudo ./aws/install
+
+   # Install Helm
+   curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+   ```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

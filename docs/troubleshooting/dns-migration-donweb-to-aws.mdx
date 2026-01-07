@@ -1,0 +1,283 @@
+---
+sidebar_position: 3
+title: "DNS Migration from DonWeb to AWS"
+description: "Complete guide for migrating DNS records from DonWeb to AWS Route 53"
+date: "2024-01-15"
+category: "provider"
+tags: ["aws", "dns", "route53", "migration", "donweb"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# DNS Migration from DonWeb to AWS
+
+**Date:** January 15, 2024  
+**Category:** Provider  
+**Tags:** AWS, DNS, Route 53, Migration, DonWeb
+
+## Problem Description
+
+**Context:** User needs to migrate DNS records from DonWeb hosting provider to AWS Route 53, including WordPress landing page and corporate email services.
+
+**Observed Symptoms:**
+
+- Current DNS managed by DonWeb hosting provider
+- WordPress landing page hosted on DonWeb
+- Corporate email services hosted on DonWeb
+- Need to consolidate all services in AWS
+- Uncertainty about where to configure DNS records in AWS
+
+**Relevant Configuration:**
+
+- Current provider: DonWeb
+- Services: WordPress website + Corporate email
+- Target platform: AWS
+- DNS service needed: AWS Route 53
+
+**Error Conditions:**
+
+- Risk of service interruption during migration
+- Need to maintain email service continuity
+- WordPress site must remain accessible
+
+## Detailed Solution
+
+<TroubleshootingItem id="route53-setup" summary="Setting up AWS Route 53 for DNS management">
+
+AWS Route 53 is the DNS service where you'll manage your domain records:
+
+1. **Access Route 53 Console**:
+
+   - Go to AWS Console → Route 53
+   - Click on "Hosted zones"
+   - Click "Create hosted zone"
+
+2. **Create Hosted Zone**:
+
+   - Enter your domain name (e.g., `yourcompany.com`)
+   - Select "Public hosted zone"
+   - Click "Create hosted zone"
+
+3. **Note the Name Servers**:
+   - AWS will provide 4 name servers
+   - Save these for later use with your domain registrar
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="export-dns-records" summary="Exporting DNS records from DonWeb">
+
+Before migrating, you need to export your current DNS configuration:
+
+1. **Access DonWeb Control Panel**:
+
+   - Log into your DonWeb account
+   - Navigate to DNS management section
+   - Look for "DNS Zone" or "DNS Records"
+
+2. **Document Current Records**:
+   Create a list of all current DNS records:
+
+   ```
+   A Records:
+   - @ (root domain) → IP_ADDRESS
+   - www → IP_ADDRESS
+
+   MX Records (Email):
+   - @ → mail.donweb.com (priority 10)
+
+   CNAME Records:
+   - Any subdomains pointing to other services
+
+   TXT Records:
+   - SPF records for email
+   - Any verification records
+   ```
+
+3. **Export Options**:
+   - Look for "Export" or "Download" option
+   - Some providers offer zone file export
+   - If not available, manually document all records
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="migrate-wordpress" summary="Migrating WordPress to AWS">
+
+For WordPress migration to AWS, you have several options:
+
+**Option 1: AWS Lightsail (Recommended for simple sites)**
+
+1. Create AWS Lightsail instance with WordPress
+2. Migrate your WordPress files and database
+3. Update DNS A record to point to new IP
+
+**Option 2: EC2 with RDS**
+
+1. Set up EC2 instance for web server
+2. Set up RDS for MySQL database
+3. Migrate WordPress files and database
+4. Configure security groups and load balancer
+
+**Option 3: AWS App Runner or ECS**
+
+1. Containerize your WordPress application
+2. Deploy using App Runner or ECS
+3. Use RDS for database
+
+```bash
+# Example: Creating Lightsail WordPress instance
+aws lightsail create-instances \
+  --instance-names "wordpress-site" \
+  --availability-zone "us-east-1a" \
+  --blueprint-id "wordpress" \
+  --bundle-id "nano_2_0"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="migrate-email" summary="Migrating corporate email services">
+
+For corporate email migration, consider these AWS options:
+
+**Option 1: Amazon WorkMail**
+
+1. Set up Amazon WorkMail organization
+2. Create user accounts
+3. Configure MX records to point to WorkMail
+4. Migrate existing emails (if needed)
+
+**Option 2: Third-party email with AWS DNS**
+
+1. Choose email provider (Google Workspace, Microsoft 365)
+2. Configure MX records in Route 53
+3. Update SPF/DKIM records
+
+**MX Record Configuration Example:**
+
+```
+Type: MX
+Name: @ (or leave blank)
+Value: 10 inbound-smtp.us-east-1.amazonaws.com (for WorkMail)
+TTL: 300
+```
+
+**SPF Record Example:**
+
+```
+Type: TXT
+Name: @ (or leave blank)
+Value: "v=spf1 include:amazonses.com ~all"
+TTL: 300
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dns-records-configuration" summary="Configuring DNS records in Route 53">
+
+Once your services are ready in AWS, configure the DNS records:
+
+1. **A Records for Website**:
+
+   ```
+   Type: A
+   Name: @ (root domain)
+   Value: YOUR_AWS_IP_ADDRESS
+   TTL: 300
+
+   Type: A
+   Name: www
+   Value: YOUR_AWS_IP_ADDRESS
+   TTL: 300
+   ```
+
+2. **MX Records for Email**:
+
+   ```
+   Type: MX
+   Name: @
+   Value: 10 your-mail-server.amazonaws.com
+   TTL: 300
+   ```
+
+3. **CNAME Records** (if needed):
+
+   ```
+   Type: CNAME
+   Name: subdomain
+   Value: target.domain.com
+   TTL: 300
+   ```
+
+4. **TXT Records for Email Authentication**:
+   ```
+   Type: TXT
+   Name: @
+   Value: "v=spf1 include:amazonses.com ~all"
+   TTL: 300
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="migration-process" summary="Step-by-step migration process">
+
+**Phase 1: Preparation**
+
+1. Export all DNS records from DonWeb
+2. Set up AWS services (Lightsail/EC2 for WordPress, WorkMail for email)
+3. Create Route 53 hosted zone
+4. Test new services before DNS switch
+
+**Phase 2: Migration**
+
+1. **Lower TTL values** (24-48 hours before migration):
+   - Change TTL to 300 seconds for faster propagation
+   - This allows quick rollback if needed
+
+2. **Update nameservers at domain registrar**:
+   - Change NS records to Route 53 nameservers
+   - Wait for propagation (up to 48 hours)
+
+3. **Monitor services**:
+   - Check website accessibility
+   - Test email functionality
+   - Monitor for any issues
+
+**Phase 3: Post-Migration**
+
+1. **Verify all services are working**
+2. **Update TTL values back to normal** (3600 seconds)
+3. **Clean up old DonWeb services** (after confirming everything works)
+4. **Document the new configuration** for future reference
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-common-issues" summary="Troubleshooting common migration issues">
+
+**Issue: Email stops working after migration**
+
+- Check MX records are correctly configured
+- Verify SPF/DKIM records are in place
+- Test email sending and receiving
+
+**Issue: Website shows SSL certificate errors**
+
+- Ensure SSL certificate is properly configured in AWS
+- Check that domain validation is complete
+- Verify certificate covers both www and non-www versions
+
+**Issue: Some services still point to old provider**
+
+- Check all DNS records are migrated
+- Look for hardcoded IP addresses in applications
+- Verify CDN configurations if applicable
+
+**Issue: Slow DNS propagation**
+
+- Use multiple DNS checkers to verify propagation
+- Clear local DNS cache
+- Wait up to 48 hours for full global propagation
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ section was automatically generated on January 15, 2024, based on a real user inquiry._

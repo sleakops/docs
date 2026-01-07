@@ -1,0 +1,261 @@
+---
+sidebar_position: 3
+title: "Adding Custom Ingress Configuration Using Extended Charts"
+description: "How to configure persistent custom Ingress resources using SleakOps Extended Charts feature"
+date: "2024-12-26"
+category: "project"
+tags: ["ingress", "helm", "extended-charts", "aws-load-balancer", "kubernetes"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Adding Custom Ingress Configuration Using Extended Charts
+
+**Date:** December 26, 2024  
+**Category:** Project  
+**Tags:** Ingress, Helm, Extended Charts, AWS Load Balancer, Kubernetes
+
+## Problem Description
+
+**Context:** Users need to add custom Ingress configurations to their SleakOps projects that persist across deployments and updates. The standard project configuration may not cover all specific Ingress requirements like custom annotations, multiple hosts, or specific AWS Load Balancer Controller configurations.
+
+**Observed Symptoms:**
+
+- Need to manually configure Ingress resources after each deployment
+- Custom Ingress configurations get lost during project updates
+- Requirement for specific AWS ALB annotations and configurations
+- Need to handle multiple domains and SSL certificates
+
+**Relevant Configuration:**
+
+- Platform: SleakOps with Kubernetes
+- Load Balancer: AWS Application Load Balancer (ALB)
+- Ingress Controller: AWS Load Balancer Controller
+- SSL/TLS: AWS Certificate Manager integration
+
+**Error Conditions:**
+
+- Ingress configurations don't persist across deployments
+- Manual configurations are overwritten during updates
+- Need for complex routing rules and redirects
+
+## Detailed Solution
+
+<TroubleshootingItem id="access-extended-charts" summary="How to access Extended Charts feature">
+
+To add persistent custom Ingress configurations:
+
+1. Navigate to your project in SleakOps
+2. Go to the **"Extended Charts"** section
+3. This feature allows you to add custom Kubernetes resources that will be included in your Helm deployment
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="add-ingress-template" summary="Adding Ingress configuration to templates">
+
+Once in the Extended Charts section:
+
+1. Click on **"Templates"** or **"Add Template"**
+2. Add your custom Ingress YAML configuration
+3. The configuration will be automatically included in your Helm chart
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="ingress-example" summary="Complete Ingress configuration example">
+
+Here's a complete example of an Ingress configuration with AWS ALB annotations:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: websimpleecommx
+  namespace: mx-simplee-web-prod-mx-2
+  labels:
+    app.kubernetes.io/instance: 1.0.1
+    app.kubernetes.io/name: websimpleecommx
+  annotations:
+    # AWS Load Balancer Controller annotations
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+
+    # Certificate configuration
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:123456789:certificate/your-cert-id
+
+    # Health check configuration
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "30"
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: "5"
+    alb.ingress.kubernetes.io/healthy-threshold-count: "2"
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: "2"
+
+    # Redirect configuration (example for www to non-www)
+    alb.ingress.kubernetes.io/actions.redirect-to-simplee: >
+      {"Type": "redirect",
+       "RedirectConfig": {
+         "Protocol": "HTTPS",
+         "Port": "443",
+         "StatusCode": "HTTP_301",
+         "Host": "simplee.com.mx"
+       }}
+spec:
+  rules:
+    # Handle www redirect
+    - host: www.simplee.com.mx
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: redirect-to-simplee
+                port:
+                  name: use-annotation
+    # Main domain
+    - host: simplee.com.mx
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: websimpleecommx-service
+                port:
+                  number: 80
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="advanced-configurations" summary="Advanced Ingress configurations">
+
+### Multiple Hosts with Different Backends
+
+```yaml
+spec:
+  rules:
+    - host: api.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-service
+                port:
+                  number: 8080
+    - host: admin.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: admin-service
+                port:
+                  number: 3000
+```
+
+### Path-based Routing
+
+```yaml
+spec:
+  rules:
+    - host: example.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api-service
+                port:
+                  number: 8080
+          - path: /admin
+            pathType: Prefix
+            backend:
+              service:
+                name: admin-service
+                port:
+                  number: 3000
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-service
+                port:
+                  number: 80
+```
+
+### Custom Redirect Rules
+
+```yaml
+annotations:
+  alb.ingress.kubernetes.io/actions.custom-redirect: >
+    {"Type": "redirect",
+     "RedirectConfig": {
+       "Protocol": "HTTPS",
+       "Port": "443",
+       "StatusCode": "HTTP_301",
+       "Path": "/new-path"
+     }}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="validation-troubleshooting" summary="Validation and troubleshooting">
+
+### Verify Ingress Deployment
+
+After adding your Ingress configuration to Extended Charts:
+
+```bash
+# Check if Ingress was created
+kubectl get ingress -n <namespace>
+
+# Verify Ingress details
+kubectl describe ingress <ingress-name> -n <namespace>
+
+# Check ALB creation in AWS
+aws elbv2 describe-load-balancers --region <region>
+```
+
+### Common Issues and Solutions
+
+1. **Ingress not creating ALB:**
+
+   - Verify AWS Load Balancer Controller is installed
+   - Check service account permissions
+   - Ensure correct annotations are used
+
+2. **SSL certificate issues:**
+
+   - Verify certificate ARN is correct
+   - Ensure certificate is in the same region
+   - Check certificate status in AWS Certificate Manager
+
+3. **Routing not working:**
+   - Verify service names and ports match
+   - Check target group health in AWS console
+   - Validate security group rules
+
+### Testing Your Configuration
+
+```bash
+# Test HTTP response
+curl -I http://your-domain.com
+
+# Test HTTPS redirect
+curl -I -L http://your-domain.com
+
+# Test specific paths
+curl -I https://your-domain.com/api
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 26, 2024 based on a real user query._

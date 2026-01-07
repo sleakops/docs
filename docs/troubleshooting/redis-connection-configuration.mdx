@@ -1,0 +1,232 @@
+---
+sidebar_position: 3
+title: "Redis Connection Configuration Issues"
+description: "Solution for Redis dependency connection problems in SleakOps projects"
+date: "2024-01-15"
+category: "dependency"
+tags: ["redis", "connection", "aws", "elasticache", "configuration"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Redis Connection Configuration Issues
+
+**Date:** January 15, 2024  
+**Category:** Dependency  
+**Tags:** Redis, Connection, AWS, ElastiCache, Configuration
+
+## Problem Description
+
+**Context:** User created a Redis dependency for their SleakOps project which generated the corresponding variable group, but the Spring Boot application cannot connect to the Redis instance despite having the correct URL and port configuration.
+
+**Observed Symptoms:**
+
+- Redis dependency created successfully in SleakOps
+- Variable group generated with `CACHE_REDIS_URL` variable
+- Spring Boot application fails to connect with `RedisConnectionException`
+- Error shows "Unable to connect to cache-xxx.amazonaws.com:6379"
+- Connection attempts timeout or are interrupted
+
+**Relevant Configuration:**
+
+- Redis instance: AWS ElastiCache
+- Spring Data Redis version: 3.3.2
+- Lettuce client version: 6.3.2.RELEASE
+- Current URL format: `redis://cache-9ca54715.ojs75q.0001.use2.cache.amazonaws.com:6379`
+- Port: 6379 (standard Redis port)
+
+**Error Conditions:**
+
+- Connection fails during application startup
+- Error occurs when Spring tries to establish reactive Redis connection
+- Multiple URL formats attempted without success
+- Problem persists across different URL configurations
+
+## Detailed Solution
+
+<TroubleshootingItem id="url-format-verification" summary="Verify correct Redis URL format">
+
+For AWS ElastiCache Redis instances in SleakOps, the correct URL format should be:
+
+```
+redis://[hostname]:[port]/[database_number]
+```
+
+**Standard configuration:**
+
+```
+CACHE_REDIS_URL=redis://cache-9ca54715.ojs75q.0001.use2.cache.amazonaws.com:6379/0
+```
+
+**Key points:**
+
+- Always include the database number (usually `/0` for default database)
+- Port `6379` is the standard Redis port
+- Use `redis://` protocol prefix for non-SSL connections
+- Use `rediss://` for SSL connections if your ElastiCache has encryption in transit enabled
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="network-connectivity-check" summary="Verify network connectivity and security groups">
+
+The connection issue might be related to network configuration:
+
+**1. Check Security Groups:**
+
+- Ensure your EKS cluster's security group allows outbound traffic on port 6379
+- Verify ElastiCache security group allows inbound traffic from your EKS cluster
+
+**2. Subnet Configuration:**
+
+- ElastiCache and EKS cluster should be in the same VPC
+- Subnets should have proper routing configured
+
+**3. Test connectivity from a pod:**
+
+```bash
+# Create a test pod
+kubectl run redis-test --image=redis:alpine --rm -it -- sh
+
+# Inside the pod, test connection
+redis-cli -h cache-9ca54715.ojs75q.0001.use2.cache.amazonaws.com -p 6379 ping
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="spring-configuration" summary="Spring Boot Redis configuration">
+
+Ensure your Spring Boot application is properly configured:
+
+**application.yml:**
+
+```yaml
+spring:
+  data:
+    redis:
+      url: ${CACHE_REDIS_URL}
+      timeout: 10s
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+```
+
+**Or using individual properties:**
+
+```yaml
+spring:
+  data:
+    redis:
+      host: cache-9ca54715.ojs75q.0001.use2.cache.amazonaws.com
+      port: 6379
+      database: 0
+      timeout: 10s
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="ssl-configuration" summary="Check if SSL/TLS is required">
+
+If your ElastiCache instance has encryption in transit enabled:
+
+**1. Use `rediss://` protocol:**
+
+```
+CACHE_REDIS_URL=rediss://cache-9ca54715.ojs75q.0001.use2.cache.amazonaws.com:6379/0
+```
+
+**2. Configure SSL in Spring Boot:**
+
+```yaml
+spring:
+  data:
+    redis:
+      url: ${CACHE_REDIS_URL}
+      ssl:
+        enabled: true
+```
+
+**3. Check ElastiCache configuration:**
+
+- Go to AWS Console → ElastiCache → Redis clusters
+- Verify if "Encryption in transit" is enabled
+- If enabled, you must use SSL connection
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="variable-group-verification" summary="Verify SleakOps variable group configuration">
+
+In SleakOps, ensure your Redis variables are correctly configured:
+
+**1. Check variable group:**
+
+- Go to your project → Dependencies → Redis
+- Verify all required variables are present:
+  - `CACHE_REDIS_URL`
+  - `CACHE_REDIS_HOST` (if using individual properties)
+  - `CACHE_REDIS_PORT` (if using individual properties)
+
+**2. Variable format:**
+
+```
+CACHE_REDIS_URL=redis://cache-9ca54715.ojs75q.0001.use2.cache.amazonaws.com:6379/0
+CACHE_REDIS_HOST=cache-9ca54715.ojs75q.0001.use2.cache.amazonaws.com
+CACHE_REDIS_PORT=6379
+```
+
+**3. Apply changes:**
+
+- After modifying variables, redeploy your application
+- Variables are injected during deployment
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Additional troubleshooting steps">
+
+**1. Enable Redis connection logging:**
+
+```yaml
+logging:
+  level:
+    org.springframework.data.redis: DEBUG
+    io.lettuce.core: DEBUG
+```
+
+**2. Check application logs for detailed errors:**
+
+```bash
+kubectl logs -f deployment/your-app-name
+```
+
+**3. Verify ElastiCache status:**
+
+- AWS Console → ElastiCache → Redis clusters
+- Ensure status is "Available"
+- Check for any maintenance windows
+
+**4. Test with Redis CLI from local machine:**
+
+```bash
+# If you have VPN access to the VPC
+redis-cli -h cache-9ca54715.ojs75q.0001.use2.cache.amazonaws.com -p 6379 ping
+```
+
+**5. Common URL formats to try:**
+
+```
+# Standard connection
+redis://hostname:6379/0
+
+# With authentication (if AUTH is enabled)
+redis://:password@hostname:6379/0
+
+# SSL connection
+rediss://hostname:6379/0
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

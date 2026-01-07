@@ -1,0 +1,209 @@
+---
+sidebar_position: 3
+title: "Problemas de Delegación DNS con Route53 y Proveedores de Dominio"
+description: "Solución para problemas de delegación DNS al configurar dominios personalizados con Route53 y registradores de dominio externos"
+date: "2024-12-19"
+category: "provider"
+tags:
+  ["dns", "route53", "aws", "dominio", "delegación", "solución de problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de Delegación DNS con Route53 y Proveedores de Dominio
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Proveedor  
+**Etiquetas:** DNS, Route53, AWS, Dominio, Delegación, Solución de Problemas
+
+## Descripción del Problema
+
+**Contexto:** El usuario intenta configurar un dominio personalizado (ordenapp.com.ar) para apuntar a su despliegue de SleakOps, pero la delegación DNS no funciona correctamente a pesar de una configuración correcta en Route53.
+
+**Síntomas Observados:**
+
+- La delegación DNS parece estar configurada correctamente en Route53
+- El registrador del dominio (DonWeb) informa que la delegación está configurada pero "no se propaga porque los servidores DNS no están configurados en el proveedor de hosting"
+- Los registros NS no se replican correctamente entre servidores DNS
+- La validación del certificado SSL puede estar fallando
+- El dominio no resuelve a la infraestructura AWS prevista
+
+**Configuración Relevante:**
+
+- Dominio: Dominio personalizado (.com.ar)
+- Proveedor DNS: AWS Route53
+- Registrador de Dominio: DonWeb (o similar)
+- SSL: AWS Certificate Manager (ACM)
+- Destino: Despliegue de SleakOps con Load Balancer
+
+**Condiciones de Error:**
+
+- La propagación DNS falla a pesar de la correcta delegación NS
+- Problemas de validación del certificado
+- El dominio no resuelve a la infraestructura objetivo
+- Los registros NS muestran resultados inconsistentes en diferentes verificadores DNS
+
+## Solución Detallada
+
+<TroubleshootingItem id="verify-route53-configuration" summary="Verificar Configuración de la Zona Alojada en Route53">
+
+Primero, asegúrate de que tu zona alojada en Route53 esté configurada correctamente:
+
+1. **Verificar Creación de Zona Alojada:**
+
+   - Ve a la Consola AWS → Route53 → Zonas Alojadas
+   - Verifica que exista la zona alojada para tu dominio
+   - Anota los 4 registros NS (Name Server) que proporciona AWS
+
+2. **Verificar Registros Requeridos:**
+
+   ```
+   Tipo: NS
+   Nombre: tu-dominio.com
+   Valor:
+   ns-123.awsdns-12.com
+   ns-456.awsdns-45.net
+   ns-789.awsdns-78.org
+   ns-012.awsdns-01.co.uk
+
+   Tipo: A
+   Nombre: tu-dominio.com
+   Valor: [IP o Alias del Load Balancer]
+
+   Tipo: CNAME (para validación SSL)
+   Nombre: _acme-challenge.tu-dominio.com
+   Valor: [valor de validación ACM]
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="domain-registrar-delegation" summary="Configurar Delegación DNS en el Registrador de Dominio">
+
+El problema suele ocurrir cuando la delegación DNS en el registrador del dominio está incompleta:
+
+1. **Actualizar Servidores de Nombre en el Registrador:**
+
+   - Inicia sesión en tu registrador de dominio (DonWeb, GoDaddy, etc.)
+   - Ve a la sección de Gestión DNS o Servidores de Nombre
+   - Reemplaza los servidores de nombre por los 4 registros NS de AWS Route53
+   - **Importante:** Usa los 4 servidores de nombre, no solo 2
+
+2. **Eliminar Registros DNS Conflictivos:**
+
+   - Borra cualquier registro A, CNAME u otros existentes en el registrador
+   - Mantén solo los registros de delegación NS
+   - Algunos registradores mantienen sus propios registros DNS incluso después de la delegación
+
+3. **Esperar la Propagación:**
+   - Los cambios DNS pueden tardar 24-48 horas en propagarse completamente
+   - Usa herramientas como `dig` o verificadores DNS en línea para monitorear el progreso
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-delegation" summary="Solucionar Problemas de Delegación DNS">
+
+Si la delegación aún no funciona, sigue estos pasos de solución de problemas:
+
+1. **Verificar Propagación DNS:**
+
+   ```bash
+   # Verificar registros NS desde diferentes ubicaciones
+   dig NS tu-dominio.com @8.8.8.8
+   dig NS tu-dominio.com @1.1.1.1
+
+   # Verificar si Route53 responde
+   dig A tu-dominio.com @ns-123.awsdns-12.com
+   ```
+
+2. **Verificar con Herramientas en Línea:**
+
+   - Usa https://dnschecker.org para revisar la propagación global
+   - Revisa específicamente los registros NS: `https://dnschecker.org/#NS/tu-dominio.com`
+   - Busca inconsistencias entre diferentes regiones
+
+3. **Problemas Comunes y Soluciones:**
+   - **Delegación parcial:** Asegúrate de que los 4 registros NS estén configurados
+   - **Conflictos de TTL:** Registros DNS antiguos pueden estar en caché (espera a que expire el TTL)
+   - **Interferencia del DNS del registrador:** Algunos registradores mantienen registros DNS paralelos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="ssl-certificate-issues" summary="Resolver Problemas de Validación de Certificado SSL">
+
+Los problemas con el certificado SSL suelen acompañar a los problemas de delegación DNS:
+
+1. **Validación del Certificado ACM:**
+
+   - Asegúrate de que el registro CNAME para la validación del dominio esté en Route53
+   - El registro de validación debe ser: `_acme-challenge.tu-dominio.com`
+   - El valor debe coincidir exactamente con lo que proporciona ACM
+
+2. **Verificar Estado del Certificado:**
+
+   ```bash
+   # Verificar estado de validación del certificado
+   aws acm describe-certificate --certificate-arn tu-cert-arn
+   ```
+
+3. **Solicitar el Certificado Nuevamente si es Necesario:**
+   - Si la validación falla repetidamente, elimina y vuelve a solicitar el certificado
+   - Asegúrate de que la delegación DNS funcione antes de solicitar
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-specific-configuration" summary="Configuración de Dominio para SleakOps">
+
+Para despliegues de SleakOps, asegúrate de una configuración correcta del dominio:
+
+1. **Configuración del Load Balancer:**
+
+   - Verifica que el registro A apunte al Load Balancer correcto
+   - Usa registros Alias cuando sea posible en lugar de direcciones IP
+   - Comprueba que el Load Balancer esté en la misma región que Route53
+
+2. **Configuración del Dominio en SleakOps:**
+
+   - Actualiza la configuración de tu proyecto SleakOps para usar el dominio personalizado
+   - Asegura que el certificado SSL esté correctamente asociado
+   - Verifica que la configuración de ingress acepte el nuevo dominio
+
+3. **Probar Resolución del Dominio:**
+
+   ```bash
+   # Probar resolución del dominio
+   curl -I https://tu-dominio.com
+
+   # Verificar certificado SSL
+   openssl s_client -connect tu-dominio.com:443 -servername tu-dominio.com
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="contact-registrar-support" summary="Cuándo Contactar al Soporte del Registrador de Dominio">
+
+Si la delegación DNS sigue fallando después de seguir todos los pasos:
+
+1. **Contactar Soporte del Registrador con Información Específica:**
+
+   - Proporciona los 4 servidores de nombre de AWS Route53
+   - Explica que necesitas una delegación DNS completa (no solo reenvío)
+   - Pide que verifiquen que no existan registros DNS conflictivos
+   - Solicita que comprueben que sus servidores DNS no estén sobrescribiendo la delegación
+
+2. **Problemas Comunes con Registradores:**
+
+   - Algunos registradores mantienen registros DNS de "parking"
+   - Delegación incompleta (solo 2 registros NS en lugar de 4)
+   - Reenvío DNS en lugar de verdadera delegación
+   - Registros DNS antiguos en caché en sus servidores
+
+3. **Documentación para Proporcionar:**
+   - Captura de pantalla de la zona alojada en Route53
+   - Resultados de herramientas de verificación DNS
+   - Mensajes de error o síntomas específicos
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de usuario._

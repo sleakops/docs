@@ -1,0 +1,210 @@
+---
+sidebar_position: 3
+title: "Instancias Spot de EKS No Disponibles Durante la Creación del Nodegroup"
+description: "Solución para fallos en nodegroups de EKS debido a instancias Spot no disponibles"
+date: "2024-01-15"
+category: "cluster"
+tags: ["eks", "instancias-spot", "nodegroup", "aws", "resolución-de-problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Instancias Spot de EKS No Disponibles Durante la Creación del Nodegroup
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Cluster  
+**Etiquetas:** EKS, Instancias Spot, Nodegroup, AWS, Resolución de Problemas
+
+## Descripción del Problema
+
+**Contexto:** El usuario experimenta problemas con la creación de nodegroups en el clúster EKS al usar instancias Spot, particularmente después de operaciones automáticas de inicio/parada del clúster durante los fines de semana.
+
+**Síntomas Observados:**
+
+- El nodegroup no se lanza debido a la indisponibilidad de instancias Spot
+- La funcionalidad automática de inicio/parada del clúster provoca problemas en la provisión de nodos
+- Los nodos de complementos críticos (criticaladdonsonly) no se inician
+- El clúster se vuelve parcialmente inaccesible afectando el entorno de staging
+
+**Configuración Relevante:**
+
+- Plataforma: AWS EKS
+- Tipo de instancia: Instancias Spot
+- Entorno: Staging (STG)
+- Funcionalidad: Inicio/parada automática del clúster durante fines de semana
+- Región: us-east-1
+
+**Condiciones de Error:**
+
+- El error ocurre durante el reinicio automático del clúster tras el apagado del fin de semana
+- No hay disponibilidad de instancias Spot del tipo requerido en la región
+- El reinicio manual del clúster resuelve parcialmente el problema pero algunos nodos permanecen no disponibles
+- El problema parece ser recurrente
+
+## Solución Detallada
+
+<TroubleshootingItem id="spot-availability-diagnosis" summary="Comprendiendo los Problemas de Disponibilidad de Instancias Spot">
+
+Las instancias Spot en AWS tienen disponibilidad variable basada en:
+
+1. **Demanda actual**: Alta demanda reduce la disponibilidad
+2. **Tipo de instancia**: Algunos tipos son más escasos que otros
+3. **Zona de disponibilidad**: Diferentes zonas tienen distinta capacidad
+4. **Hora del día/semana**: Los patrones de demanda afectan la disponibilidad
+
+Cuando AWS no tiene suficiente capacidad Spot, la creación del nodegroup falla con errores de capacidad.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-resolution" summary="Pasos para la Resolución Inmediata">
+
+Para resolver el problema actual:
+
+1. **Verificar disponibilidad de instancias Spot**:
+
+   - Ir a Consola AWS → EC2 → Solicitudes Spot
+   - Revisar precios y disponibilidad actuales de Spot
+
+2. **Modificar configuración del nodegroup**:
+
+   ```yaml
+   # Añadir múltiples tipos de instancia para mejor disponibilidad
+   instance_types:
+     - "m5.large"
+     - "m5a.large"
+     - "m4.large"
+     - "c5.large"
+   ```
+
+3. **Usar política de instancias mixtas**:
+   - Combinar instancias On-Demand y Spot
+   - Establecer un porcentaje de división (ejemplo: 20% On-Demand, 80% Spot)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="nodegroup-configuration" summary="Configuración Óptima del Nodegroup para Instancias Spot">
+
+Configure su nodegroup con estas mejores prácticas:
+
+```yaml
+# Configuración recomendada
+nodegroup_config:
+  instance_types:
+    - "m5.large"
+    - "m5a.large"
+    - "m4.large"
+    - "c5.large"
+    - "c4.large"
+  capacity_type: "SPOT"
+  scaling_config:
+    min_size: 1
+    max_size: 10
+    desired_size: 3
+  update_config:
+    max_unavailable_percentage: 25
+  # Diversificar en múltiples zonas de disponibilidad
+  subnets:
+    - "subnet-xxx" # us-east-1a
+    - "subnet-yyy" # us-east-1b
+    - "subnet-zzz" # us-east-1c
+```
+
+**Recomendaciones clave**:
+
+- Usar 4-5 tipos diferentes de instancia
+- Distribuir en múltiples zonas de disponibilidad
+- Considerar características de rendimiento similares
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="critical-addons-solution" summary="Garantizando la Disponibilidad de Complementos Críticos">
+
+Para componentes críticos del sistema que deben estar siempre disponibles:
+
+1. **Crear un nodegroup dedicado On-Demand**:
+
+   ```yaml
+   critical_nodegroup:
+     capacity_type: "ON_DEMAND"
+     instance_types: ["t3.medium"]
+     scaling_config:
+       min_size: 2
+       max_size: 3
+       desired_size: 2
+     taints:
+       - key: "CriticalAddonsOnly"
+         value: "true"
+         effect: "NoSchedule"
+   ```
+
+2. **Usar selectores de nodo para cargas críticas**:
+   ```yaml
+   # En los manifiestos de cargas críticas
+   nodeSelector:
+     node.kubernetes.io/instance-type: "t3.medium"
+   tolerations:
+     - key: "CriticalAddonsOnly"
+       operator: "Equal"
+       value: "true"
+       effect: "NoSchedule"
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="auto-start-stop-recommendations" summary="Recomendaciones para Configuración de Inicio/Parada Automática">
+
+Para prevenir problemas con el inicio/parada automática del clúster:
+
+1. **Implementar secuencia de inicio gradual**:
+
+   - Iniciar primero los nodegroups críticos
+   - Esperar que los pods del sistema estén listos
+   - Luego iniciar los nodegroups de aplicaciones
+
+2. **Configurar chequeos de salud en el inicio**:
+
+   ```bash
+   # Añadir al script de inicio
+   kubectl wait --for=condition=Ready nodes --all --timeout=300s
+   kubectl wait --for=condition=Ready pods -n kube-system --all --timeout=300s
+   ```
+
+3. **Considerar deshabilitar temporalmente el auto inicio/parada**:
+
+   - Hasta que mejore la disponibilidad de Spot
+   - O hasta implementar configuración de instancias mixtas
+
+4. **Configurar alertas de monitoreo**:
+   - Alertar cuando los nodegroups no se inicien
+   - Monitorear tasas de interrupción de instancias Spot
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-strategies" summary="Estrategias Alternativas">
+
+Si los problemas con instancias Spot persisten:
+
+1. **Enfoque híbrido**:
+
+   - Usar On-Demand para componentes del sistema
+   - Usar Spot para cargas de trabajo de aplicaciones
+
+2. **Despliegue multi-región**:
+
+   - Considerar distribuir cargas entre regiones
+   - Usar regiones con mejor disponibilidad Spot
+
+3. **Instancias reservadas**:
+
+   - Para cargas predecibles
+   - Mejor control de costos que On-Demand
+
+4. **Fargate para cargas críticas**:
+   - No requiere gestión de instancias
+   - Costo mayor pero mejor confiabilidad
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

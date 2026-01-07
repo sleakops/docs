@@ -1,0 +1,162 @@
+---
+sidebar_position: 3
+title: "Errores de Restauración de Base de Datos PostgreSQL"
+description: "Soluciones para errores comunes en la restauración de bases de datos PostgreSQL incluyendo conflictos de restricciones e índices"
+date: "2024-01-15"
+category: "dependency"
+tags:
+  ["postgresql", "base de datos", "restauración", "restricciones", "índices"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Errores de Restauración de Base de Datos PostgreSQL
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Dependencia  
+**Etiquetas:** PostgreSQL, Base de datos, Restauración, Restricciones, Índices
+
+## Descripción del Problema
+
+**Contexto:** Al intentar restaurar un volcado de base de datos PostgreSQL, los usuarios encuentran errores relacionados con dependencias de restricciones y conflictos de índices durante el proceso de restauración.
+
+**Síntomas Observados:**
+
+- Error: "no se puede eliminar el índice active_storage_blobs_pkey porque la restricción active_storage_blobs_pkey en la tabla active_storage_blobs lo requiere"
+- Error: "no se puede eliminar la restricción users_pkey en la tabla public.users porque otros objetos dependen de ella"
+- Error: "la columna 'id' no existe" al recrear índices
+- El proceso de restauración falla durante la manipulación de índices y restricciones
+
+**Configuración Relevante:**
+
+- Base de datos: PostgreSQL (instancia RDS)
+- Variables de entorno: `SUPRADBPRODPOSTGRESQL_POSTGRESQL_ADDRESS`, `SUPRADBPRODPOSTGRESQL_POSTGRESQL_USERNAME`, `SUPRADBPRODPOSTGRESQL_POSTGRESQL_NAME`
+- Herramienta de restauración: `pg_restore`
+- La base de datos contiene tablas Rails ActiveStorage y relaciones complejas de claves foráneas
+
+**Condiciones del Error:**
+
+- Ocurre durante la restauración de la base de datos desde archivos de volcado
+- Sucede al intentar eliminar restricciones de clave primaria que tienen claves foráneas dependientes
+- Aparece cuando el script de restauración intenta eliminar y recrear índices en orden incorrecto
+- El error persiste tras múltiples intentos de restauración
+
+## Solución Detallada
+
+<TroubleshootingItem id="clean-database-approach" summary="Enfoque de restauración con base de datos limpia">
+
+Cuando se presentan errores de restricciones e índices, la solución más confiable es comenzar con una base de datos completamente limpia:
+
+```bash
+# Conectarse a la instancia RDS y eliminar/crear la base de datos
+psql -h "${SUPRADBPRODPOSTGRESQL_POSTGRESQL_ADDRESS}" \
+-U "${SUPRADBPRODPOSTGRESQL_POSTGRESQL_USERNAME}" \
+-d postgres \
+-c "DROP DATABASE IF EXISTS ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_NAME};" \
+-c "CREATE DATABASE ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_NAME};"
+```
+
+Este enfoque elimina todas las restricciones e índices existentes que podrían entrar en conflicto con el proceso de restauración.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="schema-preparation" summary="Preparar esquema de base de datos antes de la restauración">
+
+Algunas aplicaciones requieren que existan esquemas específicos antes de la restauración. Cree los esquemas necesarios:
+
+```bash
+# Conectarse a su RDS y crear los esquemas requeridos
+psql -h ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_ADDRESS} \
+-U ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_USERNAME} \
+-d ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_NAME} \
+-c "CREATE SCHEMA IF NOT EXISTS heroku_ext;"
+```
+
+Esto es especialmente importante para aplicaciones migradas desde Heroku u otras plataformas que usan esquemas personalizados.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="constraint-order-fix" summary="Corregir orden de eliminación de restricciones en el script de restauración">
+
+Si necesita modificar el script de restauración, asegúrese de que las restricciones se eliminen en el orden correcto:
+
+1. **Eliminar primero las restricciones de clave foránea**
+2. **Luego eliminar las restricciones de clave primaria**
+3. **Finalmente eliminar los índices**
+
+El error ocurre porque el script intenta eliminar las claves primarias antes que las claves foráneas que dependen de ellas.
+
+```sql
+-- Ejemplo de orden correcto:
+-- 1. Eliminar restricciones de clave foránea
+ALTER TABLE campaign_agency_users DROP CONSTRAINT IF EXISTS fk_rails_80e17a26a2;
+
+-- 2. Eliminar restricciones de clave primaria
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_pkey;
+
+-- 3. Eliminar índices
+DROP INDEX IF EXISTS active_storage_blobs_pkey CASCADE;
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-restoration-methods" summary="Métodos alternativos de restauración">
+
+Si la restauración estándar sigue fallando, pruebe estas alternativas:
+
+**Método 1: Usar pg_restore con opciones específicas**
+
+```bash
+pg_restore --verbose --clean --no-acl --no-owner \
+-h ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_ADDRESS} \
+-U ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_USERNAME} \
+-d ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_NAME} \
+your_dump_file.dump
+```
+
+**Método 2: Restaurar solo datos (omitir esquema)**
+
+```bash
+pg_restore --data-only --verbose \
+-h ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_ADDRESS} \
+-U ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_USERNAME} \
+-d ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_NAME} \
+your_dump_file.dump
+```
+
+**Método 3: Creación manual del esquema**
+
+1. Crear el esquema de la base de datos manualmente usando migraciones Rails o scripts SQL
+2. Luego restaurar solo los datos usando la opción `--data-only`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Verificar restauración exitosa">
+
+Después de la restauración, verifique la integridad de la base de datos:
+
+```bash
+# Verificar que existan todas las tablas
+psql -h ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_ADDRESS} \
+-U ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_USERNAME} \
+-d ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_NAME} \
+-c "\dt"
+
+# Verificar restricciones
+psql -h ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_ADDRESS} \
+-U ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_USERNAME} \
+-d ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_NAME} \
+-c "SELECT conname FROM pg_constraint WHERE contype = 'f';"
+
+# Verificar integridad de datos
+psql -h ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_ADDRESS} \
+-U ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_USERNAME} \
+-d ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_NAME} \
+-c "SELECT COUNT(*) FROM users;"
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

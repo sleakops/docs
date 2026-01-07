@@ -1,0 +1,195 @@
+---
+sidebar_position: 3
+title: "Error de Tiempo de Espera en la Visualización de Trabajos a Pesar de la Ejecución Exitosa"
+description: "Solución para trabajos que muestran error de tiempo de espera en la interfaz mientras se ejecutan correctamente"
+date: "2025-02-10"
+category: "workload"
+tags:
+  [
+    "trabajos",
+    "tiempo de espera",
+    "ui",
+    "visualización",
+    "solución de problemas",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Error de Tiempo de Espera en la Visualización de Trabajos a Pesar de la Ejecución Exitosa
+
+**Fecha:** 10 de febrero de 2025  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** Trabajos, Tiempo de espera, UI, Visualización, Solución de problemas
+
+## Descripción del Problema
+
+**Contexto:** Los trabajos de larga duración en SleakOps que tardan varias horas en completarse muestran errores de tiempo de espera en la interfaz, aunque se estén ejecutando correctamente en segundo plano.
+
+**Síntomas observados:**
+
+- Los trabajos muestran estado de error "Tiempo agotado" en el panel de SleakOps
+- Los trabajos están realmente ejecutándose y completándose con éxito
+- El error de tiempo de espera parece ser un problema de visualización, no una falla real en la ejecución
+- Los trabajos de larga duración (varias horas) tienen más probabilidades de experimentar este problema
+
+**Configuración relevante:**
+
+- Tipo de trabajo: Trabajos por lotes de larga duración
+- Tiempo de ejecución: Varias horas
+- Plataforma: Sistema de gestión de trabajos SleakOps
+- Visualización de estado: Muestra incorrectamente error de tiempo de espera
+
+**Condiciones de error:**
+
+- El error aparece en la UI tras un tiempo prolongado de ejecución
+- Los trabajos continúan ejecutándose a pesar de la visualización de tiempo agotado
+- El problema afecta la visibilidad y monitoreo del estado del trabajo
+- Ocurre con trabajos que superan ciertos umbrales de tiempo
+
+## Solución Detallada
+
+<TroubleshootingItem id="understanding-issue" summary="Comprendiendo el problema de visualización del tiempo de espera">
+
+Este es un problema conocido de visualización en la UI donde:
+
+1. **Los trabajos continúan ejecutándose normalmente** en segundo plano
+2. **El tiempo de espera en la UI es solo cosmético** - no afecta la ejecución real del trabajo
+3. **El estado de finalización del trabajo** puede no actualizarse correctamente en tiempo real
+4. **La infraestructura subyacente del trabajo** continúa funcionando como se espera
+
+Este es un problema a nivel de plataforma que requiere una corrección por parte del equipo de desarrollo de SleakOps.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Cómo verificar que su trabajo realmente se está ejecutando">
+
+Para confirmar que su trabajo se está ejecutando correctamente a pesar de la visualización del tiempo de espera:
+
+1. **Revise los registros del trabajo directamente:**
+
+   ```bash
+   # Acceda a los registros del trabajo mediante kubectl si está disponible
+   kubectl logs -f job/your-job-name
+   ```
+
+2. **Monitoree el uso de recursos:**
+
+   - Verifique el uso de CPU/memoria en el clúster
+   - Confirme si los pods de su trabajo siguen activos
+
+3. **Revise la salida del trabajo:**
+
+   - Monitoree cualquier archivo de salida o base de datos a la que su trabajo escriba
+   - Verifique que se estén generando resultados intermedios
+
+4. **Use kubectl para revisar el estado del trabajo:**
+   ```bash
+   kubectl get jobs
+   kubectl describe job your-job-name
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="workaround-monitoring" summary="Solución temporal para monitorear trabajos de larga duración">
+
+Mientras espera la corrección de la plataforma, puede:
+
+1. **Configurar monitoreo externo:**
+
+   ```yaml
+   # Agregue puntos de verificación de salud a su trabajo
+   apiVersion: batch/v1
+   kind: Job
+   metadata:
+     name: long-running-job
+   spec:
+     template:
+       spec:
+         containers:
+           - name: worker
+             image: your-image
+             # Agregue actualizaciones periódicas de estado
+             command: ["/bin/sh"]
+             args:
+               [
+                 "-c",
+                 "your-job-command && echo 'Trabajo completado con éxito' > /tmp/status",
+               ]
+   ```
+
+2. **Implemente registro de progreso:**
+
+   - Añada actualizaciones regulares de progreso en el código de su trabajo
+   - Use registro estructurado para rastrear fases del trabajo
+   - Considere usar puntos de estado externos
+
+3. **Use notificaciones de finalización de trabajo:**
+   - Configure webhooks o notificaciones para la finalización del trabajo
+   - Configure alertas para fallas reales del trabajo frente a tiempos de espera en la UI
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Mejores prácticas para trabajos de larga duración">
+
+Para minimizar problemas con trabajos de larga duración:
+
+1. **Implemente puntos de control:**
+
+   ```python
+   # Ejemplo: Guardar progreso periódicamente
+   def save_checkpoint(progress_data):
+       with open('/tmp/checkpoint.json', 'w') as f:
+           json.dump(progress_data, f)
+
+   def load_checkpoint():
+       try:
+           with open('/tmp/checkpoint.json', 'r') as f:
+               return json.load(f)
+       except FileNotFoundError:
+           return None
+   ```
+
+2. **Divida trabajos grandes:**
+
+   - Considere partir trabajos muy largos en partes más pequeñas
+   - Use dependencias de trabajos para encadenar trabajos más pequeños
+   - Implemente manejo adecuado de errores y lógica de reintento
+
+3. **Agregue verificaciones de salud:**
+   ```yaml
+   # Agregue probes de liveness y readiness
+   livenessProbe:
+     exec:
+       command:
+         - /bin/sh
+         - -c
+         - "test -f /tmp/job-alive"
+     initialDelaySeconds: 30
+     periodSeconds: 60
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="platform-fix-timeline" summary="Cronograma esperado para la corrección en la plataforma">
+
+El equipo de desarrollo de SleakOps está al tanto de este problema y está trabajando en una corrección. El cronograma incluye:
+
+1. **Corto plazo (unos días):** Despliegue de la corrección en la plataforma
+2. **Mediano plazo:** Mejoras en monitoreo y visualización del estado del trabajo
+3. **Largo plazo:** Mejor manejo de cargas de trabajo de larga duración
+
+**Lo que la corrección abordará:**
+
+- Manejo correcto del tiempo de espera para trabajos de larga duración
+- Mejoras en la actualización del estado en la UI
+- Mejor monitoreo en tiempo real de los trabajos
+- Gestión mejorada del ciclo de vida de los trabajos
+
+**No se requiere acción por parte de los usuarios** - la corrección se aplicará automáticamente en la plataforma.
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 10 de febrero de 2025 basada en una consulta real de un usuario._

@@ -1,0 +1,191 @@
+---
+sidebar_position: 15
+title: "Database Migrations with Execution Hooks"
+description: "How to configure and manage database migrations using SleakOps Execution Hooks"
+date: "2024-12-19"
+category: "workload"
+tags: ["database", "migrations", "hooks", "executions", "deployment"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Database Migrations with Execution Hooks
+
+**Date:** December 19, 2024  
+**Category:** Workload  
+**Tags:** Database, Migrations, Hooks, Executions, Deployment
+
+## Problem Description
+
+**Context:** Users need to run database migrations as part of their deployment process in SleakOps, specifically for .NET applications using Entity Framework migrations.
+
+**Observed Symptoms:**
+
+- Need to execute `dotnet ef database update` commands during deployments
+- Uncertainty about when and how migrations should run in the CI/CD pipeline
+- Questions about running migrations independently of deployments
+- Need for automated migration execution before code updates
+
+**Relevant Configuration:**
+
+- Environment: Development and Production environments
+- Framework: .NET with Entity Framework
+- Migration command: `dotnet ef database update`
+- Hook type: `pre-upgrade`
+- Execution type: Hook and Job
+
+**Error Conditions:**
+
+- Migrations not running automatically during deployments
+- Need to run migrations without triggering full deployment
+- Integration of migration commands in build process
+
+## Detailed Solution
+
+<TroubleshootingItem id="automatic-hooks" summary="Automatic Database Migrations with Pre-upgrade Hooks">
+
+SleakOps provides built-in database migration support through Execution Hooks:
+
+**How it works:**
+
+1. **Pre-upgrade Hooks**: Automatically created as `db-migration` hooks in your environments
+2. **Automatic execution**: Runs before each deployment when you push code to `develop` or `main` branches
+3. **Command execution**: Executes `update-database` command before updating application code
+
+**Configuration:**
+
+```yaml
+# Hook configuration (automatically created)
+name: db-migration
+type: pre-upgrade
+command: dotnet ef database update --project YourProject.csproj
+```
+
+**Process flow:**
+
+1. Push code to `develop` or `main` branch
+2. CI/CD triggers Build process
+3. Deployment starts
+4. **Pre-upgrade hook runs** → Database migration executes
+5. Application code gets updated in the cluster
+
+This means migrations run automatically with every deployment, so manual migration execution before builds is typically unnecessary.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-job-execution" summary="Manual Migration Execution with Job-type Executions">
+
+For running migrations independently of deployments:
+
+**Create a Job-type Execution:**
+
+1. Go to your project in SleakOps
+2. Navigate to **Executions** section
+3. Create new execution with type **Job**
+4. Configure the migration command
+
+**Job configuration:**
+
+```yaml
+name: manual-db-migration
+type: job
+command: dotnet ef database update --project YourProject.csproj
+```
+
+**Characteristics:**
+
+- **One-time execution**: Runs only when manually triggered
+- **Independent**: Doesn't affect deployments or builds
+- **On-demand**: Execute whenever you need to run migrations manually
+
+**Use cases:**
+
+- Emergency database fixes
+- Testing migrations in staging
+- Rollback scenarios
+- Initial database setup
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-integration" summary="Integration in Build Process via Dockerfile">
+
+For running migrations during the build process (not recommended as primary approach):
+
+**Add migration command to Dockerfile:**
+
+```dockerfile
+# Your existing Dockerfile content
+WORKDIR /app
+COPY . .
+
+# Add migration command before CMD
+RUN dotnet ef database update --project ../Netdo.Firev.WebApi/Netdo.Firev.WebApi.csproj
+
+# Your existing CMD instruction
+CMD ["dotnet", "YourApp.dll"]
+```
+
+**Important considerations:**
+
+- **Database connectivity**: Ensure database is accessible during build
+- **Connection strings**: Must be available at build time
+- **Build environment**: Database server must be reachable from build environment
+- **Security**: Avoid exposing production credentials in build process
+
+**Alternative approach using multi-stage builds:**
+
+```dockerfile
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+WORKDIR /src
+COPY . .
+RUN dotnet restore
+RUN dotnet build
+
+# Migration stage (optional)
+FROM build AS migration
+RUN dotnet ef database update --project YourProject.csproj
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS runtime
+WORKDIR /app
+COPY --from=build /src/published .
+CMD ["dotnet", "YourApp.dll"]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Best Practices and Recommendations">
+
+**Recommended approach:**
+
+1. **Use pre-upgrade hooks** (default SleakOps behavior) for automatic migrations
+2. **Create Job-type executions** for manual/emergency migrations
+3. **Avoid Dockerfile migrations** unless specific requirements demand it
+
+**Migration strategy checklist:**
+
+- ✅ Verify pre-upgrade hooks are configured in all environments
+- ✅ Test migrations in development environment first
+- ✅ Create Job-type execution for manual migration capability
+- ✅ Ensure database connection strings are properly configured
+- ✅ Monitor migration execution logs during deployments
+
+**Troubleshooting common issues:**
+
+- **Hook not running**: Check if hook exists in environment configuration
+- **Connection failures**: Verify database connectivity from cluster
+- **Permission errors**: Ensure service account has database access
+- **Migration conflicts**: Review Entity Framework migration history
+
+**Environment-specific considerations:**
+
+- **Development**: Frequent migrations, use automatic hooks
+- **Staging**: Test migrations before production, use both hooks and jobs
+- **Production**: Careful migration planning, backup before migration
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

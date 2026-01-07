@@ -1,0 +1,178 @@
+---
+sidebar_position: 3
+title: "Web and API Unavailable Due to Node Errors"
+description: "Solution for web and API services failing due to Kubernetes node issues"
+date: "2024-01-15"
+category: "cluster"
+tags: ["nodes", "web", "api", "troubleshooting", "kubernetes"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Web and API Unavailable Due to Node Errors
+
+**Date:** January 15, 2024  
+**Category:** Cluster  
+**Tags:** Nodes, Web, API, Troubleshooting, Kubernetes
+
+## Problem Description
+
+**Context:** User reports that both web and API services are not functioning properly, with error messages indicating node-related issues in the Kubernetes cluster.
+
+**Observed Symptoms:**
+
+- Web service is not accessible
+- API endpoints are not responding
+- Error messages mentioning node problems
+- Complete service unavailability
+
+**Relevant Configuration:**
+
+- Platform: SleakOps Kubernetes cluster
+- Affected services: Web frontend and API backend
+- Error type: Node-related errors
+
+**Error Conditions:**
+
+- Both web and API services fail simultaneously
+- Errors point to underlying node infrastructure issues
+- Services remain unavailable until node issues are resolved
+
+## Detailed Solution
+
+<TroubleshootingItem id="initial-diagnosis" summary="Diagnose node status">
+
+First, check the status of your cluster nodes to identify the specific issue:
+
+1. **Access SleakOps Dashboard**
+2. Navigate to **Clusters** → **Your Cluster**
+3. Go to **Nodes** section
+4. Check for nodes with status:
+   - `NotReady`
+   - `Unknown`
+   - `SchedulingDisabled`
+
+Alternatively, if you have kubectl access:
+
+```bash
+kubectl get nodes
+kubectl describe nodes
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-node-issues" summary="Common node problems and solutions">
+
+**Node Resource Exhaustion:**
+
+- **Symptom**: Nodes show high CPU/memory usage
+- **Solution**: Scale up nodepool or add more nodes
+
+**Network Connectivity Issues:**
+
+- **Symptom**: Nodes can't communicate with control plane
+- **Solution**: Check security groups and network configuration
+
+**Disk Space Issues:**
+
+- **Symptom**: Nodes running out of disk space
+- **Solution**: Clean up unused images or increase disk size
+
+**Node Failure:**
+
+- **Symptom**: Nodes completely unresponsive
+- **Solution**: Replace failed nodes through SleakOps
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="restart-services" summary="Restart affected services">
+
+Once node issues are resolved, restart your web and API services:
+
+1. **In SleakOps Dashboard:**
+
+   - Go to **Projects** → **Your Project**
+   - Find your web and API workloads
+   - Click **Restart** on each service
+
+2. **Via kubectl (if available):**
+
+```bash
+# Restart web deployment
+kubectl rollout restart deployment/web-app -n your-namespace
+
+# Restart API deployment
+kubectl rollout restart deployment/api-app -n your-namespace
+
+# Check rollout status
+kubectl rollout status deployment/web-app -n your-namespace
+kubectl rollout status deployment/api-app -n your-namespace
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="scale-nodepool" summary="Scale nodepool if needed">
+
+If the issue is related to insufficient node capacity:
+
+1. **Access SleakOps Dashboard**
+2. Go to **Clusters** → **Your Cluster**
+3. Navigate to **Nodepools**
+4. Select the affected nodepool
+5. Increase **Desired Size** or **Max Size**
+6. Click **Update Nodepool**
+
+The system will automatically provision new nodes and redistribute workloads.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitor-recovery" summary="Monitor service recovery">
+
+After implementing fixes, monitor the recovery:
+
+1. **Check node status** until all show `Ready`
+2. **Verify pod status**:
+   ```bash
+   kubectl get pods -n your-namespace
+   ```
+3. **Test web service** by accessing your application URL
+4. **Test API endpoints** using curl or your preferred tool:
+   ```bash
+   curl -X GET https://your-api-url/health
+   ```
+5. **Monitor logs** for any remaining errors:
+   ```bash
+   kubectl logs -f deployment/web-app -n your-namespace
+   kubectl logs -f deployment/api-app -n your-namespace
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention" summary="Prevent future occurrences">
+
+To prevent similar issues:
+
+1. **Set up monitoring alerts** for node health
+2. **Configure auto-scaling** for nodepools
+3. **Implement resource requests and limits** for your applications
+4. **Regular health checks** on critical services
+5. **Monitor cluster metrics** regularly through SleakOps dashboard
+
+**Recommended monitoring setup:**
+
+```yaml
+# Example resource limits
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "250m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

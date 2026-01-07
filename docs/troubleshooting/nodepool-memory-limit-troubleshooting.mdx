@@ -1,0 +1,211 @@
+---
+sidebar_position: 3
+title: "Nodepool Memory Limit Issues"
+description: "Troubleshooting and resolving nodepool memory capacity problems"
+date: "2025-02-27"
+category: "cluster"
+tags: ["nodepool", "memory", "capacity", "scaling", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Nodepool Memory Limit Issues
+
+**Date:** February 27, 2025  
+**Category:** Cluster  
+**Tags:** Nodepool, Memory, Capacity, Scaling, Troubleshooting
+
+## Problem Description
+
+**Context:** Production pods failing to schedule due to nodepool memory limits being reached after adding new workloads during migration.
+
+**Observed Symptoms:**
+
+- Pods stuck in "Pending" state
+- Pod scheduling failures due to insufficient memory
+- Nodepool at maximum provisioned memory capacity
+- Critical production workloads affected (cron jobs, applications)
+
+**Relevant Configuration:**
+
+- Nodepool type: `spot-amd64`
+- Original memory limit: 120 GB
+- Temporary increase: 160 GB
+- New workloads: Redash and WordPress deployments
+
+**Error Conditions:**
+
+- Occurs when total pod memory requests exceed nodepool capacity
+- Triggered after adding new deployments to existing nodepool
+- Affects pod scheduling and application availability
+- Problem escalates during peak usage or pod restarts
+
+## Detailed Solution
+
+<TroubleshootingItem id="immediate-resolution" summary="Immediate memory limit increase">
+
+For urgent situations, you can temporarily increase the nodepool memory limit:
+
+1. **Access SleakOps Console**
+2. Navigate to **Cluster Management** → **Nodepools**
+3. Select the affected nodepool (e.g., `spot-amd64`)
+4. Go to **Configuration** → **Resources**
+5. Increase the **Memory Limit** (e.g., from 120GB to 200GB)
+6. Click **Apply Changes**
+
+**Note:** This provides immediate relief but should be followed by proper capacity planning.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="capacity-analysis" summary="Analyzing current memory usage">
+
+To understand your current memory utilization:
+
+```bash
+# Check node memory usage
+kubectl top nodes
+
+# Check pod memory requests and limits
+kubectl describe nodes | grep -A 5 "Allocated resources"
+
+# List pods with memory requests
+kubectl get pods --all-namespaces -o custom-columns=NAME:.metadata.name,NAMESPACE:.metadata.namespace,MEMORY_REQUEST:.spec.containers[*].resources.requests.memory
+```
+
+This helps identify which workloads are consuming the most memory.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="nodepool-segregation" summary="Creating dedicated nodepools">
+
+For better resource management, create separate nodepools for different workload types:
+
+1. **In SleakOps Console:**
+   - Go to **Cluster Management** → **Nodepools**
+   - Click **Create New Nodepool**
+   - Configure specifications:
+
+```yaml
+# Example: Dedicated nodepool for data workloads
+name: "data-workloads"
+instance_type: "m5.xlarge"
+min_size: 1
+max_size: 5
+desired_size: 2
+memory_limit: "64GB"
+labels:
+  workload-type: "data"
+taints:
+  - key: "workload-type"
+    value: "data"
+    effect: "NoSchedule"
+```
+
+2. **Update deployments to use the new nodepool:**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redash-deployment
+spec:
+  template:
+    spec:
+      nodeSelector:
+        workload-type: "data"
+      tolerations:
+        - key: "workload-type"
+          operator: "Equal"
+          value: "data"
+          effect: "NoSchedule"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-setup" summary="Setting up memory monitoring">
+
+Implement monitoring to prevent future capacity issues:
+
+1. **Enable cluster monitoring** in SleakOps
+2. **Set up alerts** for nodepool memory usage:
+
+   - Warning at 70% capacity
+   - Critical at 85% capacity
+
+3. **Create dashboard** to track:
+   - Memory utilization per nodepool
+   - Pod scheduling failures
+   - Resource requests vs. limits
+
+```yaml
+# Example alert configuration
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: nodepool-memory-alerts
+spec:
+  groups:
+    - name: nodepool.rules
+      rules:
+        - alert: NodepoolMemoryHigh
+          expr: (sum(kube_pod_container_resource_requests{resource="memory"}) by (node) / sum(kube_node_status_allocatable{resource="memory"}) by (node)) > 0.85
+          for: 5m
+          annotations:
+            summary: "Nodepool memory usage is high"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Capacity planning best practices">
+
+**Recommended practices for nodepool capacity management:**
+
+1. **Reserve 20-30% buffer** for unexpected load spikes
+2. **Separate critical and non-critical workloads** into different nodepools
+3. **Use resource requests and limits** appropriately:
+
+```yaml
+resources:
+  requests:
+    memory: "512Mi" # What the pod needs
+    cpu: "250m"
+  limits:
+    memory: "1Gi" # Maximum the pod can use
+    cpu: "500m"
+```
+
+4. **Regular capacity reviews** - monthly assessment of usage patterns
+5. **Implement horizontal pod autoscaling** for variable workloads
+6. **Use spot instances wisely** - ensure critical workloads have fallback options
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="migration-considerations" summary="Handling workloads not managed by SleakOps">
+
+For deployments created outside of SleakOps platform:
+
+1. **Document external deployments:**
+
+   ```bash
+   # List all deployments not managed by SleakOps
+   kubectl get deployments --all-namespaces -o yaml | grep -v "sleakops.com"
+   ```
+
+2. **Import into SleakOps** (if possible):
+
+   - Use SleakOps import functionality
+   - Recreate deployments through SleakOps interface
+
+3. **Create dedicated nodepool** for external workloads:
+
+   - Label appropriately for identification
+   - Set appropriate resource limits
+   - Monitor separately from platform-managed workloads
+
+4. **Establish governance** for future deployments to prevent similar issues
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on February 27, 2025 based on a real user query._

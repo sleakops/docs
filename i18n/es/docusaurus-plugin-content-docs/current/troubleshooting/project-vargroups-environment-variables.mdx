@@ -1,0 +1,185 @@
+---
+sidebar_position: 3
+title: "Variables de Entorno de Vargroups No Disponibles en la Aplicación"
+description: "Solución para aplicaciones que no reciben todas las variables de entorno esperadas de Vargroups"
+date: "2024-12-30"
+category: "proyecto"
+tags: ["vargroups", "variables-de-entorno", "proyecto", "configuración"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Variables de Entorno de Vargroups No Disponibles en la Aplicación
+
+**Fecha:** 30 de diciembre de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Vargroups, Variables de Entorno, Proyecto, Configuración
+
+## Descripción del Problema
+
+**Contexto:** El usuario ha creado múltiples Vargroups pero su aplicación solo está recibiendo variables de entorno de un Vargroup específico ('simplee-web'), mientras que otras variables de entorno esperadas están ausentes.
+
+**Síntomas Observados:**
+
+- La aplicación solo muestra variables de entorno de un Vargroup
+- Faltan variables de entorno que deberían estar disponibles
+- Otros Vargroups parecen no afectar la aplicación
+- La aplicación puede no estar leyendo correctamente las variables de entorno desde el Pod
+
+**Configuración Relevante:**
+
+- Aplicación: Aplicación web (simplee.cl)
+- Vargroup disponible: 'simplee-web'
+- Plataforma: Entorno del proyecto SleakOps
+- Faltante: Vargroups adicionales con variables de entorno requeridas
+
+**Condiciones de Error:**
+
+- Las variables de entorno de otros Vargroups no llegan a la aplicación
+- Solo se aplican las variables de un Vargroup
+- La funcionalidad de la aplicación puede verse afectada por variables faltantes
+
+## Solución Detallada
+
+<TroubleshootingItem id="vargroup-scope" summary="Entendiendo el Alcance de Vargroups en el Proyecto">
+
+Los Vargroups en SleakOps son **con alcance de proyecto**, lo que significa:
+
+- Cada Vargroup solo afecta el Proyecto específico donde fue creado
+- Los Vargroups de otros Proyectos no son accesibles
+- Debes crear todos los Vargroups requeridos dentro del mismo Proyecto
+
+**Para verificar tus Vargroups actuales:**
+
+1. Navega a tu Proyecto en SleakOps
+2. Ve a **Configuración** → **Vargroups**
+3. Revisa qué Vargroups existen en este Proyecto específico
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="create-missing-vargroups" summary="Creando Vargroups Faltantes">
+
+Si te faltan Vargroups en tu Proyecto actual:
+
+1. **Navega a Configuración del Proyecto:**
+
+   - Ve al panel de tu Proyecto
+   - Selecciona **Configuración** → **Vargroups**
+
+2. **Crear Nuevo Vargroup:**
+
+   - Haz clic en **Agregar Vargroup**
+   - Ingresa un nombre descriptivo
+   - Añade todas las variables de entorno requeridas
+
+3. **Configura las Variables:**
+
+   ```bash
+   # Ejemplo de configuración de Vargroup
+   DATABASE_URL=postgresql://usuario:contraseña@host:5432/db
+   API_KEY=tu-api-key-aqui
+   ENVIRONMENT=producción
+   ```
+
+4. **Aplica los Cambios:**
+   - Guarda el Vargroup
+   - Reimplementa tu aplicación para aplicar las nuevas variables
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verify-application-reading" summary="Verifica que la Aplicación Está Leyendo las Variables de Entorno">
+
+Asegúrate que el código de tu aplicación está leyendo correctamente las variables de entorno:
+
+**Para aplicaciones Node.js:**
+
+```javascript
+// Verifica si las variables están disponibles
+console.log("Variables de entorno disponibles:", Object.keys(process.env));
+
+// Accede a variables específicas
+const dbUrl = process.env.DATABASE_URL;
+const apiKey = process.env.API_KEY;
+```
+
+**Para aplicaciones Python:**
+
+```python
+import os
+
+# Verifica variables disponibles
+print('Variables de entorno disponibles:', list(os.environ.keys()))
+
+# Accede a variables específicas
+db_url = os.environ.get('DATABASE_URL')
+api_key = os.environ.get('API_KEY')
+```
+
+**Depuración en el Pod:**
+
+```bash
+# Conéctate a tu pod y verifica el entorno
+kubectl exec -it <nombre-pod> -- env | grep -i <nombre-variable>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Pasos para Solucionar Variables Faltantes">
+
+**Paso 1: Verifica la Asignación de Vargroups**
+
+- Asegúrate que todos los Vargroups requeridos estén creados en el Proyecto correcto
+- Comprueba que los Vargroups estén correctamente asignados a tu aplicación
+
+**Paso 2: Revisa el Estado del Despliegue**
+
+- Después de crear nuevos Vargroups, inicia un nuevo despliegue
+- Las variables de entorno se aplican en el momento del despliegue
+
+**Paso 3: Valida los Nombres de Variables**
+
+- Asegúrate que los nombres de variables coincidan exactamente (sensible a mayúsculas/minúsculas)
+- Revisa posibles errores tipográficos en los nombres
+
+**Paso 4: Revisión del Código Aplicativo**
+
+- Verifica que tu aplicación lea desde `process.env` o su equivalente
+- Comprueba si las variables se usan en el ámbito correcto
+
+**Paso 5: Verificación a Nivel de Pod**
+
+```bash
+# Verifica variables de entorno en el pod en ejecución
+kubectl get pods -n <namespace>
+kubectl exec -it <nombre-pod> -n <namespace> -- printenv
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-issues" summary="Problemas Comunes y Soluciones">
+
+**Problema 1: Variables No Actualizadas Tras Cambios**
+
+- **Solución:** Reimplementa la aplicación después de cambios en Vargroups
+- Las variables de entorno se inyectan al iniciar el contenedor
+
+**Problema 2: Sensibilidad a Mayúsculas y Minúsculas**
+
+- **Solución:** Asegura coincidencia exacta entre Vargroup y código de aplicación
+- Los contenedores Linux son sensibles a mayúsculas/minúsculas
+
+**Problema 3: Sobrescritura de Variables**
+
+- **Solución:** Verifica si múltiples Vargroups definen la misma variable
+- Los Vargroups posteriores pueden sobrescribir a los anteriores
+
+**Problema 4: Aplicación No Lee el Entorno**
+
+- **Solución:** Verifica que el framework de la aplicación cargue correctamente las variables de entorno
+- Algunos frameworks requieren configuración explícita
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 30 de diciembre de 2024 basada en una consulta real de usuario._

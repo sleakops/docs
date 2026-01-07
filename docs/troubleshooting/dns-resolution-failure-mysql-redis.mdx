@@ -1,0 +1,292 @@
+---
+sidebar_position: 3
+title: "DNS Resolution Failure for MySQL and Redis Connections"
+description: "Solution for DNS resolution failures causing MySQL and Redis connection errors"
+date: "2024-12-19"
+category: "dependency"
+tags: ["dns", "mysql", "redis", "connection", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# DNS Resolution Failure for MySQL and Redis Connections
+
+**Date:** December 19, 2024  
+**Category:** Dependency  
+**Tags:** DNS, MySQL, Redis, Connection, Troubleshooting
+
+## Problem Description
+
+**Context:** Application experiencing slow performance due to DNS resolution failures when attempting to connect to MySQL and Redis services in a Kubernetes environment.
+
+**Observed Symptoms:**
+
+- Application running very slowly
+- Repeated MySQL connection failures
+- Redis connection failures
+- "Temporary failure in name resolution" errors
+- "No alive nodes found in your cluster" messages
+- Connection timeouts to AWS ElastiCache Redis instance
+
+**Relevant Configuration:**
+
+- MySQL connection: Using hostname resolution
+- Redis connection: `redis-aws-production-bfdbf3f.pdvyst.0001.use2.cache.amazonaws.com:6379`
+- Environment: AWS production cluster
+- Error pattern: `php_network_getaddresses: getaddrinfo failed`
+
+**Error Conditions:**
+
+- DNS resolution fails intermittently
+- Errors occur during high traffic periods
+- Both MySQL and Redis affected simultaneously
+- Application becomes unresponsive due to connection timeouts
+
+## Detailed Solution
+
+<TroubleshootingItem id="dns-diagnosis" summary="Diagnosing DNS Resolution Issues">
+
+The "Temporary failure in name resolution" error indicates DNS resolution problems. This can happen due to:
+
+1. **DNS server overload**: Too many concurrent DNS queries
+2. **Network connectivity issues**: Problems reaching DNS servers
+3. **DNS cache issues**: Stale or corrupted DNS cache
+4. **CoreDNS problems**: Issues with Kubernetes DNS service
+
+To diagnose:
+
+```bash
+# Check DNS resolution from within a pod
+kubectl exec -it <pod-name> -- nslookup mysql-hostname
+kubectl exec -it <pod-name> -- nslookup redis-aws-production-bfdbf3f.pdvyst.0001.use2.cache.amazonaws.com
+
+# Check CoreDNS logs
+kubectl logs -n kube-system -l k8s-app=kube-dns
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="coredns-scaling" summary="Scale CoreDNS for Better Performance">
+
+Increase CoreDNS replicas to handle more DNS queries:
+
+```bash
+# Check current CoreDNS deployment
+kubectl get deployment coredns -n kube-system
+
+# Scale CoreDNS replicas
+kubectl scale deployment coredns --replicas=3 -n kube-system
+
+# Verify scaling
+kubectl get pods -n kube-system -l k8s-app=kube-dns
+```
+
+For high-traffic applications, consider 3-5 CoreDNS replicas.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dns-caching" summary="Configure DNS Caching in Application">
+
+Implement DNS caching at the application level to reduce DNS queries:
+
+**For PHP applications:**
+
+```php
+// Add to your database configuration
+'mysql' => [
+    'host' => env('DB_HOST', 'localhost'),
+    'options' => [
+        PDO::ATTR_PERSISTENT => true,
+        PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true,
+    ],
+    // Enable connection pooling
+    'pool' => [
+        'min_connections' => 5,
+        'max_connections' => 20,
+    ]
+],
+
+// For Redis connections
+'redis' => [
+    'client' => 'predis',
+    'options' => [
+        'cluster' => env('REDIS_CLUSTER', 'redis'),
+        'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_database_'),
+        // Add connection pooling
+        'persistent' => true,
+    ],
+]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="kubernetes-dns-config" summary="Optimize Kubernetes DNS Configuration">
+
+Configure DNS settings in your deployment:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: your-app
+spec:
+  template:
+    spec:
+      # Configure DNS policy
+      dnsPolicy: ClusterFirst
+      dnsConfig:
+        options:
+          # Reduce DNS timeout
+          - name: timeout
+            value: "1"
+          # Increase attempts
+          - name: attempts
+            value: "3"
+          # Enable DNS caching
+          - name: use-vc
+          - name: ndots
+            value: "2"
+      containers:
+        - name: app
+          image: your-app:latest
+          # Add DNS-related environment variables
+          env:
+            - name: DB_HOST
+              value: "mysql-service.default.svc.cluster.local"
+            - name: REDIS_HOST
+              value: "redis-service.default.svc.cluster.local"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="service-mesh-solution" summary="Use Kubernetes Services Instead of External Hostnames">
+
+Create Kubernetes services to avoid external DNS resolution:
+
+**For MySQL:**
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-external
+spec:
+  type: ExternalName
+  externalName: your-mysql-hostname.amazonaws.com
+  ports:
+    - port: 3306
+      targetPort: 3306
+```
+
+**For Redis:**
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-external
+spec:
+  type: ExternalName
+  externalName: redis-aws-production-bfdbf3f.pdvyst.0001.use2.cache.amazonaws.com
+  ports:
+    - port: 6379
+      targetPort: 6379
+```
+
+Then update your application configuration:
+
+```bash
+# Use service names instead of external hostnames
+DB_HOST=mysql-external.default.svc.cluster.local
+REDIS_HOST=redis-external.default.svc.cluster.local
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-solution" summary="Implement DNS Monitoring">
+
+Add monitoring to detect DNS issues early:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dns-monitor
+data:
+  monitor.sh: |
+    #!/bin/bash
+    while true; do
+      # Test DNS resolution
+      if ! nslookup mysql-service.default.svc.cluster.local > /dev/null 2>&1; then
+        echo "$(date): DNS resolution failed for MySQL"
+      fi
+      if ! nslookup redis-service.default.svc.cluster.local > /dev/null 2>&1; then
+        echo "$(date): DNS resolution failed for Redis"
+      fi
+      sleep 30
+    done
+```
+
+Deploy as a sidecar container or separate monitoring pod.
+
+**Monitoring Deployment:**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dns-monitor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dns-monitor
+  template:
+    metadata:
+      labels:
+        app: dns-monitor
+    spec:
+      containers:
+        - name: monitor
+          image: alpine:latest
+          command: ["/bin/sh"]
+          args: ["/scripts/monitor.sh"]
+          volumeMounts:
+            - name: monitor-script
+              mountPath: /scripts
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+      volumes:
+        - name: monitor-script
+          configMap:
+            name: dns-monitor
+            defaultMode: 0755
+```
+
+**Alert Configuration:**
+
+```yaml
+# Add to Prometheus AlertManager
+groups:
+  - name: dns-monitoring
+    rules:
+      - alert: DNSResolutionFailure
+        expr: increase(dns_resolution_failures_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "DNS resolution failures detected"
+          description: "Application experiencing DNS resolution issues for {{ $labels.service }}"
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

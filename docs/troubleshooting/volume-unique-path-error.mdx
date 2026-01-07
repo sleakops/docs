@@ -1,0 +1,139 @@
+---
+sidebar_position: 3
+title: "Volume Unique Path Error After Deletion"
+description: "Solution for 'Unique path' error when recreating volumes at the same mount point"
+date: "2025-02-11"
+category: "project"
+tags: ["volume", "storage", "error", "mount-point", "deletion"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Volume Unique Path Error After Deletion
+
+**Date:** February 11, 2025  
+**Category:** Project  
+**Tags:** Volume, Storage, Error, Mount Point, Deletion
+
+## Problem Description
+
+**Context:** User attempts to recreate a volume at the same mount point after deleting a previous volume, but encounters a "Unique path" error in SleakOps platform.
+
+**Observed Symptoms:**
+
+- "Unique path" error when trying to create a new volume
+- Error occurs at the same mount point where a volume was previously deleted
+- Volume appears to be properly deleted from the interface
+- Unable to reuse the same mount path for new volumes
+
+**Relevant Configuration:**
+
+- Project: "velo-opensactions"
+- Mount path: "/opensanctions/data"
+- Volume was previously created and then deleted
+- Attempting to recreate volume at identical mount point
+
+**Error Conditions:**
+
+- Error appears during volume creation process
+- Occurs specifically when reusing mount paths
+- Persists even after volume deletion appears successful
+- May indicate incomplete cleanup of volume resources
+
+## Detailed Solution
+
+<TroubleshootingItem id="root-cause" summary="Understanding the root cause">
+
+The "Unique path" error typically occurs when:
+
+1. **Incomplete volume cleanup**: The volume deletion process didn't fully remove all associated resources
+2. **Mount point reservation**: The system still considers the mount path as "in use"
+3. **Resource synchronization delay**: There's a delay between volume deletion and path availability
+4. **Orphaned references**: Database entries or metadata still reference the deleted volume
+
+This is a known issue that has been identified and fixed in recent platform updates.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-workaround" summary="Immediate workaround solutions">
+
+While waiting for the fix to be applied, you can use these workarounds:
+
+**Option 1: Use a different mount path**
+
+```bash
+# Instead of /opensanctions/data
+# Try /opensanctions/data-v2 or /opensanctions/storage
+```
+
+**Option 2: Wait and retry**
+
+- Wait 10-15 minutes after volume deletion
+- The system may eventually release the path reservation
+- Retry volume creation with the same path
+
+**Option 3: Contact support for manual cleanup**
+
+- If the path must be reused immediately
+- Support team can manually clean up orphaned references
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="proper-deletion" summary="Best practices for volume deletion">
+
+To avoid this issue in the future:
+
+1. **Verify complete deletion**:
+
+   - Check that no workloads are still using the volume
+   - Ensure all pods using the volume are stopped
+
+2. **Wait before recreation**:
+
+   - Allow 5-10 minutes between deletion and recreation
+   - This ensures all cleanup processes complete
+
+3. **Use unique mount paths**:
+   - Consider using timestamps or version numbers in paths
+   - Example: `/data/app-v1`, `/data/app-v2`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="How to verify volume is completely deleted">
+
+To confirm a volume is fully deleted:
+
+1. **Check the Volumes section**:
+
+   - Go to your project dashboard
+   - Navigate to Storage → Volumes
+   - Verify the volume is not listed
+
+2. **Check workload configurations**:
+
+   - Review all workloads in the project
+   - Ensure no workload references the deleted volume
+   - Look for any "Volume not found" errors
+
+3. **Monitor for orphaned resources**:
+   - Check if any persistent volume claims remain
+   - Verify no storage classes are still referencing the volume
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="platform-fix" summary="Platform fix information">
+
+This issue has been identified and resolved:
+
+- **Status**: Fixed in recent platform release
+- **Solution**: Improved volume cleanup process
+- **Impact**: Prevents orphaned mount path reservations
+- **Rollout**: Automatically applied to all projects
+
+If you continue experiencing this issue after the fix deployment, please contact support as it may indicate a different underlying problem.
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on February 11, 2025 based on a real user query._

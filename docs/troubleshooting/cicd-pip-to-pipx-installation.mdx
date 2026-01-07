@@ -1,0 +1,188 @@
+---
+sidebar_position: 3
+title: "CI/CD Pipeline Error - SleakOps Installation Method"
+description: "Fix for CI/CD pipeline failures when installing SleakOps CLI tool"
+date: "2024-10-15"
+category: "project"
+tags: ["cicd", "pipeline", "installation", "pipx", "python"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# CI/CD Pipeline Error - SleakOps Installation Method
+
+**Date:** October 15, 2024  
+**Category:** Project  
+**Tags:** CI/CD, Pipeline, Installation, pipx, Python
+
+## Problem Description
+
+**Context:** CI/CD workflows fail when attempting to install the SleakOps CLI tool using the traditional `pip install` method in GitHub Actions or other CI/CD environments.
+
+**Observed Symptoms:**
+
+- CI/CD pipeline failures during SleakOps installation step
+- Installation errors in workflow execution
+- Build process interruption at dependency installation phase
+
+**Relevant Configuration:**
+
+- Installation method: `pip install sleakops` (incorrect)
+- Environment: CI/CD pipeline (GitHub Actions, GitLab CI, etc.)
+- Python package manager: pip vs pipx
+
+**Error Conditions:**
+
+- Error occurs during workflow execution
+- Happens specifically at the SleakOps installation step
+- May be related to dependency conflicts or isolation issues
+
+## Detailed Solution
+
+<TroubleshootingItem id="installation-fix" summary="Update installation command in workflow">
+
+The solution is to replace `pip install sleakops` with `pipx install sleakops` in your CI/CD workflow configuration.
+
+**Before (incorrect):**
+
+```yaml
+- name: Install SleakOps
+  run: pip install sleakops
+```
+
+**After (correct):**
+
+```yaml
+- name: Install SleakOps
+  run: pipx install sleakops
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="why-pipx" summary="Why use pipx instead of pip?">
+
+`pipx` is the recommended method for installing Python CLI applications because:
+
+1. **Isolation**: Creates isolated environments for each application
+2. **No conflicts**: Prevents dependency conflicts with other Python packages
+3. **Clean installation**: Keeps your global Python environment clean
+4. **Better for CLI tools**: Specifically designed for command-line applications
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="github-actions-example" summary="Complete GitHub Actions workflow example">
+
+Here's a complete example of how to properly install SleakOps in a GitHub Actions workflow:
+
+```yaml
+name: Deploy with SleakOps
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - name: Install pipx
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pipx
+          python -m pipx ensurepath
+
+      - name: Install SleakOps
+        run: pipx install sleakops
+
+      - name: Deploy application
+        run: |
+          sleakops deploy
+        env:
+          SLEAKOPS_TOKEN: ${{ secrets.SLEAKOPS_TOKEN }}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="other-ci-systems" summary="Configuration for other CI/CD systems">
+
+**GitLab CI (.gitlab-ci.yml):**
+
+```yaml
+stages:
+  - deploy
+
+deploy:
+  stage: deploy
+  image: python:3.9
+  before_script:
+    - pip install pipx
+    - pipx install sleakops
+  script:
+    - sleakops deploy
+```
+
+**Jenkins Pipeline:**
+
+```groovy
+pipeline {
+    agent any
+    stages {
+        stage('Install SleakOps') {
+            steps {
+                sh 'pip install pipx'
+                sh 'pipx install sleakops'
+            }
+        }
+        stage('Deploy') {
+            steps {
+                sh 'sleakops deploy'
+            }
+        }
+    }
+}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Troubleshooting installation issues">
+
+If you still encounter issues after switching to pipx:
+
+1. **Ensure pipx is installed:**
+
+   ```bash
+   python -m pip install pipx
+   python -m pipx ensurepath
+   ```
+
+2. **Check Python version compatibility:**
+
+   - SleakOps requires Python 3.7 or higher
+   - Use `python --version` to verify
+
+3. **Clear pipx cache if needed:**
+
+   ```bash
+   pipx uninstall sleakops
+   pipx install sleakops
+   ```
+
+4. **Verify installation:**
+   ```bash
+   sleakops --version
+   ```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on October 15, 2024 based on a real user query._

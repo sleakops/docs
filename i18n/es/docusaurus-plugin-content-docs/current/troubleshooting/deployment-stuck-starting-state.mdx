@@ -1,0 +1,199 @@
+---
+sidebar_position: 3
+title: "Despliegue Atascado en Estado de Inicio"
+description: "Solución para despliegues atascados en estado de inicio e incapaces de cancelar o modificar la configuración"
+date: "2025-01-27"
+category: "proyecto"
+tags:
+  [
+    "despliegue",
+    "dockerfile",
+    "compilación",
+    "solución-de-problemas",
+    "estado-inicio",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Despliegue Atascado en Estado de Inicio
+
+**Fecha:** 27 de enero de 2025  
+**Categoría:** Proyecto  
+**Etiquetas:** Despliegue, Dockerfile, Compilación, Solución de Problemas, Estado de Inicio
+
+## Descripción del Problema
+
+**Contexto:** El usuario experimenta un despliegue que queda atascado en estado "iniciando" durante horas, impidiendo la cancelación y bloqueando cambios en la configuración del Dockerfile.
+
+**Síntomas Observados:**
+
+- El despliegue muestra estado "iniciando" por períodos prolongados (horas en lugar de minutos)
+- No se puede cancelar el despliegue atascado
+- Incapacidad para modificar la configuración del Dockerfile mientras el despliegue está en estado de inicio
+- El proceso de compilación parece colgarse o fallar silenciosamente
+- La plataforma muestra "hace unos segundos" pero el tiempo real transcurrido es mucho mayor
+
+**Configuración Relevante:**
+
+- Dockerfile multi-etapa con compilación Gradle
+- Dependencias de repositorio privado de GitHub que requieren autenticación
+- Argumentos de compilación Docker: `GITHUB_USER` y `GITHUB_TOKEN`
+- Aplicación Java con Spring Boot
+- Script de inicio complejo con validación de variables de entorno
+
+**Condiciones de Error:**
+
+- Problemas de detección del Dockerfile que causan estado inconsistente
+- Argumentos de compilación Docker faltantes o mal configurados
+- Dockerfile no encontrado en la raíz del repositorio
+- El proceso de compilación falla pero no reporta correctamente el estado de error
+
+## Solución Detallada
+
+<TroubleshootingItem id="immediate-resolution" summary="Cómo resolver despliegues atascados">
+
+Cuando un despliegue queda atascado en estado de inicio:
+
+1. **Contactar Soporte**: La plataforma puede requerir intervención manual para desbloquear el estado atascado
+2. **Esperar Desbloqueo Manual**: El equipo de soporte puede desbloquear manualmente el despliegue desde el backend
+3. **Verificar Estado**: Una vez desbloqueado, el despliegue debería completarse o mostrar el estado de error adecuado
+4. **Revisar Salud de la Aplicación**: Asegurarse que la aplicación tenga configurados chequeos de salud apropiados
+
+**Nota**: Esto típicamente requiere intervención de un administrador de la plataforma y no puede ser resuelto directamente por los usuarios.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-configuration" summary="Configuración adecuada del Dockerfile para repositorios privados">
+
+Para aplicaciones que requieren acceso a repositorios privados de GitHub:
+
+```dockerfile
+# Etapa de Compilación
+FROM gradle:jdk21-alpine AS build
+
+WORKDIR /workspace
+COPY . .
+
+# Definir argumentos de compilación para autenticación GitHub
+ARG GITHUB_USER
+ARG GITHUB_TOKEN
+
+# Establecer variables de entorno para acceso a GitHub
+ENV GITHUB_USER=$GITHUB_USER
+ENV GITHUB_TOKEN=$GITHUB_TOKEN
+
+# Configurar propiedades de Gradle para acceso a repositorio privado
+RUN echo "gpr.user=$GITHUB_USER" >> ~/.gradle/gradle.properties && \
+    echo "gpr.key=$GITHUB_TOKEN" >> ~/.gradle/gradle.properties
+
+# Compilar la aplicación
+RUN gradle clean assemble --no-daemon
+```
+
+**Importante**: Asegúrese que los argumentos de compilación Docker estén correctamente configurados en los ajustes del proyecto SleakOps.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="docker-args-setup" summary="Configurar argumentos de compilación Docker en SleakOps">
+
+Para configurar los argumentos de compilación Docker:
+
+1. Ir a **Configuración del Proyecto** → **Configuración de Dockerfile**
+2. Añadir los argumentos de compilación requeridos:
+   - `GITHUB_USER`: Su nombre de usuario de GitHub
+   - `GITHUB_TOKEN`: Token de acceso personal con permisos al repositorio
+3. **Guardar Cambios**: Asegurarse que la configuración se haya guardado correctamente
+4. **Verificar**: Confirmar que los argumentos aparecen en la configuración
+
+**Solución de Problemas**:
+
+- Si el botón de guardar está deshabilitado, contactar soporte para desbloquear la configuración
+- Asegurar que los tokens tengan permisos adecuados para acceso a repositorios privados
+- Usar tokens de acceso personal con permisos finos cuando sea posible
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-location" summary="Ubicación del Dockerfile y problemas de detección">
+
+Problemas comunes en la detección del Dockerfile:
+
+1. **Ubicación del Dockerfile**: Debe estar en la raíz del repositorio o en la ruta especificada
+2. **Selección de Rama**: Asegurarse de desplegar desde la rama correcta
+3. **Nombre del Archivo**: Usar el nombre exacto `Dockerfile` (sensible a mayúsculas/minúsculas)
+4. **Configuración de Ruta**: Si el Dockerfile está en un subdirectorio, especificar la ruta del contexto de compilación
+
+**Pasos para Verificación**:
+
+```bash
+# Verificar si Dockerfile existe en la raíz
+ls -la Dockerfile
+
+# Verificar rama actual
+git branch --show-current
+
+# Comprobar permisos del archivo
+ls -la Dockerfile
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="health-checks" summary="Configurar chequeos de salud adecuados">
+
+Asegúrese que su aplicación tenga chequeos de salud adecuados:
+
+```dockerfile
+# Añadir chequeo de salud al Dockerfile
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:${HEALTH_PORT}/health || exit 1
+```
+
+**En su script de inicio**:
+
+```bash
+# Validar variables de entorno requeridas
+REQUIRED_VARS=(
+    "PORT"
+    "HEALTH_PORT"
+    "PRIVATE_API_KEY"
+    "MONGODB_URI"
+    "MONGODB_DATABASE"
+    # ... otras variables necesarias
+)
+
+for var in "${REQUIRED_VARS[@]}"; do
+    if [[ -z "${!var:-}" ]]; then
+        echo "[ERROR] La variable de entorno $var no está configurada." >&2
+        exit 1
+    fi
+done
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention" summary="Prevenir futuros problemas de despliegue">
+
+Para evitar que los despliegues queden atascados:
+
+1. **Probar Dockerfile Localmente**: Siempre pruebe sus compilaciones Dockerfile localmente primero
+2. **Validar Variables de Entorno**: Asegurarse que todas las variables de entorno requeridas estén configuradas
+3. **Usar Chequeos de Salud Apropiados**: Implementar chequeos de salud completos
+4. **Monitorear Logs de Compilación**: Revisar los logs de compilación para detección temprana de errores
+5. **Despliegue Gradual**: Probar con configuración mínima primero, luego añadir complejidad
+
+**Pruebas Locales**:
+
+```bash
+# Compilar localmente para probar
+docker build --build-arg GITHUB_USER=tu_usuario --build-arg GITHUB_TOKEN=tu_token .
+
+# Ejecutar prueba local
+
+docker run -p 8080:8080 tu-imagen
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 27 de enero de 2025 basada en una consulta real de un usuario._

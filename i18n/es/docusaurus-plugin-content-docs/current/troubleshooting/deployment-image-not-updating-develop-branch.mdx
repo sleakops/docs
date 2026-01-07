@@ -1,0 +1,191 @@
+---
+sidebar_position: 3
+title: "La implementación no refleja los últimos cambios después de la fusión"
+description: "Solución para cuando las implementaciones no se actualizan con los últimos cambios de código tras fusionar a la rama develop"
+date: "2024-12-19"
+category: "proyecto"
+tags: ["implementación", "compilación", "docker", "ci-cd", "caché-de-imágenes"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# La implementación no refleja los últimos cambios después de la fusión
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Implementación, Compilación, Docker, CI/CD, Caché de imágenes
+
+## Descripción del problema
+
+**Contexto:** El equipo de desarrollo fusiona cambios de código a la rama develop, lo que desencadena una implementación automática, pero la aplicación desplegada no refleja los últimos cambios. El problema parece estar relacionado con la construcción de la imagen Docker que no usa el código más reciente.
+
+**Síntomas observados:**
+
+- El proceso de implementación se ejecuta correctamente tras la fusión a la rama develop
+- La aplicación muestra funcionalidades/contenido antiguo en lugar de los cambios más recientes
+- El mismo comportamiento ocurre en varios repositorios (3 repositorios afectados)
+- La imagen Docker parece estar usando contenido en caché o desactualizado
+
+**Configuración relevante:**
+
+- Rama: `develop` (implementación automática habilitada)
+- Repositorios afectados: Múltiples (3 repositorios)
+- Disparador de implementación: Fusión/push a develop
+- Plataforma: Implementación automatizada SleakOps
+
+**Condiciones de error:**
+
+- El problema ocurre consistentemente tras fusionar a la rama develop
+- Afecta a múltiples repositorios simultáneamente
+- No se reportan errores de compilación, pero los cambios no se reflejan
+- Sospecha de problema con la caché de imágenes Docker
+
+## Solución detallada
+
+<TroubleshootingItem id="docker-cache-diagnosis" summary="Diagnosticar problemas de caché de imágenes Docker">
+
+La causa más común es que la caché de capas de Docker impide que la construcción use el código más reciente:
+
+1. **Revisar los registros de compilación** en la sección de implementación de SleakOps
+2. Buscar mensajes como "Using cache" en los pasos de construcción de Docker
+3. Verificar que la etiqueta/hash de la imagen sea diferente entre compilaciones
+4. Comprobar si los comandos COPY del Dockerfile invalidan correctamente la caché
+
+```dockerfile
+# Problemático - la caché puede no invalidarse
+COPY . /app
+
+# Mejor - copiar primero los archivos de paquetes, luego el código fuente
+COPY package*.json /app/
+RUN npm install
+COPY . /app
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="force-rebuild" summary="Forzar una reconstrucción completa">
+
+Para forzar que SleakOps reconstruya sin usar caché:
+
+1. Ve a tu **Panel de Proyecto**
+2. Navega a **Implementaciones** → **Configuración de compilación**
+3. Habilita la opción **"Forzar reconstrucción"**
+4. O agrega la bandera `--no-cache` en la configuración de compilación
+5. Dispara una nueva implementación
+
+**Método alternativo:**
+
+- Haz un pequeño commit (como actualizar un comentario)
+- Haz push a la rama develop para disparar una compilación fresca
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-optimization" summary="Optimizar Dockerfile para invalidar correctamente la caché">
+
+Asegúrate de que tu Dockerfile invalide correctamente la caché cuando cambia el código:
+
+```dockerfile
+# Buenas prácticas para aplicaciones Node.js
+FROM node:18-alpine
+WORKDIR /app
+
+# Copiar primero los archivos de paquetes (capa de caché)
+COPY package*.json ./
+RUN npm ci --only=production
+
+# Copiar código fuente (invalida caché cuando cambia el código)
+COPY . .
+
+# Añadir timestamp de compilación para asegurar compilaciones frescas
+ARG BUILD_DATE
+ENV BUILD_DATE=${BUILD_DATE}
+
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="build-args-solution" summary="Usar argumentos de compilación para forzar la invalidación de caché">
+
+Agrega argumentos de compilación que cambien con cada compilación:
+
+1. **En tu configuración CI/CD:**
+
+```yaml
+build_args:
+  BUILD_DATE: "$(date +%Y%m%d-%H%M%S)"
+  GIT_COMMIT: "${GITHUB_SHA}"
+```
+
+2. **En tu Dockerfile:**
+
+```dockerfile
+ARG BUILD_DATE
+ARG GIT_COMMIT
+ENV BUILD_INFO="${BUILD_DATE}-${GIT_COMMIT}"
+
+# Esto asegura que la capa se reconstruya cada vez
+RUN echo "Build: ${BUILD_INFO}" > /app/build-info.txt
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verify-deployment" summary="Verificar que la implementación use la imagen correcta">
+
+Para confirmar que el problema está resuelto:
+
+1. **Revisa las etiquetas de la imagen** en SleakOps:
+
+   - Ve a **Workloads** → **Tu servicio**
+   - Verifica que la etiqueta de la imagen coincida con la última compilación
+
+2. **Agrega un endpoint de versión** a tu aplicación:
+
+```javascript
+// Añadir a tu app
+app.get("/version", (req, res) => {
+  res.json({
+    version: process.env.BUILD_DATE || "desconocida",
+    commit: process.env.GIT_COMMIT || "desconocido",
+    timestamp: new Date().toISOString(),
+  });
+});
+```
+
+3. **Prueba el endpoint** después de la implementación para confirmar los cambios
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="multiple-repos-solution" summary="Aplicar solución en múltiples repositorios">
+
+Dado que esto afecta a 3 repositorios, aplica estos cambios sistemáticamente:
+
+1. **Crea un Dockerfile plantilla** con la invalidación correcta de caché
+2. **Actualiza todos los repositorios afectados** con el mismo patrón
+3. **Habilita la reconstrucción forzada** para todos los proyectos temporalmente
+4. **Prueba cada repositorio** individualmente tras los cambios
+
+**Ejemplo de script para actualización masiva:**
+
+```bash
+#!/bin/bash
+REPOS=("repo1" "repo2" "repo3")
+
+for repo in "${REPOS[@]}"; do
+  echo "Actualizando $repo..."
+  cd $repo
+  # Copiar Dockerfile optimizado
+  cp ../templates/Dockerfile .
+  git add Dockerfile
+  git commit -m "Fix: Actualizar Dockerfile para correcta invalidación de caché"
+  git push origin develop
+  cd ..
+done
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de usuario._

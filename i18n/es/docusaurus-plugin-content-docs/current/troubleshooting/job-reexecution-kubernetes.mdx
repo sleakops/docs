@@ -1,0 +1,191 @@
+---
+sidebar_position: 3
+title: "Re-ejecución de Jobs en Kubernetes"
+description: "Cómo volver a ejecutar Jobs de Kubernetes con los mismos parámetros sin crear nuevos"
+date: "2024-01-15"
+category: "workload"
+tags: ["kubernetes", "jobs", "re-ejecucion", "batch"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Re-ejecución de Jobs en Kubernetes
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** Kubernetes, Jobs, Re-ejecución, Batch
+
+## Descripción del Problema
+
+**Contexto:** El usuario necesita re-ejecutar un Job de Kubernetes con los mismos parámetros después de que haya finalizado, pero la plataforma no ofrece una opción directa de "volver a ejecutar", lo que obliga a crear nuevos Jobs cada vez.
+
+**Síntomas observados:**
+
+- No hay botón de "re-ejecutar" o "volver a ejecutar" disponible para Jobs completados
+- Es necesario crear un nuevo Job cada vez con los mismos parámetros
+- Proceso manual requerido para duplicar la configuración del Job
+- Pérdida del historial de ejecución y la relación entre ejecuciones de Jobs
+
+**Configuración relevante:**
+
+- Tipo de Job: Job Batch de Kubernetes
+- Estado del Job: Completado
+- Plataforma: Entorno Kubernetes de SleakOps
+- Comportamiento deseado: Volver a ejecutar el Job existente con los mismos parámetros
+
+**Condiciones de error:**
+
+- Ocurre después de la finalización del Job
+- No hay mecanismo incorporado de re-ejecución disponible
+- Se requiere recreación manual para cada ejecución
+
+## Solución Detallada
+
+<TroubleshootingItem id="kubernetes-job-behavior" summary="Comprendiendo el comportamiento de los Jobs en Kubernetes">
+
+Los Jobs de Kubernetes están diseñados para ejecutarse una vez y completarse. Una vez que un Job termina exitosamente, no puede "reiniciarse" en el sentido tradicional. Esto es por diseño en Kubernetes:
+
+- Los Jobs son inmutables una vez creados
+- Los Jobs completados permanecen para historial y acceso a logs
+- La re-ejecución requiere crear un nuevo objeto Job
+
+Este comportamiento asegura consistencia y previene re-ejecuciones accidentales de procesos batch críticos.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-job-templates" summary="Uso de plantillas de Job en SleakOps">
+
+En SleakOps, puedes crear plantillas reutilizables de Jobs para simplificar la re-ejecución:
+
+1. **Guardar Job como plantilla**:
+
+   - Ve a tu Job completado
+   - Haz clic en **"Guardar como plantilla"**
+   - Asígnale un nombre descriptivo
+
+2. **Crear desde plantilla**:
+
+   - Ve a **Jobs** → **Crear nuevo**
+   - Selecciona **"Desde plantilla"**
+   - Elige tu plantilla guardada
+   - Modifica parámetros si es necesario
+
+3. **Beneficios de las plantillas**:
+   - Preserva toda la configuración
+   - Permite modificar parámetros
+   - Mantiene el historial de ejecución
+   - Más rápido que la recreación manual
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="kubectl-job-recreation" summary="Recreación manual de Job con kubectl">
+
+Si necesitas recrear manualmente un Job usando kubectl:
+
+```bash
+# Obtén la configuración original del Job
+kubectl get job my-job -o yaml > job-backup.yaml
+
+# Edita el archivo para eliminar status y metadata.uid
+# Cambia metadata.name para evitar conflictos
+sed -i 's/name: my-job/name: my-job-rerun/' job-backup.yaml
+
+# Elimina la sección status y otros campos en tiempo de ejecución
+kubectl create -f job-backup.yaml
+```
+
+**Importante**: Elimina estos campos del YAML:
+
+- `metadata.uid`
+- `metadata.resourceVersion`
+- `metadata.creationTimestamp`
+- sección `status`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cronjob-alternative" summary="Considera CronJob para ejecuciones repetidas">
+
+Si necesitas ejecutar el mismo Job múltiples veces, considera usar un CronJob:
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: my-repeated-job
+spec:
+  schedule: "@daily" # o disparo manual
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: my-container
+              image: my-image
+              command: ["my-command"]
+          restartPolicy: OnFailure
+```
+
+**Beneficios del CronJob**:
+
+- Puede ser disparado manualmente
+- Mantiene historial de jobs
+- Soporta ejecución programada
+- Mejor para tareas repetidas
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-workflow" summary="Flujo de trabajo recomendado en SleakOps">
+
+Para una re-ejecución óptima de Jobs en SleakOps:
+
+1. **Durante la creación del Job**:
+
+   - Usa nombres descriptivos con versión/fecha
+   - Documenta parámetros en la descripción del Job
+   - Guarda como plantilla inmediatamente después de crear
+
+2. **Para la re-ejecución**:
+
+   - Usa la opción **"Crear desde plantilla"**
+   - Actualiza el nombre con nueva marca de tiempo/versión
+   - Verifica parámetros antes de ejecutar
+   - Conserva el Job original como referencia
+
+3. **Buenas prácticas**:
+   - Nombra los Jobs con timestamps: `procesamiento-datos-2024-01-15`
+   - Usa etiquetas para agrupar ejecuciones relacionadas
+   - Documenta cambios de parámetros entre ejecuciones
+   - Limpia Jobs antiguos periódicamente
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-tips" summary="Solución de problemas al recrear Jobs">
+
+Problemas comunes al recrear Jobs:
+
+**Conflictos de nombre**:
+
+```bash
+# Error: Job ya existe
+# Solución: Usa un nombre diferente
+metadata:
+  name: my-job-v2  # o my-job-20240115
+```
+
+**Conflictos de recursos**:
+
+- Asegúrate que los pods del Job anterior estén eliminados
+- Revisa reclamaciones de volúmenes persistentes
+- Verifica permisos de la cuenta de servicio
+
+**Problemas con parámetros**:
+
+- Revisa variables de entorno
+- Verifica referencias a secretos y configmaps
+- Asegura que las versiones de imagen sean correctas
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

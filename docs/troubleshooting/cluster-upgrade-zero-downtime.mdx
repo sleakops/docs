@@ -1,0 +1,165 @@
+---
+sidebar_position: 3
+title: "Kubernetes Cluster Upgrade with Zero Downtime"
+description: "How to perform cluster upgrades in SleakOps without service interruption"
+date: "2025-02-19"
+category: "cluster"
+tags: ["upgrade", "kubernetes", "downtime", "maintenance", "production"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Kubernetes Cluster Upgrade with Zero Downtime
+
+**Date:** February 19, 2025  
+**Category:** Cluster  
+**Tags:** Upgrade, Kubernetes, Downtime, Maintenance, Production
+
+## Problem Description
+
+**Context:** Users need to upgrade their Kubernetes clusters in SleakOps but are concerned about potential downtime during critical business hours, especially during high-traffic periods or end-of-month operations.
+
+**Observed Symptoms:**
+
+- Concern about service interruption during cluster upgrades
+- Need to schedule upgrades during low-traffic hours
+- Uncertainty about the upgrade process and its impact
+- Questions about self-service upgrade capabilities
+
+**Relevant Configuration:**
+
+- Production clusters with multiple replicas
+- Web services and workers with high availability requirements
+- Critical business operations during specific time windows
+- Deployment policies configured for rolling updates
+
+**Error Conditions:**
+
+- Risk of downtime during business-critical hours
+- Potential service degradation during upgrade process
+- Need for immediate support if issues arise during upgrade
+
+## Detailed Solution
+
+<TroubleshootingItem id="zero-downtime-theory" summary="Understanding Zero-Downtime Upgrades">
+
+SleakOps implements zero-downtime cluster upgrades through:
+
+1. **Rolling Node Updates**: Nodes are rotated gradually, not all at once
+2. **Deployment Policies**: 33% of each deployment must remain active during upgrades
+3. **Pod Distribution**: Services are distributed across multiple nodes
+4. **Health Checks**: Continuous monitoring ensures service availability
+
+**Requirements for Zero Downtime:**
+
+- Production mode cluster
+- At least 2 replicas per web service or worker
+- Proper resource allocation and pod anti-affinity rules
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="self-service-upgrade" summary="How to Perform Self-Service Upgrades">
+
+To run the upgrade yourself:
+
+1. **Access the Console**: Go to your cluster's settings page
+2. **Navigate to General Settings**: Find the upgrade section
+3. **Review Upgrade Details**: Check the target version and changes
+4. **Initiate Upgrade**: Click the upgrade button when ready
+
+**Console Path:**
+
+```
+SleakOps Console → Clusters → [Your Cluster] → Settings → General Settings
+```
+
+**Best Practices:**
+
+- Schedule during low-traffic hours (early morning recommended)
+- Notify your team before starting
+- Monitor application logs during the process
+- Have rollback plan ready if needed
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="upgrade-monitoring" summary="Monitoring During Upgrades">
+
+During the upgrade process, monitor:
+
+1. **Application Health**: Check your application endpoints
+2. **Pod Status**: Ensure pods are being recreated successfully
+3. **Resource Usage**: Monitor CPU and memory during transition
+4. **Logs**: Watch for any error messages in application logs
+
+**Key Indicators of Successful Upgrade:**
+
+- All pods show "Running" status
+- Application endpoints respond normally
+- No error spikes in monitoring dashboards
+- Database connections remain stable
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="timing-considerations" summary="When to Schedule Upgrades">
+
+**Recommended Timing:**
+
+- Early morning hours (2-6 AM local time)
+- Weekends or maintenance windows
+- Avoid end-of-month or high-traffic periods
+- Consider time zones for global applications
+
+**Pre-Upgrade Checklist:**
+
+- [ ] Verify cluster has multiple replicas
+- [ ] Check recent application deployments are stable
+- [ ] Ensure monitoring is active
+- [ ] Notify relevant team members
+- [ ] Plan for immediate support if needed
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="support-availability" summary="Support During Upgrades">
+
+SleakOps provides:
+
+1. **Priority Support**: Same-day priority for upgrade-related issues
+2. **Proactive Monitoring**: Team monitors critical upgrades
+3. **Immediate Response**: Quick resolution for any problems
+4. **Post-Upgrade Validation**: Verification that all services are healthy
+
+**When to Contact Support:**
+
+- If upgrade takes longer than expected
+- Application errors appear during upgrade
+- Pods fail to restart properly
+- Performance degradation after upgrade
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="rollback-procedures" summary="Rollback and Recovery">
+
+If issues occur during upgrade:
+
+1. **Immediate Actions**:
+
+   - Contact SleakOps support immediately
+   - Document any error messages
+   - Avoid manual interventions unless directed
+
+2. **Rollback Process**:
+
+   - SleakOps can initiate rollback if necessary
+   - Applications will be restored to previous versions
+   - Data integrity is maintained throughout
+
+3. **Post-Incident**:
+   - Root cause analysis provided
+   - Recommendations for future upgrades
+   - Schedule retry with additional precautions
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on February 19, 2025 based on a real user query._

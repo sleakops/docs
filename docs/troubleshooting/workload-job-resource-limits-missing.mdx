@@ -1,0 +1,158 @@
+---
+sidebar_position: 3
+title: "Job Resource Limits Not Applied in Kubernetes Pod"
+description: "Solution for when CPU and memory limits defined in SleakOps jobs are not applied to Kubernetes pods"
+date: "2024-04-22"
+category: "workload"
+tags: ["job", "kubernetes", "resources", "limits", "memory", "cpu"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Job Resource Limits Not Applied in Kubernetes Pod
+
+**Date:** April 22, 2024  
+**Category:** Workload  
+**Tags:** Job, Kubernetes, Resources, Limits, Memory, CPU
+
+## Problem Description
+
+**Context:** User defines CPU and memory limits for a job in SleakOps platform, but the resulting Kubernetes pod shows `resources: {}` instead of the specified resource constraints.
+
+**Observed Symptoms:**
+
+- Job configured with CPU (1000 min, 1500 max) and Memory (2500 min, 3000 max)
+- Generated Kubernetes pod shows `resources: {}` in the spec
+- Pod experiences out-of-memory errors due to lack of resource limits
+- Error message: "The node was low on resource: memory. Container was using 4068000Ki, request is 0"
+
+**Relevant Configuration:**
+
+- CPU Min: 1000m, Max: 1500m
+- Memory Min: 2500Mi, Max: 3000Mi
+- Job type: Kubernetes Job
+- Platform: SleakOps on AWS EKS
+
+**Error Conditions:**
+
+- Resource limits defined in SleakOps UI are not translated to Kubernetes pod spec
+- Pod runs without resource constraints leading to potential node resource exhaustion
+- Container can consume unlimited resources causing eviction
+
+## Detailed Solution
+
+<TroubleshootingItem id="bug-acknowledgment" summary="Known Issue Status">
+
+This is a confirmed bug in the SleakOps platform where resource limits defined in the job configuration are not properly applied to the generated Kubernetes pods.
+
+**Status:** Fixed in upcoming release (scheduled for current week)
+
+The development team has identified and resolved the issue where CPU and memory limits specified in the SleakOps job configuration were not being translated into the Kubernetes pod specification.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-workaround" summary="Immediate Workaround Solution">
+
+If you need to run the job urgently before the fix is released, you can manually add resource limits to the Kubernetes job:
+
+1. **Export the current job configuration**
+2. **Manually edit the job YAML** to include resource specifications
+3. **Apply the modified configuration**
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: your-job-name
+spec:
+  template:
+    spec:
+      containers:
+        - name: your-container-name
+          image: your-image
+          resources:
+            requests:
+              cpu: "1000m" # Your minimum CPU value
+              memory: "2500Mi" # Your minimum memory value
+            limits:
+              cpu: "1500m" # Your maximum CPU value
+              memory: "3000Mi" # Your maximum memory value
+          # ... rest of your container spec
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="resource-format" summary="Resource Specification Format">
+
+When manually adding resources, use the correct Kubernetes resource format:
+
+**CPU Resources:**
+
+- Use millicores: `1000m` = 1 CPU core
+- Or decimal: `1.5` = 1.5 CPU cores
+
+**Memory Resources:**
+
+- Use standard units: `Mi` (Mebibytes), `Gi` (Gibibytes)
+- Examples: `2500Mi`, `3Gi`
+
+**Complete Example:**
+
+```yaml
+resources:
+  requests: # Minimum guaranteed resources
+    cpu: "1000m"
+    memory: "2500Mi"
+  limits: # Maximum allowed resources
+    cpu: "1500m"
+    memory: "3000Mi"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="How to Verify the Fix">
+
+After applying the manual fix or when the platform update is released:
+
+1. **Check the pod specification:**
+
+```bash
+kubectl get pod <pod-name> -o yaml | grep -A 10 resources:
+```
+
+2. **Verify resource allocation:**
+
+```bash
+kubectl describe pod <pod-name>
+```
+
+3. **Monitor resource usage:**
+
+```bash
+kubectl top pod <pod-name>
+```
+
+The output should show your specified CPU and memory limits instead of empty resources.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-tips" summary="Prevention and Best Practices">
+
+**Best Practices for Resource Management:**
+
+1. **Always set resource limits** to prevent resource starvation
+2. **Set appropriate requests** to ensure proper scheduling
+3. **Monitor resource usage** to adjust limits based on actual consumption
+4. **Use resource quotas** at namespace level for additional protection
+
+**Recommended Resource Strategy:**
+
+- Set requests to 70-80% of expected usage
+- Set limits to 120-150% of expected usage
+- Monitor and adjust based on actual metrics
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on April 22, 2024 based on a real user query._

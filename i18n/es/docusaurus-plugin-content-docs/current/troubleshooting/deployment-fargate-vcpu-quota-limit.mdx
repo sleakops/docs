@@ -1,0 +1,198 @@
+---
+sidebar_position: 3
+title: "Límite de cuota vCPU de Fargate durante el despliegue"
+description: "Solución para fallos en despliegues debido a limitaciones de cuota vCPU en Fargate"
+date: "2025-02-13"
+category: "deployment"
+tags: ["fargate", "aws", "cuota", "vcpu", "despliegue", "solución de problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Límite de cuota vCPU de Fargate durante el despliegue
+
+**Fecha:** 13 de febrero de 2025  
+**Categoría:** Despliegue  
+**Etiquetas:** Fargate, AWS, Cuota, vCPU, Despliegue, Solución de problemas
+
+## Descripción del problema
+
+**Contexto:** Los usuarios experimentan fallos en el despliegue en SleakOps al usar AWS Fargate como modo de despliegue, específicamente debido a limitaciones de cuota de vCPU que impiden despliegues exitosos.
+
+**Síntomas observados:**
+
+- El despliegue falla durante la ejecución
+- Mensajes de error relacionados con capacidad insuficiente en Fargate
+- Imposibilidad de completar el proceso de despliegue
+- Despliegues previos pueden haber funcionado pero empiezan a fallar repentinamente
+- El problema afecta múltiples intentos de despliegue
+
+**Configuración relevante:**
+
+- Modo de despliegue: AWS Fargate
+- Plataforma: SleakOps
+- Servicio: Despliegues de contenedores
+- Tipo de recurso: asignación de vCPU
+
+**Condiciones de error:**
+
+- El error ocurre durante la ejecución del despliegue
+- Sucede cuando se alcanza la cuota de vCPU de Fargate
+- Puede coincidir con intentos de eliminar grupos de variables u otros recursos
+- Impide tanto nuevos despliegues como operaciones de limpieza
+
+## Solución detallada
+
+<TroubleshootingItem id="quota-identification" summary="Identificando problemas con la cuota de vCPU de Fargate">
+
+Los límites de cuota de vCPU de Fargate pueden causar fallos en el despliegue. Para identificar si este es tu problema:
+
+1. **Revisar la consola de cuotas de servicio de AWS:**
+
+   - Navega a Consola AWS → Cuotas de servicio
+   - Busca "AWS Fargate"
+   - Busca "Cantidad de recursos vCPU bajo demanda de Fargate"
+
+2. **Revisar los registros de despliegue:**
+
+   - Busca mensajes de error que mencionen "capacidad insuficiente"
+   - Verifica códigos de error específicos de Fargate
+   - Monitorea fallos en la asignación de recursos
+
+3. **Verificar uso actual:**
+   - Consola AWS → ECS → Clústeres
+   - Revisa las tareas Fargate en ejecución y su asignación de vCPU
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="quota-increase-request" summary="Solicitando aumento de cuota de vCPU">
+
+Para solicitar un aumento de cuota de vCPU en Fargate:
+
+1. **Accede a Cuotas de servicio:**
+
+   ```bash
+   # A través de AWS CLI (opcional)
+   aws service-quotas get-service-quota \
+     --service-code fargate \
+     --quota-code L-3032A538
+   ```
+
+2. **Envía la solicitud de aumento de cuota:**
+
+   - Ve a Consola AWS → Cuotas de servicio
+   - Busca "Cantidad de recursos vCPU bajo demanda de Fargate"
+   - Haz clic en "Solicitar aumento de cuota"
+   - Especifica el nuevo límite necesario
+   - Proporciona justificación comercial
+
+3. **Tiempo típico de procesamiento:**
+   - Solicitudes estándar: 24-48 horas
+   - Solicitudes urgentes: pueden acelerarse a través del Soporte AWS
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-workarounds" summary="Soluciones temporales inmediatas mientras esperas el aumento de cuota">
+
+Mientras esperas la aprobación de la cuota, prueba estas soluciones temporales:
+
+1. **Optimiza la asignación de recursos:**
+
+   ```yaml
+   # Reduce la asignación de vCPU en tu configuración de despliegue
+   resources:
+     limits:
+       cpu: "0.25" # En lugar de "0.5" o "1.0"
+       memory: "512Mi"
+     requests:
+       cpu: "0.1"
+       memory: "256Mi"
+   ```
+
+2. **Limpia recursos no usados:**
+
+   - Detén tareas Fargate innecesarias
+   - Elimina despliegues inactivos
+   - Borra servicios ECS no utilizados
+
+3. **Usa una estrategia de despliegue diferente:**
+
+   - Despliega en lotes más pequeños
+   - Implementa despliegues continuos con menor concurrencia
+   - Considera usar temporalmente el tipo de lanzamiento EC2
+
+4. **Alternativas regionales:**
+   - Despliega en una región AWS diferente con capacidad disponible
+   - Usa múltiples regiones para distribuir la carga
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-monitoring" summary="Prevención de futuros problemas de cuota">
+
+Para prevenir futuros problemas con la cuota de vCPU de Fargate:
+
+1. **Configura monitoreo:**
+
+   ```yaml
+   # Alarma de CloudWatch para uso de Fargate
+   FargateVCPUUsageAlarm:
+     Type: AWS::CloudWatch::Alarm
+     Properties:
+       AlarmName: FargateVCPUUsageHigh
+       MetricName: CPUUtilization
+       Namespace: AWS/ECS
+       Statistic: Average
+       Threshold: 80
+       ComparisonOperator: GreaterThanThreshold
+   ```
+
+2. **Implementa gobernanza de recursos:**
+
+   - Establece límites de recursos predeterminados para despliegues
+   - Implementa flujos de aprobación para despliegues con alto consumo
+   - Auditoría regular del uso de recursos
+
+3. **Planifica la capacidad:**
+
+   - Monitorea tendencias de uso
+   - Solicita aumentos de cuota proactivamente
+   - Mantén capacidad de reserva para picos de uso
+
+4. **Documentación y alertas:**
+   - Documenta los límites actuales de cuota
+   - Configura alertas al 70% y 85% de uso
+   - Crea runbooks para gestión de cuotas
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-cleanup" summary="Manejo de operaciones de limpieza durante problemas de cuota">
+
+Cuando los problemas de cuota impiden operaciones de limpieza (como eliminar grupos de variables):
+
+1. **Despliegue temporal para limpieza:**
+
+   - Despliega recursos mínimos para habilitar operaciones de limpieza
+   - Usa la asignación de vCPU más baja posible
+   - Ejecuta tareas de limpieza inmediatamente después del despliegue
+
+2. **Limpieza manual vía consola AWS:**
+
+   ```bash
+   # Lista los servicios ECS que podrían estar bloqueando la limpieza
+   aws ecs list-services --cluster nombre-de-tu-cluster
+
+   # Detén servicios si es seguro hacerlo
+   aws ecs update-service --cluster nombre-de-tu-cluster \
+     --service nombre-de-tu-servicio --desired-count 0
+   ```
+
+3. **Coordina con soporte de SleakOps:**
+   - Reporta el recurso específico que causa problemas
+   - Solicita intervención manual si es necesario
+   - Proporciona registros de despliegue y mensajes de error
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 13 de febrero de 2025 basada en una consulta real de un usuario._

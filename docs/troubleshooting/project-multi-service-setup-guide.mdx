@@ -1,0 +1,289 @@
+---
+sidebar_position: 15
+title: "Multi-Service Project Setup Guide"
+description: "Complete guide for setting up Kafka, MySQL, MongoDB connections, and Nginx reverse proxy in SleakOps"
+date: "2024-01-15"
+category: "project"
+tags:
+  ["kafka", "mysql", "mongodb", "nginx", "reverse-proxy", "database", "setup"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Multi-Service Project Setup Guide
+
+**Date:** January 15, 2024  
+**Category:** Project  
+**Tags:** Kafka, MySQL, MongoDB, Nginx, Reverse Proxy, Database, Setup
+
+## Problem Description
+
+**Context:** Setting up a complete project environment that requires multiple services including message queuing (Kafka), relational database (MySQL), NoSQL database connection (MongoDB), and reverse proxy configuration (Nginx).
+
+**Observed Symptoms:**
+
+- Need to deploy Kafka service for message processing
+- Require MySQL database with data loading capabilities
+- Need to establish connection to production MongoDB instance
+- Require Nginx configuration for reverse proxy setup
+
+**Relevant Configuration:**
+
+- Services needed: Kafka, MySQL, Nginx
+- External connection: Production MongoDB
+- Proxy configuration: Reverse proxy setup
+- Database operations: Data loading and connectivity
+
+**Error Conditions:**
+
+- Services must be properly interconnected
+- Database connections must be secure and reliable
+- Reverse proxy must handle traffic correctly
+- All services must be accessible within the project environment
+
+## Detailed Solution
+
+<TroubleshootingItem id="kafka-setup" summary="Setting up Kafka service">
+
+To add Kafka to your SleakOps project:
+
+1. **Navigate to your project dashboard**
+2. **Go to Dependencies section**
+3. **Add Kafka dependency:**
+   - Click "Add Dependency"
+   - Select "Kafka" from the list
+   - Configure the following settings:
+
+```yaml
+# Kafka configuration example
+kafka:
+  version: "3.5"
+  replicas: 3
+  storage: "10Gi"
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+```
+
+4. **Configure topics** (if needed):
+   - Add environment variables for topic configuration
+   - Set retention policies
+   - Configure partitions and replication factor
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="mysql-setup" summary="Setting up MySQL with data loading">
+
+To set up MySQL and load your database:
+
+1. **Add MySQL dependency:**
+   - Go to Dependencies → Add Dependency → MySQL
+   - Configure version and resources:
+
+```yaml
+# MySQL configuration
+mysql:
+  version: "8.0"
+  database: "your_database_name"
+  username: "your_username"
+  storage: "20Gi"
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+```
+
+2. **Load database data:**
+
+   - Use the **Init Scripts** feature in MySQL configuration
+   - Upload your SQL dump files
+   - Or use environment variables to run initialization commands
+
+3. **Access credentials:**
+   - Database credentials are automatically generated
+   - Access them via environment variables in your applications
+   - Connection string format: `mysql://username:password@mysql-service:3306/database`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="mongodb-connection" summary="Connecting to production MongoDB">
+
+To connect to an external MongoDB production instance:
+
+1. **Add connection details as secrets:**
+   - Go to Project Settings → Environment Variables
+   - Add MongoDB connection variables:
+
+```bash
+MONGO_PROD_URI=mongodb://username:password@prod-mongo-host:27017/database
+MONGO_PROD_DATABASE=your_production_database
+MONGO_PROD_USERNAME=your_username
+MONGO_PROD_PASSWORD=your_password
+```
+
+2. **Network security considerations:**
+
+   - Ensure your SleakOps cluster can reach the production MongoDB
+   - Configure firewall rules if necessary
+   - Use VPN or private networking if available
+
+3. **Test connectivity:**
+   - Create a simple test workload to verify connection
+   - Use MongoDB client tools to test from within the cluster
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="nginx-reverse-proxy" summary="Configuring Nginx reverse proxy">
+
+To set up Nginx as a reverse proxy:
+
+1. **Add Nginx workload:**
+
+   - Go to Workloads → Add Workload → Web Service
+   - Select Nginx as the base image
+
+2. **Configure reverse proxy:**
+   - Create custom Nginx configuration:
+
+```nginx
+# nginx.conf example
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    # Proxy to your main application
+    location / {
+        proxy_pass http://your-app-service:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Proxy to Kafka management UI (if needed)
+    location /kafka {
+        proxy_pass http://kafka-ui-service:8080;
+        proxy_set_header Host $host;
+    }
+
+    # Health check endpoint
+    location /health {
+        return 200 'OK';
+        add_header Content-Type text/plain;
+    }
+}
+```
+
+3. **Mount configuration:**
+
+   - Upload your nginx.conf as a config file
+   - Mount it to `/etc/nginx/conf.d/default.conf`
+
+4. **Expose the service:**
+   - Configure ingress or load balancer
+   - Set up SSL/TLS if required
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="service-integration" summary="Integrating all services">
+
+To ensure all services work together:
+
+1. **Service discovery:**
+
+   - Services can communicate using their service names
+   - Example: `kafka-service:9092`, `mysql-service:3306`
+
+2. **Environment variables for integration:**
+
+```bash
+# Application environment variables
+KAFKA_BROKERS=kafka-service:9092
+MYSQL_HOST=mysql-service
+MYSQL_PORT=3306
+MYSQL_DATABASE=your_database
+MONGO_PROD_URI=mongodb://prod-mongo-host:27017/database
+NGINX_UPSTREAM=your-app-service:8080
+```
+
+3. **Health checks:**
+
+   - Configure health checks for each service
+   - Monitor connectivity between services
+   - Set up alerts for service failures
+
+4. **Testing the complete setup:**
+   - Test Kafka message production/consumption
+   - Verify MySQL database queries
+   - Confirm MongoDB production connectivity
+   - Test reverse proxy routing
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Common troubleshooting steps">
+
+**Service connectivity issues:**
+
+- Check service names and ports
+- Verify network policies
+- Review firewall configurations
+
+**Database connection problems:**
+
+- Verify credentials and connection strings
+- Check database service status
+- Review network connectivity
+
+**Nginx proxy issues:**
+
+- Check Nginx configuration syntax
+- Verify upstream service availability
+- Review access logs for errors
+- Test direct service access
+
+**Kafka connectivity problems:**
+
+- Verify Kafka broker addresses
+- Check consumer group configurations
+- Review topic permissions
+- Monitor Kafka logs for errors
+
+**Performance and scaling:**
+
+```bash
+# Monitor resource usage
+kubectl top pods -n <namespace>
+
+# Scale services based on load
+kubectl scale deployment kafka --replicas=3
+kubectl scale deployment your-app --replicas=5
+
+# Check service endpoints
+kubectl get endpoints -n <namespace>
+```
+
+**Debugging commands:**
+
+```bash
+# Test service connectivity
+kubectl exec -it <pod-name> -- telnet <service-name> <port>
+
+# Check service DNS resolution
+kubectl exec -it <pod-name> -- nslookup <service-name>
+
+# View service logs
+kubectl logs -f deployment/<deployment-name>
+
+# Debug networking
+kubectl exec -it <pod-name> -- netstat -an
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

@@ -1,0 +1,195 @@
+---
+sidebar_position: 15
+title: "How to Delete a Project in SleakOps"
+description: "Complete guide for safely deleting projects and understanding what gets removed"
+date: "2024-03-13"
+category: "project"
+tags: ["project", "deletion", "management", "cleanup"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# How to Delete a Project in SleakOps
+
+**Date:** March 13, 2024  
+**Category:** Project  
+**Tags:** Project, Deletion, Management, Cleanup
+
+## Problem Description
+
+**Context:** Users need to understand how to properly delete projects in SleakOps and what components are affected when a project is deleted.
+
+**Observed Symptoms:**
+
+- Unable to find project deletion option in the interface
+- Uncertainty about what gets deleted along with the project
+- Need to clean up projects with naming issues or technical debt
+- Questions about the impact on associated resources
+
+**Relevant Configuration:**
+
+- Project contains: Docker args, workloads, dependencies, vargroups
+- Associated resources: Environment-specific configurations
+- Dependencies: Database connections, external services
+- Variable groups: Shared across projects or workload-specific
+
+**Error Conditions:**
+
+- Deletion option not visible in expected locations
+- Uncertainty about cascading deletions
+- Risk of losing important configuration data
+
+## Detailed Solution
+
+<TroubleshootingItem id="preparation-steps" summary="What to document before deleting a project">
+
+Before deleting a project, make sure to document the following components:
+
+**1. Docker Arguments**
+
+- Note all custom docker args configured for the project
+- Document any special build configurations
+
+**2. Workloads**
+
+- List all workloads within the project
+- Document their configurations and settings
+
+**3. Dependencies**
+
+- Record all project dependencies (databases, caches, etc.)
+- Note connection strings and configurations
+
+**4. Variable Groups (VarGroups)**
+
+- Document vargroups associated with the project
+- Note vargroups associated with specific workloads
+- Check if any vargroups are shared with other projects
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deletion-location" summary="Where to find the project deletion option">
+
+To delete a project in SleakOps:
+
+1. Navigate to your **Project Dashboard**
+2. Go to **Project Settings**
+3. Click on **General Settings**
+4. Scroll down to find the **Delete Project** button
+
+**Note:** The deletion button is typically located at the bottom of the General Settings page and may be styled as a red or warning button.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="what-gets-deleted" summary="What components are deleted with the project">
+
+When you delete a project, the following components are **automatically removed**:
+
+**✅ Deleted with Project:**
+
+- The project itself
+- All workloads within the project
+- Project-specific dependencies
+- Variable groups associated exclusively with the project
+- Variable groups associated with workloads in the project
+- Project-specific docker configurations
+- Environment configurations for this project
+
+**⚠️ Potentially Affected:**
+
+- Shared variable groups (if used by other projects)
+- External dependencies (databases, services) - these may need manual cleanup
+
+**❌ Not Deleted:**
+
+- Cluster infrastructure
+- Other projects in the same cluster
+- Shared resources used by multiple projects
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deletion-process" summary="Step-by-step deletion process">
+
+**Step 1: Backup Important Data**
+
+```bash
+# Export project configuration (if available via CLI)
+sleakops project export --project-name your-project-name
+```
+
+**Step 2: Document Dependencies**
+
+- Take screenshots of dependency configurations
+- Note down database connection strings
+- Document any custom environment variables
+
+**Step 3: Check Shared Resources**
+
+- Verify which vargroups are shared with other projects
+- Ensure no other projects depend on this project's resources
+
+**Step 4: Perform Deletion**
+
+1. Go to **Project Settings > General Settings**
+2. Scroll to the bottom of the page
+3. Click **Delete Project**
+4. Confirm the deletion when prompted
+5. Wait for the deletion process to complete
+
+**Step 5: Verify Cleanup**
+
+- Check that the project no longer appears in your project list
+- Verify that associated workloads are removed
+- Confirm that exclusive vargroups are deleted
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="recreation-best-practices" summary="Best practices when recreating projects">
+
+If you're deleting a project to recreate it (e.g., to fix naming issues):
+
+**Naming Conventions:**
+
+- Avoid redundant suffixes (e.g., don't use both project name and environment in the name)
+- Use clear, descriptive names: `admin` instead of `sostengo-admin-prod-prod`
+- Remember that environment suffixes are added automatically
+
+**Configuration Management:**
+
+- Use the documented configurations from the deleted project
+- Apply lessons learned to avoid technical debt
+- Consider using Infrastructure as Code approaches for future projects
+
+**Timing Considerations:**
+
+- Plan the deletion and recreation during maintenance windows
+- Ensure all team members are aware of the changes
+- Have rollback plans in case of issues
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Troubleshooting deletion issues">
+
+**If you can't find the deletion option:**
+
+- Check your user permissions - you may need admin access
+- Ensure you're in the correct project context
+- Try refreshing the page or clearing browser cache
+
+**If deletion fails:**
+
+- Check for active deployments that need to be stopped first
+- Verify there are no running workloads
+- Contact support if the project appears to be stuck in a deletion state
+
+**After deletion:**
+
+- If resources appear to still exist, wait a few minutes for propagation
+- Check the activity logs for deletion status
+- Contact support if cleanup appears incomplete
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on March 13, 2024 based on a real user query._

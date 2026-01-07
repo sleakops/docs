@@ -1,0 +1,245 @@
+---
+sidebar_position: 1
+title: "Sitio de Producción Caído - Pods No Inician"
+description: "Guía de solución de problemas para interrupciones en producción cuando los pods no logran iniciar"
+date: "2024-01-15"
+category: "workload"
+tags:
+  ["producción", "pods", "interrupción", "solución de problemas", "kubernetes"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Sitio de Producción Caído - Pods No Inician
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** Producción, Pods, Interrupción, Solución de problemas, Kubernetes
+
+## Descripción del Problema
+
+**Contexto:** El sitio web de producción está experimentando una interrupción total con pods que no logran iniciar o reiniciar correctamente en el clúster de Kubernetes.
+
+**Síntomas Observados:**
+
+- El sitio de producción está completamente caído
+- Los pods no inician ni se ponen en línea
+- Los servicios de la aplicación no están disponibles
+- Los usuarios no pueden acceder al entorno de producción
+
+**Configuración Relevante:**
+
+- Entorno: Producción
+- Plataforma: Clúster Kubernetes
+- Alcance del problema: Interrupción total del sitio
+- Estado de los pods: Fallo al iniciar
+
+**Condiciones de Error:**
+
+- Ocurre en entorno de producción
+- Afecta a todos o la mayoría de los pods de la aplicación
+- Resulta en indisponibilidad total del servicio
+- Puede indicar problemas a nivel de clúster
+
+## Solución Detallada
+
+<TroubleshootingItem id="immediate-assessment" summary="Pasos para Evaluación Inmediata">
+
+**Paso 1: Verificar Estado de los Pods**
+
+```bash
+# Ver todos los pods en el namespace
+kubectl get pods -n <tu-namespace>
+
+# Obtener información detallada de los pods
+kubectl describe pods -n <tu-namespace>
+
+# Revisar logs de los pods
+kubectl logs <nombre-del-pod> -n <tu-namespace> --previous
+```
+
+**Paso 2: Verificar Estado de los Nodos**
+
+```bash
+# Verificar salud de los nodos
+kubectl get nodes
+
+# Revisar recursos de los nodos
+kubectl top nodes
+
+# Describir nodos problemáticos
+kubectl describe node <nombre-del-nodo>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-causes" summary="Causas Comunes y Soluciones Rápidas">
+
+**Agotamiento de Recursos:**
+
+- Verificar si los nodos tienen suficiente CPU/Memoria
+- Comprobar capacidad de almacenamiento
+- Revisar si se están excediendo cuotas de recursos
+
+**Problemas al Descargar Imágenes:**
+
+```bash
+# Verificar si las imágenes pueden descargarse
+kubectl describe pod <nombre-del-pod> | grep -i "image"
+
+# Verificar conectividad con el registro de imágenes
+kubectl get events --sort-by=.metadata.creationTimestamp
+```
+
+**Problemas de Configuración:**
+
+- Revisar ConfigMaps y Secrets
+- Verificar variables de entorno
+- Validar permisos de cuentas de servicio
+
+**Problemas de Red:**
+
+- Probar resolución DNS del clúster
+- Verificar conectividad de servicios
+- Comprobar estado del controlador de ingreso
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="systematic-diagnosis" summary="Proceso Sistemático de Diagnóstico">
+
+**1. Revisar Eventos del Clúster**
+
+```bash
+# Obtener eventos recientes del clúster
+kubectl get events --sort-by=.metadata.creationTimestamp -A
+
+# Filtrar eventos de error
+kubectl get events --field-selector type=Warning -A
+```
+
+**2. Verificar Pods Críticos del Sistema**
+
+```bash
+# Ver pods en kube-system
+kubectl get pods -n kube-system
+
+# Ver controlador de ingreso
+kubectl get pods -n ingress-nginx
+
+# Ver pila de monitoreo
+kubectl get pods -n monitoring
+```
+
+**3. Verificar Disponibilidad de Recursos**
+
+```bash
+# Revisar capacidad de nodos
+kubectl describe nodes | grep -A 5 "Allocated resources"
+
+# Ver volúmenes persistentes
+kubectl get pv,pvc -A
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="recovery-actions" summary="Acciones de Recuperación">
+
+**Pasos Inmediatos de Recuperación:**
+
+1. **Reiniciar Despliegues**
+
+```bash
+# Reiniciar despliegue específico
+kubectl rollout restart deployment/<nombre-del-despliegue> -n <namespace>
+
+# Reiniciar todos los despliegues en el namespace
+kubectl get deployments -n <namespace> -o name | xargs -I {} kubectl rollout restart {} -n <namespace>
+```
+
+2. **Escalar Recursos si es Necesario**
+
+```bash
+# Escalar despliegue
+kubectl scale deployment/<nombre-del-despliegue> --replicas=3 -n <namespace>
+
+# Añadir más nodos si se usa autoscaler de clúster
+kubectl get nodes --show-labels
+```
+
+3. **Eliminar Pods Fallidos**
+
+```bash
+# Borrar pods fallidos para forzar recreación
+kubectl delete pods --field-selector=status.phase=Failed -n <namespace>
+
+# Borrar pods atascados en estado pendiente
+kubectl delete pods --field-selector=status.phase=Pending -n <namespace>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-monitoring" summary="Prevención y Monitoreo">
+
+**Configurar Alertas de Monitoreo:**
+
+1. **Monitoreo de Salud de Pods**
+
+```yaml
+# Ejemplo de regla de alerta Prometheus
+- alert: PodsNotReady
+  expr: kube_pod_status_ready{condition="false"} > 0
+  for: 5m
+  labels:
+    severity: critical
+  annotations:
+    summary: "Pods no listos en {{ $labels.namespace }}"
+```
+
+2. **Monitoreo de Recursos**
+
+```yaml
+- alert: NodeResourceExhaustion
+  expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) < 0.1
+  for: 2m
+  labels:
+    severity: warning
+```
+
+**Mejores Prácticas:**
+
+- Implementar chequeos de salud y probes de readiness
+- Establecer solicitudes y límites adecuados de recursos
+- Usar autoscaling horizontal de pods
+- Mantener entorno de staging para pruebas
+- Realizar respaldos regulares de configuraciones críticas
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="escalation-contacts" summary="Cuándo Escalar">
+
+**Escalar inmediatamente si:**
+
+- Múltiples nodos están caídos
+- El plano de control del clúster no responde
+- Se sospecha corrupción de datos
+- Se detecta una brecha de seguridad
+
+**Antes de escalar, recopilar:**
+
+- Estado del clúster
+- Historial reciente de despliegues
+- Logs de error y eventos
+- Métricas de uso de recursos
+- Línea de tiempo de inicio del problema
+
+**Contactos de Emergencia:**
+
+- Equipo de plataforma para problemas a nivel clúster
+- Equipo de infraestructura para problemas de nodo/red
+- Equipo de aplicaciones para problemas específicos de servicios
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

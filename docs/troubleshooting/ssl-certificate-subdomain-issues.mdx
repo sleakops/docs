@@ -1,0 +1,247 @@
+---
+sidebar_position: 3
+title: "SSL Certificate Issues with API Subdomains"
+description: "Troubleshooting SSL certificate problems for API endpoints and subdomains"
+date: "2024-12-19"
+category: "cluster"
+tags: ["ssl", "certificates", "https", "api", "security"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# SSL Certificate Issues with API Subdomains
+
+**Date:** December 19, 2024  
+**Category:** Cluster  
+**Tags:** SSL, Certificates, HTTPS, API, Security
+
+## Problem Description
+
+**Context:** Users report SSL certificate warnings when accessing specific API endpoints, while the main domain appears secure. This commonly occurs when applications have multiple subdomains or API paths that need proper SSL certificate coverage.
+
+**Observed Symptoms:**
+
+- Browser shows "Not Secure" warning for specific API endpoints
+- Main domain (e.g., `https://api.domain.com`) shows valid certificate
+- Specific API paths (e.g., `https://api.domain.com/api/v3/...`) trigger security warnings
+- Mobile browsers may be more sensitive to certificate issues
+- File downloads or API calls may fail due to SSL validation
+
+**Relevant Configuration:**
+
+- Domain: API subdomain with multiple endpoints
+- Certificate type: Likely single domain or insufficient wildcard coverage
+- Platform: Kubernetes cluster with ingress controller
+- Client access: Mobile and web browsers
+
+**Error Conditions:**
+
+- Error appears on specific API endpoints but not root domain
+- Problem occurs across different browsers and devices
+- Issue affects file downloads and API responses
+- Certificate validation fails for certain paths
+
+## Detailed Solution
+
+<TroubleshootingItem id="certificate-verification" summary="Verify current certificate configuration">
+
+First, check your current SSL certificate setup:
+
+```bash
+# Check certificate details for your domain
+openssl s_client -connect api.yourdomain.com:443 -servername api.yourdomain.com
+
+# Or use online tools like SSL Labs
+# https://www.ssllabs.com/ssltest/
+```
+
+Look for:
+
+- Certificate validity dates
+- Subject Alternative Names (SAN)
+- Certificate chain completeness
+- Cipher suite compatibility
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="ingress-configuration" summary="Configure ingress for proper SSL termination">
+
+Ensure your Kubernetes ingress is properly configured for SSL:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-ingress
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  tls:
+    - hosts:
+        - api.yourdomain.com
+      secretName: api-tls-secret
+  rules:
+    - host: api.yourdomain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-service
+                port:
+                  number: 80
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cert-manager-setup" summary="Configure cert-manager for automatic SSL">
+
+If using cert-manager, ensure proper configuration:
+
+```yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: api-certificate
+  namespace: default
+spec:
+  secretName: api-tls-secret
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  dnsNames:
+    - api.yourdomain.com
+    - "*.api.yourdomain.com" # Wildcard for subpaths if needed
+```
+
+Verify cert-manager is working:
+
+```bash
+# Check certificate status
+kubectl get certificates
+
+# Check certificate details
+kubectl describe certificate api-certificate
+
+# Check cert-manager logs
+kubectl logs -n cert-manager deployment/cert-manager
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Troubleshooting SSL certificate issues">
+
+1. **Check certificate coverage:**
+
+   ```bash
+   # Test specific endpoints
+   curl -I https://api.yourdomain.com/api/v3/endpoint
+
+   # Check certificate chain
+   openssl s_client -connect api.yourdomain.com:443 -showcerts
+   ```
+
+2. **Verify DNS resolution:**
+
+   ```bash
+   nslookup api.yourdomain.com
+   dig api.yourdomain.com
+   ```
+
+3. **Test from different locations:**
+
+   - Use online SSL checkers
+   - Test from different networks
+   - Check mobile vs desktop browsers
+
+4. **Check ingress controller logs:**
+   ```bash
+   kubectl logs -n ingress-nginx deployment/ingress-nginx-controller
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-solutions" summary="Common solutions for SSL issues">
+
+**For SleakOps managed clusters:**
+
+1. **Update ingress annotations:**
+
+   ```yaml
+   annotations:
+     nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+     nginx.ingress.kubernetes.io/ssl-redirect: "true"
+     nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+   ```
+
+2. **Ensure proper service configuration:**
+
+   ```yaml
+   apiVersion: v1
+   kind: Service
+   metadata:
+     name: api-service
+   spec:
+     ports:
+       - port: 80
+         targetPort: 8080
+         protocol: TCP
+     selector:
+       app: api-app
+   ```
+
+3. **Check certificate renewal:**
+   ```bash
+   # Force certificate renewal
+   kubectl delete certificate api-certificate
+   kubectl apply -f certificate.yaml
+   ```
+
+**For custom domains:**
+
+- Ensure DNS points to correct load balancer
+- Verify certificate includes all required domains
+- Check certificate chain is complete
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-best-practices" summary="Best practices to prevent SSL issues">
+
+1. **Use wildcard certificates** for multiple subdomains:
+
+   ```yaml
+   dnsNames:
+     - yourdomain.com
+     - "*.yourdomain.com"
+   ```
+
+2. **Monitor certificate expiration:**
+
+   ```bash
+   # Set up monitoring alerts
+   kubectl get certificates -o wide
+   ```
+
+3. **Test SSL configuration regularly:**
+
+   ```bash
+   # Automated SSL testing
+   curl -f https://api.yourdomain.com/health
+   ```
+
+4. **Use HSTS headers** for enhanced security:
+   ```yaml
+   annotations:
+     nginx.ingress.kubernetes.io/server-snippet: |
+       add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+   ```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

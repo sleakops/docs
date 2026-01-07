@@ -1,0 +1,172 @@
+---
+sidebar_position: 3
+title: "Despliegue Pendiente Después de Cambios en Nodepool"
+description: "Solución para despliegues que permanecen pendientes tras cambios en la configuración del nodepool"
+date: "2024-01-23"
+category: "cluster"
+tags: ["despliegue", "nodepool", "karpenter", "aws", "escalado"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Despliegue Pendiente Después de Cambios en Nodepool
+
+**Fecha:** 23 de enero de 2024  
+**Categoría:** Clúster  
+**Etiquetas:** Despliegue, Nodepool, Karpenter, AWS, Escalado
+
+## Descripción del Problema
+
+**Contexto:** Tras realizar cambios en la configuración del nodepool en SleakOps, los despliegues permanecen en estado pendiente y no aplican automáticamente la nueva configuración. La aplicación deja de funcionar hasta que se requiere intervención manual.
+
+**Síntomas Observados:**
+
+- Los cambios en el nodepool permanecen pendientes y no se aplican automáticamente
+- La aplicación deja de funcionar después de modificaciones en el nodepool
+- Los despliegues requieren activación manual para aplicar los cambios pendientes
+- El problema puede pasar desapercibido durante períodos prolongados
+
+**Configuración Relevante:**
+
+- Plataforma: AWS EKS con Karpenter
+- Autoscaling: Activado
+- Límites de recursos: Posiblemente asignación insuficiente de RAM
+- Cuotas de CPU en AWS EC2: Puede estar al límite
+
+**Condiciones de Error:**
+
+- Ocurre después de cambios en la configuración del nodepool
+- Los despliegues permanecen pendientes hasta ser activados manualmente
+- Puede estar relacionado con límites de cuotas de recursos de AWS
+- El autoscaling dispara escalado innecesario debido a límites bajos de memoria
+
+## Solución Detallada
+
+<TroubleshootingItem id="manual-deployment-trigger" summary="Solución inmediata: Activación manual del despliegue">
+
+Cuando los cambios en el nodepool están pendientes:
+
+1. **Accede al Panel de SleakOps**
+2. **Navega a tu proyecto**
+3. **Dirígete a la sección de Despliegues**
+4. **Activa manualmente el despliegue pendiente**
+5. **Verifica que la aplicación esté funcionando**
+
+Esto aplicará inmediatamente los cambios pendientes en el nodepool y restaurará la funcionalidad de la aplicación.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="memory-configuration" summary="Prevenir problemas de escalado con una asignación adecuada de memoria">
+
+Para evitar escalados innecesarios que puedan activar límites de cuota de AWS:
+
+**Configuración recomendada de memoria:**
+
+- **RAM mínima**: 512MB
+- **RAM máxima**: 1024MB
+
+```yaml
+# Ejemplo de configuración de recursos
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "1024Mi"
+    cpu: "500m"
+```
+
+**Por qué ayuda esto:**
+
+- Evita que el autoscaling se active por presión de memoria
+- Reduce la provisión innecesaria de instancias EC2
+- Evita alcanzar los límites de cuotas de CPU de AWS
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="aws-quota-management" summary="Gestión de cuotas de CPU en AWS EC2">
+
+Si encuentras límites de cuota en AWS:
+
+1. **Identifica el límite de cuota**:
+
+   - Ve a la Consola de AWS → Service Quotas
+   - Busca "Amazon Elastic Compute Cloud (Amazon EC2)"
+   - Revisa las cuotas de "Running On-Demand"
+
+2. **Solicita aumento de cuota**:
+
+   - Haz clic en "Request quota increase"
+   - Especifica el nuevo límite requerido
+   - Proporciona justificación comercial
+   - Envía la solicitud
+
+3. **Monitorea la solicitud**:
+   - AWS suele responder en 24-48 horas
+   - Recibirás notificaciones por correo electrónico sobre el estado
+
+**Nota**: Realiza la solicitud desde tu cuenta AWS de producción para un procesamiento más rápido.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-pending-changes" summary="Monitoreo de cambios pendientes">
+
+Para evitar pasar por alto despliegues pendientes:
+
+1. **Configura notificaciones**:
+
+   - Configura alertas para cambios en el estado de despliegue
+   - Monitorea regularmente la pipeline de despliegue
+
+2. **Revisiones regulares**:
+
+   - Revisa los despliegues pendientes diariamente
+   - Verifica la funcionalidad de la aplicación después de cambios en el nodepool
+
+3. **Monitoreo automatizado**:
+
+   ```bash
+   # Verificar despliegues pendientes
+   kubectl get deployments --all-namespaces | grep -v "READY"
+
+   # Monitorear estado de pods
+   kubectl get pods --all-namespaces | grep Pending
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="root-cause-analysis" summary="Comprendiendo por qué los cambios permanecen pendientes">
+
+Razones comunes por las que los despliegues quedan pendientes tras cambios en el nodepool:
+
+1. **Restricciones de recursos**:
+
+   - Cuotas insuficientes de CPU/memoria
+   - Limitaciones de capacidad del nodo
+
+2. **Retrasos en la provisión de Karpenter**:
+
+   - Límites de tasa en la API de AWS
+   - Disponibilidad de tipos de instancia
+
+3. **Conflictos de configuración**:
+
+   - Solicitudes de recursos incompatibles
+   - Restricciones de programación
+
+4. **Problemas de sincronización**:
+   - Cambios aplicados en períodos de alto tráfico
+   - Conflictos de despliegue concurrentes
+
+**Estrategias de prevención**:
+
+- Aplica cambios en el nodepool durante períodos de bajo tráfico
+- Asegura cuotas adecuadas en AWS antes del escalado
+- Monitorea tendencias de utilización de recursos
+- Prueba los cambios primero en un entorno de staging
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 23 de enero de 2024 basada en una consulta real de usuario._

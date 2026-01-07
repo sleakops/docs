@@ -1,0 +1,147 @@
+---
+sidebar_position: 3
+title: "Problema de Configuración de Dominio en Servicio Web"
+description: "Cómo corregir una configuración incorrecta de dominio en servicios web"
+date: "2024-03-10"
+category: "workload"
+tags: ["servicio-web", "dominio", "configuración", "staging"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problema de Configuración de Dominio en Servicio Web
+
+**Fecha:** 10 de marzo de 2024  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** Servicio Web, Dominio, Configuración, Staging
+
+## Descripción del Problema
+
+**Contexto:** Al configurar un servicio web en SleakOps, la configuración del dominio resultó en una estructura incorrecta de subdominio anidado en lugar del subdominio limpio deseado.
+
+**Síntomas Observados:**
+
+- El dominio aparece como `supra.staging.supra.social` (estructura anidada)
+- El dominio esperado debería ser `staging.supra.social` (subdominio limpio)
+- La configuración del dominio creó una estructura "frankenstein"
+- El servicio web es accesible pero con URL incorrecta
+
+**Configuración Relevante:**
+
+- Dominio actual: `supra.staging.supra.social`
+- Dominio deseado: `staging.supra.social`
+- Tipo de servicio: Servicio web
+- Entorno: Staging
+
+**Condiciones de Error:**
+
+- Configuración incorrecta del dominio durante la configuración del servicio web
+- Problema de anidamiento de dominio creando subdominio redundante
+- Necesidad de reconfigurar el dominio del servicio web existente
+
+## Solución Detallada
+
+<TroubleshootingItem id="edit-web-service" summary="Cómo editar la configuración del dominio del servicio web">
+
+Para corregir la configuración del dominio en tu servicio web:
+
+1. **Navega a tu proyecto** en el panel de SleakOps
+2. **Ve a la sección de Cargas de trabajo (Workloads)**
+3. **Encuentra tu servicio web** en la lista
+4. **Haz clic en el servicio web** para abrir su configuración
+5. **Haz clic en Editar** o en el ícono de configuración
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="domain-configuration" summary="Configurar el dominio correcto">
+
+En la configuración del servicio web:
+
+1. **Ubica la sección de Configuración de Dominio**
+2. **Limpia el campo del dominio actual** si muestra el dominio incorrecto
+3. **Ingresa el dominio correcto**: `staging.supra.social`
+4. **Guarda la configuración**
+
+```yaml
+# Ejemplo de configuración
+domain: staging.supra.social
+# NO: supra.staging.supra.social
+```
+
+**Importante:** Asegúrate de ingresar solo el subdominio deseado sin duplicar el dominio base.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="domain-propagation" summary="Esperar la propagación del dominio">
+
+Después de actualizar la configuración del dominio:
+
+1. **Espera de 5 a 10 minutos** para que los cambios se propaguen
+2. **Verifica el estado del despliegue** en el panel de cargas de trabajo
+3. **Confirma que el nuevo dominio** funcione correctamente
+4. **Prueba el acceso** a `staging.supra.social`
+
+Si el dominio antiguo sigue en caché, puede ser necesario:
+
+- Limpiar la caché del navegador
+- Esperar la propagación DNS (hasta 24 horas en algunos casos)
+- Usar modo incógnito/navegación privada para probar
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Solución de problemas con dominios">
+
+Si aún experimentas problemas después del cambio de configuración:
+
+**Revisa la Configuración DNS:**
+
+```bash
+# Prueba la resolución DNS
+nslookup staging.supra.social
+
+# Verifica si el dominio apunta a la IP correcta
+dig staging.supra.social
+```
+
+**Verifica el Certificado SSL:**
+
+- El certificado SSL debería actualizarse automáticamente para el nuevo dominio
+- Si ves advertencias SSL, espera unos minutos más para la provisión del certificado
+
+**Problemas Comunes:**
+
+- **Dominio no resuelve:** Verifica que los registros DNS estén configurados correctamente
+- **Errores de certificado SSL:** Espera la provisión automática del certificado
+- **El dominio antiguo sigue funcionando:** Es normal durante el período de transición
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention" summary="Cómo evitar problemas de configuración de dominio">
+
+Para prevenir problemas similares en el futuro:
+
+**Buenas Prácticas:**
+
+1. **Planifica la estructura de tu dominio** antes de crear el servicio web
+2. **Usa convenciones claras de nombres:** `[entorno].[app].[dominio]`
+3. **Revisa dos veces las entradas del dominio** antes de guardar la configuración
+4. **Prueba la configuración del dominio** primero en un entorno de desarrollo
+
+**Ejemplos de Estructura de Dominio:**
+
+```
+# Buenos ejemplos
+staging.miapp.com
+api.miapp.com
+dev.miapp.com
+
+# Evita duplicaciones anidadas
+# Malo: miapp.staging.miapp.com
+# Malo: api.miapp.api.miapp.com
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 10 de marzo de 2024 basada en una consulta real de usuario._

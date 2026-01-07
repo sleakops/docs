@@ -1,0 +1,176 @@
+---
+sidebar_position: 3
+title: "DNS Delegation and SSL Certificate Validation Issues"
+description: "Troubleshooting DNS delegation and AWS SSL certificate validation delays"
+date: "2024-09-10"
+category: "provider"
+tags: ["dns", "ssl", "aws", "certificate", "delegation"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# DNS Delegation and SSL Certificate Validation Issues
+
+**Date:** September 10, 2024  
+**Category:** Provider  
+**Tags:** DNS, SSL, AWS, Certificate, Delegation
+
+## Problem Description
+
+**Context:** After completing DNS delegation setup, domains still appear as not delegated and SSL certificates are not being validated by AWS, despite DNS propagation being expected to complete.
+
+**Observed Symptoms:**
+
+- Domains show as not delegated in SleakOps dashboard
+- SSL certificates remain unvalidated by AWS
+- DNS propagation appears incomplete despite sufficient time passing
+- Certificate validation process is stuck in pending state
+
+**Relevant Configuration:**
+
+- DNS delegation: Recently configured
+- SSL certificates: AWS-managed certificates
+- Provider: AWS
+- Domain validation method: DNS validation
+
+**Error Conditions:**
+
+- Issue persists after expected DNS propagation time
+- Certificates remain in pending validation state
+- Domain delegation status not updating in platform
+
+## Detailed Solution
+
+<TroubleshootingItem id="dns-propagation-check" summary="Verify DNS propagation status">
+
+DNS propagation can take up to 48 hours to complete globally. To check the current status:
+
+1. **Use online DNS propagation tools:**
+
+   - Visit https://www.whatsmydns.net/
+   - Enter your domain name
+   - Check if NS records are propagated globally
+
+2. **Command line verification:**
+
+   ```bash
+   # Check NS records
+   dig NS yourdomain.com
+
+   # Check from different DNS servers
+   dig @8.8.8.8 NS yourdomain.com
+   dig @1.1.1.1 NS yourdomain.com
+   ```
+
+3. **Expected results:**
+   - All queries should return the same NS records
+   - Records should point to AWS Route53 name servers
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="aws-certificate-validation" summary="AWS SSL certificate validation process">
+
+AWS Certificate Manager (ACM) validation can take additional time after DNS propagation:
+
+1. **Validation timeline:**
+
+   - DNS propagation: Up to 48 hours
+   - AWS validation: Additional 24-72 hours after propagation
+   - Total time: Up to 5 days in some cases
+
+2. **Check certificate status in AWS Console:**
+
+   ```bash
+   # Using AWS CLI
+   aws acm list-certificates --region us-east-1
+   aws acm describe-certificate --certificate-arn your-cert-arn
+   ```
+
+3. **Validation record verification:**
+   - Ensure CNAME validation records are present
+   - Check that records match exactly what AWS requires
+   - Verify no conflicting DNS records exist
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Troubleshooting delegation issues">
+
+If delegation appears incomplete after 24-48 hours:
+
+1. **Verify nameserver configuration:**
+
+   ```bash
+   # Check current nameservers
+   whois yourdomain.com | grep "Name Server"
+   ```
+
+2. **Common issues to check:**
+
+   - Nameservers not updated at domain registrar
+   - Typos in nameserver entries
+   - Old DNS records cached locally
+   - Conflicting A/CNAME records
+
+3. **SleakOps platform refresh:**
+   - Navigate to your domain settings
+   - Click "Refresh Status" or "Check Delegation"
+   - Wait for platform to re-verify delegation status
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="certificate-regeneration" summary="When to regenerate certificates">
+
+Consider regenerating certificates if:
+
+1. **Validation has been pending for more than 5 days**
+2. **DNS records were modified during validation process**
+3. **Certificate shows validation errors in AWS Console**
+
+**Steps to regenerate:**
+
+1. In SleakOps dashboard:
+
+   - Go to SSL Certificates section
+   - Select the problematic certificate
+   - Click "Regenerate Certificate"
+
+2. **Manual regeneration via AWS:**
+
+   ```bash
+   # Delete old certificate (if not in use)
+   aws acm delete-certificate --certificate-arn old-cert-arn
+
+   # Request new certificate
+   aws acm request-certificate \
+     --domain-name yourdomain.com \
+     --validation-method DNS
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-validation" summary="Monitor validation progress">
+
+**Set up monitoring to track progress:**
+
+1. **AWS CloudWatch events for certificate status changes**
+2. **Regular DNS propagation checks**
+3. **SleakOps platform notifications**
+
+**Expected timeline:**
+
+- Hour 0-24: DNS propagation begins
+- Hour 24-48: DNS fully propagated globally
+- Hour 48-120: AWS certificate validation completes
+- Hour 120+: Consider regeneration if still pending
+
+**Signs of successful completion:**
+
+- Domain shows as "Delegated" in SleakOps
+- Certificate status changes to "Issued" in AWS
+- HTTPS access works for your domain
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

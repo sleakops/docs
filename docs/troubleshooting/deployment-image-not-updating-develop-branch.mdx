@@ -1,0 +1,191 @@
+---
+sidebar_position: 3
+title: "Deployment Not Reflecting Latest Changes After Merge"
+description: "Solution for when deployments don't update with latest code changes after merging to develop branch"
+date: "2024-12-19"
+category: "project"
+tags: ["deployment", "build", "docker", "ci-cd", "image-caching"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Deployment Not Reflecting Latest Changes After Merge
+
+**Date:** December 19, 2024  
+**Category:** Project  
+**Tags:** Deployment, Build, Docker, CI/CD, Image Caching
+
+## Problem Description
+
+**Context:** Development team merges code changes to the develop branch, triggering automatic deployment, but the deployed application doesn't reflect the latest changes. The issue appears to be related to Docker image building not using the latest code.
+
+**Observed Symptoms:**
+
+- Deployment process executes successfully after merge to develop branch
+- Application shows old functionality/content instead of latest changes
+- Same behavior occurs across multiple repositories (3 repos affected)
+- Docker image appears to be using cached or outdated content
+
+**Relevant Configuration:**
+
+- Branch: `develop` (auto-deployment enabled)
+- Affected repositories: Multiple (3 repositories)
+- Deployment trigger: Git merge/push to develop
+- Platform: SleakOps automated deployment
+
+**Error Conditions:**
+
+- Issue occurs consistently after merging to develop branch
+- Problem affects multiple repositories simultaneously
+- No build errors reported, but changes not reflected
+- Suspected Docker image caching issue
+
+## Detailed Solution
+
+<TroubleshootingItem id="docker-cache-diagnosis" summary="Diagnose Docker image caching issues">
+
+The most common cause is Docker layer caching preventing the build from using the latest code:
+
+1. **Check build logs** in SleakOps deployment section
+2. Look for messages like "Using cache" in Docker build steps
+3. Verify the image tag/hash is different between builds
+4. Check if the Dockerfile COPY commands are properly invalidating cache
+
+```dockerfile
+# Problematic - cache may not invalidate
+COPY . /app
+
+# Better - copy package files first, then source
+COPY package*.json /app/
+RUN npm install
+COPY . /app
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="force-rebuild" summary="Force a complete rebuild">
+
+To force SleakOps to rebuild without cache:
+
+1. Go to your **Project Dashboard**
+2. Navigate to **Deployments** → **Build Settings**
+3. Enable **"Force Rebuild"** option
+4. Or add `--no-cache` flag in build configuration
+5. Trigger a new deployment
+
+**Alternative method:**
+
+- Make a small commit (like updating a comment)
+- Push to develop branch to trigger fresh build
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-optimization" summary="Optimize Dockerfile for proper cache invalidation">
+
+Ensure your Dockerfile properly invalidates cache when code changes:
+
+```dockerfile
+# Good practice for Node.js apps
+FROM node:18-alpine
+WORKDIR /app
+
+# Copy package files first (cache layer)
+COPY package*.json ./
+RUN npm ci --only=production
+
+# Copy source code (invalidates cache when code changes)
+COPY . .
+
+# Add build timestamp to ensure fresh builds
+ARG BUILD_DATE
+ENV BUILD_DATE=${BUILD_DATE}
+
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="build-args-solution" summary="Use build arguments to force cache invalidation">
+
+Add build arguments that change with each build:
+
+1. **In your CI/CD configuration:**
+
+```yaml
+build_args:
+  BUILD_DATE: "$(date +%Y%m%d-%H%M%S)"
+  GIT_COMMIT: "${GITHUB_SHA}"
+```
+
+2. **In your Dockerfile:**
+
+```dockerfile
+ARG BUILD_DATE
+ARG GIT_COMMIT
+ENV BUILD_INFO="${BUILD_DATE}-${GIT_COMMIT}"
+
+# This ensures the layer is rebuilt every time
+RUN echo "Build: ${BUILD_INFO}" > /app/build-info.txt
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verify-deployment" summary="Verify the deployment is using the correct image">
+
+To confirm the issue is resolved:
+
+1. **Check image tags** in SleakOps:
+
+   - Go to **Workloads** → **Your Service**
+   - Verify the image tag matches latest build
+
+2. **Add version endpoint** to your application:
+
+```javascript
+// Add to your app
+app.get("/version", (req, res) => {
+  res.json({
+    version: process.env.BUILD_DATE || "unknown",
+    commit: process.env.GIT_COMMIT || "unknown",
+    timestamp: new Date().toISOString(),
+  });
+});
+```
+
+3. **Test the endpoint** after deployment to confirm changes
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="multiple-repos-solution" summary="Apply solution across multiple repositories">
+
+Since this affects 3 repositories, apply these changes systematically:
+
+1. **Create a template Dockerfile** with proper cache invalidation
+2. **Update all affected repositories** with the same pattern
+3. **Enable force rebuild** for all projects temporarily
+4. **Test each repository** individually after changes
+
+**Batch update script example:**
+
+```bash
+#!/bin/bash
+REPOS=("repo1" "repo2" "repo3")
+
+for repo in "${REPOS[@]}"; do
+  echo "Updating $repo..."
+  cd $repo
+  # Copy optimized Dockerfile
+  cp ../templates/Dockerfile .
+  git add Dockerfile
+  git commit -m "Fix: Update Dockerfile for proper cache invalidation"
+  git push origin develop
+  cd ..
+done
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

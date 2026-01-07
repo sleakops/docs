@@ -1,0 +1,191 @@
+---
+sidebar_position: 3
+title: "Job Re-execution in Kubernetes"
+description: "How to re-run Kubernetes Jobs with the same parameters without creating new ones"
+date: "2024-01-15"
+category: "workload"
+tags: ["kubernetes", "jobs", "reexecution", "batch"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Job Re-execution in Kubernetes
+
+**Date:** January 15, 2024  
+**Category:** Workload  
+**Tags:** Kubernetes, Jobs, Re-execution, Batch
+
+## Problem Description
+
+**Context:** User needs to re-execute a Kubernetes Job with the same parameters after it has completed, but the platform doesn't provide a direct "re-run" option, forcing the creation of new Jobs each time.
+
+**Observed Symptoms:**
+
+- No "re-execute" or "re-run" button available for completed Jobs
+- Need to create a new Job each time with the same parameters
+- Manual process required to duplicate Job configuration
+- Loss of execution history and relationship between Job runs
+
+**Relevant Configuration:**
+
+- Job type: Kubernetes Batch Job
+- Job status: Completed
+- Platform: SleakOps Kubernetes environment
+- Desired behavior: Re-run existing Job with same parameters
+
+**Error Conditions:**
+
+- Occurs after Job completion
+- No built-in re-execution mechanism available
+- Manual recreation required for each execution
+
+## Detailed Solution
+
+<TroubleshootingItem id="kubernetes-job-behavior" summary="Understanding Kubernetes Job behavior">
+
+Kubernetes Jobs are designed to run once and complete. Once a Job finishes successfully, it cannot be "restarted" in the traditional sense. This is by design in Kubernetes:
+
+- Jobs are immutable once created
+- Completed Jobs remain for history and log access
+- Re-execution requires creating a new Job object
+
+This behavior ensures consistency and prevents accidental re-runs of critical batch processes.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-job-templates" summary="Using SleakOps Job Templates">
+
+In SleakOps, you can create reusable Job templates to simplify re-execution:
+
+1. **Save Job as Template**:
+
+   - Go to your completed Job
+   - Click **"Save as Template"**
+   - Give it a descriptive name
+
+2. **Create from Template**:
+
+   - Go to **Jobs** → **Create New**
+   - Select **"From Template"**
+   - Choose your saved template
+   - Modify parameters if needed
+
+3. **Template Benefits**:
+   - Preserves all configuration
+   - Allows parameter modification
+   - Maintains execution history
+   - Faster than manual recreation
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="kubectl-job-recreation" summary="Manual Job recreation with kubectl">
+
+If you need to manually recreate a Job using kubectl:
+
+```bash
+# Get the original Job configuration
+kubectl get job my-job -o yaml > job-backup.yaml
+
+# Edit the file to remove status and metadata.uid
+# Change metadata.name to avoid conflicts
+sed -i 's/name: my-job/name: my-job-rerun/' job-backup.yaml
+
+# Remove status section and other runtime fields
+kubectl create -f job-backup.yaml
+```
+
+**Important**: Remove these fields from the YAML:
+
+- `metadata.uid`
+- `metadata.resourceVersion`
+- `metadata.creationTimestamp`
+- `status` section
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cronjob-alternative" summary="Consider CronJob for repeated executions">
+
+If you need to run the same Job multiple times, consider using a CronJob:
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: my-repeated-job
+spec:
+  schedule: "@daily" # or manual trigger
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: my-container
+              image: my-image
+              command: ["my-command"]
+          restartPolicy: OnFailure
+```
+
+**Benefits of CronJob**:
+
+- Can be triggered manually
+- Maintains job history
+- Supports scheduled execution
+- Better for repeated tasks
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-workflow" summary="Recommended SleakOps workflow">
+
+For optimal Job re-execution in SleakOps:
+
+1. **During Job Creation**:
+
+   - Use descriptive names with version/date
+   - Document parameters in Job description
+   - Save as template immediately after creation
+
+2. **For Re-execution**:
+
+   - Use **"Create from Template"** option
+   - Update name with new timestamp/version
+   - Verify parameters before execution
+   - Keep original Job for reference
+
+3. **Best Practices**:
+   - Name Jobs with timestamps: `data-processing-2024-01-15`
+   - Use labels to group related Job executions
+   - Document parameter changes between runs
+   - Clean up old Jobs periodically
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-tips" summary="Troubleshooting Job recreation issues">
+
+Common issues when recreating Jobs:
+
+**Name Conflicts**:
+
+```bash
+# Error: Job already exists
+# Solution: Use different name
+metadata:
+  name: my-job-v2  # or my-job-20240115
+```
+
+**Resource Conflicts**:
+
+- Ensure previous Job's pods are cleaned up
+- Check for persistent volume claims
+- Verify service account permissions
+
+**Parameter Issues**:
+
+- Double-check environment variables
+- Verify secret and configmap references
+- Ensure image versions are correct
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

@@ -1,0 +1,199 @@
+---
+sidebar_position: 3
+title: "Fallo en la Construcción de Producción con Problemas de Carga de Logs"
+description: "Solución para fallos en la construcción de producción cuando los logs no se cargan en el panel de SleakOps"
+date: "2024-01-15"
+category: "proyecto"
+tags:
+  ["construcción", "producción", "logs", "despliegue", "solución de problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Fallo en la Construcción de Producción con Problemas de Carga de Logs
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Construcción, Producción, Logs, Despliegue, Solución de problemas
+
+## Descripción del Problema
+
+**Contexto:** El proceso de construcción en producción ha dejado de funcionar y al intentar ver los logs de error a través del panel de SleakOps, el indicador de carga aparece indefinidamente sin mostrar los logs reales.
+
+**Síntomas Observados:**
+
+- El proceso de construcción en producción no termina satisfactoriamente
+- El panel de SleakOps muestra carga perpetua al intentar acceder a los logs de construcción
+- Imposibilidad de ver detalles de error para diagnosticar el fallo de construcción
+- La construcción funcionaba previamente pero de repente dejó de funcionar
+
+**Configuración Relevante:**
+
+- Entorno: Producción
+- Plataforma: SleakOps
+- Tipo de problema: Fallo de construcción + Problema de acceso a logs
+- Estado: Afecta tanto a la construcción como a la visualización de logs
+
+**Condiciones de Error:**
+
+- Fallo en la construcción durante el despliegue en producción
+- La carga de logs se queda atascada en estado de carga
+- El problema impide una solución adecuada
+- El problema apareció de forma repentina tras construcciones que funcionaban
+
+## Solución Detallada
+
+<TroubleshootingItem id="immediate-diagnosis" summary="Pasos iniciales de diagnóstico">
+
+Cuando se enfrentan tanto fallos en la construcción como problemas de carga de logs, siga este enfoque diagnóstico:
+
+1. **Verificar estado de la construcción**: Compruebe si la construcción está realmente en ejecución o si ha fallado completamente
+2. **Refrescar el navegador**: Intente actualizar el panel de SleakOps
+3. **Probar otro navegador**: Acceda a los logs desde una ventana de incógnito o un navegador diferente
+4. **Conectividad de red**: Asegúrese de tener una conexión a internet estable
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-log-access" summary="Formas alternativas de acceder a los logs de construcción">
+
+Si los logs del panel no se cargan, pruebe estas alternativas:
+
+**Vía CLI (si está disponible):**
+
+```bash
+# Ver construcciones recientes
+sleakops builds list --project nombre-de-tu-proyecto
+
+# Obtener logs de una construcción específica
+sleakops builds logs --build-id <id-construcción>
+```
+
+**Vía API:**
+
+```bash
+# Obtener información de construcciones
+curl -H "Authorization: Bearer TU_TOKEN" \
+  https://api.sleakops.com/v1/projects/ID_PROYECTO/builds
+```
+
+**Revisar notificaciones por correo:**
+
+- Revise cualquier correo de fallo de construcción que pueda contener detalles de error
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-build-failures" summary="Causas comunes de fallos en construcciones de producción">
+
+Razones típicas para fallos repentinos en construcciones de producción:
+
+**Problemas de Recursos:**
+
+- Memoria o CPU insuficiente durante la construcción
+- Espacio en disco agotado
+- Tiempo de construcción excedido
+
+**Cambios en la Configuración:**
+
+- Variables de entorno modificadas o faltantes
+- Cambios en Dockerfile que rompieron la construcción
+- Conflictos en versiones de dependencias
+
+**Dependencias Externas:**
+
+- Problemas con el registro de paquetes (npm, pip, etc.)
+- Indisponibilidad de la imagen base
+- Problemas de conectividad de red
+
+**Problemas de Código:**
+
+- Commits recientes que introdujeron errores que rompen la construcción
+- Archivos faltantes o rutas incorrectas
+- Errores de compilación
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dashboard-log-issues" summary="Resolviendo problemas de carga de logs en el panel">
+
+Cuando los logs del panel de SleakOps no se cargan:
+
+**Soluciones relacionadas con el navegador:**
+
+1. Limpiar caché y cookies del navegador
+2. Deshabilitar extensiones del navegador temporalmente
+3. Probar modo incógnito/privado
+4. Actualizar el navegador a la última versión
+
+**Soluciones específicas del panel:**
+
+1. Cerrar sesión y volver a iniciar sesión en SleakOps
+2. Verificar si otras secciones del panel funcionan correctamente
+3. Intentar acceder desde otro dispositivo
+4. Esperar unos minutos e intentar de nuevo (problemas temporales del servidor)
+
+**Si el problema persiste:**
+
+- Contactar al soporte de SleakOps con el ID específico de la construcción
+- Proporcionar errores de la consola del navegador (F12 → pestaña Consola)
+- Incluir captura de pantalla del problema de carga
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="recovery-steps" summary="Pasos para recuperarse de un fallo de construcción">
+
+Para que tus construcciones de producción vuelvan a funcionar:
+
+**1. Identificar la última construcción que funcionó:**
+
+```bash
+# Encontrar construcciones exitosas recientes
+sleakops builds list --status success --limit 5
+```
+
+**2. Comparar configuraciones:**
+
+- Revisar qué cambió entre las construcciones que funcionaban y las que fallan
+- Revisar commits recientes y actualizaciones de configuración
+- Verificar que las variables de entorno no hayan cambiado
+
+**3. Revertir si es necesario:**
+
+```bash
+# Desplegar desde la última construcción conocida como buena
+sleakops deploy --build-id <id-última-construcción-funcional>
+```
+
+**4. Probar con cambios mínimos:**
+
+- Intentar construir con un cambio simple primero
+- Añadir complejidad gradualmente para identificar el punto que rompe
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-measures" summary="Prevención de futuros problemas de construcción">
+
+Para evitar problemas similares:
+
+**Monitoreo:**
+
+- Configurar notificaciones de fallos en construcción
+- Monitorear tendencias de duración de construcción
+- Rastrear uso de recursos durante las construcciones
+
+**Buenas prácticas:**
+
+- Probar construcciones en staging antes de producción
+- Usar fijación de versiones de dependencias
+- Implementar estrategias de caché en construcción
+- Realizar copias de seguridad regulares de configuraciones que funcionan
+
+**Documentación:**
+
+- Documentar dependencias y requerimientos de construcción
+- Mantener registro de configuraciones de entorno que funcionan
+- Mantener procedimientos de reversión
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de un usuario._

@@ -1,0 +1,166 @@
+---
+sidebar_position: 3
+title: "Understanding AWS EKS Costs in SleakOps"
+description: "Breakdown of AWS EKS cluster costs including control plane and compute resources"
+date: "2025-01-15"
+category: "cluster"
+tags: ["eks", "aws", "costs", "billing", "nodegroup"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Understanding AWS EKS Costs in SleakOps
+
+**Date:** January 15, 2025  
+**Category:** Cluster  
+**Tags:** EKS, AWS, Costs, Billing, NodeGroup
+
+## Problem Description
+
+**Context:** Users often have questions about AWS EKS cluster costs when using SleakOps, particularly understanding the different cost categories and what generates charges even during development or testing phases.
+
+**Observed Symptoms:**
+
+- Unexpected charges for EKS clusters during development
+- Confusion about different AWS cost categories
+- Questions about why costs occur even with minimal usage
+- Difficulty understanding the relationship between cluster components and billing
+
+**Relevant Configuration:**
+
+- AWS EKS cluster with control plane
+- NodeGroups for worker nodes
+- Karpenter for auto-scaling
+- Various add-ons and applications deployed
+
+**Error Conditions:**
+
+- Users see charges they don't understand
+- Development environments generating unexpected costs
+- Difficulty correlating usage with billing
+
+## Detailed Solution
+
+<TroubleshootingItem id="eks-base-cost" summary="Understanding EKS Base Costs">
+
+The **Amazon Elastic Container Service for Kubernetes** charge is the base cost of running an EKS cluster:
+
+- **Fixed cost**: $73 USD per month per cluster
+- **What it covers**: The EKS control plane (master nodes)
+- **Always charged**: This cost applies regardless of workload usage
+- **Prorated**: If your cluster exists for part of a month, you pay proportionally
+
+**Example**: If your cluster runs from December 10th to December 31st (21 days), you pay approximately $51 USD (21/31 × $73).
+
+For detailed pricing information, visit the [official AWS EKS pricing page](https://aws.amazon.com/eks/pricing/).
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="compute-costs" summary="Understanding Compute Costs (EC2)">
+
+The **Elastic Compute Cloud (EC2)** charges cover the worker nodes that run your applications:
+
+**NodeGroups**:
+
+- EC2 instances that form your cluster's worker nodes
+- Charged based on instance type and running time
+- Examples: t3.medium, t3.large, m5.xlarge
+
+**Karpenter-managed instances**:
+
+- Automatically provisioned instances based on workload demands
+- Scales up when applications need resources
+- Scales down when resources are no longer needed
+
+**Cost factors**:
+
+- Instance type (CPU, memory, network performance)
+- Number of instances
+- Running time
+- Data transfer
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="development-costs" summary="Managing Development Environment Costs">
+
+Even development environments incur costs because:
+
+1. **Control plane is always running**: The $73/month EKS charge applies
+2. **Minimum worker nodes**: Usually need at least 1-2 nodes for basic functionality
+3. **Add-ons consume resources**: Monitoring, logging, and other tools need compute power
+4. **Background processes**: System pods and services run continuously
+
+**Cost optimization strategies**:
+
+```yaml
+# Example cost-optimized development configuration
+nodegroup_config:
+  instance_types: ["t3.small", "t3.medium"]
+  min_size: 1
+  max_size: 3
+  desired_size: 1
+
+karpenter_config:
+  enabled: true
+  spot_instances: true # Use spot instances for cost savings
+
+scheduling:
+  auto_shutdown: "18:00" # Shut down non-essential workloads
+  auto_startup: "09:00" # Start workloads during work hours
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cost-monitoring" summary="Monitoring and Controlling Costs">
+
+**In AWS Console**:
+
+1. Go to **Cost Explorer**
+2. Filter by service: **Amazon Elastic Kubernetes Service**
+3. Group by: **Service** and **Usage Type**
+4. Set up **Budget Alerts** for unexpected cost increases
+
+**In SleakOps**:
+
+- Monitor cluster resource usage in the dashboard
+- Review deployed applications and their resource requests
+- Use the cluster scaling settings to control maximum resources
+
+**Best practices**:
+
+- Use spot instances for development workloads
+- Implement cluster autoscaling
+- Regularly review and clean up unused resources
+- Consider cluster hibernation for non-production environments
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cost-breakdown-example" summary="Typical Cost Breakdown Example">
+
+For a small development cluster running for a full month:
+
+**Fixed costs**:
+
+- EKS Control Plane: $73.00
+
+**Variable costs**:
+
+- 2 × t3.medium nodes (24/7): ~$60.00
+- Additional Karpenter instances (occasional): ~$15.00
+- Data transfer and storage: ~$5.00
+
+**Total estimated monthly cost**: ~$153.00
+
+**For partial month usage** (like December 10-31):
+
+- EKS Control Plane: $51.00 (prorated)
+- Compute resources: $34.00 (prorated)
+- **Total**: ~$85.00
+
+These are typical costs for a development environment with minimal but continuous usage.
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2025 based on a real user query._

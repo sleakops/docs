@@ -1,0 +1,176 @@
+---
+sidebar_position: 3
+title: "GitHub Automatic Deployments Not Working"
+description: "Solution for automatic deployments from GitHub that have stopped working"
+date: "2024-01-15"
+category: "project"
+tags: ["github", "deployment", "automation", "ci-cd", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# GitHub Automatic Deployments Not Working
+
+**Date:** January 15, 2024  
+**Category:** Project  
+**Tags:** GitHub, Deployment, Automation, CI/CD, Troubleshooting
+
+## Problem Description
+
+**Context:** Automatic deployments from GitHub repositories have stopped working in SleakOps platform, preventing code changes from being automatically deployed to the target environment.
+
+**Observed Symptoms:**
+
+- Automatic deployments from GitHub are not triggering
+- Error messages appearing in deployment logs
+- Code changes pushed to repository are not reflected in deployed application
+- Issue has been occurring for several days
+
+**Relevant Configuration:**
+
+- Platform: SleakOps
+- Source: GitHub repository
+- Deployment type: Automatic deployments
+- Duration: Multiple days of failure
+
+**Error Conditions:**
+
+- Deployments fail consistently over multiple days
+- Error occurs after code push to GitHub
+- Automatic deployment pipeline is not executing
+- Manual intervention may be required
+
+## Detailed Solution
+
+<TroubleshootingItem id="initial-diagnosis" summary="Check GitHub webhook configuration">
+
+The most common cause of automatic deployment failures is webhook configuration issues:
+
+1. **Verify webhook status in GitHub:**
+
+   - Go to your repository → Settings → Webhooks
+   - Check if the SleakOps webhook is active
+   - Look for recent delivery failures
+
+2. **Check webhook URL:**
+
+   - Ensure the webhook URL points to the correct SleakOps endpoint
+   - Verify the URL format: `https://api.sleakops.com/webhooks/github/{project-id}`
+
+3. **Validate webhook secret:**
+   - Confirm the webhook secret matches your SleakOps project configuration
+   - If unsure, regenerate the webhook in SleakOps settings
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="permissions-check" summary="Verify GitHub permissions and tokens">
+
+Check if GitHub access tokens or permissions have expired:
+
+1. **GitHub App permissions:**
+
+   - Go to SleakOps → Project Settings → GitHub Integration
+   - Verify the GitHub App is still connected
+   - Check if permissions include repository access
+
+2. **Personal Access Token (if used):**
+
+   - Verify the token hasn't expired
+   - Ensure token has necessary scopes: `repo`, `workflow`
+   - Regenerate token if needed
+
+3. **Repository access:**
+   - Confirm SleakOps still has access to the repository
+   - Check if repository was moved or renamed
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deployment-logs" summary="Review deployment logs and pipeline status">
+
+Examine the deployment logs for specific error messages:
+
+1. **Access deployment logs:**
+
+   - Go to SleakOps Dashboard → Your Project → Deployments
+   - Click on the failed deployment attempts
+   - Review error messages and stack traces
+
+2. **Common error patterns:**
+
+   - `Authentication failed`: Token or webhook issues
+   - `Repository not found`: Access or naming issues
+   - `Build failed`: Code compilation or dependency issues
+   - `Timeout`: Resource or network connectivity issues
+
+3. **Pipeline configuration:**
+   - Verify the deployment pipeline configuration is correct
+   - Check if any recent changes were made to deployment settings
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-trigger" summary="Test with manual deployment">
+
+Try triggering a manual deployment to isolate the issue:
+
+1. **Manual deployment test:**
+
+   - Go to SleakOps → Your Project → Deployments
+   - Click "Deploy Now" or "Manual Deploy"
+   - Select the branch you want to deploy
+
+2. **If manual deployment works:**
+
+   - The issue is specifically with automatic triggers
+   - Focus on webhook and GitHub integration troubleshooting
+
+3. **If manual deployment fails:**
+   - The issue is with the deployment process itself
+   - Check build configuration, dependencies, and resource allocation
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="github-integration-reset" summary="Reset GitHub integration">
+
+If other solutions don't work, try resetting the GitHub integration:
+
+1. **Disconnect and reconnect:**
+
+   - Go to SleakOps → Project Settings → Integrations
+   - Disconnect GitHub integration
+   - Reconnect and reauthorize access
+
+2. **Reconfigure webhook:**
+
+   - Delete existing webhook from GitHub repository
+   - Let SleakOps recreate the webhook automatically
+   - Test with a new commit
+
+3. **Verify configuration:**
+   - Ensure branch settings are correct
+   - Confirm deployment triggers are enabled
+   - Check if any deployment rules or conditions are blocking execution
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="contact-support" summary="When to contact support">
+
+Contact SleakOps support if:
+
+- All troubleshooting steps have been attempted
+- Manual deployments also fail
+- Error messages are unclear or system-related
+- The issue affects multiple projects
+
+**Information to provide:**
+
+- Project name and ID
+- GitHub repository URL
+- Screenshots of error messages
+- Timeline of when the issue started
+- Recent changes made to the project or repository
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

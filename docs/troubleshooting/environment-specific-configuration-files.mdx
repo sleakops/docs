@@ -1,0 +1,1159 @@
+---
+sidebar_position: 3
+title: "Environment-Specific Configuration Files"
+description: "How to manage configuration files that change between environments (prod/dev/qa)"
+date: "2024-01-15"
+category: "project"
+tags: ["configuration", "environment", "files", "deployment"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Environment-Specific Configuration Files
+
+**Date:** January 15, 2024  
+**Category:** Project  
+**Tags:** Configuration, Environment, Files, Deployment
+
+## Problem Description
+
+**Context:** User needs to deploy configuration files that vary between different environments (production, development, QA) in SleakOps platform.
+
+**Observed Symptoms:**
+
+- Need to upload different configuration files per environment
+- Environment variables are available but insufficient for file-based configuration
+- Uncertainty about how to handle file variations across environments
+- Configuration files contain environment-specific settings
+
+**Relevant Configuration:**
+
+- Multiple environments: prod, dev, qa
+- Configuration stored in files (not just environment variables)
+- Environment variables are already available
+- File content changes based on deployment target
+
+**Error Conditions:**
+
+- Unable to deploy different configuration files per environment
+- Configuration files contain hardcoded values for specific environments
+- Need dynamic file content based on deployment context
+
+## Detailed Solution
+
+<TroubleshootingItem id="configmap-approach" summary="Using ConfigMaps for Environment-Specific Files">
+
+The recommended approach is to use Kubernetes ConfigMaps with environment-specific configurations:
+
+1. **Create separate ConfigMaps** for each environment
+2. **Use environment variables** to reference the correct ConfigMap
+3. **Mount ConfigMaps as files** in your containers
+
+```yaml
+# config-dev.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config-dev
+data:
+  config.json: |
+    {
+      "database_url": "dev-db.example.com",
+      "api_endpoint": "https://api-dev.example.com",
+      "debug_mode": true,
+      "log_level": "debug",
+      "cache_ttl": 300
+    }
+  app.properties: |
+    server.port=8080
+    spring.datasource.url=jdbc:postgresql://dev-db.example.com:5432/myapp
+    spring.jpa.hibernate.ddl-auto=update
+    logging.level.root=DEBUG
+---
+# config-prod.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config-prod
+data:
+  config.json: |
+    {
+      "database_url": "prod-db.example.com",
+      "api_endpoint": "https://api.example.com",
+      "debug_mode": false,
+      "log_level": "warn",
+      "cache_ttl": 3600
+    }
+  app.properties: |
+    server.port=8080
+    spring.datasource.url=jdbc:postgresql://prod-db.example.com:5432/myapp
+    spring.jpa.hibernate.ddl-auto=validate
+    logging.level.root=WARN
+```
+
+Then reference these in your deployment:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          image: my-app:latest
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/config
+          env:
+            - name: ENVIRONMENT
+              value: "dev" # or "prod" depending on environment
+      volumes:
+        - name: config-volume
+          configMap:
+            name: app-config-dev # Switch based on environment
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="template-substitution" summary="Template-based configuration with environment variable substitution">
+
+Use template files with placeholders that get replaced with environment variables:
+
+### 1. Configuration Template Approach
+
+```json
+// config.template.json
+{
+  "database": {
+    "host": "${DB_HOST}",
+    "port": ${DB_PORT},
+    "name": "${DB_NAME}",
+    "ssl": ${DB_SSL_ENABLED}
+  },
+  "api": {
+    "base_url": "${API_BASE_URL}",
+    "timeout": ${API_TIMEOUT},
+    "rate_limit": ${API_RATE_LIMIT}
+  },
+  "features": {
+    "debug_mode": ${DEBUG_MODE},
+    "analytics": ${ANALYTICS_ENABLED},
+    "new_feature": ${NEW_FEATURE_FLAG}
+  },
+  "logging": {
+    "level": "${LOG_LEVEL}",
+    "format": "${LOG_FORMAT}"
+  }
+}
+```
+
+### 2. Initialization Script
+
+```bash
+#!/bin/bash
+# init-config.sh - Replace template variables with environment values
+
+CONFIG_TEMPLATE="/app/config/config.template.json"
+CONFIG_FILE="/app/config/config.json"
+
+# Set default values if not provided
+export DB_HOST=${DB_HOST:-localhost}
+export DB_PORT=${DB_PORT:-5432}
+export DB_SSL_ENABLED=${DB_SSL_ENABLED:-false}
+export API_TIMEOUT=${API_TIMEOUT:-30000}
+export DEBUG_MODE=${DEBUG_MODE:-false}
+export LOG_LEVEL=${LOG_LEVEL:-info}
+
+# Replace environment variables in template
+envsubst < "$CONFIG_TEMPLATE" > "$CONFIG_FILE"
+
+echo "Configuration file generated:"
+cat "$CONFIG_FILE"
+
+# Start the application
+exec "$@"
+```
+
+### 3. Docker Implementation
+
+```dockerfile
+# Dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy template and initialization script
+COPY config.template.json /app/config/
+COPY init-config.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/init-config.sh
+
+# Install envsubst for template substitution
+RUN apk add --no-cache gettext
+
+# Copy application files
+COPY . .
+RUN npm install
+
+# Use init script as entrypoint
+ENTRYPOINT ["init-config.sh"]
+CMD ["node", "server.js"]
+```
+
+### 4. SleakOps Variable Groups Configuration
+
+```yaml
+# Development Environment Variables
+DB_HOST: "dev-postgres.cluster.local"
+DB_PORT: "5432"
+DB_NAME: "myapp_dev"
+DB_SSL_ENABLED: "false"
+API_BASE_URL: "https://api-dev.example.com"
+API_TIMEOUT: "30000"
+API_RATE_LIMIT: "1000"
+DEBUG_MODE: "true"
+ANALYTICS_ENABLED: "false"
+NEW_FEATURE_FLAG: "true"
+LOG_LEVEL: "debug"
+LOG_FORMAT: "pretty"
+
+# Production Environment Variables
+DB_HOST: "prod-postgres.cluster.local"
+DB_PORT: "5432"
+DB_NAME: "myapp_prod"
+DB_SSL_ENABLED: "true"
+API_BASE_URL: "https://api.example.com"
+API_TIMEOUT: "60000"
+API_RATE_LIMIT: "10000"
+DEBUG_MODE: "false"
+ANALYTICS_ENABLED: "true"
+NEW_FEATURE_FLAG: "false"
+LOG_LEVEL: "warn"
+LOG_FORMAT: "json"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="multi-file-configuration" summary="Managing multiple configuration files per environment">
+
+For complex applications with multiple configuration files:
+
+### 1. Directory Structure Approach
+
+```
+config/
+├── base/
+│   ├── app.yaml
+│   ├── logging.yaml
+│   └── security.yaml
+├── development/
+│   ├── database.yaml
+│   ├── cache.yaml
+│   └── overrides.yaml
+├── production/
+│   ├── database.yaml
+│   ├── cache.yaml
+│   └── overrides.yaml
+└── qa/
+    ├── database.yaml
+    ├── cache.yaml
+    └── overrides.yaml
+```
+
+### 2. Configuration Merger Script
+
+```python
+#!/usr/bin/env python3
+# merge-config.py
+import os
+import yaml
+import json
+import sys
+from pathlib import Path
+
+def load_yaml_file(file_path):
+    """Load YAML file and return parsed content"""
+    try:
+        with open(file_path, 'r') as f:
+            return yaml.safe_load(f)
+    except FileNotFoundError:
+        return {}
+    except yaml.YAMLError as e:
+        print(f"Error parsing YAML file {file_path}: {e}")
+        sys.exit(1)
+
+def deep_merge(base_dict, override_dict):
+    """Deep merge two dictionaries"""
+    result = base_dict.copy()
+
+    for key, value in override_dict.items():
+        if (key in result and
+            isinstance(result[key], dict) and
+            isinstance(value, dict)):
+            result[key] = deep_merge(result[key], value)
+        else:
+            result[key] = value
+
+    return result
+
+def merge_configurations(environment, config_dir="/app/config"):
+    """Merge base configuration with environment-specific overrides"""
+    config_path = Path(config_dir)
+    base_path = config_path / "base"
+    env_path = config_path / environment
+
+    # Load base configurations
+    base_config = {}
+    if base_path.exists():
+        for config_file in base_path.glob("*.yaml"):
+            file_config = load_yaml_file(config_file)
+            base_config = deep_merge(base_config, file_config)
+
+    # Load environment-specific configurations
+    env_config = {}
+    if env_path.exists():
+        for config_file in env_path.glob("*.yaml"):
+            file_config = load_yaml_file(config_file)
+            env_config = deep_merge(env_config, file_config)
+
+    # Merge configurations
+    final_config = deep_merge(base_config, env_config)
+
+    return final_config
+
+def main():
+    environment = os.getenv('ENVIRONMENT', 'development')
+    output_format = os.getenv('CONFIG_FORMAT', 'json')
+    output_file = os.getenv('CONFIG_OUTPUT', '/app/config/merged-config.json')
+
+    print(f"Merging configuration for environment: {environment}")
+
+    merged_config = merge_configurations(environment)
+
+    # Write merged configuration
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+
+    if output_format.lower() == 'yaml':
+        with open(output_file, 'w') as f:
+            yaml.dump(merged_config, f, default_flow_style=False)
+    else:
+        with open(output_file, 'w') as f:
+            json.dump(merged_config, f, indent=2)
+
+    print(f"Configuration written to: {output_file}")
+
+if __name__ == "__main__":
+    main()
+```
+
+### 3. Base Configuration Files
+
+```yaml
+# config/base/app.yaml
+app:
+  name: "MyApplication"
+  version: "1.0.0"
+  port: 8080
+
+logging:
+  level: "info"
+  format: "json"
+
+security:
+  session_timeout: 3600
+  max_login_attempts: 5
+```
+
+```yaml
+# config/base/logging.yaml
+logging:
+  handlers:
+    console:
+      enabled: true
+      level: "info"
+    file:
+      enabled: false
+      path: "/var/log/app.log"
+      level: "debug"
+      max_size: "100MB"
+      max_files: 5
+```
+
+### 4. Environment-Specific Overrides
+
+```yaml
+# config/development/database.yaml
+database:
+  host: "localhost"
+  port: 5432
+  name: "myapp_dev"
+  username: "dev_user"
+  password: "dev_password"
+  ssl_mode: "disable"
+  pool_size: 10
+
+cache:
+  type: "redis"
+  host: "localhost"
+  port: 6379
+  database: 0
+  ttl: 300
+```
+
+```yaml
+# config/production/database.yaml
+database:
+  host: "${DB_HOST}"
+  port: "${DB_PORT}"
+  name: "${DB_NAME}"
+  username: "${DB_USERNAME}"
+  password: "${DB_PASSWORD}"
+  ssl_mode: "require"
+  pool_size: 50
+  connection_timeout: 30000
+
+cache:
+  type: "redis"
+  host: "${REDIS_HOST}"
+  port: "${REDIS_PORT}"
+  database: "${REDIS_DB}"
+  password: "${REDIS_PASSWORD}"
+  ttl: 3600
+  cluster_mode: true
+```
+
+### 5. Docker Integration
+
+```dockerfile
+FROM python:3.9-alpine
+
+WORKDIR /app
+
+# Install dependencies
+RUN pip install pyyaml
+
+# Copy configuration merger script
+COPY merge-config.py /usr/local/bin/
+RUN chmod +x /usr/local/bin/merge-config.py
+
+# Copy configuration files
+COPY config/ /app/config/
+
+# Copy application
+COPY . /app
+
+# Merge configuration and start app
+CMD ["sh", "-c", "python /usr/local/bin/merge-config.py && python app.py"]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="secrets-management" summary="Handling sensitive configuration data">
+
+For configurations containing sensitive data like passwords and API keys:
+
+### 1. Kubernetes Secrets Integration
+
+```yaml
+# secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secrets-dev
+type: Opaque
+data:
+  db-password: ZGV2X3Bhc3N3b3Jk # base64 encoded
+  api-key: YWJjZGVmZ2hpams=
+  jwt-secret: c3VwZXJfc2VjcmV0X2tleQ==
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secrets-prod
+type: Opaque
+data:
+  db-password: cHJvZF9wYXNzd29yZA== # base64 encoded
+  api-key: eHl6MTIzNDU2Nzg5
+  jwt-secret: cHJvZF9qd3Rfc2VjcmV0
+```
+
+### 2. Configuration with Secret References
+
+```json
+{
+  "database": {
+    "host": "${DB_HOST}",
+    "port": "${DB_PORT}",
+    "username": "${DB_USERNAME}",
+    "password": "${DB_PASSWORD}",
+    "ssl": true
+  },
+  "api": {
+    "base_url": "${API_BASE_URL}",
+    "key": "${API_KEY}",
+    "timeout": 30000
+  },
+  "jwt": {
+    "secret": "${JWT_SECRET}",
+    "expiration": "24h"
+  }
+}
+```
+
+### 3. Deployment with Secrets
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          image: my-app:latest
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets-dev
+                  key: db-password
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets-dev
+                  key: api-key
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets-dev
+                  key: jwt-secret
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/config
+            - name: secret-volume
+              mountPath: /app/secrets
+              readOnly: true
+      volumes:
+        - name: config-volume
+          configMap:
+            name: app-config-dev
+        - name: secret-volume
+          secret:
+            secretName: app-secrets-dev
+```
+
+### 4. Secure Configuration Loader
+
+```python
+# secure_config.py
+import os
+import json
+import base64
+from pathlib import Path
+
+class SecureConfigLoader:
+    def __init__(self, config_path="/app/config", secrets_path="/app/secrets"):
+        self.config_path = Path(config_path)
+        self.secrets_path = Path(secrets_path)
+
+    def load_secret(self, secret_name):
+        """Load secret from mounted secret volume"""
+        secret_file = self.secrets_path / secret_name
+        if secret_file.exists():
+            return secret_file.read_text().strip()
+        return os.getenv(secret_name.upper().replace('-', '_'))
+
+    def substitute_secrets(self, config_data):
+        """Replace secret placeholders in configuration"""
+        if isinstance(config_data, dict):
+            for key, value in config_data.items():
+                config_data[key] = self.substitute_secrets(value)
+        elif isinstance(config_data, list):
+            for i, item in enumerate(config_data):
+                config_data[i] = self.substitute_secrets(item)
+        elif isinstance(config_data, str):
+            if config_data.startswith("${") and config_data.endswith("}"):
+                env_var = config_data[2:-1]
+                secret_value = self.load_secret(env_var.lower().replace('_', '-'))
+                if secret_value:
+                    return secret_value
+                return os.getenv(env_var, config_data)
+        return config_data
+
+    def load_config(self, config_file="config.json"):
+        """Load and process configuration file"""
+        config_path = self.config_path / config_file
+
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+
+        # Substitute secrets and environment variables
+        return self.substitute_secrets(config)
+
+# Usage example
+loader = SecureConfigLoader()
+config = loader.load_config()
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="validation-and-monitoring" summary="Configuration validation and monitoring">
+
+### 1. Configuration Schema Validation
+
+```python
+# config_validator.py
+import json
+import jsonschema
+from jsonschema import validate, ValidationError
+
+# Define configuration schema
+CONFIG_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "database": {
+            "type": "object",
+            "properties": {
+                "host": {"type": "string"},
+                "port": {"type": "integer", "minimum": 1, "maximum": 65535},
+                "name": {"type": "string"},
+                "username": {"type": "string"},
+                "password": {"type": "string"},
+                "ssl": {"type": "boolean"}
+            },
+            "required": ["host", "port", "name", "username", "password"]
+        },
+        "api": {
+            "type": "object",
+            "properties": {
+                "base_url": {"type": "string", "format": "uri"},
+                "key": {"type": "string"},
+                "timeout": {"type": "integer", "minimum": 1000}
+            },
+            "required": ["base_url", "key"]
+        },
+        "logging": {
+            "type": "object",
+            "properties": {
+                "level": {"enum": ["debug", "info", "warn", "error"]},
+                "format": {"enum": ["json", "text", "pretty"]}
+            }
+        }
+    },
+    "required": ["database", "api"]
+}
+
+def validate_config(config_data):
+    """Validate configuration against schema"""
+    try:
+        validate(instance=config_data, schema=CONFIG_SCHEMA)
+        print("✓ Configuration validation passed")
+        return True
+    except ValidationError as e:
+        print(f"✗ Configuration validation failed: {e.message}")
+        print(f"Failed at path: {' -> '.join(str(p) for p in e.path)}")
+        return False
+
+def validate_environment_vars(required_vars):
+    """Validate that required environment variables are set"""
+    missing_vars = []
+    for var in required_vars:
+        if not os.getenv(var):
+            missing_vars.append(var)
+
+    if missing_vars:
+        print(f"✗ Missing required environment variables: {', '.join(missing_vars)}")
+        return False
+
+    print("✓ All required environment variables are set")
+    return True
+
+# Usage in application startup
+def startup_validation():
+    """Perform comprehensive startup validation"""
+    required_env_vars = ["DB_HOST", "DB_PASSWORD", "API_KEY", "JWT_SECRET"]
+
+    # Validate environment variables
+    if not validate_environment_vars(required_env_vars):
+        sys.exit(1)
+
+    # Load and validate configuration
+    config = load_config()
+    if not validate_config(config):
+        sys.exit(1)
+
+    return config
+```
+
+### 2. Configuration Change Detection
+
+```python
+# config_monitor.py
+import os
+import hashlib
+import time
+import signal
+import sys
+from pathlib import Path
+
+class ConfigMonitor:
+    def __init__(self, config_files, callback=None):
+        self.config_files = [Path(f) for f in config_files]
+        self.file_hashes = {}
+        self.callback = callback
+        self.running = False
+
+    def calculate_file_hash(self, file_path):
+        """Calculate MD5 hash of file content"""
+        try:
+            with open(file_path, 'rb') as f:
+                return hashlib.md5(f.read()).hexdigest()
+        except FileNotFoundError:
+            return None
+
+    def initialize_hashes(self):
+        """Initialize file hashes"""
+        for config_file in self.config_files:
+            self.file_hashes[config_file] = self.calculate_file_hash(config_file)
+
+    def check_for_changes(self):
+        """Check if any configuration files have changed"""
+        changes = []
+
+        for config_file in self.config_files:
+            current_hash = self.calculate_file_hash(config_file)
+            stored_hash = self.file_hashes.get(config_file)
+
+            if current_hash != stored_hash:
+                changes.append(config_file)
+                self.file_hashes[config_file] = current_hash
+
+        return changes
+
+    def start_monitoring(self, interval=5):
+        """Start monitoring configuration files"""
+        self.running = True
+        self.initialize_hashes()
+
+        print(f"Monitoring {len(self.config_files)} configuration files...")
+
+        while self.running:
+            try:
+                changes = self.check_for_changes()
+
+                if changes:
+                    print(f"Configuration changes detected: {[str(f) for f in changes]}")
+                    if self.callback:
+                        self.callback(changes)
+
+                time.sleep(interval)
+
+            except KeyboardInterrupt:
+                self.stop_monitoring()
+
+    def stop_monitoring(self):
+        """Stop monitoring"""
+        self.running = False
+        print("Configuration monitoring stopped")
+
+# Usage
+def on_config_change(changed_files):
+    """Handle configuration file changes"""
+    print("Reloading configuration...")
+    try:
+        new_config = load_config()
+        if validate_config(new_config):
+            # Apply new configuration
+            apply_config(new_config)
+            print("Configuration reloaded successfully")
+        else:
+            print("Invalid configuration detected, keeping current configuration")
+    except Exception as e:
+        print(f"Error reloading configuration: {e}")
+
+# Start monitoring in a separate thread
+import threading
+
+monitor = ConfigMonitor([
+    "/app/config/config.json",
+    "/app/config/database.yaml",
+    "/app/config/logging.yaml"
+], callback=on_config_change)
+
+monitor_thread = threading.Thread(target=monitor.start_monitoring)
+monitor_thread.daemon = True
+monitor_thread.start()
+```
+
+### 3. Health Check with Configuration Status
+
+```python
+# health_check.py
+from flask import Flask, jsonify
+import datetime
+
+app = Flask(__name__)
+
+@app.route('/health/config')
+def config_health():
+    """Health check endpoint that includes configuration status"""
+    try:
+        # Load current configuration
+        config = load_config()
+
+        # Validate configuration
+        is_valid = validate_config(config)
+
+        # Check configuration file timestamps
+        config_files = [
+            "/app/config/config.json",
+            "/app/config/database.yaml"
+        ]
+
+        file_info = {}
+        for config_file in config_files:
+            if os.path.exists(config_file):
+                stat = os.stat(config_file)
+                file_info[config_file] = {
+                    "exists": True,
+                    "size": stat.st_size,
+                    "modified": datetime.datetime.fromtimestamp(stat.st_mtime).isoformat()
+                }
+            else:
+                file_info[config_file] = {"exists": False}
+
+        return jsonify({
+            "status": "healthy" if is_valid else "unhealthy",
+            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "configuration": {
+                "valid": is_valid,
+                "environment": os.getenv("ENVIRONMENT", "unknown"),
+                "files": file_info
+            }
+        }), 200 if is_valid else 503
+
+    except Exception as e:
+        return jsonify({
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": datetime.datetime.utcnow().isoformat()
+        }), 503
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Best practices for environment-specific configuration">
+
+### 1. Configuration Hierarchy
+
+Implement a clear configuration hierarchy:
+
+```
+1. Default/Base Configuration (lowest priority)
+2. Environment-Specific Configuration
+3. ConfigMap/Volume Mounts
+4. Environment Variables
+5. Runtime Arguments (highest priority)
+```
+
+### 2. Security Best Practices
+
+```python
+# secure_config_practices.py
+
+class SecureConfigManager:
+    """Best practices for secure configuration management"""
+
+    SENSITIVE_KEYS = ['password', 'secret', 'key', 'token', 'credential']
+
+    def __init__(self):
+        self.config = {}
+
+    def load_config_securely(self, config_file):
+        """Load configuration with security checks"""
+        config = self.load_raw_config(config_file)
+
+        # 1. Validate no secrets in configuration files
+        self.validate_no_hardcoded_secrets(config)
+
+        # 2. Substitute environment variables
+        config = self.substitute_env_vars(config)
+
+        # 3. Load secrets from secure sources
+        config = self.load_secrets_securely(config)
+
+        # 4. Validate final configuration
+        self.validate_config(config)
+
+        return config
+
+    def validate_no_hardcoded_secrets(self, config, path=""):
+        """Ensure no hardcoded secrets in configuration"""
+        if isinstance(config, dict):
+            for key, value in config.items():
+                current_path = f"{path}.{key}" if path else key
+
+                # Check if key suggests sensitive data
+                if any(sensitive in key.lower() for sensitive in self.SENSITIVE_KEYS):
+                    if isinstance(value, str) and not value.startswith("${"):
+                        print(f"WARNING: Potential hardcoded secret at {current_path}")
+
+                self.validate_no_hardcoded_secrets(value, current_path)
+        elif isinstance(config, list):
+            for i, item in enumerate(config):
+                self.validate_no_hardcoded_secrets(item, f"{path}[{i}]")
+
+    def mask_sensitive_config(self, config):
+        """Create a safe version of config for logging"""
+        safe_config = {}
+
+        def mask_value(key, value):
+            if any(sensitive in key.lower() for sensitive in self.SENSITIVE_KEYS):
+                return "*" * 8
+            return value
+
+        def process_dict(d, result):
+            for key, value in d.items():
+                if isinstance(value, dict):
+                    result[key] = {}
+                    process_dict(value, result[key])
+                else:
+                    result[key] = mask_value(key, value)
+
+        process_dict(config, safe_config)
+        return safe_config
+```
+
+### 3. Deployment Best Practices
+
+```yaml
+# deployment-best-practices.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+  labels:
+    app: my-app
+    version: "1.0.0"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+      annotations:
+        config.version: "v1.2.3" # Track config version
+    spec:
+      containers:
+        - name: app
+          image: my-app:latest
+
+          # Environment variables for non-sensitive config
+          env:
+            - name: ENVIRONMENT
+              value: "production"
+            - name: LOG_LEVEL
+              value: "warn"
+            - name: CONFIG_FILE
+              value: "/app/config/config.json"
+
+            # Sensitive data from secrets
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: db-password
+
+          # Configuration from ConfigMaps
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/config
+              readOnly: true
+            - name: secret-volume
+              mountPath: /app/secrets
+              readOnly: true
+
+          # Health checks that verify configuration
+          readinessProbe:
+            httpGet:
+              path: /health/config
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+
+          # Resource limits
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+
+      volumes:
+        - name: config-volume
+          configMap:
+            name: app-config
+        - name: secret-volume
+          secret:
+            secretName: app-secrets
+
+      # Security context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+```
+
+### 4. Testing Configuration
+
+```python
+# test_configuration.py
+import pytest
+import tempfile
+import json
+import os
+from pathlib import Path
+
+class TestConfiguration:
+    """Test suite for configuration management"""
+
+    @pytest.fixture
+    def temp_config_dir(self):
+        """Create temporary config directory"""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            yield Path(temp_dir)
+
+    @pytest.fixture
+    def sample_configs(self, temp_config_dir):
+        """Create sample configuration files"""
+        # Base config
+        base_config = {
+            "app": {"name": "testapp", "port": 8080},
+            "database": {"host": "${DB_HOST}", "port": 5432}
+        }
+
+        # Environment configs
+        dev_config = {"database": {"host": "dev-db.local"}}
+        prod_config = {"database": {"host": "prod-db.local"}}
+
+        # Write configs
+        base_dir = temp_config_dir / "base"
+        base_dir.mkdir()
+        (base_dir / "app.json").write_text(json.dumps(base_config))
+
+        dev_dir = temp_config_dir / "development"
+        dev_dir.mkdir()
+        (dev_dir / "overrides.json").write_text(json.dumps(dev_config))
+
+        prod_dir = temp_config_dir / "production"
+        prod_dir.mkdir()
+        (prod_dir / "overrides.json").write_text(json.dumps(prod_config))
+
+        return temp_config_dir
+
+    def test_config_merging(self, sample_configs):
+        """Test configuration merging logic"""
+        # Set environment
+        os.environ["ENVIRONMENT"] = "development"
+
+        # Load merged config
+        merged = merge_configurations("development", str(sample_configs))
+
+        assert merged["app"]["name"] == "testapp"
+        assert merged["database"]["host"] == "dev-db.local"
+        assert merged["database"]["port"] == 5432
+
+    def test_environment_substitution(self, sample_configs):
+        """Test environment variable substitution"""
+        os.environ["DB_HOST"] = "custom-db.local"
+        os.environ["ENVIRONMENT"] = "production"
+
+        config = load_and_substitute_config(str(sample_configs))
+
+        assert config["database"]["host"] == "custom-db.local"
+
+    def test_config_validation(self):
+        """Test configuration validation"""
+        valid_config = {
+            "database": {
+                "host": "localhost",
+                "port": 5432,
+                "name": "testdb",
+                "username": "user",
+                "password": "pass"
+            },
+            "api": {
+                "base_url": "https://api.example.com",
+                "key": "test-key"
+            }
+        }
+
+        assert validate_config(valid_config) == True
+
+        # Test invalid config
+        invalid_config = {"database": {"host": "localhost"}}  # Missing required fields
+        assert validate_config(invalid_config) == False
+```
+
+### 5. Documentation Template
+
+```markdown
+# Configuration Management Guide
+
+## Overview
+
+This application uses a hierarchical configuration system supporting multiple environments.
+
+## Configuration Files
+
+### Structure
+```
+
+config/
+├── base/ # Base configuration (all environments)
+├── development/ # Development overrides
+├── staging/ # Staging overrides
+└── production/ # Production overrides
+
+```
+
+### Environment Variables
+| Variable | Required | Description | Default |
+|----------|----------|-------------|---------|
+| ENVIRONMENT | Yes | Deployment environment | development |
+| DB_HOST | Yes | Database hostname | localhost |
+| DB_PASSWORD | Yes | Database password | (none) |
+| API_KEY | Yes | External API key | (none) |
+
+### Configuration Validation
+- All configuration is validated against JSON schema on startup
+- Missing required fields will cause startup failure
+- Invalid values will be logged as warnings
+
+### Security
+- Sensitive values must use environment variables or mounted secrets
+- Configuration files should never contain hardcoded secrets
+- All secret access is logged for audit purposes
+
+### Monitoring
+- Configuration health endpoint: `/health/config`
+- Configuration changes are detected and logged
+- Metrics include config validation status and file timestamps
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

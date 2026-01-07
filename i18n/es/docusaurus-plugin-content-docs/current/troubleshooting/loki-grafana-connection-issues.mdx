@@ -1,0 +1,159 @@
+---
+sidebar_position: 3
+title: "Problemas de Conexión entre Loki y Grafana"
+description: "Solución de problemas de configuración del pod Loki que afectan la conectividad con Grafana"
+date: "2024-11-22"
+category: "dependencia"
+tags: ["loki", "grafana", "monitorización", "solución de problemas", "pods"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de Conexión entre Loki y Grafana
+
+**Fecha:** 22 de noviembre de 2024  
+**Categoría:** Dependencia  
+**Etiquetas:** Loki, Grafana, Monitorización, Solución de problemas, Pods
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios experimentan problemas de conectividad entre Grafana y el servicio de registro Loki en los clústeres SleakOps, lo que impide la visualización adecuada de logs y la funcionalidad de monitorización.
+
+**Síntomas Observados:**
+
+- Grafana no puede conectarse a la fuente de datos de Loki
+- El servicio Loki parece no responder o ser inaccesible
+- Las consultas de logs fallan o agotan el tiempo en la interfaz de Grafana
+- Los paneles de monitorización no muestran datos de logs
+
+**Configuración Relevante:**
+
+- Servicio: pila de registro Loki
+- Componente afectado: pod `loki-read`
+- Interfaz: panel de Grafana
+- Herramienta de gestión: IDE Kubernetes Lens
+
+**Condiciones de Error:**
+
+- El error ocurre tras actualizaciones del clúster o reinicios del pod
+- El problema persiste hasta que se recrea manualmente el pod
+- Afecta la agregación y monitorización de logs
+- Puede impactar a múltiples usuarios que acceden a los paneles de Grafana
+
+## Solución Detallada
+
+<TroubleshootingItem id="immediate-workaround" summary="Solución rápida: Reiniciar el pod loki-read">
+
+Para resolver inmediatamente el problema de conexión:
+
+1. **Abre el IDE Kubernetes Lens**
+2. **Navega a tu clúster SleakOps**
+3. **Ve a Workloads → Pods**
+4. **Busca el pod `loki-read`**
+5. **Haz clic derecho sobre el pod y selecciona "Eliminar"**
+6. **Espera a que el pod se recree automáticamente**
+7. **Prueba la conectividad en Grafana**
+
+El pod será recreado automáticamente por el controlador de despliegue, lo que debería resolver el error de configuración.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verify-pod-recreation" summary="Verificar la recreación y estado del pod">
+
+Después de eliminar el pod, verifica que se haya recreado correctamente:
+
+```bash
+# Verificar estado del pod
+kubectl get pods -n monitoring | grep loki-read
+
+# Verificar que el pod esté en ejecución y listo
+kubectl describe pod <nombre-del-pod-loki-read> -n monitoring
+
+# Revisar logs del pod para detectar errores
+kubectl logs <nombre-del-pod-loki-read> -n monitoring
+```
+
+El pod debería mostrar estado `Running` con todos los contenedores listos (por ejemplo, `1/1`).
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="test-grafana-connection" summary="Probar la conexión de Grafana a Loki">
+
+Después de la recreación del pod:
+
+1. **Accede al panel de Grafana**
+2. **Ve a Configuración → Fuentes de datos**
+3. **Encuentra la fuente de datos Loki**
+4. **Haz clic en "Probar" para verificar la conectividad**
+5. **Intenta ejecutar una consulta simple de logs**:
+   ```
+   {namespace="default"}
+   ```
+
+Si es exitoso, deberías ver entradas de logs apareciendo en los resultados de la consulta.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-kubectl-method" summary="Alternativa: Usar el comando kubectl">
+
+Si prefieres usar kubectl en lugar de Lens:
+
+```bash
+# Listar pods de loki
+kubectl get pods -n monitoring | grep loki
+
+# Eliminar el pod loki-read
+kubectl delete pod <nombre-del-pod-loki-read> -n monitoring
+
+# Observar la recreación del pod
+kubectl get pods -n monitoring -w | grep loki-read
+```
+
+Reemplaza `<nombre-del-pod-loki-read>` con el nombre real del pod obtenido en el primer comando.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-monitoring" summary="Monitorización para futuras ocurrencias">
+
+Para monitorear este problema en el futuro:
+
+1. **Configura alertas para reinicios del pod Loki**
+2. **Monitorea la salud de la fuente de datos en Grafana**
+3. **Revisa regularmente los logs del pod para detectar errores de configuración**
+
+```yaml
+# Ejemplo de regla de alerta para problemas con el pod Loki
+groups:
+  - name: loki-alerts
+    rules:
+      - alert: LokiPodDown
+        expr: up{job="loki-read"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "El pod de lectura de Loki está caído"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="escalation-path" summary="Cuándo escalar el problema">
+
+Escala al soporte de SleakOps si:
+
+- La recreación del pod no resuelve el problema
+- El problema se repite frecuentemente (más de una vez al día)
+- Se afectan múltiples componentes de Loki
+- Grafana muestra errores persistentes de conexión tras reiniciar el pod
+
+Incluye en tu solicitud de soporte:
+
+- Logs del pod antes y después de la recreación
+- Mensajes de error de Grafana
+- Información del clúster y namespace
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 22 de noviembre de 2024 basada en una consulta real de usuario._

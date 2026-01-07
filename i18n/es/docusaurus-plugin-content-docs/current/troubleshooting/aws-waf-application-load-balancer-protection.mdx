@@ -1,0 +1,361 @@
+---
+sidebar_position: 15
+title: "Configuración de AWS WAF para Protección de Application Load Balancer"
+description: "Cómo configurar AWS WAF para proteger tu Application Load Balancer del tráfico malicioso y ataques de bots"
+date: "2024-12-19"
+category: "provider"
+tags: ["aws", "waf", "seguridad", "load-balancer", "proteccion-bots"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Configuración de AWS WAF para Protección de Application Load Balancer
+
+**Fecha:** 19 de diciembre, 2024  
+**Categoría:** Provider  
+**Etiquetas:** AWS, WAF, Seguridad, Load Balancer, Protección de Bots
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios que experimentan tráfico malicioso de bots o registros falsos en su plataforma necesitan implementar protección a nivel de infraestructura utilizando AWS WAF (Web Application Firewall).
+
+**Síntomas Observados:**
+
+- Registros de usuarios falsos apareciendo en la plataforma
+- Patrones de tráfico de bots sospechosos
+- Amenazas de seguridad potenciales de ataques automatizados
+- Necesidad de filtrado de tráfico antes de que llegue a la aplicación
+
+**Configuración Relevante:**
+
+- Plataforma: SleakOps en AWS
+- Load Balancer: Application Load Balancer (ALB)
+- Servicio: AWS WAF v2
+- Protección necesaria: Detección de bots y filtrado de tráfico
+
+**Condiciones de Error:**
+
+- Tráfico malicioso evadiendo la seguridad a nivel de aplicación
+- Ataques de bots automatizados en endpoints de registro
+- Necesidad de filtrado proactivo de tráfico
+
+## Solución Detallada
+
+<TroubleshootingItem id="waf-overview" summary="Comprendiendo AWS WAF para SleakOps">
+
+AWS WAF (Web Application Firewall) es un servicio de firewall basado en la nube que ayuda a proteger tus aplicaciones web de exploits comunes y bots. Aunque SleakOps aún no tiene integración nativa con WAF, puedes configurarlo fácilmente de forma manual para proteger tu Application Load Balancer.
+
+**Beneficios Clave:**
+
+- Bloquea tráfico malicioso antes de que llegue a tu aplicación
+- Proporciona detección y mitigación de bots
+- Ofrece capacidades de limitación de velocidad
+- Incluye conjuntos de reglas administradas para patrones de ataque comunes
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prerequisites" summary="Prerequisitos y Requerimientos">
+
+Antes de configurar AWS WAF, asegúrate de tener:
+
+**Acceso Requerido:**
+
+- Acceso a la consola de AWS con permisos apropiados
+- Permisos de administrador de WAF
+- Capacidad para modificar configuraciones del load balancer
+
+**Información a Recopilar:**
+
+1. **ARN del Application Load Balancer**
+
+   ```bash
+   # Encuentra tu ALB en la consola de AWS o vía CLI
+   aws elbv2 describe-load-balancers --query 'LoadBalancers[*].[LoadBalancerName,LoadBalancerArn]'
+   ```
+
+2. **Detalles de la Aplicación**
+
+   - Nombre(s) de dominio principal(es)
+   - Endpoints críticos que necesitan protección (ej., /register, /login)
+   - Patrones de tráfico legítimo esperados
+
+3. **Requerimientos de Seguridad**
+
+   - Restricciones geográficas necesarias
+   - Requerimientos de limitación de velocidad
+   - Sensibilidad de detección de bots
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="create-waf-acl" summary="Paso 1: Crear WAF Web ACL">
+
+Crea una nueva Web ACL para definir tus reglas de protección:
+
+1. **Navegar a la Consola de AWS WAF**
+
+   - Ve a Consola de AWS → WAF & Shield
+   - Haz clic en "Create web ACL"
+
+2. **Configurar Ajustes Básicos**
+
+   ```
+   Nombre: sleakops-alb-protection
+   Descripción: Protección WAF para ALB de SleakOps
+   Tipo de recurso: Application Load Balancer
+   ```
+
+3. **Agregar Recurso**
+
+   - Selecciona tu Application Load Balancer
+   - Elige la región donde está ubicado tu ALB
+
+4. **Establecer Acción Predeterminada**
+
+   - Acción predeterminada: "Allow" (recomendado para configuración inicial)
+   - Esto permite el tráfico a menos que sea bloqueado por reglas específicas
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="configure-rules" summary="Paso 2: Configurar Reglas de Protección">
+
+Agrega reglas de protección esenciales a tu Web ACL:
+
+**1. Conjuntos de Reglas Administradas de AWS (Recomendado):**
+
+```yaml
+# Conjunto de Reglas Principales - Protege contra OWASP Top 10
+Nombre de Regla: AWSManagedRulesCommonRuleSet
+Prioridad: 1
+Acción: Block
+
+# Entradas Maliciosas Conocidas - Protege contra solicitudes maliciosas
+Nombre de Regla: AWSManagedRulesKnownBadInputsRuleSet
+Prioridad: 2
+Acción: Block
+
+# Control de Bots - Detección avanzada de bots
+Nombre de Regla: AWSManagedRulesBotControlRuleSet
+Prioridad: 3
+Acción: Block
+```
+
+**2. Regla de Limitación de Velocidad Personalizada:**
+
+```yaml
+Nombre de Regla: RateLimitingRule
+Prioridad: 4
+Condición: Regla basada en velocidad
+Límite de velocidad: 2000 solicitudes por 5 minutos
+Acción: Block
+Alcance: Todas las solicitudes de una sola IP
+```
+
+**3. Restricciones Geográficas (Opcional):**
+
+```yaml
+Nombre de Regla: GeoBlockRule
+Prioridad: 5
+Condición: Coincidencia geográfica
+Países: [Lista de países a bloquear]
+Acción: Block
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="associate-alb" summary="Paso 3: Asociar WAF con Application Load Balancer">
+
+Conecta tu Web ACL a tu Application Load Balancer:
+
+1. **En la Configuración de Web ACL**
+
+   - Ve a "Associated AWS resources"
+   - Haz clic en "Add AWS resources"
+
+2. **Seleccionar tu ALB**
+
+   - Tipo de recurso: Application Load Balancer
+   - Selecciona tu load balancer específico
+   - Haz clic en "Add"
+
+3. **Verificar Asociación**
+
+   ```bash
+   # Verificar que WAF está asociado con ALB
+   aws wafv2 list-web-acls --scope REGIONAL --region us-east-1
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="configure-logging" summary="Paso 4: Habilitar Logging de WAF">
+
+Habilita el logging para monitorear solicitudes bloqueadas y ajustar tus reglas:
+
+1. **Crear Grupo de Logs de CloudWatch**
+
+   ```bash
+   # Crear grupo de logs para logs de WAF
+   aws logs create-log-group --log-group-name aws-waf-logs-sleakops
+   ```
+
+2. **Habilitar Logging de WAF**
+
+   - En la Consola de WAF, ve a tu Web ACL
+   - Haz clic en "Logging and metrics"
+   - Habilita logging
+   - Elige tu grupo de logs de CloudWatch
+
+3. **Configurar Análisis de Logs**
+
+   ```json
+   {
+     "logDestinationConfigs": [
+       "arn:aws:logs:us-east-1:123456789012:log-group:aws-waf-logs-sleakops"
+     ],
+     "logFormat": "json",
+     "managedByFirewallManager": false
+   }
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="testing-validation" summary="Paso 5: Pruebas y Validación">
+
+Prueba tu configuración de WAF para asegurar que funciona correctamente:
+
+**1. Probar Tráfico Legítimo**
+
+```bash
+# Probar que las solicitudes normales pasan
+curl -I https://tu-dominio.com/
+
+# Debería devolver headers de respuesta normales
+```
+
+**2. Probar Limitación de Velocidad**
+
+```bash
+# Generar múltiples solicitudes para probar limitación de velocidad
+for i in {1..100}; do
+  curl -s -o /dev/null -w "%{http_code}\n" https://tu-dominio.com/
+done
+
+# Debería mostrar respuestas 403 después de alcanzar el límite de velocidad
+```
+
+**3. Monitorear Métricas de WAF**
+
+- Ve a CloudWatch → Metrics → WAF
+- Monitorea solicitudes bloqueadas y permitidas
+- Verifica falsos positivos
+
+**4. Revisar Logs**
+
+```bash
+# Consultar logs de WAF para solicitudes bloqueadas
+aws logs filter-log-events \
+  --log-group-name aws-waf-logs-sleakops \
+  --filter-pattern "\"action\":\"BLOCK\""
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="tuning-optimization" summary="Paso 6: Ajuste Fino y Optimización">
+
+Optimiza tus reglas de WAF basándote en patrones de tráfico reales:
+
+**1. Revisar Falsos Positivos**
+
+- Monitorea solicitudes legítimas siendo bloqueadas
+- Ajusta la sensibilidad de las reglas si es necesario
+- Agrega reglas de excepción para endpoints específicos
+
+**2. Reglas Personalizadas para tu Aplicación**
+
+```yaml
+# Bloquear solicitudes a endpoints de admin desde IPs públicas
+Nombre de Regla: AdminProtection
+Prioridad: 10
+Condición: Ruta coincide con "/admin/*" Y NO IP origen en rango permitido
+Acción: Block
+
+# Proteger endpoint de registro con limitación de velocidad más estricta
+Nombre de Regla: RegistrationProtection
+Prioridad: 11
+Condición: Ruta coincide con "/register"
+Límite de velocidad: 5 solicitudes por 5 minutos
+Acción: Block
+```
+
+**3. Monitorear y Ajustar**
+
+- Revisión semanal de patrones de tráfico bloqueado
+- Ajustar límites de velocidad basados en uso legítimo
+- Actualizar restricciones geográficas según sea necesario
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cost-considerations" summary="Consideraciones de Costo y Mejores Prácticas">
+
+**Precios de AWS WAF (Aproximados):**
+
+- Web ACL: $1.00 por mes
+- Evaluaciones de reglas: $0.60 por millón de solicitudes
+- Grupos de reglas administradas: $1.00-$10.00 por mes cada uno
+- Reglas administradas de Control de Bots: $10.00 por mes + $0.80 por millón de solicitudes
+
+**Consejos de Optimización de Costos:**
+
+1. **Comenzar con Reglas Esenciales**
+
+   - Empezar con Core Rule Set y Known Bad Inputs
+   - Agregar Bot Control solo si es necesario
+   - Monitorear costos antes de agregar reglas administradas adicionales
+
+2. **Optimización de Prioridad de Reglas**
+
+   ```yaml
+   # Ordenar reglas por probabilidad de coincidencia (más específicas primero)
+   Prioridad 1: Restricciones geográficas (si aplica)
+   Prioridad 2: Limitación de velocidad
+   Prioridad 3: Reglas Administradas de AWS
+   ```
+
+3. **Revisión Regular**
+
+   - Análisis de costos mensual
+   - Remover reglas no utilizadas
+   - Optimizar umbrales de limitación de velocidad
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-common-issues" summary="Resolución de Problemas Comunes">
+
+**Problema 1: Tráfico Legítimo Siendo Bloqueado**
+
+```bash
+# Verificar logs de WAF para solicitudes bloqueadas específicas
+aws logs filter-log-events \
+  --log-group-name aws-waf-logs-sleakops \
+  --filter-pattern "\"action\":\"BLOCK\"" \
+  --start-time $(date -d '1 hour ago' +%s)000
+
+# Solución: Agregar reglas de excepción o ajustar sensibilidad de reglas
+```
+
+**Problema 2: WAF No Bloquea Tráfico Esperado**
+
+- Verificar que Web ACL está asociada con el ALB correcto
+- Revisar orden y prioridades de reglas
+- Asegurar que la acción predeterminada está configurada correctamente
+
+**Problema 3: Alta Tasa de Falsos Positivos**
+
+- Revisar grupos de reglas administradas específicos que causan problemas
+- Implementar modo de conteo antes del modo de bloqueo para nuevas reglas
+- Agregar reglas de excepción personalizadas para patrones legítimos
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de usuario._

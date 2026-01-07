@@ -1,0 +1,172 @@
+---
+sidebar_position: 3
+title: "Deployment Pending After Nodepool Changes"
+description: "Solution for deployments that remain pending after nodepool configuration changes"
+date: "2024-01-23"
+category: "cluster"
+tags: ["deployment", "nodepool", "karpenter", "aws", "scaling"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Deployment Pending After Nodepool Changes
+
+**Date:** January 23, 2024  
+**Category:** Cluster  
+**Tags:** Deployment, Nodepool, Karpenter, AWS, Scaling
+
+## Problem Description
+
+**Context:** After making nodepool configuration changes in SleakOps, deployments remain in a pending state and don't automatically apply the new configuration. The application stops functioning until manual intervention is required.
+
+**Observed Symptoms:**
+
+- Nodepool changes remain pending and don't automatically apply
+- Application stops functioning after nodepool modifications
+- Deployments require manual triggering to apply pending changes
+- Issue may go unnoticed for extended periods
+
+**Relevant Configuration:**
+
+- Platform: AWS EKS with Karpenter
+- Autoscaling: Enabled
+- Resource limits: Potentially insufficient RAM allocation
+- AWS EC2 CPU quotas: May be at limit
+
+**Error Conditions:**
+
+- Occurs after nodepool configuration changes
+- Deployments remain pending until manually triggered
+- May be related to AWS resource quota limits
+- Autoscaling triggers unnecessary scaling due to low memory limits
+
+## Detailed Solution
+
+<TroubleshootingItem id="manual-deployment-trigger" summary="Immediate solution: Manual deployment trigger">
+
+When nodepool changes are pending:
+
+1. **Access SleakOps Dashboard**
+2. **Navigate to your project**
+3. **Go to Deployments section**
+4. **Manually trigger the pending deployment**
+5. **Verify the application is functioning**
+
+This will immediately apply the pending nodepool changes and restore application functionality.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="memory-configuration" summary="Prevent scaling issues with proper memory allocation">
+
+To prevent unnecessary autoscaling that can trigger AWS quota limits:
+
+**Recommended Memory Settings:**
+
+- **Minimum RAM**: 512MB
+- **Maximum RAM**: 1024MB
+
+```yaml
+# Example resource configuration
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "1024Mi"
+    cpu: "500m"
+```
+
+**Why this helps:**
+
+- Prevents autoscaling from triggering due to memory pressure
+- Reduces unnecessary EC2 instance provisioning
+- Avoids hitting AWS CPU quota limits
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="aws-quota-management" summary="Managing AWS EC2 CPU quotas">
+
+If you encounter AWS quota limits:
+
+1. **Identify the quota limit**:
+
+   - Go to AWS Console → Service Quotas
+   - Search for "Amazon Elastic Compute Cloud (Amazon EC2)"
+   - Check "Running On-Demand" quotas
+
+2. **Request quota increase**:
+
+   - Click "Request quota increase"
+   - Specify the new limit needed
+   - Provide business justification
+   - Submit the request
+
+3. **Monitor the request**:
+   - AWS typically responds within 24-48 hours
+   - You'll receive email notifications about status
+
+**Note**: Make the request from your production AWS account for faster processing.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-pending-changes" summary="Monitoring for pending changes">
+
+To avoid missing pending deployments:
+
+1. **Set up notifications**:
+
+   - Configure alerts for deployment status changes
+   - Monitor deployment pipeline regularly
+
+2. **Regular checks**:
+
+   - Review pending deployments daily
+   - Verify application functionality after nodepool changes
+
+3. **Automated monitoring**:
+
+   ```bash
+   # Check for pending deployments
+   kubectl get deployments --all-namespaces | grep -v "READY"
+
+   # Monitor pod status
+   kubectl get pods --all-namespaces | grep Pending
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="root-cause-analysis" summary="Understanding why changes remain pending">
+
+Common reasons for pending deployments after nodepool changes:
+
+1. **Resource constraints**:
+
+   - Insufficient CPU/memory quotas
+   - Node capacity limitations
+
+2. **Karpenter provisioning delays**:
+
+   - AWS API rate limits
+   - Instance type availability
+
+3. **Configuration conflicts**:
+
+   - Incompatible resource requests
+   - Scheduling constraints
+
+4. **Timing issues**:
+   - Changes applied during high-traffic periods
+   - Concurrent deployment conflicts
+
+**Prevention strategies**:
+
+- Apply nodepool changes during low-traffic periods
+- Ensure adequate AWS quotas before scaling
+- Monitor resource utilization trends
+- Test changes in staging environment first
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 23, 2024 based on a real user query._

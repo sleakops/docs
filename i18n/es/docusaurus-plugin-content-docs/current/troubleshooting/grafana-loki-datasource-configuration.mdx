@@ -1,0 +1,203 @@
+---
+sidebar_position: 3
+title: "Problema de Configuración de la Fuente de Datos de Grafana Loki"
+description: "Solución para que la fuente de datos Loki no se agregue automáticamente a Grafana"
+date: "2024-11-15"
+category: "dependencia"
+tags: ["grafana", "loki", "fuente de datos", "monitoreo", "logs"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problema de Configuración de la Fuente de Datos de Grafana Loki
+
+**Fecha:** 15 de noviembre de 2024  
+**Categoría:** Dependencia  
+**Etiquetas:** Grafana, Loki, Fuente de datos, Monitoreo, Logs
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios experimentan problemas con Grafana que no muestra los logs correctamente debido a que la fuente de datos Loki no se configura automáticamente durante el despliegue de SleakOps.
+
+**Síntomas Observados:**
+
+- El panel de Grafana carga pero no muestra datos de logs
+- La fuente de datos Loki falta en la configuración de Grafana
+- Las consultas de logs devuelven resultados vacíos
+- El filtro de stream predeterminado es 'stderr' pero no muestra datos
+
+**Configuración Relevante:**
+
+- Stack de monitoreo: Grafana + Loki
+- Filtro de stream predeterminado: `stderr`
+- Componentes de Loki: pod `loki-read`
+- Autenticación: se requiere usuario administrador de Grafana
+
+**Condiciones de Error:**
+
+- Ocurre durante el despliegue inicial de SleakOps
+- La adición de la fuente de datos Loki falla silenciosamente
+- Requiere intervención manual para resolver
+- Puede necesitar reinicios de pods para funcionar correctamente
+
+## Solución Detallada
+
+<TroubleshootingItem id="verify-loki-datasource" summary="Verificar la configuración de la fuente de datos Loki">
+
+Para comprobar si la fuente de datos Loki está configurada correctamente en Grafana:
+
+1. **Accede al panel de Grafana**
+
+   - Usa las credenciales de administrador proporcionadas por SleakOps
+   - Navega a **Configuración** → **Fuentes de datos**
+
+2. **Verifica la fuente de datos Loki**
+
+   - Busca una fuente de datos llamada "Loki" o similar
+   - Verifica que la URL apunte a tu servicio Loki
+   - Prueba la conexión usando el botón "Guardar y probar"
+
+3. **Formato esperado de la URL de Loki:**
+   ```
+   http://loki-gateway.monitoring.svc.cluster.local:80
+   ```
+   o
+   ```
+   http://loki-read.monitoring.svc.cluster.local:3100
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-datasource-addition" summary="Agregar manualmente la fuente de datos Loki">
+
+Si la fuente de datos Loki falta, agrégala manualmente:
+
+1. **En Grafana, ve a Configuración → Fuentes de datos**
+2. **Haz clic en "Agregar fuente de datos"**
+3. **Selecciona "Loki" de la lista**
+4. **Configura la fuente de datos:**
+
+   - **Nombre:** `Loki`
+   - **URL:** `http://loki-gateway.monitoring.svc.cluster.local:80`
+   - **Acceso:** `Servidor (predeterminado)`
+
+5. **Guarda y prueba la conexión**
+
+```yaml
+# Ejemplo de configuración de fuente de datos
+apiVersion: 1
+datasources:
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki-gateway.monitoring.svc.cluster.local:80
+    isDefault: false
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="restart-loki-components" summary="Reiniciar componentes de Loki si es necesario">
+
+Si la fuente de datos Loki existe pero no funciona correctamente:
+
+1. **Reinicia el pod loki-read:**
+
+   ```bash
+   kubectl delete pod -l app=loki-read -n monitoring
+   ```
+
+2. **Verifica el estado del pod:**
+
+   ```bash
+   kubectl get pods -n monitoring | grep loki
+   ```
+
+3. **Revisa los logs de Loki:**
+
+   ```bash
+   kubectl logs -l app=loki-read -n monitoring
+   ```
+
+4. **Prueba la API de Loki directamente:**
+   ```bash
+   kubectl port-forward svc/loki-gateway 3100:80 -n monitoring
+   curl http://localhost:3100/ready
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="configure-log-queries" summary="Configurar consultas y filtros de logs">
+
+Una vez que la fuente de datos Loki funcione:
+
+1. **Entender los filtros de stream:**
+
+   - El filtro predeterminado busca streams `stderr`
+   - Cambia a `stdout` para ver los logs de la aplicación
+   - Usa `{stream="stderr"}` o `{stream="stdout"}` en las consultas
+
+2. **Consultas comunes en LogQL:**
+
+   ```logql
+   # Todos los logs stderr
+   {stream="stderr"}
+
+   # Todos los logs stdout
+   {stream="stdout"}
+
+   # Logs de un namespace específico
+   {namespace="default"}
+
+   # Logs de un pod específico
+   {pod="my-app-12345"}
+
+   # Filtros combinados
+   {namespace="default", stream="stderr"}
+   ```
+
+3. **Ajustar el rango de tiempo:**
+   - Usa el selector de tiempo de Grafana
+   - Empieza con "Última 1 hora" para pruebas
+   - Amplía el rango si no aparecen logs
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-tips" summary="Consejos adicionales para solución de problemas">
+
+**Si los logs aún no aparecen:**
+
+1. **Verifica si las aplicaciones están generando logs:**
+
+   ```bash
+   kubectl logs <nombre-del-pod> -n <namespace>
+   ```
+
+2. **Confirma que Loki está recibiendo logs:**
+
+   ```bash
+   # Revisa los logs del ingestor de Loki
+   kubectl logs -l app=loki-write -n monitoring
+   ```
+
+3. **Reinicia Grafana si es necesario:**
+
+   ```bash
+   kubectl delete pod -l app.kubernetes.io/name=grafana -n monitoring
+   ```
+
+4. **Revisa los logs de Grafana:**
+   ```bash
+   kubectl logs -l app.kubernetes.io/name=grafana -n monitoring
+   ```
+
+**Prevención para futuros despliegues:**
+
+- Este problema se está abordando en próximas versiones de SleakOps
+- Se implementará la configuración automática de la fuente de datos
+- Los pasos de verificación manual se documentarán en las guías de despliegue
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de noviembre de 2024 basada en una consulta real de usuario._

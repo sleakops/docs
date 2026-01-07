@@ -1,0 +1,201 @@
+---
+sidebar_position: 15
+title: "React Environment Variables Not Available at Runtime"
+description: "Solution for React apps where environment variables from vargroups are not accessible at runtime"
+date: "2024-12-19"
+category: "project"
+tags: ["react", "environment-variables", "dockerfile", "build", "runtime"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# React Environment Variables Not Available at Runtime
+
+**Date:** December 19, 2024  
+**Category:** Project  
+**Tags:** React, Environment Variables, Dockerfile, Build, Runtime
+
+## Problem Description
+
+**Context:** User has a React application deployed in SleakOps where environment variables defined in vargroups are not accessible at runtime through `process.env`, even though they work locally with `.env.local` files.
+
+**Observed Symptoms:**
+
+- Environment variables from vargroups don't appear in `process.env` logs
+- Variables work correctly in local development with `.env.local` files
+- Application builds successfully but variables are undefined at runtime
+- Static build process doesn't include runtime environment variables
+
+**Relevant Configuration:**
+
+- Application type: React SPA (Single Page Application)
+- Build process: Multi-stage Docker build with Node.js and Nginx
+- Deployment: Static files served by Nginx
+- Environment: SleakOps platform with vargroups
+
+**Error Conditions:**
+
+- Variables are undefined when accessed via `process.env` in the browser
+- Issue occurs only in deployed environment, not locally
+- Problem persists even when vargroups are properly configured
+
+## Detailed Solution
+
+<TroubleshootingItem id="root-cause" summary="Understanding the root cause">
+
+The issue occurs because React environment variables are resolved during the **build process**, not at runtime. Here's what happens:
+
+1. **Build Stage**: Environment variables are embedded into the static JavaScript files during compilation
+2. **Runtime Stage**: The application runs as static files served by Nginx, with no access to server environment variables
+3. **Browser Execution**: `process.env` references are replaced with literal values during build
+
+This is why variables work locally (available during `yarn build`) but not in production (not available during Docker build).
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-solution" summary="Solution 1: Configure Dockerfile with ARG variables">
+
+To make environment variables available during the Docker build process:
+
+1. **Add ARG declarations** to your Dockerfile:
+
+```dockerfile
+FROM node:20-alpine AS build
+
+# Declare build arguments for environment variables
+ARG PUBLIC_URL
+ARG NODE_ENV
+ARG REACT_APP_API_URL
+ARG REACT_APP_API_KEY
+# Add all your environment variables as ARG
+
+# Set working directory
+WORKDIR /workspace/app
+
+# Copy the code to the container
+COPY . .
+
+# Install dependencies
+RUN yarn install
+
+# Build the app (ARG variables will be available as ENV during build)
+RUN yarn run build
+
+# Production stage
+FROM nginx:latest
+WORKDIR /usr/share/nginx/html
+COPY ./deploy/nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /workspace/app/build .
+EXPOSE 3000
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+2. **Configure variables in SleakOps**:
+   - Go to your project's **Docker Args** vargroup
+   - Add all the environment variables your React app needs
+   - These will be passed as `--build-arg` during Docker build
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="vargroups-configuration" summary="Solution 2: Proper vargroups configuration">
+
+In SleakOps, you need to configure variables in the correct vargroup:
+
+1. **Navigate to Vargroups**: Go to your project → Configuration → Vargroups
+2. **Use Docker Args vargroup**: Environment variables for React build must be in the "Docker Args" vargroup, not the runtime vargroup
+3. **Add variables**:
+   ```
+   PUBLIC_URL=https://your-domain.com
+   REACT_APP_API_URL=https://api.your-domain.com
+   REACT_APP_ENVIRONMENT=production
+   ```
+
+**Important**: React only includes environment variables that start with `REACT_APP_` in the build.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="ssr-alternative" summary="Solution 3: Server-Side Rendering (SSR) approach">
+
+For true runtime environment variables, consider migrating to a framework with SSR capabilities:
+
+**Next.js Migration Benefits:**
+
+- Environment variables available at runtime
+- Server-side rendering capabilities
+- Better SEO and performance
+- Runtime configuration without rebuilding
+
+**Basic Next.js configuration:**
+
+```javascript
+// next.config.js
+module.exports = {
+  env: {
+    CUSTOM_KEY: process.env.CUSTOM_KEY,
+  },
+  // Or use runtime configuration
+  publicRuntimeConfig: {
+    apiUrl: process.env.API_URL,
+  },
+};
+```
+
+**Dockerfile for Next.js:**
+
+```dockerfile
+FROM node:20-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Verification and testing">
+
+To verify your solution works:
+
+1. **Check build logs**: Ensure ARG variables are available during build
+2. **Inspect built files**: Look for your variables in the generated JavaScript
+3. **Test in browser**: Use browser dev tools to verify `process.env` values
+4. **Console logging**: Add temporary logs to verify variable availability
+
+```javascript
+// Add this temporarily to verify variables
+console.log("Environment variables:", {
+  apiUrl: process.env.REACT_APP_API_URL,
+  environment: process.env.REACT_APP_ENVIRONMENT,
+  nodeEnv: process.env.NODE_ENV,
+});
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Best practices for React environment variables">
+
+**Naming Convention:**
+
+- Always prefix with `REACT_APP_` for client-side variables
+- Use descriptive names: `REACT_APP_API_BASE_URL` instead of `REACT_APP_URL`
+
+**Security Considerations:**
+
+- Never include sensitive data (API keys, secrets) in client-side environment variables
+- All `REACT_APP_` variables are publicly accessible in the browser
+- Use backend proxy for sensitive API calls
+
+**Development vs Production:**
+
+- Use different vargroups for different environments
+- Test with production-like environment variables during development
+- Document all required environment variables in your README
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

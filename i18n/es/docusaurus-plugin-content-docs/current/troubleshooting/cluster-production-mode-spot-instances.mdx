@@ -1,0 +1,197 @@
+---
+sidebar_position: 3
+title: "Modo de Producción del Clúster y Tipos de Instancias"
+description: "Comprendiendo el modo de producción, instancias SPOT vs On-Demand y configuración de Karpenter"
+date: "2024-12-19"
+category: "cluster"
+tags: ["producción", "instancias-spot", "on-demand", "karpenter", "eks"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Modo de Producción del Clúster y Tipos de Instancias
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Clúster  
+**Etiquetas:** Producción, Instancias SPOT, On-Demand, Karpenter, EKS
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios necesitan entender la diferencia entre los modos de clúster de producción y desarrollo en SleakOps, particularmente respecto a los tipos de instancias (SPOT vs On-Demand) y su impacto en la estabilidad y costos del clúster.
+
+**Síntomas Observados:**
+
+- Confusión sobre cuándo usar el modo producción
+- Incertidumbre sobre instancias SPOT vs On-Demand para nodepools
+- Preguntas sobre si el modo producción cambia automáticamente la configuración del nodepool
+- Problemas de programación de pods relacionados con taints en nodos en Karpenter
+
+**Configuración Relevante:**
+
+- Modo del clúster: Producción vs Desarrollo
+- Tipos de instancias: SPOT vs On-Demand
+- Configuración de nodepools en Karpenter
+- Cargas críticas del sistema (ALB, external-dns, etc.)
+
+**Condiciones de Error:**
+
+- Pods que no pueden programarse debido a taints en nodos
+- Inestabilidad del clúster con instancias SPOT
+- Confusión sobre optimización de costos vs confiabilidad
+
+## Solución Detallada
+
+<TroubleshootingItem id="production-mode-explanation" summary="¿Qué hace el Modo Producción?">
+
+El modo producción en SleakOps afecta la **infraestructura crítica del clúster**, no las cargas de trabajo de tu aplicación:
+
+**Qué Cambia el Modo Producción:**
+
+- Usa instancias On-Demand para componentes críticos del sistema (Karpenter, Controlador ALB, External-DNS, etc.)
+- Aplica configuraciones adicionales que mejoran la disponibilidad del clúster
+- Asegura estabilidad del sistema para cargas de producción
+
+**Qué NO Cambia el Modo Producción:**
+
+- Tus nodepools de aplicación permanecen sin cambios
+- Puedes seguir usando instancias SPOT para tus cargas
+- No afecta las configuraciones de despliegue de la aplicación
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="spot-vs-ondemand" summary="Instancias SPOT vs On-Demand: Cuándo usar cada una">
+
+**Instancias SPOT:**
+
+- **Ventajas:** Ahorro de hasta 90% en costos, ideales para cargas tolerantes a fallos
+- **Desventajas:** AWS puede terminarlas con aviso de 2 minutos
+- **Mejor para:** Entornos de desarrollo, procesamiento por lotes, aplicaciones sin estado
+
+**Instancias On-Demand:**
+
+- **Ventajas:** Disponibilidad garantizada, costos predecibles
+- **Desventajas:** Costo más alto (precio completo)
+- **Mejor para:** Aplicaciones críticas, bases de datos, cargas de producción que requieren alta disponibilidad
+
+**Recomendación para Nodepools:**
+
+```yaml
+# Para aplicaciones que pueden manejar rotación de nodos
+instance_type: spot
+
+# Para aplicaciones críticas que requieren disponibilidad garantizada
+instance_type: on-demand
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="karpenter-configuration" summary="Entendiendo Karpenter y los Taints de Nodo">
+
+Karpenter gestiona automáticamente diferentes tipos de nodos con taints específicos:
+
+**Taints Comunes en Karpenter:**
+
+- `karpenter.sh/nodepool: spot-amd64` - Instancias SPOT con arquitectura AMD64
+- `karpenter.sh/nodepool: spot-arm64` - Instancias SPOT con arquitectura ARM64
+- `karpenter.sh/nodepool: ondemand-amd64` - Instancias On-Demand con arquitectura AMD64
+- `karpenter.sh/nodepool: ondemand-arm64` - Instancias On-Demand con arquitectura ARM64
+
+**Si los pods no pueden programarse debido a taints:**
+
+1. Verifica las tolerancias de tus pods
+2. Revisa la configuración del nodepool
+3. Asegúrate que Karpenter pueda aprovisionar nodos adecuados
+
+```yaml
+# Ejemplo de tolerancia para instancias SPOT
+tolerations:
+  - key: karpenter.sh/nodepool
+    operator: Equal
+    value: spot-amd64
+    effect: NoSchedule
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="production-recommendations" summary="Recomendaciones para Entornos de Producción">
+
+**Para Clústeres de Producción:**
+
+1. **Habilitar Modo Producción:**
+
+   - Ir a Configuración del Clúster
+   - Activar "Modo Producción"
+   - Esto asegura componentes críticos del sistema
+
+2. **Estrategia de Nodepools:**
+
+   - Usar **On-Demand** para aplicaciones críticas (bases de datos, APIs)
+   - Usar **SPOT** para cargas tolerantes a fallos (trabajadores, trabajos por lotes)
+   - Considerar nodepools mixtos para optimización de costos
+
+3. **Preparación de Aplicaciones para SPOT:**
+   - Implementar manejo de apagado ordenado
+   - Usar autoescalado horizontal de pods
+   - Diseñar para tolerar rotación de nodos
+   - Implementar chequeos de salud adecuados
+
+**Ejemplo de Configuración Mixta:**
+
+```yaml
+# Nodepool para cargas críticas
+critical_nodepool:
+  instance_type: on-demand
+  min_size: 2
+  max_size: 10
+
+# Nodepool para procesamiento por lotes
+batch_nodepool:
+  instance_type: spot
+  min_size: 0
+  max_size: 50
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-scheduling" summary="Solución de Problemas en la Programación de Pods">
+
+Si los pods en el namespace `kube-system` fallan al programarse:
+
+**1. Verificar Disponibilidad de Nodos:**
+
+```bash
+kubectl get nodes
+kubectl describe nodes
+```
+
+**2. Verificar Estado de Pods:**
+
+```bash
+kubectl get pods -n kube-system
+kubectl describe pod <nombre-del-pod> -n kube-system
+```
+
+**3. Revisar Logs de Karpenter:**
+
+```bash
+kubectl logs -n karpenter deployment/karpenter
+```
+
+**4. Verificar Configuración de Nodepool:**
+
+- Asegurar que los nodepools estén correctamente configurados
+- Comprobar que Karpenter pueda aprovisionar nuevos nodos
+- Verificar cuotas y permisos en AWS
+
+**5. Soluciones Comunes:**
+
+- Reiniciar despliegue de Karpenter
+- Revisar cuotas EC2 en AWS
+- Verificar capacidad de subred
+- Revisar configuraciones de grupos de seguridad
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de usuario._

@@ -1,0 +1,279 @@
+---
+sidebar_position: 3
+title: "Problema de Detección de Base de Datos en OpenTelemetry con Django"
+description: "Solución para OpenTelemetry que no detecta bases de datos configuradas en aplicaciones Django"
+date: "2024-12-19"
+category: "workload"
+tags:
+  ["opentelemetry", "django", "base de datos", "monitoreo", "instrumentación"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problema de Detección de Base de Datos en OpenTelemetry con Django
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** OpenTelemetry, Django, Base de datos, Monitoreo, Instrumentación
+
+## Descripción del Problema
+
+**Contexto:** El usuario tiene una aplicación Django desplegada en SleakOps con auto-instrumentación de OpenTelemetry activada, pero OpenTelemetry no detecta las conexiones a bases de datos configuradas a pesar de que la base de datos está correctamente configurada en los ajustes de Django.
+
+**Síntomas Observados:**
+
+- La auto-instrumentación de OpenTelemetry no detecta conexiones a bases de datos
+- La base de datos está correctamente configurada y funciona en la aplicación Django
+- Añadir la variable de entorno `DJANGO_SETTINGS_MODULE` no resuelve el problema
+- La aplicación funciona normalmente pero carece de datos de telemetría de base de datos
+
+**Configuración Relevante:**
+
+- Framework: Django (Django REST Framework)
+- Variable de entorno: `DJANGO_SETTINGS_MODULE="simplee_drf.settings"`
+- Plataforma: SleakOps con auto-instrumentación de OpenTelemetry
+- Problema previo con la librería boto fue resuelto actualizando la versión
+
+**Condiciones de Error:**
+
+- OpenTelemetry no detecta la base de datos durante el inicio de la aplicación
+- Faltan trazas y métricas de base de datos en los datos de observabilidad
+- El problema persiste tras configurar la variable de entorno del módulo de ajustes de Django
+
+## Solución Detallada
+
+<TroubleshootingItem id="django-settings-verification" summary="Verificar Configuración de Ajustes de Django">
+
+Primero, asegúrate de que los ajustes de Django estén correctamente configurados para la detección de la base de datos:
+
+1. **Verifica que DJANGO_SETTINGS_MODULE esté correctamente establecido:**
+
+```yaml
+# En la configuración de despliegue de SleakOps
+environment:
+  DJANGO_SETTINGS_MODULE: "tu_proyecto.settings"
+  # Reemplaza 'tu_proyecto' con el nombre real de tu proyecto
+```
+
+2. **Revisa que el archivo de ajustes de Django contenga la configuración de la base de datos:**
+
+```python
+# settings.py
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',  # o el motor de base de datos que uses
+        'NAME': os.environ.get('DB_NAME'),
+        'USER': os.environ.get('DB_USER'),
+        'PASSWORD': os.environ.get('DB_PASSWORD'),
+        'HOST': os.environ.get('DB_HOST'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
+    }
+}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="opentelemetry-instrumentation" summary="Configurar Instrumentación de OpenTelemetry para Django">
+
+Asegúrate de que la instrumentación de OpenTelemetry para Django esté configurada correctamente:
+
+1. **Agrega los paquetes necesarios de OpenTelemetry en requirements.txt:**
+
+```txt
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-auto-instrumentation
+opentelemetry-instrumentation-django
+opentelemetry-instrumentation-psycopg2  # para PostgreSQL
+# o opentelemetry-instrumentation-mysqlclient  # para MySQL
+```
+
+2. **Configura la instrumentación en los ajustes de Django:**
+
+```python
+# settings.py
+from opentelemetry.instrumentation.django import DjangoInstrumentor
+from opentelemetry.instrumentation.psycopg2 import Psycopg2Instrumentor
+
+# Inicializa los instrumentadores
+DjangoInstrumentor().instrument()
+Psycopg2Instrumentor().instrument()
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="environment-variables" summary="Establecer Variables de Entorno Requeridas">
+
+Configura las variables de entorno necesarias en tu despliegue de SleakOps:
+
+```yaml
+# Configuración de despliegue en SleakOps
+environment:
+  # Configuración de Django
+  DJANGO_SETTINGS_MODULE: "tu_proyecto.settings"
+
+  # Configuración de base de datos
+  DB_NAME: "nombre_de_tu_base_de_datos"
+  DB_USER: "usuario_de_tu_base_de_datos"
+  DB_PASSWORD: "contraseña_de_tu_base_de_datos"
+  DB_HOST: "host_de_tu_base_de_datos"
+  DB_PORT: "5432"
+
+  # Configuración de OpenTelemetry
+  OTEL_SERVICE_NAME: "tu-app-django"
+  OTEL_RESOURCE_ATTRIBUTES: "service.name=tu-app-django,service.version=1.0.0"
+  OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED: "true"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-instrumentation" summary="Instrumentación Manual de Base de Datos (Alternativa)">
+
+Si la auto-instrumentación sigue fallando, configura la instrumentación manual:
+
+1. **Crea un módulo de instrumentación:**
+
+```python
+# instrumentation.py
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.instrumentation.django import DjangoInstrumentor
+from opentelemetry.instrumentation.psycopg2 import Psycopg2Instrumentor
+
+def setup_telemetry():
+    # Configura el proveedor de trazas
+    trace.set_tracer_provider(TracerProvider())
+    tracer = trace.get_tracer_provider()
+
+    # Configura el exportador OTLP
+    otlp_exporter = OTLPSpanExporter()
+    span_processor = BatchSpanProcessor(otlp_exporter)
+    tracer.add_span_processor(span_processor)
+
+    # Instrumenta Django y la base de datos
+    DjangoInstrumentor().instrument()
+    Psycopg2Instrumentor().instrument()
+```
+
+2. **Inicializa en el método ready() de Django:**
+
+```python
+# apps.py
+from django.apps import AppConfig
+
+class YourAppConfig(AppConfig):
+    default_auto_field = 'django.db.models.BigAutoField'
+    name = 'tu_app'
+
+    def ready(self):
+        from .instrumentation import setup_telemetry
+        setup_telemetry()
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Solución de Problemas y Verificación">
+
+**Verifica que la instrumentación esté funcionando:**
+
+1. **Revisa los logs de la aplicación para la inicialización de OpenTelemetry:**
+
+```bash
+# Busca estos mensajes en los logs de SleakOps
+kubectl logs -f deployment/tu-app | grep -i "opentelemetry\|instrumentation"
+```
+
+2. **Prueba la conexión a la base de datos manualmente:**
+
+```python
+# En la consola de Django o en una vista de prueba
+from django.db import connection
+
+def test_db_connection():
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT 1")
+        result = cursor.fetchone()
+    return result
+```
+
+3. **Verifica que se estén enviando datos de telemetría:**
+
+```python
+# Añade a una vista Django para pruebas
+from opentelemetry import trace
+
+def test_view(request):
+    tracer = trace.get_tracer(__name__)
+    with tracer.start_as_current_span("test-span"):
+        # Tu lógica de vista aquí
+        return JsonResponse({"status": "ok"})
+```
+
+**Problemas comunes y soluciones:**
+
+- **Problema**: La instrumentación no se inicializa
+  - **Solución**: Asegúrate de que la instrumentación se ejecute antes de importar Django
+- **Problema**: Variables de entorno no están configuradas
+  - **Solución**: Verifica que todas las variables de entorno estén establecidas en SleakOps
+- **Problema**: Versiones incompatibles de paquetes
+  - **Solución**: Actualiza todos los paquetes de OpenTelemetry a la misma versión
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="advanced-configuration" summary="Configuración Avanzada y Mejores Prácticas">
+
+**Configuración avanzada para casos complejos:**
+
+1. **Configuración personalizada del exportador:**
+
+```python
+# settings.py
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+# Configuración personalizada del exportador OTLP
+otlp_exporter = OTLPSpanExporter(
+    endpoint="http://tu-collector:4317",
+    headers={
+        "api-key": "tu-api-key"
+    }
+)
+```
+
+2. **Instrumentación selectiva:**
+
+```python
+# Solo instrumentar componentes específicos
+from opentelemetry.instrumentation.django import DjangoInstrumentor
+from opentelemetry.instrumentation.requests import RequestsInstrumentor
+
+# Instrumentar solo Django y requests
+DjangoInstrumentor().instrument()
+RequestsInstrumentor().instrument()
+```
+
+3. **Configuración de muestreo:**
+
+```python
+from opentelemetry.sdk.trace.sampling import TraceIdRatioBasedSampler
+
+# Configurar muestreo al 10%
+sampler = TraceIdRatioBasedSampler(rate=0.1)
+```
+
+**Mejores prácticas:**
+
+- Usa instrumentación automática cuando sea posible
+- Configura muestreo apropiado para entornos de producción
+- Monitorea el rendimiento de la instrumentación
+- Mantén actualizadas las librerías de OpenTelemetry
+- Documenta la configuración específica de tu aplicación
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de usuario._
+

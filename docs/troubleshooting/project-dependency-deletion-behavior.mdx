@@ -1,0 +1,164 @@
+---
+sidebar_position: 3
+title: "Project Deletion and Dependencies Behavior"
+description: "Understanding what happens to dependencies when deleting a project in SleakOps"
+date: "2025-01-28"
+category: "project"
+tags: ["project", "dependencies", "redis", "deletion", "cleanup"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Project Deletion and Dependencies Behavior
+
+**Date:** January 28, 2025  
+**Category:** Project  
+**Tags:** Project, Dependencies, Redis, Deletion, Cleanup
+
+## Problem Description
+
+**Context:** Users need to understand the behavior of project dependencies (such as Redis, databases, caches) when a project is deleted from the SleakOps platform.
+
+**Observed Symptoms:**
+
+- Uncertainty about dependency cleanup when deleting projects
+- Need to understand if dependencies are automatically removed
+- Concern about data loss or orphaned resources
+- Questions about cleanup procedures
+
+**Relevant Configuration:**
+
+- Project with attached dependencies (Redis, PostgreSQL, MySQL, etc.)
+- SleakOps project management interface
+- Dependency lifecycle management
+
+**Error Conditions:**
+
+- Risk of orphaned resources if dependencies aren't properly cleaned up
+- Potential data loss if dependencies are unexpectedly deleted
+- Billing concerns for unused resources
+
+## Detailed Solution
+
+<TroubleshootingItem id="dependency-deletion-behavior" summary="What happens to dependencies when deleting a project">
+
+**Yes, dependencies are automatically deleted when you delete a project in SleakOps.**
+
+When you delete a project that contains dependencies like Redis, PostgreSQL, MySQL, or other services, the following occurs:
+
+1. **All project dependencies are removed** along with the project
+2. **Data stored in these dependencies is permanently deleted**
+3. **Associated cloud resources are cleaned up** to avoid ongoing charges
+4. **The deletion is irreversible** - you cannot recover the data afterward
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deletion-process" summary="Step-by-step deletion process">
+
+The deletion process follows this sequence:
+
+1. **Project deletion initiated** by user
+2. **Workloads are stopped** (webservices, workers, cron jobs)
+3. **Dependencies are identified** and marked for deletion
+4. **Data backup warning** is displayed (if applicable)
+5. **Dependencies are deleted** in reverse dependency order
+6. **Project resources are cleaned up**
+7. **Confirmation of complete deletion**
+
+```bash
+# Example of what gets deleted:
+- Redis instance and all cached data
+- PostgreSQL database and all stored data
+- MySQL database and all stored data
+- Associated volumes and storage
+- Network configurations
+- Load balancers and ingress rules
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="data-backup-recommendations" summary="Data backup recommendations before deletion">
+
+**Important: Always backup critical data before deleting a project.**
+
+### For Redis:
+
+```bash
+# Connect to your Redis instance and create a backup
+redis-cli --rdb /path/to/backup.rdb
+
+# Or export specific keys
+redis-cli --scan --pattern "*" | xargs redis-cli MGET
+```
+
+### For PostgreSQL:
+
+```bash
+# Create a database dump
+pg_dump -h your-host -U your-user -d your-database > backup.sql
+
+# Or use SleakOps CLI if available
+sleakops project backup --project-id PROJECT_ID --service postgres
+```
+
+### For MySQL:
+
+```bash
+# Create a database dump
+mysqldump -h your-host -u your-user -p your-database > backup.sql
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-measures" summary="How to prevent accidental data loss">
+
+### Before Deleting a Project:
+
+1. **Review all dependencies**:
+
+   - Go to Project Settings → Dependencies
+   - List all attached services (Redis, databases, etc.)
+   - Identify critical data that needs backup
+
+2. **Create backups**:
+
+   - Export important data from Redis
+   - Dump database contents
+   - Save configuration files
+
+3. **Consider alternatives**:
+   - **Pause the project** instead of deleting (if available)
+   - **Migrate dependencies** to another project
+   - **Detach dependencies** before deletion (if supported)
+
+### Safety Checklist:
+
+- [ ] All critical data has been backed up
+- [ ] Team members are aware of the deletion
+- [ ] No active users depend on the services
+- [ ] Alternative solutions are in place if needed
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="recovery-options" summary="Recovery options after accidental deletion">
+
+**Unfortunately, once a project and its dependencies are deleted, recovery is generally not possible.**
+
+However, check these options:
+
+1. **Cloud provider backups**: Some cloud providers maintain automatic backups
+2. **SleakOps support**: Contact support immediately if deletion was accidental
+3. **Application-level backups**: Check if your application created its own backups
+
+### Prevention for the future:
+
+- Set up regular automated backups
+- Use staging environments for testing deletions
+- Implement backup strategies in your application code
+- Consider using external backup services
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 28, 2025 based on a real user query._

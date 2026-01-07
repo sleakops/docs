@@ -1,0 +1,170 @@
+---
+sidebar_position: 3
+title: "CloudFront CDN for Existing S3 Bucket"
+description: "How to create a CloudFront distribution for an S3 bucket already created in SleakOps"
+date: "2024-12-19"
+category: "dependency"
+tags: ["cloudfront", "s3", "cdn", "aws", "storage"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# CloudFront CDN for Existing S3 Bucket
+
+**Date:** December 19, 2024  
+**Category:** Dependency  
+**Tags:** CloudFront, S3, CDN, AWS, Storage
+
+## Problem Description
+
+**Context:** User has an S3 bucket already created through SleakOps and wants to add a CloudFront CDN distribution to it. The CloudFront option is available during bucket creation but not visible for existing buckets.
+
+**Observed Symptoms:**
+
+- CloudFront option available only during S3 bucket creation
+- No visible option to add CloudFront to existing buckets in SleakOps interface
+- Need to enable CDN for already deployed S3 storage
+
+**Relevant Configuration:**
+
+- S3 bucket: Already created through SleakOps
+- Platform: AWS
+- Service: CloudFront CDN distribution needed
+- Current limitation: Dependencies editing not enabled in SleakOps
+
+**Error Conditions:**
+
+- Cannot modify existing S3 bucket dependencies in SleakOps
+- No direct option to add CloudFront after bucket creation
+- User wants to avoid recreating the existing bucket
+
+## Detailed Solution
+
+<TroubleshootingItem id="current-limitation" summary="Current SleakOps limitation">
+
+Currently, SleakOps does not support editing dependencies for existing resources. This means you cannot add CloudFront to an S3 bucket after it has been created through the platform interface.
+
+The CloudFront option is only available during the initial S3 bucket creation process.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-cloudfront-creation" summary="Create CloudFront manually in AWS Console">
+
+You can create a CloudFront distribution manually using the AWS Console:
+
+1. **Access AWS Console**
+
+   - Log into your AWS account
+   - Navigate to **CloudFront** service
+
+2. **Create Distribution**
+
+   - Click **Create Distribution**
+   - Select **Web** distribution type
+
+3. **Configure Origin**
+
+   - **Origin Domain**: Select your existing S3 bucket from the dropdown
+   - **Origin Path**: Leave empty (unless you want to serve from a specific folder)
+   - **Origin Access**: Choose **Origin Access Control (OAC)** for better security
+
+4. **Distribution Settings**
+
+   - **Price Class**: Choose based on your geographic needs
+   - **Alternate Domain Names (CNAMEs)**: Add your custom domain if needed
+   - **SSL Certificate**: Use default or upload custom certificate
+
+5. **Deploy**
+   - Click **Create Distribution**
+   - Wait for deployment (usually 15-20 minutes)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="bucket-policy-update" summary="Update S3 bucket policy for CloudFront">
+
+After creating the CloudFront distribution, update your S3 bucket policy to allow CloudFront access:
+
+1. **Get CloudFront Distribution ID**
+
+   - Copy the Distribution ID from CloudFront console
+
+2. **Update Bucket Policy**
+
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Sid": "AllowCloudFrontServicePrincipal",
+         "Effect": "Allow",
+         "Principal": {
+           "Service": "cloudfront.amazonaws.com"
+         },
+         "Action": "s3:GetObject",
+         "Resource": "arn:aws:s3:::your-bucket-name/*",
+         "Condition": {
+           "StringEquals": {
+             "AWS:SourceArn": "arn:aws:cloudfront::your-account-id:distribution/your-distribution-id"
+           }
+         }
+       }
+     ]
+   }
+   ```
+
+3. **Apply Policy**
+   - Go to S3 bucket permissions
+   - Update bucket policy with the JSON above
+   - Replace placeholders with your actual values
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="testing-setup" summary="Test CloudFront Distribution">
+
+Verify your CloudFront distribution is working:
+
+1. **Get CloudFront URL**
+
+   - Copy the Distribution Domain Name from CloudFront console
+
+2. **Test Access**
+
+   ```bash
+   # Test with curl
+   curl https://your-distribution-domain.cloudfront.net/your-file.txt
+
+   # Or test in browser
+   https://your-distribution-domain.cloudfront.net/your-file.txt
+   ```
+
+3. **Verify Cache Headers**
+   ```bash
+   curl -I https://your-distribution-domain.cloudfront.net/your-file.txt
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solution" summary="Alternative: Recreate S3 with CloudFront">
+
+If manual setup is too complex, you can recreate the S3 bucket with CloudFront:
+
+1. **Backup Data**
+
+   - Download all files from existing bucket
+   - Note current bucket configuration
+
+2. **Create New S3 Dependency**
+
+   - In SleakOps, create new S3 bucket
+   - Enable CloudFront option during creation
+   - Upload your backed-up data
+
+3. **Update Application**
+   - Update your application to use new bucket
+   - Test connectivity and functionality
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

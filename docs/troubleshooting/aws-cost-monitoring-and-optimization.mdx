@@ -1,0 +1,197 @@
+---
+sidebar_position: 3
+title: "AWS Cost Monitoring and Optimization"
+description: "Understanding and managing AWS cost increases in SleakOps environments"
+date: "2025-01-16"
+category: "provider"
+tags: ["aws", "costs", "monitoring", "optimization", "billing"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# AWS Cost Monitoring and Optimization
+
+**Date:** January 16, 2025  
+**Category:** Provider  
+**Tags:** AWS, Costs, Monitoring, Optimization, Billing
+
+## Problem Description
+
+**Context:** Users experiencing gradual monthly increases in AWS costs (approximately $50/month) in their SleakOps-managed environments and need to understand the root causes and forecast future expenses.
+
+**Observed Symptoms:**
+
+- Monthly cost increases of approximately $50
+- Costs rising consistently over several months
+- Uncertainty about whether increases will continue
+- Need for accurate cost forecasting
+
+**Relevant Configuration:**
+
+- Multiple AWS environments managed through SleakOps
+- Recent deployments: databases, Grafana, Loki monitoring
+- NodePools configuration changes in November
+- Multiple AWS accounts potentially involved
+
+**Error Conditions:**
+
+- Cost increases not directly attributable to infrastructure changes
+- Potential costs from failed account creation attempts
+- Possible traffic-related cost increases
+- Forecasting discrepancies between different views
+
+## Detailed Solution
+
+<TroubleshootingItem id="cost-analysis-methodology" summary="How to analyze AWS cost increases">
+
+### Step-by-Step Cost Analysis
+
+1. **Establish a baseline period**: Identify when your environments became stable
+2. **Track incremental changes**: Document each infrastructure change with dates
+3. **Separate traffic from infrastructure costs**: AWS charges for networking traffic
+4. **Account for deployment timing**: Mid-month deployments affect next month's full costs
+
+### Key factors that affect costs:
+
+- **Infrastructure changes**: New databases, monitoring tools
+- **Traffic increases**: More users = higher networking costs
+- **Deployment timing**: Partial month vs. full month billing
+- **Multiple accounts**: Costs distributed across different AWS accounts
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-cost-drivers" summary="Common cost drivers in SleakOps environments">
+
+### Infrastructure Components and Their Cost Impact
+
+| Component                 | Typical Monthly Cost  | Notes                |
+| ------------------------- | --------------------- | -------------------- |
+| Small RDS instances       | $15-30                | Per database         |
+| Grafana + Loki monitoring | ~$15 static + traffic | Monitoring stack     |
+| NodePool changes          | Minimal               | Usually &lt;$5/month |
+| EKS cluster base          | $72/month             | Per cluster          |
+| Load balancers            | $16-25/month          | Per ALB/NLB          |
+
+### Traffic-Related Costs
+
+- **Data transfer out**: $0.09/GB (first 1GB free)
+- **Inter-AZ transfer**: $0.01/GB
+- **NAT Gateway**: $0.045/GB processed
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cost-investigation-steps" summary="How to investigate cost increases">
+
+### Using AWS Cost Explorer
+
+1. **Access Cost Explorer** from your root AWS account
+2. **Filter by account ID** to isolate costs per account
+3. **Group by service** to identify which AWS services are increasing
+4. **Set date ranges** to compare month-over-month
+
+### Key metrics to analyze:
+
+```bash
+# Example cost breakdown to look for:
+- EC2 instances (compute)
+- RDS (databases)
+- EKS (Kubernetes service)
+- Data Transfer (networking)
+- EBS (storage)
+- Load Balancers
+```
+
+### Questions to ask:
+
+- When did environments become stable?
+- What was deployed and when?
+- Has application traffic increased?
+- Are there unused resources in failed accounts?
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="forecast-accuracy" summary="Understanding cost forecasting">
+
+### AWS Cost Forecasting Limitations
+
+- **Early month forecasts** (first 3-5 days) can be inaccurate
+- **Seasonal variations** affect predictions
+- **New deployments** skew forecasting algorithms
+- **Traffic spikes** create temporary forecast inflation
+
+### Best practices for forecasting:
+
+1. **Wait until mid-month** for more accurate forecasts
+2. **Use 3-month trends** rather than single month comparisons
+3. **Account for known changes** when projecting
+4. **Monitor daily spend** to catch anomalies early
+
+### SleakOps Cost Monitoring
+
+SleakOps provides cost visibility through:
+
+- Real-time cost dashboards
+- Monthly cost breakdowns by environment
+- Resource utilization metrics
+- Optimization recommendations
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cleanup-optimization" summary="Cost optimization and cleanup">
+
+### Identifying Unnecessary Costs
+
+1. **Failed account resources**: Check for resources in accounts that failed during initial setup
+2. **Unused databases**: Identify databases with no connections
+3. **Over-provisioned instances**: Right-size based on utilization
+4. **Orphaned load balancers**: Remove unused ALBs/NLBs
+
+### Cleanup process:
+
+```bash
+# Example resources to check:
+- Unused EBS volumes
+- Stopped but not terminated EC2 instances
+- Load balancers with no targets
+- RDS instances with no connections
+- Elastic IPs not associated with instances
+```
+
+### Optimization strategies:
+
+- **Reserved instances** for predictable workloads
+- **Spot instances** for non-critical workloads
+- **Auto-scaling** to match demand
+- **Storage optimization** (gp3 vs gp2, lifecycle policies)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="ongoing-monitoring" summary="Setting up ongoing cost monitoring">
+
+### AWS Cost Alerts
+
+Set up billing alerts for:
+
+- Monthly budget thresholds
+- Unusual spending patterns
+- Per-service cost increases
+
+### SleakOps Monitoring
+
+- Review monthly cost reports
+- Monitor resource utilization
+- Track cost per environment
+- Set up notifications for significant changes
+
+### Regular review process:
+
+1. **Weekly**: Check for cost anomalies
+2. **Monthly**: Review cost trends and forecasts
+3. **Quarterly**: Optimize resource allocation
+4. **Annually**: Review reserved instance strategy
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 16, 2025 based on a real user query._

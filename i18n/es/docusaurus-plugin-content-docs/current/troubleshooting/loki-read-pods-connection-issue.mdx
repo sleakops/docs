@@ -1,0 +1,208 @@
+---
+sidebar_position: 15
+title: "Problema de Conexión de los Pods de Lectura de Loki"
+description: "Solución para que los pods de lectura de Loki no se reconecten al backend después de un reinicio"
+date: "2024-04-21"
+category: "dependency"
+tags: ["loki", "grafana", "monitoring", "pods", "connection", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problema de Conexión de los Pods de Lectura de Loki
+
+**Fecha:** 21 de abril de 2024  
+**Categoría:** Dependencia  
+**Etiquetas:** Loki, Grafana, Monitorización, Pods, Conexión, Solución de problemas
+
+## Descripción del Problema
+
+**Contexto:** La pila de monitorización Loki experimenta problemas de conectividad donde los pods de lectura no logran reconectarse al servicio backend después de que el pod backend se reinicia o queda inaccesible.
+
+**Síntomas Observados:**
+
+- Los pods de lectura de Loki (`loki-read`) no pueden conectarse al backend de Loki
+- Los errores de conexión persisten incluso después de restaurar los pods backend
+- Los paneles de Grafana muestran problemas al recuperar datos
+- Las consultas de logs fallan o retornan resultados incompletos
+
+**Configuración Relevante:**
+
+- Componente: pods de lectura de Loki (`loki-read`)
+- Servicio backend: `loki-backend`
+- Plataforma: despliegue de Loki basado en Kubernetes
+- Comportamiento de conexión: conexión inicial solamente, sin reconexión automática
+
+**Condiciones de Error:**
+
+- Ocurre cuando los pods `loki-backend` se reinician o fallan
+- Los pods de lectura sólo intentan conexión al iniciar
+- No existe mecanismo automático de reconexión en la versión actual de Loki
+- Requiere intervención manual para restaurar la conectividad
+
+## Solución Detallada
+
+<TroubleshootingItem id="immediate-fix" summary="Solución inmediata: Reiniciar los pods de lectura de Loki">
+
+Para resolver el problema de conexión de forma inmediata:
+
+1. **Identificar los pods afectados:**
+
+   ```bash
+   kubectl get pods -l app=loki-read -n monitoring
+   ```
+
+2. **Reiniciar los pods de lectura de Loki:**
+
+   ```bash
+   kubectl delete pods -l app=loki-read -n monitoring
+   ```
+
+3. **Verificar que los pods estén en ejecución:**
+
+   ```bash
+   kubectl get pods -l app=loki-read -n monitoring -w
+   ```
+
+4. **Comprobar la conectividad:**
+   ```bash
+   kubectl logs -l app=loki-read -n monitoring --tail=50
+   ```
+
+Los pods se reconectarán automáticamente al backend al reiniciarse.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="root-cause" summary="Entendiendo la causa raíz">
+
+El problema ocurre porque:
+
+1. **Intento único de conexión**: Los pods de lectura de Loki sólo intentan conectarse al backend durante su fase de inicialización
+2. **Sin lógica de reconexión**: Las versiones actuales de Loki carecen de mecanismos automáticos de reconexión
+3. **Dependencia del backend**: Cuando `loki-backend` se reinicia, se pierden las conexiones existentes
+4. **Conexión estática**: Los pods de lectura mantienen una conexión estática sin chequeos de salud
+
+Esta es una limitación conocida en versiones antiguas de Loki que ha sido corregida en versiones más recientes.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="permanent-solution" summary="Solución permanente: Actualizar la versión de Loki">
+
+La solución permanente implica actualizar a una versión de Loki que incluya el [PR #17063](https://github.com/grafana/loki/pull/17063):
+
+**Lo que aborda el PR:**
+
+- Añade capacidades de chequeo de salud a los pods de lectura de Loki
+- Implementa lógica automática de reconexión
+- Mejora la resiliencia de la conexión
+
+**Pasos para la implementación:**
+
+1. **Verificar la versión actual de Loki:**
+
+   ```bash
+   kubectl get deployment loki-read -n monitoring -o jsonpath='{.spec.template.spec.containers[0].image}'
+   ```
+
+2. **Actualizar valores de Helm para incluir chequeos de salud:**
+
+   ```yaml
+   loki:
+     read:
+       livenessProbe:
+         enabled: true
+         httpGet:
+           path: /ready
+           port: 3100
+         initialDelaySeconds: 30
+         periodSeconds: 10
+       readinessProbe:
+         enabled: true
+         httpGet:
+           path: /ready
+           port: 3100
+         initialDelaySeconds: 15
+         periodSeconds: 5
+   ```
+
+3. **Actualizar usando Helm:**
+   ```bash
+   helm upgrade loki grafana/loki -n monitoring -f values.yaml
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-prevention" summary="Monitoreo y prevención">
+
+Para prevenir y detectar rápidamente este problema:
+
+**Configurar alertas de monitoreo:**
+
+```yaml
+# Regla de alerta de Prometheus
+groups:
+  - name: loki-connectivity
+    rules:
+      - alert: LokiReadPodsDisconnected
+        expr: up{job="loki-read"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Los pods de lectura de Loki están desconectados"
+          description: "Los pods de lectura de Loki han estado desconectados por más de 2 minutos"
+```
+
+**Script de chequeo de salud:**
+
+```bash
+#!/bin/bash
+# Comprobar conectividad de los pods de lectura de Loki
+READ_PODS=$(kubectl get pods -l app=loki-read -n monitoring --no-headers | wc -l)
+READY_PODS=$(kubectl get pods -l app=loki-read -n monitoring --no-headers | grep Running | wc -l)
+
+if [ "$READ_PODS" -ne "$READY_PODS" ]; then
+    echo "Advertencia: No todos los pods de lectura de Loki están listos"
+    kubectl get pods -l app=loki-read -n monitoring
+fi
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Pasos adicionales para solución de problemas">
+
+Si el problema persiste después de reiniciar los pods:
+
+1. **Verificar estado del pod backend:**
+
+   ```bash
+   kubectl get pods -l app=loki-backend -n monitoring
+   kubectl logs -l app=loki-backend -n monitoring --tail=100
+   ```
+
+2. **Verificar conectividad del servicio:**
+
+   ```bash
+   kubectl get svc loki-backend -n monitoring
+   kubectl describe svc loki-backend -n monitoring
+   ```
+
+3. **Probar conectividad interna:**
+
+   ```bash
+   kubectl run test-pod --rm -i --tty --image=busybox -- /bin/sh
+   # Dentro del pod:
+   nslookup loki-backend.monitoring.svc.cluster.local
+   wget -qO- http://loki-backend.monitoring.svc.cluster.local:3100/ready
+   ```
+
+4. **Verificar políticas de red:**
+   ```bash
+   kubectl get networkpolicies -n monitoring
+   ```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 21 de abril de 2024 basada en una consulta real de usuario._

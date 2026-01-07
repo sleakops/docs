@@ -1,0 +1,330 @@
+---
+sidebar_position: 3
+title: "Production Environment Setup Guide"
+description: "Step-by-step guide to create and configure production environments in SleakOps"
+date: "2024-12-19"
+category: "project"
+tags: ["production", "environment", "deployment", "setup", "configuration"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Production Environment Setup Guide
+
+**Date:** December 19, 2024  
+**Category:** Project  
+**Tags:** Production, Environment, Deployment, Setup, Configuration
+
+## Problem Description
+
+**Context:** Users need to create a production environment in SleakOps to deploy applications from the main branch, separate from development environments that typically use develop branches.
+
+**Observed Symptoms:**
+
+- Need to create a new production environment from scratch
+- Requirement to separate production deployments from development
+- Need to migrate or replicate existing development configurations
+- Database migration requirements for production data
+
+**Relevant Configuration:**
+
+- Environment type: Production (root environment)
+- Branch strategy: main branch for production vs develop for staging
+- Database: PostgreSQL with potential data migration needs
+- Domain configuration: Production-specific domains
+
+**Error Conditions:**
+
+- Lack of clear step-by-step process for production setup
+- Uncertainty about resource replication from development
+- Database migration complexity
+
+## Detailed Solution
+
+<TroubleshootingItem id="create-production-environment" summary="Step 1: Create Production Environment">
+
+### Creating the Production Environment
+
+1. **Navigate to Environments**
+
+   - Go to your SleakOps dashboard
+   - Click on **Environments** in the sidebar
+
+2. **Create New Environment**
+
+   - Click **"Create Environment"**
+   - Set the name as `prod` or `production`
+   - **Important**: Mark this environment as **"Root Environment"**
+
+3. **Configure Domain Settings**
+   - Set up your production domains
+   - Configure SSL certificates if needed
+   - Ensure DNS settings point to your production infrastructure
+
+### Environment Configuration Example
+
+```yaml
+name: prod
+type: root
+domain_config:
+  primary_domain: "myapp.com"
+  ssl_enabled: true
+  certificate_type: "letsencrypt"
+branch_strategy:
+  default_branch: "main"
+  auto_deploy: true
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="replicate-resources" summary="Step 2: Replicate Development Resources">
+
+### Resource Replication Process
+
+You need to recreate all the resources from your development environment:
+
+#### Projects
+
+1. **Create New Project**
+   - Use the same configuration as development
+   - Change the branch from `develop` to `main`
+   - Update environment variables for production
+
+#### Dependencies
+
+1. **Database Dependencies**
+
+   - Create PostgreSQL instances for production
+   - Configure with production-appropriate sizing
+   - Set up backup and monitoring
+
+2. **Cache Dependencies**
+   - Redis or other caching solutions
+   - Configure with production specifications
+
+#### Executions (Workloads)
+
+1. **Web Services**
+
+   - Replicate web service configurations
+   - Adjust resource limits for production load
+   - Configure health checks and monitoring
+
+2. **Worker Services**
+   - Background job processors
+   - Scheduled tasks and cron jobs
+
+#### Variable Groups
+
+1. **Environment Variables**
+   - Create production-specific variable groups
+   - Update API keys, database connections
+   - Set production feature flags
+
+### Production Configuration Checklist
+
+- [ ] Environment created and marked as root
+- [ ] Projects configured with main branch
+- [ ] Database dependencies created
+- [ ] Cache dependencies configured
+- [ ] Web services replicated
+- [ ] Worker services set up
+- [ ] Production variable groups created
+- [ ] Domain and SSL configured
+- [ ] Monitoring and alerting enabled
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="database-migration" summary="Step 3: Database Migration (If Required)">
+
+### Database Dump Import Process
+
+If you need to migrate data from development to production:
+
+#### Prerequisites
+
+1. **Create Database Dump**
+
+   ```bash
+   pg_dump -h dev-db-host -U username -d database_name > production_dump.sql
+   ```
+
+2. **Prepare Production Database**
+   - Ensure the production PostgreSQL instance is running
+   - Verify connection credentials
+   - Ensure sufficient storage space
+
+#### Import Process
+
+1. **Access Database Import Feature**
+
+   - Go to your PostgreSQL dependency in production environment
+   - Look for "Import Database" or "Restore" option
+
+2. **Upload and Import**
+   - Upload your dump file
+   - Execute the import process
+   - Monitor the import progress
+
+#### Post-Import Verification
+
+```sql
+-- Verify data integrity
+SELECT COUNT(*) FROM your_main_table;
+
+-- Check user accounts
+SELECT COUNT(*) FROM users;
+
+-- Verify application-specific data
+SELECT * FROM configuration_table LIMIT 5;
+```
+
+### Important Considerations
+
+- **Data Sanitization**: Remove or anonymize sensitive development data
+- **Production Secrets**: Update all API keys and passwords
+- **Feature Flags**: Disable development-only features
+- **Email Configuration**: Ensure production email settings
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deployment-strategy" summary="Step 4: Deployment and Go-Live Strategy">
+
+### Pre-Production Checklist
+
+#### Technical Verification
+
+- [ ] All services are healthy and running
+- [ ] Database connections are working
+- [ ] External API integrations are configured
+- [ ] SSL certificates are valid
+- [ ] Domain routing is correct
+- [ ] Monitoring and logging are active
+
+#### Security Checklist
+
+- [ ] Production secrets are updated
+- [ ] Development debug modes are disabled
+- [ ] Access controls are properly configured
+- [ ] Backup procedures are in place
+- [ ] Security scanning is complete
+
+### Deployment Process
+
+1. **Initial Deployment**
+
+   ```bash
+   # Ensure main branch is ready
+   git checkout main
+   git pull origin main
+
+   # Deploy through SleakOps
+   # This will automatically trigger based on your configuration
+   ```
+
+2. **Smoke Testing**
+
+   - Test critical user journeys
+   - Verify database connectivity
+   - Check external service integrations
+   - Validate monitoring and alerting
+
+3. **Go-Live Preparation**
+   - Schedule maintenance window if needed
+   - Prepare rollback procedures
+   - Set up real-time monitoring
+   - Notify stakeholders of go-live timeline
+
+### Monitoring Production
+
+```yaml
+# Example monitoring configuration
+monitoring:
+  health_checks:
+    - endpoint: "/health"
+      interval: "30s"
+      timeout: "5s"
+  alerts:
+    - type: "response_time"
+      threshold: "2s"
+    - type: "error_rate"
+      threshold: "5%"
+  logging:
+    level: "info"
+    retention: "30d"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Production Environment Best Practices">
+
+### Resource Sizing Guidelines
+
+#### Database
+
+- **Development**: t3.micro or t3.small
+- **Production**: t3.medium or larger based on load
+- Enable automated backups
+- Configure read replicas if needed
+
+#### Application Services
+
+- **CPU**: Start with 2x development environment CPU allocation
+- **Memory**: Start with 2x development environment memory
+- **Replicas**: Minimum 2 for high availability
+- **Storage**: Use production-grade storage classes
+
+#### Load Balancer Configuration
+
+```yaml
+# Production load balancer settings
+ingress:
+  annotations:
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-rps: "10"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+```
+
+### Security Considerations
+
+1. **Environment Variables Security**:
+
+   - Use SleakOps Variable Groups for sensitive data
+   - Never store secrets in plain text
+   - Rotate API keys and passwords regularly
+
+2. **Network Security**:
+
+   - Enable VPC private networking
+   - Configure security groups appropriately
+   - Use SSL/TLS for all communications
+
+3. **Access Control**:
+   - Limit production environment access
+   - Use role-based access control (RBAC)
+   - Enable audit logging
+
+### Monitoring and Maintenance
+
+1. **Set up monitoring alerts**:
+
+   - CPU and memory usage
+   - Application error rates
+   - Database performance metrics
+
+2. **Backup Strategy**:
+
+   - Automated daily database backups
+   - Application configuration backups
+   - Disaster recovery procedures
+
+3. **Update Procedures**:
+   - Staging deployments before production
+   - Blue-green or rolling deployment strategies
+   - Rollback procedures for failed deployments
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

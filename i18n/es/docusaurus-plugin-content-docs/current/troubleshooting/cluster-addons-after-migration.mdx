@@ -1,0 +1,178 @@
+---
+sidebar_position: 3
+title: "Complementos del Clúster Perdidos Después de la Migración"
+description: "Cómo localizar y restaurar los complementos del clúster después de la migración de la plataforma"
+date: "2024-10-15"
+category: "cluster"
+tags: ["migración", "complementos", "loki", "grafana", "monitoreo"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Complementos del Clúster Perdidos Después de la Migración
+
+**Fecha:** 15 de octubre de 2024  
+**Categoría:** Clúster  
+**Etiquetas:** Migración, Complementos, Loki, Grafana, Monitoreo
+
+## Descripción del Problema
+
+**Contexto:** Después de una migración de clúster en SleakOps, los usuarios no pueden localizar los complementos instalados previamente como Loki, Grafana y otras herramientas de monitoreo en la nueva interfaz.
+
+**Síntomas Observados:**
+
+- Los complementos del clúster (Loki, Grafana, etc.) no son visibles en la nueva interfaz
+- Las herramientas de monitoreo configuradas previamente parecen estar ausentes
+- Los usuarios no pueden acceder a los paneles de monitoreo que estaban disponibles antes de la migración
+- Incertidumbre sobre el estado de los complementos tras la migración de la plataforma
+
+**Configuración Relevante:**
+
+- Plataforma: SleakOps con interfaz nueva
+- Complementos afectados: Loki, Grafana y otras herramientas de monitoreo
+- Contexto de migración: Migración de clúster reciente realizada
+- Interfaz: Interfaz actualizada/nueva de SleakOps
+
+**Condiciones de Error:**
+
+- Complementos no visibles inmediatamente después de la migración
+- Ocurre al acceder a la nueva interfaz tras la migración
+- Afecta capacidades de monitoreo y registro
+- Puede impactar la visibilidad operativa
+
+## Solución Detallada
+
+<TroubleshootingItem id="addon-deactivation-explanation" summary="Por qué los complementos están temporalmente no disponibles">
+
+Durante las migraciones de clúster, SleakOps desactiva temporalmente los complementos para asegurar:
+
+1. **Integridad de los datos**: Previene la corrupción de datos durante el proceso de migración
+2. **Gestión de recursos**: Evita conflictos entre las configuraciones del clúster antiguo y nuevo
+3. **Migración limpia**: Garantiza que los complementos se reconfiguren correctamente para el nuevo entorno
+4. **Consistencia del estado**: Mantiene estados consistentes de los complementos a lo largo de la migración
+
+Este es un procedimiento estándar y los complementos se reactivan una vez que la migración está completa.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="locating-addons-new-interface" summary="Cómo localizar los complementos en la nueva interfaz">
+
+Para encontrar tus complementos en la interfaz actualizada de SleakOps:
+
+1. **Navega a Gestión del Clúster**:
+
+   - Ve al panel de control de tu clúster
+   - Busca la sección "Complementos" o "Extensiones"
+
+2. **Revisa la Sección de Monitoreo**:
+
+   - Accede a la pestaña "Monitoreo"
+   - Busca Grafana, Loki y otras herramientas de monitoreo
+
+3. **Verifica el Estado de los Complementos**:
+
+   - Comprueba si los complementos aparecen como "Activos" o "Pendientes"
+   - Algunos complementos pueden necesitar unos minutos para inicializarse completamente
+
+4. **Accede al Panel de Grafana**:
+   ```
+   # Patrón típico de acceso a Grafana
+   https://grafana.[tu-dominio-del-clúster]
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="addon-reactivation-process" summary="Reactivación de complementos después de la migración">
+
+Si los complementos aún no son visibles:
+
+1. **Espera la reactivación automática**:
+
+   - La mayoría de los complementos se reactivan automáticamente en 10-15 minutos
+   - Revisa el estado del clúster para cualquier operación pendiente
+
+2. **Reactivación manual si es necesario**:
+
+   - Ve a Configuración del Clúster → Complementos
+   - Desactiva y vuelve a activar los complementos que aparezcan inactivos
+   - Guarda la configuración
+
+3. **Verifica la salud de los complementos**:
+
+   ```bash
+   # Verifica el estado de los pods de los complementos
+   kubectl get pods -n monitoring
+   kubectl get pods -n logging
+   ```
+
+4. **Contacta soporte si los problemas persisten**:
+   - Si los complementos no aparecen después de 30 minutos
+   - Si encuentras errores durante la reactivación
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="post-migration-verification" summary="Verificación de la funcionalidad de los complementos">
+
+Después de que los complementos sean visibles, verifica que funcionen correctamente:
+
+1. **Acceso al Panel de Grafana**:
+
+   - Inicia sesión en Grafana con tus credenciales de SleakOps
+   - Verifica que los paneles muestren datos
+   - Comprueba que las fuentes de datos estén conectadas
+
+2. **Agregación de Logs con Loki**:
+
+   - Verifica que los logs se estén recopilando
+   - Revisa las políticas de retención de logs
+   - Prueba consultas de logs en Grafana
+
+3. **Alertas de Monitoreo**:
+
+   - Verifica que las reglas de alerta estén activas
+   - Prueba los canales de notificación
+   - Revisa el historial de alertas
+
+4. **Métricas de Rendimiento**:
+   - Confirma que la recopilación de métricas funcione
+   - Verifica la disponibilidad de datos históricos
+   - Revisa la configuración de retención de métricas
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-missing-addons" summary="Solución de problemas por problemas persistentes con los complementos">
+
+Si los complementos siguen sin estar disponibles:
+
+1. **Revisa los recursos del clúster**:
+
+   ```bash
+   kubectl get nodes
+   kubectl top nodes
+   ```
+
+2. **Verifica el estado de los namespaces**:
+
+   ```bash
+   kubectl get namespaces
+   kubectl get pods --all-namespaces
+   ```
+
+3. **Revisa los logs de los complementos**:
+
+   ```bash
+   kubectl logs -n monitoring deployment/grafana
+   kubectl logs -n logging deployment/loki
+   ```
+
+4. **Soluciones comunes**:
+   - Reinicia los despliegues de los complementos
+   - Verifica restricciones de recursos
+   - Revisa las políticas de red
+   - Examina la disponibilidad de la clase de almacenamiento
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 15 de octubre de 2024 basada en una consulta real de un usuario._

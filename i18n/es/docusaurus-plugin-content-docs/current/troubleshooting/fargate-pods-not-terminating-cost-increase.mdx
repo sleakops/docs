@@ -1,0 +1,439 @@
+---
+sidebar_position: 3
+title: "Pods de AWS Fargate que no terminan - Problema de aumento de costos"
+description: "Solución para pods de AWS Fargate que no terminan correctamente causando aumentos inesperados de costos"
+date: "2024-03-14"
+category: "cluster"
+tags:
+  ["fargate", "aws", "costos", "pods", "terminación", "solución de problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Pods de AWS Fargate que no terminan - Problema de aumento de costos
+
+**Fecha:** 14 de marzo de 2024  
+**Categoría:** Clúster  
+**Etiquetas:** Fargate, AWS, Costos, Pods, Terminación, Solución de problemas
+
+## Descripción del problema
+
+**Contexto:** Los usuarios experimentan aumentos inesperados en los costos de su clúster AWS EKS cuando los pods de Fargate que ejecutan despliegues no terminan correctamente después de completar los trabajos.
+
+**Síntomas observados:**
+
+- Aumento dramático en los costos de AWS durante varios días
+- Múltiples réplicas de Fargate visibles en la lista de Jobs
+- Acumulación de pods sin limpieza adecuada
+- Pronóstico de costos mostrando picos significativos
+- Costos individuales de pods bajos, pero que se acumulan con el tiempo
+
+**Configuración relevante:**
+
+- Tipo de clúster: AWS EKS con Fargate
+- Tipo de carga de trabajo: Despliegues ejecutándose en nodos Fargate
+- Monitoreo: Prometheus con asignación insuficiente de RAM (1250MB)
+- Monitoreo de costos: Habilitado con pronóstico
+
+**Condiciones de error:**
+
+- Los pods de Fargate no terminan después de la finalización del despliegue
+- Problemas de memoria en Prometheus causando problemas de asignación de nodos
+- Nodos no usados que permanecen activos generando costos
+- El problema aparece de forma intermitente sin un disparador claro
+
+## Solución detallada
+
+<TroubleshootingItem id="root-cause-analysis" summary="Comprendiendo las causas raíz">
+
+Este problema de aumento de costos típicamente se debe a dos problemas principales:
+
+1. **Problema en el ciclo de vida de los pods Fargate**: Los pods de Fargate que ejecutan despliegues no siempre terminan correctamente, causando su acumulación con el tiempo
+2. **Restricciones de recursos en Prometheus**: La asignación insuficiente de RAM (1250MB) hace que Prometheus asigne nodos que se vuelven inutilizables pero permanecen activos
+
+Ambos problemas resultan en recursos activos por más tiempo del necesario, generando costos inesperados.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prometheus-fix" summary="Corregir la asignación de memoria de Prometheus">
+
+Para resolver el problema de memoria de Prometheus:
+
+1. **Accede a la configuración del addon Prometheus** en tu clúster
+2. **Incrementa la asignación mínima de RAM** de 1250MB a 2GB (2048MB)
+3. **Aplica los cambios de configuración**
+
+```yaml
+# Configuración del addon Prometheus
+resources:
+  requests:
+    memory: "2Gi"
+    cpu: "500m"
+  limits:
+    memory: "2Gi"
+    cpu: "1000m"
+```
+
+Esto evita que Prometheus entre en nodos con recursos insuficientes y cree nodos inutilizables pero activos.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="fargate-monitoring" summary="Monitorear y limpiar pods de Fargate">
+
+Para abordar la acumulación de pods de Fargate:
+
+1. **Verifica los pods actuales de Fargate**:
+
+```bash
+kubectl get pods --all-namespaces -o wide | grep fargate
+```
+
+2. **Identifica pods atascados**:
+
+```bash
+kubectl get pods --all-namespaces --field-selector=status.phase=Succeeded
+kubectl get pods --all-namespaces --field-selector=status.phase=Failed
+```
+
+3. **Limpia los pods completados**:
+
+```bash
+# Eliminar pods completados
+kubectl delete pods --all-namespaces --field-selector=status.phase=Succeeded
+kubectl delete pods --all-namespaces --field-selector=status.phase=Failed
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="automated-cleanup" summary="Implementar limpieza automática de pods">
+
+Para prevenir acumulaciones futuras, implementa limpieza automatizada:
+
+1. **Crea un CronJob de limpieza**:
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pod-cleanup
+  namespace: kube-system
+spec:
+  schedule: "0 2 * * *" # Ejecutar diariamente a las 2 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: pod-cleanup
+          containers:
+            - name: kubectl
+              image: bitnami/kubectl:latest
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  kubectl delete pods --all-namespaces --field-selector=status.phase=Succeeded
+                  kubectl delete pods --all-namespaces --field-selector=status.phase=Failed
+          restartPolicy: OnFailure
+```
+
+2. **Crea el RBAC necesario**:
+
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pod-cleanup
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pod-cleanup
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["list", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pod-cleanup
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: pod-cleanup
+subjects:
+  - kind: ServiceAccount
+    name: pod-cleanup
+    namespace: kube-system
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cost-monitoring" summary="Monitorear costos y configurar alertas">
+
+Para evitar sorpresas futuras en costos:
+
+1. **Configura alertas de costos** en AWS:
+
+   - Ve a AWS Billing → Budgets
+   - Crea un presupuesto para tu clúster EKS
+   - Establece alertas al 80% y 100% de los costos esperados
+
+2. **Monitorea el uso de Fargate**:
+
+```bash
+# Verificar cantidad de pods Fargate
+kubectl get pods --all-namespaces -o json | jq '.items[] | select(.spec.nodeName | contains("fargate")) | .metadata.name' | wc -l
+```
+
+3. **Revisiones regulares de costos**:
+   - Revisa AWS Cost Explorer semanalmente
+   - Monitorea costos de EKS por servicio
+   - Revisa patrones de uso de Fargate
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-best-practices" summary="Mejores prácticas para prevenir recurrencias">
+
+**Configuración de despliegue:**
+
+- Establece `activeDeadlineSeconds` apropiado para los jobs
+- Usa `ttlSecondsAfterFinished` para limpieza automática
+- Configura límites adecuados de recursos
+
+**Monitoreo:**
+
+- Configura alertas en Prometheus para acumulación de pods
+- Monitorea uso de recursos del clúster regularmente
+- Implementa paneles para seguimiento de costos
+
+**Mantenimiento:**
+
+- Programa chequeos regulares de salud del clúster
+- Implementa procesos automatizados de limpieza
+- Revisa y actualiza asignaciones de recursos periódicamente
+
+```yaml
+# Ejemplo de job con limpieza automática
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: example-job
+spec:
+  ttlSecondsAfterFinished: 300 # Limpia 5 minutos después de la finalización
+  activeDeadlineSeconds: 3600 # Finaliza el job después de 1 hora
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: job-container
+          image: your-image
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="fargate-specific-optimizations" summary="Optimizaciones Específicas para Fargate">
+
+Para optimizar el uso de Fargate y reducir costos:
+
+1. **Configuración de Recursos Eficiente:**
+
+```yaml
+# Usa combinaciones de CPU/memoria válidas para Fargate
+resources:
+  requests:
+    cpu: "0.25" # 0.25, 0.5, 1, 2, 4 vCPU
+    memory: "0.5Gi" # Debe coincidir con las combinaciones válidas
+  limits:
+    cpu: "0.25"
+    memory: "0.5Gi"
+```
+
+2. **Configuraciones Válidas de CPU/Memoria para Fargate:**
+
+- 0.25 vCPU: 0.5GB, 1GB, 2GB
+- 0.5 vCPU: 1GB, 2GB, 3GB, 4GB
+- 1 vCPU: 2GB, 3GB, 4GB, 5GB, 6GB, 7GB, 8GB
+- 2 vCPU: 4GB a 16GB (incrementos de 1GB)
+- 4 vCPU: 8GB a 30GB (incrementos de 1GB)
+
+3. **Configuración de Tolerancias para Fargate:**
+
+```yaml
+tolerations:
+  - key: eks.amazonaws.com/compute-type
+    operator: Equal
+    value: fargate
+    effect: NoSchedule
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cost-optimization-strategies" summary="Estrategias de Optimización de Costos">
+
+Implementa estas estrategias para reducir costos de Fargate:
+
+1. **Uso de Spot Instances cuando sea posible:**
+
+```yaml
+# Para cargas de trabajo tolerantes a interrupciones
+nodeSelector:
+  eks.amazonaws.com/capacityType: SPOT
+```
+
+2. **Configuración de Escalado Automático:**
+
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: app-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: your-app
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+```
+
+3. **Configuración de Escalado Vertical:**
+
+```yaml
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: app-vpa
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: your-app
+  updatePolicy:
+    updateMode: "Auto"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-and-alerting" summary="Monitoreo y Alertas Avanzadas">
+
+Configura monitoreo completo para prevenir problemas de costos:
+
+1. **Alertas de Prometheus para Pods Atascados:**
+
+```yaml
+groups:
+  - name: fargate-cost-alerts
+    rules:
+      - alert: FargatePodStuck
+        expr: kube_pod_info{node=~"fargate-.*"} and on(pod) kube_pod_status_phase{phase="Succeeded"} > 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pod de Fargate atascado detectado"
+          description: "El pod {{ $labels.pod }} en el namespace {{ $labels.namespace }} ha estado en estado Succeeded por más de 10 minutos"
+
+      - alert: FargateHighCost
+        expr: increase(aws_billing_estimated_charges_usd[1h]) > 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Aumento significativo en costos de AWS"
+          description: "Los costos de AWS han aumentado más de $10 en la última hora"
+```
+
+2. **Dashboard de Grafana para Monitoreo de Costos:**
+
+```json
+{
+  "dashboard": {
+    "title": "Fargate Cost Monitoring",
+    "panels": [
+      {
+        "title": "Pods de Fargate Activos",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "count(kube_pod_info{node=~\"fargate-.*\"})"
+          }
+        ]
+      },
+      {
+        "title": "Pods Completados sin Limpiar",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "count(kube_pod_status_phase{phase=\"Succeeded\", node=~\"fargate-.*\"})"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+</TroubleshootingItem>
+
+## Mejores Prácticas
+
+### Configuración de Recursos
+
+- **Usa las combinaciones exactas de CPU/memoria** válidas para Fargate
+- **Configura límites de recursos apropiados** para evitar sobre-aprovisionamiento
+- **Implementa requests y limits iguales** para garantizar recursos predecibles
+- **Revisa y ajusta recursos regularmente** basado en métricas de uso
+
+### Gestión del Ciclo de Vida
+
+- **Configura ttlSecondsAfterFinished** para todos los Jobs
+- **Usa activeDeadlineSeconds** para evitar jobs que corren indefinidamente
+- **Implementa health checks apropiados** para detección temprana de problemas
+- **Configura graceful shutdown** para terminación limpia de pods
+
+### Monitoreo y Alertas
+
+- **Configura alertas de costos** en AWS Billing
+- **Monitorea métricas de Fargate** con Prometheus
+- **Implementa dashboards** para visibilidad de costos en tiempo real
+- **Revisa costos semanalmente** para detectar tendencias
+
+## Lista de Verificación para Resolución
+
+### Verificación Inmediata
+- [ ] Memoria de Prometheus aumentada a 2GB
+- [ ] Pods completados eliminados manualmente
+- [ ] Alertas de costos configuradas en AWS
+- [ ] Uso actual de Fargate verificado
+
+### Implementación de Prevención
+- [ ] CronJob de limpieza automática desplegado
+- [ ] RBAC para limpieza configurado
+- [ ] Configuraciones de ttl añadidas a Jobs
+- [ ] Monitoreo de Prometheus configurado
+
+### Optimización Continua
+- [ ] Revisión semanal de costos programada
+- [ ] Métricas de uso de recursos monitoreadas
+- [ ] Configuraciones de escalado implementadas
+- [ ] Documentación de procedimientos actualizada
+
+---
+
+*Este documento fue generado automáticamente el 14 de marzo de 2024 para proporcionar soluciones completas a problemas de costos con pods de Fargate en AWS EKS.*

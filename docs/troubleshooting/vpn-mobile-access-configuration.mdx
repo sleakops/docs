@@ -1,0 +1,181 @@
+---
+sidebar_position: 3
+title: "Mobile VPN Access Configuration"
+description: "How to configure VPN access from mobile devices using Pritunl Server"
+date: "2024-03-10"
+category: "user"
+tags: ["vpn", "mobile", "pritunl", "openvpn", "aws", "access"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Mobile VPN Access Configuration
+
+**Date:** March 10, 2024  
+**Category:** User  
+**Tags:** VPN, Mobile, Pritunl, OpenVPN, AWS, Access
+
+## Problem Description
+
+**Context:** Users need to access SleakOps VPN from mobile devices for testing applications without deploying to production environments.
+
+**Observed Symptoms:**
+
+- Unable to install Pritunl client on mobile device
+- Need to perform mobile testing through VPN connection
+- Requirement to test applications from mobile without production deployment
+
+**Relevant Configuration:**
+
+- VPN Server: Pritunl Server running on EC2 instance
+- Protocol: OpenVPN compatible
+- Access method: AWS Secrets Manager for credentials
+- Target environments: Development and Production
+
+**Error Conditions:**
+
+- Pritunl client not available for mobile installation
+- Need alternative connection method for mobile devices
+- Testing requirements from mobile devices
+
+## Detailed Solution
+
+<TroubleshootingItem id="pritunl-server-overview" summary="Understanding SleakOps VPN Architecture">
+
+SleakOps VPN infrastructure uses:
+
+- **Pritunl Server**: Runs on EC2 instance in AWS
+- **OpenVPN Protocol**: Compatible with standard OpenVPN clients
+- **Native Mobile Support**: Most mobile devices support OpenVPN natively
+- **Multi-environment Access**: Separate configurations for development and production
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="aws-credentials-access" summary="Accessing VPN Credentials through AWS">
+
+To get your VPN configuration:
+
+1. **Log into AWS Console** with your SleakOps user credentials
+2. **Switch to target account** (development or production)
+3. **Navigate to AWS Systems Manager**:
+   - Search for "Systems Manager" in AWS services
+   - Or go to "Secrets Manager" service
+4. **Find Pritunl Secret**:
+   - Look for secrets related to Pritunl
+   - Click on the secret to view details
+5. **Reveal Secret Values**:
+   - Click "Retrieve secret value" button
+   - Note down: IP address, username, and password
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="pritunl-dashboard-access" summary="Accessing Pritunl Dashboard">
+
+Once you have the credentials:
+
+1. **Open web browser** on any device
+2. **Navigate to Pritunl IP** (from AWS secret)
+3. **Login with credentials**:
+   - Username: (from AWS secret)
+   - Password: (from AWS secret)
+4. **Access Dashboard**: You'll see the Pritunl management interface
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="mobile-profile-download" summary="Downloading Mobile VPN Profile">
+
+In the Pritunl dashboard:
+
+1. **Find your user account** in the users list
+2. **Download connection profile** in multiple formats:
+   - **ZIP file**: Contains all configuration files
+   - **OVPN file**: Standard OpenVPN configuration
+   - **URL config**: For quick mobile setup
+3. **Choose mobile-friendly format**: OVPN is recommended for mobile
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="mobile-client-setup" summary="Setting up VPN on Mobile Devices">
+
+### iOS Devices:
+
+1. **Download OpenVPN Connect** from App Store
+2. **Import OVPN file**:
+   - Email the OVPN file to yourself
+   - Open from email and choose "Open in OpenVPN"
+   - Or use the URL config for direct import
+3. **Connect**: Tap connect in OpenVPN app
+
+### Android Devices:
+
+1. **Download OpenVPN for Android** from Play Store
+2. **Import configuration**:
+   - Transfer OVPN file to device
+   - Open with OpenVPN app
+   - Or use built-in VPN settings with OVPN file
+3. **Alternative**: Use native Android VPN settings
+
+### Native Mobile VPN (Alternative):
+
+Most modern smartphones support OpenVPN natively:
+
+- Go to **Settings** → **VPN**
+- Add new VPN configuration
+- Import OVPN file or enter details manually
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="testing-workflow" summary="Mobile Testing Workflow">
+
+Once VPN is configured:
+
+1. **Connect to VPN** from mobile device
+2. **Access development environment**:
+   - Your applications will be accessible through internal URLs
+   - No need to deploy to production for testing
+3. **Perform mobile testing**:
+   - Test responsive design
+   - Verify mobile-specific functionality
+   - Check performance on mobile networks
+4. **Disconnect VPN** when testing is complete
+
+**Benefits:**
+
+- Test on real mobile devices
+- Access development environment securely
+- No production deployment required
+- Maintain development/production separation
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Common Mobile VPN Issues">
+
+**Connection Issues:**
+
+- Verify credentials are correct
+- Check mobile data/WiFi connectivity
+- Ensure VPN server is running (check AWS EC2 instance)
+
+**Profile Import Issues:**
+
+- Try different import methods (email, cloud storage, URL)
+- Verify OVPN file is not corrupted
+- Use ZIP format if OVPN fails
+
+**Performance Issues:**
+
+- Mobile networks may have higher latency
+- Consider testing on both WiFi and cellular
+- VPN adds encryption overhead
+
+**Alternative Solutions:**
+
+- Use browser-based testing tools
+- Set up port forwarding for specific services
+- Create temporary public endpoints for testing
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on March 10, 2024 based on a real user query._

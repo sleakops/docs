@@ -1,0 +1,166 @@
+---
+sidebar_position: 3
+title: "Fallo en la Actualización del Clúster EKS Debido a Volumen Huérfano"
+description: "Solución para fallos en la actualización del clúster EKS causados por volúmenes adjuntos a nodos pero sin uso"
+date: "2024-12-19"
+category: "cluster"
+tags:
+  ["eks", "actualización", "volúmenes", "nodegroup", "solución de problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Fallo en la Actualización del Clúster EKS Debido a Volumen Huérfano
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Clúster  
+**Etiquetas:** EKS, Actualización, Volúmenes, NodeGroup, Solución de Problemas
+
+## Descripción del Problema
+
+**Contexto:** Durante una actualización del clúster EKS a la versión 1.31, el proceso de actualización del NodeGroup falla, dejando nodos antiguos en ejecución mientras se impide que la actualización se complete con éxito.
+
+**Síntomas Observados:**
+
+- La actualización del clúster EKS falla durante la fase de actualización del NodeGroup
+- Los nodos antiguos permanecen activos en lugar de ser reemplazados
+- Las canalizaciones CI/CD dejan de funcionar correctamente
+- Los procesos de despliegue se ven afectados
+- Conflictos en la conexión de volúmenes impiden el reemplazo de nodos
+
+**Configuración Relevante:**
+
+- Versión del clúster EKS: Actualización a 1.31
+- Volumen afectado: `/app/certs` (volumen huérfano)
+- Estado del volumen: Adjunto al nodo pero sin uso por ningún pod
+- Estado del volumen en SleakOps: Marcado como "eliminado" pero aún físicamente adjunto
+
+**Condiciones de Error:**
+
+- La actualización del NodeGroup falla debido a conflictos en la conexión de volúmenes
+- Ocurre cuando los volúmenes están adjuntos a nodos pero no se usan activamente
+- El problema aparece durante la fase de reemplazo de nodos en la actualización
+- Afecta a clústeres con volúmenes previamente eliminados pero aún adjuntos
+
+## Solución Detallada
+
+<TroubleshootingItem id="root-cause-analysis" summary="Comprendiendo la causa raíz">
+
+La falla en la actualización ocurre porque:
+
+1. **Volúmenes huérfanos**: Volúmenes que fueron eliminados en SleakOps pero permanecen físicamente adjuntos a instancias EC2
+2. **Conflicto en el reemplazo de nodos**: Durante las actualizaciones de EKS, AWS necesita reemplazar nodos, pero los volúmenes adjuntos impiden la terminación limpia del nodo
+3. **Desajuste en el estado del volumen**: El volumen existe en AWS pero no está rastreado en la configuración actual de despliegue
+
+Este es un problema común cuando los volúmenes se eliminan de la configuración de SleakOps pero los volúmenes EBS subyacentes de AWS permanecen adjuntos a los nodos.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-resolution" summary="Cómo resolver el fallo en la actualización">
+
+Para solucionar el problema de la actualización:
+
+1. **Identificar el volumen problemático**:
+
+   ```bash
+   # Verificar volúmenes adjuntos en el nodo
+   kubectl describe nodes
+   # Buscar volúmenes en la consola AWS EC2
+   aws ec2 describe-volumes --filters "Name=attachment.instance-id,Values=i-xxxxxxxxx"
+   ```
+
+2. **Desconectar el volumen huérfano**:
+
+   ```bash
+   # Desconectar volumen de la instancia EC2
+   aws ec2 detach-volume --volume-id vol-xxxxxxxxx
+   ```
+
+3. **Reintentar la actualización del clúster**:
+   - La actualización debería continuar normalmente una vez resuelto el conflicto del volumen
+   - Monitorear el proceso de reemplazo del NodeGroup
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="volume-preservation" summary="Preservación de datos del volumen durante la resolución">
+
+Consideraciones importantes para la seguridad de los datos:
+
+1. **Los datos del volumen se preservan**: Desconectar el volumen no elimina los datos
+2. **El volumen permanece en AWS**: El volumen EBS se mantiene intacto en tu cuenta de AWS
+3. **Opciones de recuperación**: Puedes volver a conectar el volumen más tarde si es necesario
+
+```bash
+# Verificar estado del volumen después de la desconexión
+aws ec2 describe-volumes --volume-ids vol-xxxxxxxxx
+
+# El volumen mostrará estado "available" en lugar de "in-use"
+```
+
+**Mejor práctica**: Haz un snapshot antes de desconectar si el volumen contiene datos críticos:
+
+```bash
+# Crear snapshot para seguridad
+aws ec2 create-snapshot --volume-id vol-xxxxxxxxx --description "Backup antes de la actualización del clúster"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-strategies" summary="Prevención de ocurrencias futuras">
+
+Para evitar este problema en futuras actualizaciones:
+
+1. **Eliminación limpia de volúmenes**: Al eliminar volúmenes en SleakOps, asegúrate de que se desconecten correctamente:
+
+   - Eliminar volumen de la configuración de SleakOps
+   - Verificar que el volumen esté desconectado de los nodos
+   - Opcionalmente eliminar el volumen si ya no se necesita
+
+2. **Lista de verificación previa a la actualización**:
+
+   ```bash
+   # Buscar volúmenes huérfanos antes de actualizar
+   kubectl get pv
+   kubectl get pvc --all-namespaces
+
+   # Verificar que no haya volúmenes sin uso adjuntos
+   aws ec2 describe-volumes --filters "Name=attachment.instance-id,Values=i-*"
+   ```
+
+3. **Mantenimiento regular**: Auditar y limpiar periódicamente volúmenes no usados
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="post-upgrade-verification" summary="Verificación de actualización exitosa">
+
+Después de resolver el problema del volumen y completar la actualización:
+
+1. **Verificar versión del clúster**:
+
+   ```bash
+   kubectl version --short
+   aws eks describe-cluster --name your-cluster-name --query 'cluster.version'
+   ```
+
+2. **Revisar estado de los nodos**:
+
+   ```bash
+   kubectl get nodes
+   # Verificar que todos los nodos estén ejecutando la nueva versión
+   ```
+
+3. **Probar funcionalidad CI/CD**:
+
+   - Desplegar una aplicación de prueba
+   - Verificar que las canalizaciones de despliegue funcionen correctamente
+   - Comprobar que todos los servicios sean accesibles
+
+4. **Monitorear posibles problemas**:
+   - Observar los logs del clúster para cualquier anomalía
+   - Verificar que todas las cargas de trabajo se ejecuten normalmente
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de un usuario._

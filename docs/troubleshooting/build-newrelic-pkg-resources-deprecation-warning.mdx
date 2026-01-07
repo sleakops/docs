@@ -1,0 +1,192 @@
+---
+sidebar_position: 3
+title: "Build Job Failing with New Relic pkg_resources Deprecation Warning"
+description: "Solution for build failures caused by New Relic pkg_resources deprecation warnings in Python environments"
+date: "2025-06-10"
+category: "project"
+tags: ["build", "python", "newrelic", "pkg_resources", "deployment"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Build Job Failing with New Relic pkg_resources Deprecation Warning
+
+**Date:** June 10, 2025  
+**Category:** Project  
+**Tags:** Build, Python, New Relic, pkg_resources, Deployment
+
+## Problem Description
+
+**Context:** Users experience build job failures when trying to deploy to production, with error messages related to New Relic's use of deprecated pkg_resources API, even when New Relic is not explicitly used in their application.
+
+**Observed Symptoms:**
+
+- Build jobs fail during production deployment
+- Warning message about pkg_resources deprecation appears
+- Error originates from New Relic configuration module
+- Issue blocks critical production deployments
+
+**Relevant Configuration:**
+
+- Python version: 3.9
+- New Relic package location: `/usr/local/lib/python3.9/site-packages/newrelic/config.py`
+- Setuptools version: Likely 81 or higher
+- Build environment: SleakOps managed containers
+
+**Error Conditions:**
+
+- Error occurs during build process
+- Appears in production deployment pipeline
+- Warning references pkg_resources deprecation scheduled for 2025-11-30
+- Issue persists even when New Relic is not actively used
+
+## Detailed Solution
+
+<TroubleshootingItem id="root-cause-analysis" summary="Understanding the root cause">
+
+This issue occurs because:
+
+1. **New Relic agent is installed** in the base Python environment used by SleakOps build containers
+2. **pkg_resources is deprecated** in newer versions of setuptools (81+)
+3. **New Relic hasn't updated** their code to use the newer importlib.metadata API
+4. The warning is treated as an error in the build process
+
+Even if you don't use New Relic directly, it may be installed as part of the base container image for monitoring purposes.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-workaround" summary="Immediate workaround - Pin Setuptools version">
+
+Add this to your `requirements.txt` or `pyproject.toml` to pin setuptools to a version before the deprecation:
+
+**For requirements.txt:**
+
+```txt
+setuptools<81
+```
+
+**For pyproject.toml:**
+
+```toml
+[build-system]
+requires = ["setuptools<81", "wheel"]
+
+[project]
+dependencies = [
+    "setuptools<81",
+    # your other dependencies
+]
+```
+
+**For Dockerfile:**
+
+```dockerfile
+RUN pip install "setuptools<81"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="environment-variable-solution" summary="Suppress warnings with environment variables">
+
+You can suppress the specific warning by setting environment variables in your build configuration:
+
+**In your deployment configuration:**
+
+```yaml
+environment:
+  PYTHONWARNINGS: "ignore::UserWarning:newrelic.config"
+```
+
+**Or suppress all UserWarnings (less recommended):**
+
+```yaml
+environment:
+  PYTHONWARNINGS: "ignore::UserWarning"
+```
+
+**In Dockerfile:**
+
+```dockerfile
+ENV PYTHONWARNINGS="ignore::UserWarning:newrelic.config"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="newrelic-update-solution" summary="Update or remove New Relic agent">
+
+If New Relic is installed but not used:
+
+**Option 1: Remove New Relic completely**
+
+```bash
+pip uninstall newrelic
+```
+
+**Option 2: Update to latest New Relic version**
+
+```bash
+pip install --upgrade newrelic
+```
+
+**Option 3: Add to requirements.txt with latest version**
+
+```txt
+newrelic>=9.0.0
+```
+
+Check the [New Relic Python agent releases](https://github.com/newrelic/newrelic-python-agent/releases) for the latest version that addresses this issue.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-complete-solution" summary="Complete Dockerfile solution">
+
+Here's a complete Dockerfile approach that addresses the issue:
+
+```dockerfile
+FROM python:3.9-slim
+
+# Pin setuptools to avoid pkg_resources deprecation warnings
+RUN pip install --upgrade pip "setuptools<81" wheel
+
+# Set environment variable to suppress New Relic warnings if needed
+ENV PYTHONWARNINGS="ignore::UserWarning:newrelic.config"
+
+# Copy and install requirements
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+# Rest of your Dockerfile
+COPY . .
+CMD ["python", "app.py"]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="long-term-solution" summary="Long-term solution and prevention">
+
+For a permanent fix:
+
+1. **Monitor New Relic updates**: Keep track of when New Relic releases a version that uses `importlib.metadata` instead of `pkg_resources`
+
+2. **Update base images regularly**: Ensure your base container images are updated with compatible versions
+
+3. **Dependency management**: Use dependency management tools like `pip-tools` or `poetry` to lock versions:
+
+```bash
+# Using pip-tools
+pip-compile requirements.in
+```
+
+4. **CI/CD pipeline adjustment**: Add checks in your pipeline to catch these warnings early:
+
+```yaml
+# In your CI/CD configuration
+script:
+  - python -W error::UserWarning -c "import sys; print('No warnings')" || echo "Warnings detected"
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on June 10, 2025 based on a real user query._

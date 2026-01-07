@@ -1,0 +1,155 @@
+---
+sidebar_position: 3
+title: "Project Creation Error with Branch Names Containing Special Characters"
+description: "Solution for branch name validation errors when creating projects from repositories"
+date: "2025-02-19"
+category: "project"
+tags: ["project", "repository", "branch", "validation", "git"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Project Creation Error with Branch Names Containing Special Characters
+
+**Date:** February 19, 2025  
+**Category:** Project  
+**Tags:** Project, Repository, Branch, Validation, Git
+
+## Problem Description
+
+**Context:** User attempts to create a new project in SleakOps based on a Git repository but encounters validation errors when the branch name contains special characters or specific naming patterns.
+
+**Observed Symptoms:**
+
+- Interface error when trying to create a project from a repository
+- Error occurs specifically with branch names containing forward slashes
+- Branch name format: `feature/SITE-1` triggers validation error
+- Project creation process fails at the branch selection step
+
+**Relevant Configuration:**
+
+- Branch name: `feature/SITE-1`
+- Action: Creating new project from repository
+- Platform: SleakOps web interface
+- Repository type: Git repository
+
+**Error Conditions:**
+
+- Error appears during project creation wizard
+- Occurs when branch names contain forward slashes (`/`)
+- Validation error prevents project creation completion
+- Issue affects branch selection in the interface
+
+## Detailed Solution
+
+<TroubleshootingItem id="immediate-workaround" summary="Immediate workaround solution">
+
+While the SleakOps team works on fixing the validation issue, you can use this temporary workaround:
+
+1. **Change the branch name temporarily** in your repository:
+
+   - Rename `feature/SITE-1` to something like `feature-SITE-1` or `featureSITE1`
+   - Use only alphanumeric characters and hyphens/underscores
+
+2. **Create the project** with the renamed branch
+
+3. **Use manual build specification** when needed:
+   - During build process, you can manually specify the original branch name
+   - This allows you to work with your original branch structure
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-build-process" summary="How to specify branch manually during build">
+
+When you need to build from your original branch:
+
+1. Go to your project's **Build** section
+2. Select **Manual Build** option
+3. In the build configuration, specify the branch name manually:
+   ```
+   Branch: feature/SITE-1
+   ```
+4. Proceed with the build process
+
+**Note:** This workaround works for manual builds but won't work for continuous integration until the platform fix is implemented.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="branch-naming-best-practices" summary="Branch naming best practices for SleakOps">
+
+To avoid similar issues in the future, consider these branch naming conventions:
+
+**Recommended formats:**
+
+- `feature-SITE-1`
+- `feature_SITE_1`
+- `featureSITE1`
+- `site1-feature`
+
+**Avoid these characters in branch names:**
+
+- Forward slashes (`/`)
+- Special characters that might cause URL encoding issues
+- Spaces or other whitespace characters
+
+**Git branch naming that works well with SleakOps:**
+
+```bash
+# Good examples
+git checkout -b feature-user-authentication
+git checkout -b bugfix-login-error
+git checkout -b hotfix-security-patch
+
+# Avoid these patterns
+git checkout -b feature/user-authentication
+git checkout -b bug/fix-login
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="continuous-integration-considerations" summary="Continuous Integration limitations">
+
+**Current limitations:**
+
+- Continuous integration will not work with the workaround
+- Automated builds will fail until the platform fix is deployed
+- Manual intervention required for each build
+
+**When the fix is available:**
+
+- Branch names with forward slashes will be supported
+- Continuous integration will resume normal operation
+- No changes needed to existing project configuration
+
+**Timeline:**
+
+- The SleakOps team has added this issue to their backlog
+- Fix priority depends on deployment schedule and user needs
+- Contact support if you need this resolved before production deployment
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-git-workflow" summary="Alternative Git workflow">
+
+If you frequently use feature branches with slashes, consider this workflow:
+
+1. **Keep your development branches** with original naming
+2. **Create deployment branches** with SleakOps-friendly names:
+
+   ```bash
+   # Your development branch
+   git checkout feature/SITE-1
+
+   # Create deployment branch
+   git checkout -b deploy-SITE-1
+   git push origin deploy-SITE-1
+   ```
+
+3. **Use deployment branches** for SleakOps projects
+4. **Merge changes** from feature branches to deployment branches as needed
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on February 19, 2025 based on a real user query._

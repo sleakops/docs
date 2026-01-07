@@ -1,0 +1,201 @@
+---
+sidebar_position: 15
+title: "Variables de Entorno de React No Disponibles en Tiempo de Ejecución"
+description: "Solución para aplicaciones React donde las variables de entorno de vargroups no son accesibles en tiempo de ejecución"
+date: "2024-12-19"
+category: "proyecto"
+tags: ["react", "variables-de-entorno", "dockerfile", "build", "runtime"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Variables de Entorno de React No Disponibles en Tiempo de Ejecución
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** React, Variables de Entorno, Dockerfile, Build, Runtime
+
+## Descripción del Problema
+
+**Contexto:** El usuario tiene una aplicación React desplegada en SleakOps donde las variables de entorno definidas en vargroups no son accesibles en tiempo de ejecución a través de `process.env`, aunque funcionan localmente con archivos `.env.local`.
+
+**Síntomas Observados:**
+
+- Las variables de entorno de vargroups no aparecen en los logs de `process.env`
+- Las variables funcionan correctamente en desarrollo local con archivos `.env.local`
+- La aplicación se construye exitosamente pero las variables están indefinidas en tiempo de ejecución
+- El proceso de build estático no incluye variables de entorno en tiempo de ejecución
+
+**Configuración Relevante:**
+
+- Tipo de aplicación: React SPA (Aplicación de Página Única)
+- Proceso de build: Build Docker multi-etapa con Node.js y Nginx
+- Despliegue: Archivos estáticos servidos por Nginx
+- Entorno: Plataforma SleakOps con vargroups
+
+**Condiciones de Error:**
+
+- Las variables están indefinidas al acceder vía `process.env` en el navegador
+- El problema ocurre solo en el entorno desplegado, no localmente
+- El problema persiste incluso cuando los vargroups están correctamente configurados
+
+## Solución Detallada
+
+<TroubleshootingItem id="root-cause" summary="Entendiendo la causa raíz">
+
+El problema ocurre porque las variables de entorno de React se resuelven durante el **proceso de build**, no en tiempo de ejecución. Esto es lo que sucede:
+
+1. **Etapa de Build**: Las variables de entorno se incrustan en los archivos JavaScript estáticos durante la compilación
+2. **Etapa de Runtime**: La aplicación se ejecuta como archivos estáticos servidos por Nginx, sin acceso a variables de entorno del servidor
+3. **Ejecución en Navegador**: Las referencias a `process.env` son reemplazadas por valores literales durante el build
+
+Por eso las variables funcionan localmente (disponibles durante `yarn build`) pero no en producción (no disponibles durante el build de Docker).
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-solution" summary="Solución 1: Configurar Dockerfile con variables ARG">
+
+Para hacer que las variables de entorno estén disponibles durante el proceso de build de Docker:
+
+1. **Agregar declaraciones ARG** a tu Dockerfile:
+
+```dockerfile
+FROM node:20-alpine AS build
+
+# Declarar argumentos de build para variables de entorno
+ARG PUBLIC_URL
+ARG NODE_ENV
+ARG REACT_APP_API_URL
+ARG REACT_APP_API_KEY
+# Añade todas tus variables de entorno como ARG
+
+# Establecer directorio de trabajo
+WORKDIR /workspace/app
+
+# Copiar el código al contenedor
+COPY . .
+
+# Instalar dependencias
+RUN yarn install
+
+# Construir la app (las variables ARG estarán disponibles como ENV durante el build)
+RUN yarn run build
+
+# Etapa de producción
+FROM nginx:latest
+WORKDIR /usr/share/nginx/html
+COPY ./deploy/nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /workspace/app/build .
+EXPOSE 3000
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+2. **Configurar variables en SleakOps**:
+   - Ve al vargroup **Docker Args** de tu proyecto
+   - Añade todas las variables de entorno que tu app React necesite
+   - Estas serán pasadas como `--build-arg` durante el build de Docker
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="vargroups-configuration" summary="Solución 2: Configuración adecuada de vargroups">
+
+En SleakOps, debes configurar las variables en el vargroup correcto:
+
+1. **Navegar a Vargroups**: Ve a tu proyecto → Configuración → Vargroups
+2. **Usar el vargroup Docker Args**: Las variables de entorno para el build de React deben estar en el vargroup "Docker Args", no en el vargroup de runtime
+3. **Agregar variables**:
+   ```
+   PUBLIC_URL=https://tu-dominio.com
+   REACT_APP_API_URL=https://api.tu-dominio.com
+   REACT_APP_ENVIRONMENT=production
+   ```
+
+**Importante**: React solo incluye en el build las variables de entorno que comienzan con `REACT_APP_`.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="ssr-alternative" summary="Solución 3: Enfoque con Server-Side Rendering (SSR)">
+
+Para tener variables de entorno verdaderamente en tiempo de ejecución, considera migrar a un framework con capacidades SSR:
+
+**Beneficios de migrar a Next.js:**
+
+- Variables de entorno disponibles en tiempo de ejecución
+- Capacidades de renderizado del lado servidor
+- Mejor SEO y rendimiento
+- Configuración en runtime sin necesidad de reconstruir
+
+**Configuración básica de Next.js:**
+
+```javascript
+// next.config.js
+module.exports = {
+  env: {
+    CUSTOM_KEY: process.env.CUSTOM_KEY,
+  },
+  // O usar configuración en runtime
+  publicRuntimeConfig: {
+    apiUrl: process.env.API_URL,
+  },
+};
+```
+
+**Dockerfile para Next.js:**
+
+```dockerfile
+FROM node:20-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Verificación y pruebas">
+
+Para verificar que tu solución funciona:
+
+1. **Revisar logs de build**: Asegúrate de que las variables ARG estén disponibles durante el build
+2. **Inspeccionar archivos construidos**: Busca tus variables en el JavaScript generado
+3. **Probar en el navegador**: Usa herramientas de desarrollo para verificar los valores de `process.env`
+4. **Logs en consola**: Añade logs temporales para verificar la disponibilidad de variables
+
+```javascript
+// Añade esto temporalmente para verificar variables
+console.log("Variables de entorno:", {
+  apiUrl: process.env.REACT_APP_API_URL,
+  environment: process.env.REACT_APP_ENVIRONMENT,
+  nodeEnv: process.env.NODE_ENV,
+});
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Buenas prácticas para variables de entorno en React">
+
+**Convenciones de Nomenclatura:**
+
+- Siempre prefija con `REACT_APP_` para variables del lado cliente
+- Usa nombres descriptivos: `REACT_APP_API_BASE_URL` en lugar de `REACT_APP_URL`
+
+**Consideraciones de Seguridad:**
+
+- Nunca incluyas datos sensibles (claves API, secretos) en variables de entorno del lado cliente
+- Todas las variables `REACT_APP_` son accesibles públicamente en el navegador
+- Usa un proxy backend para llamadas API sensibles
+
+**Desarrollo vs Producción:**
+
+- Usa diferentes vargroups para distintos entornos
+- Prueba con variables de entorno similares a producción durante el desarrollo
+- Documenta todas las variables de entorno requeridas en tu README
+
+</TroubleshootingItem>
+
+---
+
+_Este FAQ fue generado automáticamente el 19 de diciembre de 2024 basado en una consulta real de usuario._

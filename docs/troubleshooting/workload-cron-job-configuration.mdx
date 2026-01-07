@@ -1,0 +1,174 @@
+---
+sidebar_position: 15
+title: "Cron Job Configuration in SleakOps"
+description: "How to configure cron expressions for scheduled workloads in SleakOps"
+date: "2024-08-15"
+category: "workload"
+tags: ["cron", "scheduling", "workload", "configuration"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Cron Job Configuration in SleakOps
+
+**Date:** August 15, 2024  
+**Category:** Workload  
+**Tags:** Cron, Scheduling, Workload, Configuration
+
+## Problem Description
+
+**Context:** Users need to configure cron expressions for scheduled workloads in SleakOps but may not have direct access to a text field for cron expression input in the current platform version.
+
+**Observed Symptoms:**
+
+- Need to set up scheduled jobs with specific timing requirements
+- Limited interface options for cron expression configuration
+- Requirement for custom scheduling patterns beyond basic presets
+
+**Relevant Configuration:**
+
+- Workload type: Scheduled jobs/cron jobs
+- Platform: SleakOps workload management
+- Scheduling requirements: Custom cron expressions
+
+**Error Conditions:**
+
+- Difficulty configuring complex scheduling patterns
+- Limited scheduling options in current UI
+- Need for precise timing control
+
+## Detailed Solution
+
+<TroubleshootingItem id="current-cron-setup" summary="How to configure cron jobs in current SleakOps version">
+
+Currently, you can configure cron jobs in SleakOps through the workload configuration interface:
+
+1. **Navigate to Workloads** in your SleakOps project
+2. **Create or Edit** a workload
+3. **Select Workload Type**: Choose "Cron Job" or "Scheduled Task"
+4. **Configure Schedule**: Use the available scheduling options
+
+**Available scheduling methods:**
+
+- Predefined intervals (hourly, daily, weekly)
+- Custom time selection through UI components
+- Advanced configuration through YAML editor
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="yaml-cron-configuration" summary="Using YAML for advanced cron configuration">
+
+For complex cron expressions, you can use the YAML editor:
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: my-scheduled-job
+spec:
+  schedule: "0 2 * * 1-5" # Run at 2 AM, Monday to Friday
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: my-container
+              image: my-app:latest
+              command: ["/bin/sh"]
+              args: ["-c", "echo 'Running scheduled task'"]
+          restartPolicy: OnFailure
+```
+
+**Common cron expression patterns:**
+
+- `0 0 * * *` - Daily at midnight
+- `0 */6 * * *` - Every 6 hours
+- `0 9 * * 1-5` - Weekdays at 9 AM
+- `*/15 * * * *` - Every 15 minutes
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cron-expression-builder" summary="Understanding cron expression format">
+
+Cron expressions in Kubernetes follow this format:
+
+```
+┌───────────── minute (0 - 59)
+│ ┌───────────── hour (0 - 23)
+│ │ ┌───────────── day of month (1 - 31)
+│ │ │ ┌───────────── month (1 - 12)
+│ │ │ │ ┌───────────── day of week (0 - 6) (Sunday to Saturday)
+│ │ │ │ │
+│ │ │ │ │
+* * * * *
+```
+
+**Special characters:**
+
+- `*` - Any value
+- `,` - Value list separator
+- `-` - Range of values
+- `/` - Step values
+- `?` - No specific value (day of month/week only)
+
+**Examples:**
+
+- `0 0 1 * *` - First day of every month at midnight
+- `0 */2 * * *` - Every 2 hours
+- `0 9-17 * * 1-5` - Every hour from 9 AM to 5 PM, Monday to Friday
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="upcoming-features" summary="Upcoming cron configuration improvements">
+
+**Enhanced Cron Configuration (Coming Soon):**
+
+The SleakOps team is working on improved cron job configuration features:
+
+1. **Direct Cron Expression Input**: A dedicated text field for entering cron expressions directly
+2. **Visual Cron Builder**: Interactive interface to build cron expressions
+3. **Expression Validation**: Real-time validation of cron syntax
+4. **Schedule Preview**: Visual representation of when jobs will run
+
+**Current Workarounds:**
+
+- Use the YAML editor for complex expressions
+- Reference cron expression generators online
+- Test expressions in development environments first
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-cron" summary="Troubleshooting cron job issues">
+
+**Common issues and solutions:**
+
+1. **Job not running at expected times:**
+
+   - Verify timezone settings in your cluster
+   - Check cron expression syntax
+   - Review job history in SleakOps dashboard
+
+2. **Jobs failing to complete:**
+
+   - Check resource limits and requests
+   - Review container logs
+   - Verify image availability and permissions
+
+3. **Monitoring cron jobs:**
+
+   ```bash
+   # Check cron job status
+   kubectl get cronjobs
+
+   # View job execution history
+   kubectl get jobs
+
+   # Check specific job logs
+   kubectl logs job/my-scheduled-job-1234567890
+   ```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2025 based on a real user query._

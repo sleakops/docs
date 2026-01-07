@@ -1,0 +1,168 @@
+---
+sidebar_position: 3
+title: "Docker Build Cache Issues with Build Arguments"
+description: "Solution for Docker build cache not updating when changing build arguments"
+date: "2025-02-10"
+category: "project"
+tags: ["docker", "build", "cache", "arguments", "no-cache"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Docker Build Cache Issues with Build Arguments
+
+**Date:** February 10, 2025  
+**Category:** Project  
+**Tags:** Docker, Build, Cache, Arguments, No-cache
+
+## Problem Description
+
+**Context:** When changing Docker build arguments in SleakOps projects, the build process may use cached layers and not reflect the new argument values in the final image, even though a new build is triggered.
+
+**Observed Symptoms:**
+
+- Build arguments are changed in the project configuration
+- New build is triggered successfully
+- Deployment uses the same image tag
+- Container still contains old files/configurations
+- Build cache prevents argument changes from taking effect
+
+**Relevant Configuration:**
+
+- Docker build arguments (e.g., `MANIFEST_FILE_URL`)
+- Build process using Docker layer caching
+- SleakOps build system with custom tagging
+
+**Error Conditions:**
+
+- Occurs when modifying build arguments without code changes
+- Docker cache reuses layers from previous builds
+- New argument values don't propagate to the final image
+- Problem persists until repository code is modified
+
+## Detailed Solution
+
+<TroubleshootingItem id="manual-no-cache" summary="Using --no-cache flag manually">
+
+The most direct solution is to use the `--no-cache` flag when building. This forces Docker to rebuild all layers without using cache.
+
+**Current Status in SleakOps:**
+
+- The platform is being prepared to support build flags like `--no-cache`
+- This will be available as a manual option in the frontend
+- Users will be able to decide when to force a complete rebuild
+
+**When to use:**
+
+- After changing build arguments
+- When external resources referenced by arguments have changed
+- When troubleshooting cache-related issues
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-optimization" summary="Dockerfile optimization to minimize cache issues">
+
+Modify your Dockerfile to reduce cache interference:
+
+```dockerfile
+# Instead of copying external resources during build
+COPY external-resource.json /app/
+
+# Move the download process to runtime
+RUN echo "#!/bin/sh" > /app/download.sh && \
+    echo "curl -o /app/resource.json \$RESOURCE_URL" >> /app/download.sh && \
+    chmod +x /app/download.sh
+
+# Use environment variables at runtime
+ENV RESOURCE_URL=""
+CMD ["/app/download.sh", "&&", "your-app"]
+```
+
+**Benefits:**
+
+- Build arguments don't affect Docker layer caching
+- External resources are fetched at runtime
+- Changes to URLs don't require image rebuilds
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="ci-cd-integration" summary="CI/CD pipeline configuration">
+
+For automated builds, you can configure your CI/CD to always use `--no-cache` when build arguments change:
+
+```yaml
+# Example CI/CD configuration
+build:
+  script:
+    - |
+      if [ "$BUILD_ARGS_CHANGED" = "true" ]; then
+        docker build --no-cache -t $IMAGE_TAG .
+      else
+        docker build -t $IMAGE_TAG .
+      fi
+```
+
+**Considerations:**
+
+- Longer build times when using `--no-cache`
+- Increased resource usage
+- Recommended for production deployments with argument changes
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-approaches" summary="Alternative approaches to avoid cache issues">
+
+**1. Use environment variables instead of build arguments:**
+
+```dockerfile
+# Instead of ARG
+# ARG MANIFEST_FILE_URL
+# Use ENV at runtime
+ENV MANIFEST_FILE_URL=""
+```
+
+**2. Include argument values in cache-busting layers:**
+
+```dockerfile
+ARG MANIFEST_FILE_URL
+# Add a layer that changes when the argument changes
+RUN echo "Cache bust: $MANIFEST_FILE_URL" > /tmp/cache-bust
+RUN curl -o /app/manifest.json "$MANIFEST_FILE_URL"
+```
+
+**3. Use multi-stage builds:**
+
+```dockerfile
+FROM alpine as downloader
+ARG MANIFEST_FILE_URL
+RUN curl -o /tmp/manifest.json "$MANIFEST_FILE_URL"
+
+FROM your-base-image
+COPY --from=downloader /tmp/manifest.json /app/
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="future-features" summary="Upcoming SleakOps features">
+
+SleakOps is developing enhanced build control features:
+
+**Planned Features:**
+
+- `--no-cache` flag option in the frontend
+- `--flush-cache` support for specific scenarios
+- Automatic cache invalidation detection
+- Build argument change detection
+
+**Timeline:**
+
+- Backend infrastructure is ready
+- Frontend integration in development
+- Manual control will be available first
+- Automatic detection features planned for later releases
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on February 10, 2025 based on a real user query._

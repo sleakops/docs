@@ -1,0 +1,229 @@
+---
+sidebar_position: 3
+title: "Problema de enrutamiento del encabezado Host en el balanceador de carga"
+description: "Solución para errores HTTP 404 al usar dominios personalizados con balanceadores de carga"
+date: "2024-01-15"
+category: "workload"
+tags:
+  [
+    "balanceador-de-carga",
+    "nginx",
+    "encabezado-host",
+    "enrutamiento",
+    "cloudflare",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problema de enrutamiento del encabezado Host en el balanceador de carga
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** Balanceador de carga, Nginx, Encabezado Host, Enrutamiento, Cloudflare
+
+## Descripción del problema
+
+**Contexto:** El usuario ha desplegado un servicio Nginx escuchando en el puerto 80, configurado para servir contenido para dominios específicos ("velo.la" y "www.velo.la"). El servicio es accesible a través del dominio proporcionado por SleakOps pero devuelve HTTP 404 cuando se accede mediante dominios personalizados a través de CNAME de Cloudflare o manipulación directa del encabezado Host.
+
+**Síntomas observados:**
+
+- El servicio funciona correctamente cuando se accede a través del dominio de SleakOps: `main-proxy.develop.us-east-2.velo.la`
+- Error HTTP 404 al acceder mediante redirección CNAME de Cloudflare desde `velo.la` al dominio de SleakOps
+- Error HTTP 404 al usar `/etc/hosts` para apuntar `velo.la` a la IP del balanceador de carga
+- `curl -H "Host: velo.la"` devuelve HTTP 404, mientras que curl directo al dominio de SleakOps devuelve 200 OK
+- Los registros de Nginx muestran que las solicitudes llegan para acceso directo al dominio pero no para encabezados Host personalizados
+
+**Configuración relevante:**
+
+- Servicio: Nginx escuchando en el puerto 80
+- Dominios esperados: `velo.la`, `www.velo.la`
+- Dominio SleakOps: `main-proxy.develop.us-east-2.velo.la`
+- DNS: CNAME de Cloudflare apuntando dominios personalizados al dominio de SleakOps
+
+**Condiciones de error:**
+
+- HTTP 404 ocurre cuando el encabezado Host difiere del dominio proporcionado por SleakOps
+- El balanceador de carga parece filtrar solicitudes basándose en el encabezado Host
+- Las solicitudes con encabezados Host personalizados no llegan al contenedor Nginx
+
+## Solución detallada
+
+<TroubleshootingItem id="root-cause-analysis" summary="Entendiendo la causa raíz">
+
+El problema ocurre porque los balanceadores de carga de SleakOps realizan **enrutamiento basado en host** por defecto. Cuando accedes al servicio usando un dominio personalizado (mediante encabezado Host o CNAME), el balanceador de carga no reconoce el dominio personalizado y devuelve un 404 antes de que la solicitud llegue a tu contenedor Nginx.
+
+Por eso:
+
+- `curl https://main-proxy.develop.us-east-2.velo.la` funciona (dominio reconocido)
+- `curl -H "Host: velo.la" https://main-proxy.develop.us-east-2.velo.la` falla (dominio no reconocido)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="configure-custom-domains" summary="Configurar dominios personalizados en SleakOps">
+
+Para solucionar este problema, debes configurar tus dominios personalizados en la configuración del servicio SleakOps:
+
+1. **Accede a la configuración de tu servicio** en el panel de SleakOps
+2. **Navega a la sección de Redes (Networking)**
+3. **Agrega los dominios personalizados** a la lista de hosts permitidos:
+
+```yaml
+# Ejemplo de configuración del servicio
+networking:
+  public: true
+  domains:
+    - "main-proxy.develop.us-east-2.velo.la" # Dominio por defecto de SleakOps
+    - "velo.la" # Tu dominio personalizado
+    - "www.velo.la" # Tu subdominio www
+  ports:
+    - port: 80
+      protocol: HTTP
+```
+
+4. **Aplica la configuración** y espera a que se actualice el despliegue
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verify-nginx-configuration" summary="Verificar la configuración del servidor Nginx">
+
+Asegúrate de que la configuración de Nginx maneje correctamente los dominios personalizados:
+
+```nginx
+server {
+    listen 80;
+    server_name velo.la www.velo.la main-proxy.develop.us-east-2.velo.la;
+
+    location / {
+        # Configuración de tu aplicación
+        root /usr/share/nginx/html;
+        index index.html index.htm;
+    }
+}
+```
+
+Si usas un archivo de configuración Nginx personalizado, asegúrate de incluir todos los dominios que deseas servir.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cloudflare-configuration" summary="Configuración DNS en Cloudflare">
+
+Para la configuración en Cloudflare, asegúrate de usar la configuración correcta:
+
+1. **Registros CNAME:**
+
+   - `velo.la` → `main-proxy.develop.us-east-2.velo.la`
+   - `www.velo.la` → `main-proxy.develop.us-east-2.velo.la`
+
+2. **Configuración SSL/TLS:**
+
+   - Establece el modo de cifrado SSL/TLS a **"Full"** o **"Full (strict)"**
+   - Asegúrate de que **"Always Use HTTPS"** esté habilitado si es necesario
+
+3. **Estado del proxy:**
+   - Puedes mantener la nube naranja (proxy activado) habilitada
+   - O desactivarla (nube gris) para resolución DNS directa
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="testing-verification" summary="Pasos para pruebas y verificación">
+
+Después de configurar los dominios personalizados, prueba la configuración:
+
+1. **Prueba acceso directo:**
+
+```bash
+curl -v https://velo.la
+curl -v https://www.velo.la
+```
+
+2. **Prueba con encabezado Host explícito:**
+
+```bash
+curl -v -H "Host: velo.la" https://main-proxy.develop.us-east-2.velo.la
+```
+
+3. **Revisa los registros del servicio:**
+
+```bash
+# En el panel de SleakOps, revisa los registros de tu servicio
+# Deberías ver solicitudes llegando para todos los dominios configurados
+```
+
+4. **Verifica resolución DNS:**
+
+```bash
+nslookup velo.la
+nslookup www.velo.la
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Soluciones alternativas">
+
+Si no puedes configurar dominios personalizados en SleakOps, considera estas alternativas:
+
+1. **Usar un proxy inverso:**
+   Despliega un servicio proxy inverso separado que maneje los dominios personalizados y reenvíe las solicitudes a tu servicio principal.
+
+2. **Configurar Nginx para aceptar cualquier host:**
+
+```nginx
+server {
+    listen 80 default_server;
+    server_name _;
+
+    location / {
+        # Configuración de tu aplicación
+    }
+}
+```
+
+3. **Usar Cloudflare Workers:**
+   Crea un Worker de Cloudflare para modificar el encabezado Host antes de reenviar las solicitudes.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-tips" summary="Consejos adicionales para solución de problemas">
+
+**Si el problema persiste:**
+
+1. **Verifica el estado del servicio SleakOps** - Asegúrate de que el servicio esté activo y saludable
+2. **Verifica la configuración del balanceador de carga** - Contacta soporte de SleakOps para revisar la configuración del balanceador
+3. **Prueba con diferentes herramientas:**
+
+```bash
+# Prueba con wget
+wget --server-response --header="Host: velo.la" https://main-proxy.develop.us-east-2.velo.la
+
+# Prueba con diferente User-Agent
+curl -v -H "Host: velo.la" -H "User-Agent: Mozilla/5.0" https://main-proxy.develop.us-east-2.velo.la
+```
+
+4. **Revisa los logs del balanceador de carga:**
+   - Contacta el soporte de SleakOps para obtener acceso a los logs del balanceador
+   - Busca patrones de solicitudes rechazadas o filtradas
+
+5. **Considera usar herramientas de depuración de red:**
+
+```bash
+# Usar tcpdump para capturar tráfico de red
+sudo tcpdump -i any -s 0 -w capture.pcap host main-proxy.develop.us-east-2.velo.la
+
+# Analizar headers HTTP con curl verbose
+curl -v -H "Host: velo.la" -H "X-Debug: true" https://main-proxy.develop.us-east-2.velo.la
+```
+
+**Mejores prácticas:**
+
+- Siempre configura todos los dominios que planeas usar en la configuración del servicio
+- Mantén sincronizados los dominios en SleakOps y la configuración de Nginx
+- Usa HTTPS siempre que sea posible para mayor seguridad
+- Implementa health checks para monitorear la disponibilidad del servicio
+- Documenta todos los dominios configurados para futuras referencias
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

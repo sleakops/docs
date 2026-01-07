@@ -1,0 +1,930 @@
+---
+sidebar_position: 15
+title: "Configuración de Variables de Entorno para Migración de Base de Datos"
+description: "Solución para problemas de migración de base de datos con variables de entorno en SleakOps"
+date: "2024-12-11"
+category: "proyecto"
+tags:
+  ["base-de-datos", "migracion", "variables-de-entorno", "dotnet", "postgres"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Configuración de Variables de Entorno para Migración de Base de Datos
+
+**Fecha:** 11 de diciembre de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Base de datos, Migración, Variables de Entorno, .NET, PostgreSQL
+
+## Descripción del Problema
+
+**Contexto:** El usuario encuentra múltiples problemas al ejecutar migraciones de base de datos con .NET Entity Framework en SleakOps, específicamente con conexiones a bases de datos PostgreSQL y configuraciones de variables de entorno.
+
+**Síntomas Observados:**
+
+- El comando de migración de base de datos falla debido a una ruta de proyecto incorrecta
+- Errores de conexión a la base de datos por falta de autenticación con contraseña
+- Los hooks de migración no encuentran variables de entorno necesarias como `CORS_ALLOWED_ORIGINS`
+- Variables de entorno no accesibles para los procesos de migración
+
+**Configuración Relevante:**
+
+- Framework: .NET Entity Framework
+- Base de datos: PostgreSQL
+- Entorno: plataforma SleakOps
+- Grupos de Variables: Variables de entorno del proyecto Backend
+- Comando de migración: `dotnet ef database update`
+
+**Condiciones de Error:**
+
+- Ruta de proyecto incorrecta en el comando de migración
+- Nombres de variables de entorno desajustados (`POSTGRES_PASS` vs `POSTGRES_PASSWORD`)
+- Grupos de Variables asignados a servicios específicos en lugar de alcance global
+- Hooks de migración incapaces de acceder a las variables de entorno requeridas
+
+## Solución Detallada
+
+<TroubleshootingItem id="correct-migration-command" summary="Corregir la ruta del comando de migración de base de datos">
+
+La sintaxis correcta para ejecutar migraciones de Entity Framework es:
+
+```bash
+dotnet ef database update --project ../Netdo.Firev.WebApi/Netdo.Firev.WebApi.csproj
+```
+
+**Errores comunes:**
+
+- Errores tipográficos en la ruta del proyecto
+- Referencias relativas faltantes o incorrectas
+- Extensión o nombre del archivo de proyecto incorrectos
+
+**Pasos para verificar:**
+
+1. **Verificar que el archivo del proyecto existe en la ruta especificada**
+2. **Comprobar que la ruta es relativa a su directorio de trabajo actual**
+3. **Asegurarse de que el nombre del archivo `.csproj` coincida exactamente**
+
+### Comandos de verificación
+
+```bash
+# Verificar estructura del proyecto
+ls -la ../Netdo.Firev.WebApi/
+find . -name "*.csproj" -type f
+
+# Verificar desde el directorio correcto
+pwd
+dotnet ef --help
+
+# Comando completo con verbosidad para debugging
+dotnet ef database update --project ../Netdo.Firev.WebApi/Netdo.Firev.WebApi.csproj --verbose
+```
+
+### Comandos alternativos
+
+```bash
+# Si está en el directorio raíz del proyecto
+dotnet ef database update --project ./Netdo.Firev.WebApi/Netdo.Firev.WebApi.csproj
+
+# Especificar directorio de trabajo
+dotnet ef database update --project ./Netdo.Firev.WebApi/Netdo.Firev.WebApi.csproj --startup-project ./
+
+# Con context específico
+dotnet ef database update --project ./Netdo.Firev.WebApi/Netdo.Firev.WebApi.csproj --context ApplicationDbContext
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="environment-variable-naming" summary="Estandarizar nombres de variables de entorno">
+
+El nombre de las variables de entorno debe coincidir exactamente entre la configuración de su aplicación y los Grupos de Variables:
+
+**Problema:** La aplicación espera `POSTGRES_PASSWORD` pero el Grupo de Variables contiene `POSTGRES_PASS`
+
+**Solución:**
+
+1. **Revise los archivos de configuración de su aplicación** (appsettings.json, Program.cs, o Startup.cs)
+2. **Identifique los nombres exactos de variables esperados**
+3. **Actualice el Grupo de Variables para que coincida**
+
+### Verificación de variables en .NET
+
+```csharp
+// En appsettings.json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host={POSTGRES_HOST};Database={POSTGRES_DB};Username={POSTGRES_USER};Password={POSTGRES_PASSWORD};Port={POSTGRES_PORT}"
+  }
+}
+
+// En Program.cs o Startup.cs
+var connectionString = Configuration.GetConnectionString("DefaultConnection");
+
+// Verificar variables específicas
+var postgresHost = Environment.GetEnvironmentVariable("POSTGRES_HOST");
+var postgresPassword = Environment.GetEnvironmentVariable("POSTGRES_PASSWORD");
+var corsOrigins = Environment.GetEnvironmentVariable("CORS_ALLOWED_ORIGINS");
+```
+
+### Mapeo de variables comunes
+
+| Variable Esperada      | Variable Incorrecta | Uso Típico         |
+| ---------------------- | ------------------- | ------------------ |
+| `POSTGRES_PASSWORD`    | `POSTGRES_PASS`     | Contraseña DB      |
+| `POSTGRES_HOST`        | `DB_HOST`           | Host de DB         |
+| `POSTGRES_PORT`        | `DB_PORT`           | Puerto de DB       |
+| `POSTGRES_USER`        | `DB_USER`           | Usuario de DB      |
+| `POSTGRES_DB`          | `DATABASE_NAME`     | Nombre de DB       |
+| `CORS_ALLOWED_ORIGINS` | `CORS_ORIGINS`      | Configuración CORS |
+
+### Script de verificación de variables
+
+```bash
+#!/bin/bash
+# verify-env-variables.sh
+
+echo "=== Verificación de Variables de Entorno ==="
+
+# Variables requeridas para PostgreSQL
+required_vars=(
+    "POSTGRES_HOST"
+    "POSTGRES_PORT"
+    "POSTGRES_DB"
+    "POSTGRES_USER"
+    "POSTGRES_PASSWORD"
+    "CORS_ALLOWED_ORIGINS"
+)
+
+# Verificar cada variable
+for var in "${required_vars[@]}"; do
+    if [ -z "${!var}" ]; then
+        echo "❌ $var: NO DEFINIDA"
+    else
+        echo "✅ $var: ${!var:0:10}..." # Mostrar solo primeros 10 caracteres
+    fi
+done
+
+# Test de conexión a PostgreSQL
+echo ""
+echo "=== Test de Conexión PostgreSQL ==="
+psql "postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB" -c "SELECT version();"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="variable-group-scope" summary="Configurar el alcance correcto para Grupos de Variables">
+
+Los Grupos de Variables deben estar disponibles para **todos los servicios** que necesiten ejecutar migraciones, no solo para servicios específicos.
+
+### Problema: Alcance limitado
+
+Si el Grupo de Variables está asignado solo al servicio "Backend", los hooks de migración y otros procesos no tendrán acceso.
+
+### Solución: Configurar alcance global
+
+1. **Navegar a Grupos de Variables** en el panel de SleakOps
+2. **Seleccionar el grupo que contiene las variables de base de datos**
+3. **Configurar el alcance como "Global" o "Todo el proyecto"**
+4. **Verificar que incluye todos los entornos necesarios**
+
+### Estructura recomendada de Grupos de Variables
+
+```yaml
+# Grupo: Database Configuration (Alcance: Global)
+POSTGRES_HOST: "postgres-server.internal"
+POSTGRES_PORT: "5432"
+POSTGRES_DB: "netdo_firev_db"
+POSTGRES_USER: "app_user"
+POSTGRES_PASSWORD: "secure_password_123"
+
+# Grupo: Application Configuration (Alcance: Global)
+CORS_ALLOWED_ORIGINS: "https://frontend.com,https://admin.frontend.com"
+JWT_SECRET: "super_secret_jwt_key"
+ASPNETCORE_ENVIRONMENT: "Production"
+
+# Grupo: Service-Specific (Alcance: Servicio específico)
+SERVICE_NAME: "backend-api"
+LOG_LEVEL: "Information"
+```
+
+### Verificar acceso a variables desde hooks
+
+```bash
+# En un hook de migración
+#!/bin/bash
+echo "=== Variables disponibles en hook ==="
+env | grep -E "(POSTGRES|CORS)" | sort
+
+# Test específico de variables críticas
+if [ -z "$POSTGRES_PASSWORD" ]; then
+    echo "❌ POSTGRES_PASSWORD no disponible en hook"
+    exit 1
+fi
+
+if [ -z "$CORS_ALLOWED_ORIGINS" ]; then
+    echo "❌ CORS_ALLOWED_ORIGINS no disponible en hook"
+    exit 1
+fi
+
+echo "✅ Todas las variables críticas están disponibles"
+```
+
+### Configuración en SleakOps
+
+```json
+{
+  "variableGroups": [
+    {
+      "name": "Database Configuration",
+      "scope": "global",
+      "environment": "all",
+      "variables": {
+        "POSTGRES_HOST": "{{dependency.postgres.host}}",
+        "POSTGRES_PORT": "{{dependency.postgres.port}}",
+        "POSTGRES_DB": "{{dependency.postgres.database}}",
+        "POSTGRES_USER": "{{dependency.postgres.username}}",
+        "POSTGRES_PASSWORD": "{{dependency.postgres.password}}"
+      }
+    },
+    {
+      "name": "Application Settings",
+      "scope": "global",
+      "environment": "production",
+      "variables": {
+        "CORS_ALLOWED_ORIGINS": "https://prod.example.com",
+        "ASPNETCORE_ENVIRONMENT": "Production"
+      }
+    }
+  ]
+}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="migration-hooks-configuration" summary="Configurar hooks de migración con acceso a variables">
+
+Los hooks de migración necesitan configuración especial para acceder a las variables de entorno correctamente.
+
+### Configuración de Hook Pre-Deploy
+
+```bash
+#!/bin/bash
+# hooks/pre-deploy.sh
+
+set -e
+
+echo "=== Pre-Deploy Migration Hook ==="
+
+# Verificar variables críticas
+if [ -z "$POSTGRES_HOST" ] || [ -z "$POSTGRES_PASSWORD" ]; then
+    echo "❌ Variables de base de datos no disponibles"
+    echo "Disponibles: $(env | grep POSTGRES | cut -d= -f1 | tr '\n' ' ')"
+    exit 1
+fi
+
+# Configurar cadena de conexión
+export ConnectionStrings__DefaultConnection="Host=$POSTGRES_HOST;Database=$POSTGRES_DB;Username=$POSTGRES_USER;Password=$POSTGRES_PASSWORD;Port=$POSTGRES_PORT"
+
+echo "✅ Variables configuradas correctamente"
+
+# Verificar conectividad antes de migración
+echo "=== Test de Conectividad ==="
+timeout 10 bash -c "</dev/tcp/$POSTGRES_HOST/$POSTGRES_PORT" || {
+    echo "❌ No se puede conectar a PostgreSQL en $POSTGRES_HOST:$POSTGRES_PORT"
+    exit 1
+}
+
+echo "✅ Conectividad PostgreSQL verificada"
+
+# Ejecutar migraciones
+echo "=== Ejecutando Migraciones ==="
+cd /app
+dotnet ef database update --project ./Netdo.Firev.WebApi/Netdo.Firev.WebApi.csproj --verbose
+
+echo "✅ Migraciones completadas exitosamente"
+```
+
+### Hook Post-Deploy para verificación
+
+```bash
+#!/bin/bash
+# hooks/post-deploy.sh
+
+echo "=== Post-Deploy Verification Hook ==="
+
+# Verificar que la aplicación puede conectarse
+echo "Verificando conexión a base de datos..."
+
+# Test simple de conexión
+psql "postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB" \
+     -c "SELECT COUNT(*) as migration_count FROM __EFMigrationsHistory;" || {
+    echo "❌ No se puede verificar el estado de migraciones"
+    exit 1
+}
+
+echo "✅ Base de datos accesible y migraciones verificadas"
+
+# Verificar variables de aplicación
+curl -f "http://localhost:8080/health" -H "Origin: ${CORS_ALLOWED_ORIGINS%%,*}" || {
+    echo "⚠️ Health check falló, pero continuando..."
+}
+
+echo "✅ Post-deploy verification completado"
+```
+
+### Configuración de variables en Dockerfile
+
+```dockerfile
+# Dockerfile
+FROM mcr.microsoft.com/dotnet/aspnet:7.0 AS base
+WORKDIR /app
+
+# Instalar herramientas de EF para migraciones
+FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
+RUN dotnet tool install --global dotnet-ef
+ENV PATH="$PATH:/root/.dotnet/tools"
+
+# Instalar cliente PostgreSQL para verificaciones
+RUN apt-get update && apt-get install -y postgresql-client
+
+WORKDIR /src
+COPY ["Netdo.Firev.WebApi/Netdo.Firev.WebApi.csproj", "Netdo.Firev.WebApi/"]
+RUN dotnet restore "Netdo.Firev.WebApi/Netdo.Firev.WebApi.csproj"
+
+COPY . .
+WORKDIR "/src/Netdo.Firev.WebApi"
+RUN dotnet build "Netdo.Firev.WebApi.csproj" -c Release -o /app/build
+
+# Runtime
+FROM base AS final
+WORKDIR /app
+COPY --from=build /app/build .
+COPY --from=build /root/.dotnet/tools /root/.dotnet/tools
+COPY --from=build /usr/bin/psql /usr/bin/psql
+
+# Variables de entorno por defecto
+ENV ASPNETCORE_ENVIRONMENT=Production
+ENV ASPNETCORE_URLS=http://+:8080
+
+EXPOSE 8080
+ENTRYPOINT ["dotnet", "Netdo.Firev.WebApi.dll"]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="connection-string-configuration" summary="Configurar cadenas de conexión dinámicas">
+
+La configuración de cadenas de conexión debe ser flexible para trabajar con variables de entorno en diferentes entornos.
+
+### Configuración en appsettings.json
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Database=netdo_firev_dev;Username=postgres;Password=password;Port=5432"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning",
+      "Microsoft.EntityFrameworkCore": "Information"
+    }
+  },
+  "AllowedHosts": "*"
+}
+```
+
+### Configuración en appsettings.Production.json
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host={POSTGRES_HOST};Database={POSTGRES_DB};Username={POSTGRES_USER};Password={POSTGRES_PASSWORD};Port={POSTGRES_PORT};SSL Mode=Require;Trust Server Certificate=true"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Warning",
+      "Microsoft.EntityFrameworkCore": "Warning"
+    }
+  }
+}
+```
+
+### Configuración en Program.cs
+
+```csharp
+using Microsoft.EntityFrameworkCore;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Configurar cadena de conexión con variables de entorno
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+// Reemplazar placeholders con variables de entorno
+connectionString = connectionString?
+    .Replace("{POSTGRES_HOST}", Environment.GetEnvironmentVariable("POSTGRES_HOST") ?? "localhost")
+    .Replace("{POSTGRES_DB}", Environment.GetEnvironmentVariable("POSTGRES_DB") ?? "netdo_firev_dev")
+    .Replace("{POSTGRES_USER}", Environment.GetEnvironmentVariable("POSTGRES_USER") ?? "postgres")
+    .Replace("{POSTGRES_PASSWORD}", Environment.GetEnvironmentVariable("POSTGRES_PASSWORD") ?? "password")
+    .Replace("{POSTGRES_PORT}", Environment.GetEnvironmentVariable("POSTGRES_PORT") ?? "5432");
+
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+{
+    options.UseNpgsql(connectionString);
+    if (builder.Environment.IsDevelopment())
+    {
+        options.EnableSensitiveDataLogging();
+        options.EnableDetailedErrors();
+    }
+});
+
+// Configurar CORS con variable de entorno
+var corsOrigins = Environment.GetEnvironmentVariable("CORS_ALLOWED_ORIGINS")?.Split(',')
+    ?? new[] { "http://localhost:3000" };
+
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins(corsOrigins)
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
+});
+
+var app = builder.Build();
+
+// Ejecutar migraciones automáticamente en producción
+if (app.Environment.IsProduction())
+{
+    using var scope = app.Services.CreateScope();
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await context.Database.MigrateAsync();
+}
+
+app.UseCors();
+app.Run();
+```
+
+### Método alternativo con builder pattern
+
+```csharp
+public static class DatabaseExtensions
+{
+    public static IServiceCollection AddDatabaseConfiguration(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        IWebHostEnvironment environment)
+    {
+        var connectionStringBuilder = new NpgsqlConnectionStringBuilder
+        {
+            Host = Environment.GetEnvironmentVariable("POSTGRES_HOST") ?? "localhost",
+            Database = Environment.GetEnvironmentVariable("POSTGRES_DB") ?? "netdo_firev_dev",
+            Username = Environment.GetEnvironmentVariable("POSTGRES_USER") ?? "postgres",
+            Password = Environment.GetEnvironmentVariable("POSTGRES_PASSWORD") ?? "password",
+            Port = int.Parse(Environment.GetEnvironmentVariable("POSTGRES_PORT") ?? "5432")
+        };
+
+        if (environment.IsProduction())
+        {
+            connectionStringBuilder.SslMode = SslMode.Require;
+            connectionStringBuilder.TrustServerCertificate = true;
+            connectionStringBuilder.CommandTimeout = 30;
+            connectionStringBuilder.Timeout = 15;
+        }
+
+        services.AddDbContext<ApplicationDbContext>(options =>
+        {
+            options.UseNpgsql(connectionStringBuilder.ConnectionString);
+
+            if (environment.IsDevelopment())
+            {
+                options.EnableSensitiveDataLogging();
+                options.EnableDetailedErrors();
+                options.LogTo(Console.WriteLine, LogLevel.Information);
+            }
+        });
+
+        return services;
+    }
+}
+
+// Uso en Program.cs
+builder.Services.AddDatabaseConfiguration(builder.Configuration, builder.Environment);
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-migration-errors" summary="Solución de errores comunes en migraciones">
+
+### Error: "Cannot access a disposed object"
+
+**Causa:** Contexto de base de datos dispuesto antes de completar la migración
+
+**Solución:**
+
+```csharp
+// Program.cs - Configuración correcta de scope
+public static async Task Main(string[] args)
+{
+    var app = CreateHostBuilder(args).Build();
+
+    // Crear scope separado para migraciones
+    using (var scope = app.Services.CreateScope())
+    {
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        try
+        {
+            await context.Database.MigrateAsync();
+            var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+            logger.LogInformation("Database migration completed successfully");
+        }
+        catch (Exception ex)
+        {
+            var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+            logger.LogError(ex, "An error occurred while migrating the database");
+            throw;
+        }
+    }
+
+    await app.RunAsync();
+}
+```
+
+### Error: "Password authentication failed"
+
+**Causa:** Variables de entorno de contraseña incorrectas o no disponibles
+
+**Solución:**
+
+```bash
+# Verificar variables específicas
+echo "POSTGRES_PASSWORD value: '$POSTGRES_PASSWORD'"
+echo "Length: ${#POSTGRES_PASSWORD}"
+
+# Test de conexión directo
+psql "postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB" -c "\dt"
+
+# Debug de conexión con logging
+PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT version();"
+```
+
+### Error: "Network is unreachable"
+
+**Causa:** Problemas de conectividad de red con PostgreSQL
+
+**Solución:**
+
+```bash
+#!/bin/bash
+# network-debug.sh
+
+echo "=== Network Connectivity Debug ==="
+
+# Test de DNS
+echo "1. DNS Resolution:"
+nslookup "$POSTGRES_HOST"
+
+# Test de conectividad TCP
+echo "2. TCP Connectivity:"
+timeout 10 bash -c "</dev/tcp/$POSTGRES_HOST/$POSTGRES_PORT" && \
+    echo "✅ TCP connection successful" || \
+    echo "❌ TCP connection failed"
+
+# Test de ping (si ICMP está permitido)
+echo "3. Ping test:"
+ping -c 3 "$POSTGRES_HOST" 2>/dev/null || echo "Ping no disponible"
+
+# Test con telnet
+echo "4. Telnet test:"
+timeout 5 telnet "$POSTGRES_HOST" "$POSTGRES_PORT" 2>/dev/null || echo "Telnet connection failed"
+
+# Verificar variables de red
+echo "5. Network environment:"
+echo "POSTGRES_HOST: $POSTGRES_HOST"
+echo "POSTGRES_PORT: $POSTGRES_PORT"
+ip route show
+```
+
+### Error: "Migration assembly not found"
+
+**Causa:** Problema con la ruta del proyecto o ensamblado de migraciones
+
+**Solución:**
+
+```bash
+# Verificar estructura del proyecto
+find . -name "*.csproj" -exec echo "Found project: {}" \;
+find . -name "*Migrations*" -type d -exec echo "Found migrations: {}" \;
+
+# Limpiar y rebuild
+dotnet clean
+dotnet restore
+dotnet build
+
+# Verificar herramientas EF
+dotnet tool list -g | grep dotnet-ef
+dotnet tool install --global dotnet-ef --version 7.0.0
+
+# Comando de migración con debugging
+dotnet ef database update \
+    --project ./Netdo.Firev.WebApi/Netdo.Firev.WebApi.csproj \
+    --startup-project ./Netdo.Firev.WebApi/Netdo.Firev.WebApi.csproj \
+    --context ApplicationDbContext \
+    --verbose \
+    --no-build
+```
+
+### Script completo de debugging
+
+```bash
+#!/bin/bash
+# migration-debug.sh
+
+set -e
+
+echo "=== Migration Debug Script ==="
+
+# 1. Verificar variables de entorno
+echo "1. Environment Variables:"
+env | grep -E "(POSTGRES|CORS|ASPNET)" | sort
+
+# 2. Verificar estructura del proyecto
+echo "2. Project Structure:"
+find . -maxdepth 3 -name "*.csproj" -o -name "Migrations" -type d
+
+# 3. Verificar herramientas
+echo "3. .NET Tools:"
+dotnet --version
+dotnet tool list -g | grep -E "(dotnet-ef|entity)"
+
+# 4. Test de conectividad
+echo "4. Database Connectivity:"
+timeout 10 bash -c "</dev/tcp/$POSTGRES_HOST/$POSTGRES_PORT" && \
+    echo "✅ Database reachable" || \
+    echo "❌ Database unreachable"
+
+# 5. Test de autenticación
+echo "5. Database Authentication:"
+PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" \
+    -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT current_user, current_database();" || \
+    echo "❌ Authentication failed"
+
+# 6. Verificar estado de migraciones
+echo "6. Migration Status:"
+dotnet ef migrations list \
+    --project ./Netdo.Firev.WebApi/Netdo.Firev.WebApi.csproj 2>/dev/null || \
+    echo "❌ Cannot list migrations"
+
+# 7. Test de compilación
+echo "7. Build Test:"
+dotnet build ./Netdo.Firev.WebApi/Netdo.Firev.WebApi.csproj --no-restore --verbosity quiet && \
+    echo "✅ Build successful" || \
+    echo "❌ Build failed"
+
+echo "=== Debug Complete ==="
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="production-best-practices" summary="Mejores prácticas para migraciones en producción">
+
+### Estrategia de migraciones zero-downtime
+
+```csharp
+public static class DatabaseMigrationExtensions
+{
+    public static async Task<IHost> MigrateDatabaseAsync(this IHost host)
+    {
+        using var scope = host.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<DatabaseMigrationExtensions>>();
+
+        try
+        {
+            logger.LogInformation("Starting database migration...");
+
+            // Verificar conectividad primero
+            await context.Database.CanConnectAsync();
+            logger.LogInformation("Database connection verified");
+
+            // Obtener migraciones pendientes
+            var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
+
+            if (pendingMigrations.Any())
+            {
+                logger.LogInformation($"Applying {pendingMigrations.Count()} pending migrations...");
+                foreach (var migration in pendingMigrations)
+                {
+                    logger.LogInformation($"Pending migration: {migration}");
+                }
+
+                // Aplicar migraciones con timeout extendido
+                using var transaction = await context.Database.BeginTransactionAsync();
+                context.Database.SetCommandTimeout(TimeSpan.FromMinutes(10));
+
+                await context.Database.MigrateAsync();
+                await transaction.CommitAsync();
+
+                logger.LogInformation("Database migration completed successfully");
+            }
+            else
+            {
+                logger.LogInformation("No pending migrations found");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Database migration failed");
+            throw;
+        }
+
+        return host;
+    }
+}
+```
+
+### Configuración de salud de base de datos
+
+```csharp
+public static class HealthCheckExtensions
+{
+    public static IServiceCollection AddDatabaseHealthChecks(
+        this IServiceCollection services,
+        string connectionString)
+    {
+        services.AddHealthChecks()
+            .AddNpgSql(
+                connectionString,
+                name: "postgresql",
+                tags: new[] { "database", "postgresql" })
+            .AddDbContextCheck<ApplicationDbContext>(
+                name: "application-db-context",
+                tags: new[] { "database", "ef-core" });
+
+        return services;
+    }
+}
+
+// En Program.cs
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse,
+    ResultStatusCodes =
+    {
+        [HealthStatus.Healthy] = StatusCodes.Status200OK,
+        [HealthStatus.Degraded] = StatusCodes.Status200OK,
+        [HealthStatus.Unhealthy] = StatusCodes.Status503ServiceUnavailable
+    }
+});
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready"),
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+});
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false,
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+});
+```
+
+### Monitoreo de migraciones
+
+```csharp
+public class MigrationMonitoringService : BackgroundService
+{
+    private readonly IServiceProvider _services;
+    private readonly ILogger<MigrationMonitoringService> _logger;
+
+    public MigrationMonitoringService(
+        IServiceProvider services,
+        ILogger<MigrationMonitoringService> logger)
+    {
+        _services = services;
+        _logger = logger;
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                using var scope = _services.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+                // Verificar estado de migraciones
+                var appliedMigrations = await context.Database.GetAppliedMigrationsAsync();
+                var pendingMigrations = await context.Database.GetPendingMigrationsAsync();
+
+                if (pendingMigrations.Any())
+                {
+                    _logger.LogWarning($"Found {pendingMigrations.Count()} pending migrations");
+
+                    // Opcional: Aplicar automáticamente en entornos específicos
+                    if (Environment.GetEnvironmentVariable("AUTO_MIGRATE") == "true")
+                    {
+                        _logger.LogInformation("Auto-migration enabled, applying pending migrations...");
+                        await context.Database.MigrateAsync();
+                    }
+                }
+
+                // Verificar integridad de datos
+                var recordCount = await context.Database.ExecuteScalarAsync<int>(
+                    "SELECT COUNT(*) FROM __EFMigrationsHistory");
+
+                _logger.LogDebug($"Migration history contains {recordCount} entries");
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error monitoring database migrations");
+            }
+
+            await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
+        }
+    }
+}
+
+// Registrar el servicio
+builder.Services.AddHostedService<MigrationMonitoringService>();
+```
+
+### Backup y rollback automatizado
+
+```bash
+#!/bin/bash
+# migration-with-backup.sh
+
+set -e
+
+DB_BACKUP_DIR="/backups"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+BACKUP_FILE="$DB_BACKUP_DIR/pre_migration_backup_$TIMESTAMP.sql"
+
+echo "=== Database Migration with Backup ==="
+
+# Crear directorio de backup
+mkdir -p "$DB_BACKUP_DIR"
+
+# 1. Backup pre-migración
+echo "Creating pre-migration backup..."
+pg_dump "postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB" \
+    --no-password \
+    --verbose \
+    --format=custom \
+    --compress=9 \
+    --file="$BACKUP_FILE"
+
+echo "✅ Backup created: $BACKUP_FILE"
+
+# 2. Verificar backup
+echo "Verifying backup integrity..."
+pg_restore --list "$BACKUP_FILE" > /dev/null && \
+    echo "✅ Backup verification successful" || \
+    { echo "❌ Backup verification failed"; exit 1; }
+
+# 3. Ejecutar migraciones
+echo "Executing migrations..."
+if dotnet ef database update --project ./Netdo.Firev.WebApi/Netdo.Firev.WebApi.csproj --verbose; then
+    echo "✅ Migrations completed successfully"
+
+    # 4. Verificar aplicación después de migración
+    echo "Verifying application health..."
+    sleep 10
+    curl -f "http://localhost:8080/health" || {
+        echo "❌ Health check failed, considering rollback..."
+
+        # Opcional: Rollback automático
+        if [ "$AUTO_ROLLBACK" = "true" ]; then
+            echo "Performing automatic rollback..."
+            pg_restore --clean --if-exists \
+                "postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB" \
+                "$BACKUP_FILE"
+            echo "✅ Rollback completed"
+            exit 1
+        fi
+    }
+
+    echo "✅ Migration process completed successfully"
+
+    # 5. Limpiar backups antiguos (mantener últimos 5)
+    find "$DB_BACKUP_DIR" -name "pre_migration_backup_*.sql" -type f | \
+        sort -r | tail -n +6 | xargs -r rm
+
+else
+    echo "❌ Migration failed"
+    echo "Backup available at: $BACKUP_FILE"
+    exit 1
+fi
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 11 de diciembre de 2024 basada en una consulta real de usuario._

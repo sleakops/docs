@@ -1,0 +1,214 @@
+---
+sidebar_position: 3
+title: "DDoS Protection and Bot Attack Prevention for Web Services"
+description: "Configure AWS WAF and CloudFront for DDoS protection and bot attack prevention in SleakOps web services"
+date: "2024-12-19"
+category: "workload"
+tags:
+  ["security", "ddos", "waf", "cloudfront", "aws", "webservice", "protection"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# DDoS Protection and Bot Attack Prevention for Web Services
+
+**Date:** December 19, 2024  
+**Category:** Workload  
+**Tags:** Security, DDoS, WAF, CloudFront, AWS, WebService, Protection
+
+## Problem Description
+
+**Context:** Users need to understand what DDoS and bot attack protection is available for web services deployed in SleakOps, and whether additional CDN or security measures are required.
+
+**Observed Symptoms:**
+
+- Uncertainty about existing DDoS protection for web services
+- Questions about whether CloudFront is already implemented
+- Need to understand if additional CDN configuration is required
+- Concerns about bot attack prevention
+
+**Relevant Configuration:**
+
+- Platform: AWS-based SleakOps deployment
+- Service type: Web services with public load balancers
+- Security requirement: DDoS and bot attack protection
+- AWS services: WAF, CloudFront, Load Balancer
+
+**Error Conditions:**
+
+- Web services may be vulnerable to DDoS attacks without proper protection
+- Bot attacks could impact service availability
+- Lack of clarity on existing security measures
+
+## Detailed Solution
+
+<TroubleshootingItem id="ddos-protection-overview" summary="Understanding DDoS Protection in SleakOps">
+
+SleakOps web services are not automatically protected against DDoS attacks by default. You need to manually configure AWS WAF (Web Application Firewall) to protect your applications.
+
+**Key Points:**
+
+- Web services use public load balancers that are exposed to the internet
+- AWS provides DDoS protection through AWS WAF
+- Protection must be explicitly configured and attached to your load balancer
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="aws-waf-setup" summary="Setting up AWS WAF for DDoS Protection">
+
+To configure AWS WAF for your SleakOps web services:
+
+1. **Access AWS Console**
+
+   - Go to AWS Console
+   - Search for "WAF" in the search bar
+   - Select "AWS WAF & Shield"
+
+2. **Create Web ACL**
+
+   - Click "Create web ACL"
+   - Choose "Regional resources (Application Load Balancer, API Gateway)"
+   - Select your region where the cluster is deployed
+
+3. **Associate with Load Balancer**
+
+   - In the "Associated AWS resources" section
+   - Add your cluster's public load balancer
+   - The load balancer should appear in the dropdown list
+
+4. **Configure Rules**
+   ```yaml
+   # Example WAF configuration
+   Rules:
+     - AWS Managed Rules - Core Rule Set
+     - AWS Managed Rules - Known Bad Inputs
+     - AWS Managed Rules - SQL Database
+     - Rate Limiting Rule (custom)
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="managed-vs-custom-rules" summary="AWS Managed Rules vs Custom Rules">
+
+**AWS Managed Rules (Recommended):**
+
+- Pre-configured by AWS security experts
+- Automatically updated for new threats
+- More cost-effective than custom rules
+- Cover common attack patterns:
+  - SQL injection
+  - Cross-site scripting (XSS)
+  - Known bad IP addresses
+  - Bot protection
+
+**Custom Rules:**
+
+- More expensive to maintain
+- Require security expertise to configure
+- Useful for specific business logic protection
+- Can be combined with managed rules
+
+**Recommended Setup:**
+
+```yaml
+Managed Rule Groups:
+  - AWSManagedRulesCommonRuleSet
+  - AWSManagedRulesKnownBadInputsRuleSet
+  - AWSManagedRulesBotControlRuleSet
+  - AWSManagedRulesAmazonIpReputationList
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cloudfront-integration" summary="CloudFront for Static Content and Additional Protection">
+
+**CloudFront Benefits:**
+
+- Serves static files more efficiently
+- Provides additional DDoS protection at edge locations
+- Reduces load on your web services
+- Improves global performance
+
+**When to Use CloudFront:**
+
+- Your application serves static content (images, CSS, JS)
+- You have users in multiple geographic regions
+- You want additional protection beyond WAF
+- You need to reduce bandwidth costs
+
+**CloudFront + WAF Setup:**
+
+```yaml
+# CloudFront distribution configuration
+Origin: your-sleakops-loadbalancer.region.elb.amazonaws.com
+Caching:
+  - Static files: Cache for 24 hours
+  - Dynamic content: No cache or short TTL
+WAF: Associate the same WAF Web ACL with CloudFront
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cost-considerations" summary="Cost Analysis and Recommendations">
+
+**AWS WAF Costs:**
+
+- Web ACL: $1.00 per month
+- Rules: $0.60 per million requests
+- Managed rule groups: $1.00-$10.00 per month each
+
+**CloudFront Costs:**
+
+- Data transfer: $0.085 per GB (varies by region)
+- Requests: $0.0075 per 10,000 requests
+- Additional WAF costs if applied to CloudFront
+
+**Cost-Effective Approach:**
+
+1. Start with AWS WAF on load balancer only
+2. Use AWS managed rules (cheaper than custom)
+3. Add CloudFront if you have significant static content
+4. Monitor costs and adjust rules as needed
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="implementation-steps" summary="Step-by-Step Implementation Guide">
+
+**Phase 1: Basic WAF Protection**
+
+1. Identify your cluster's load balancer ARN
+2. Create WAF Web ACL in AWS Console
+3. Add managed rule groups:
+   - Core Rule Set
+   - Known Bad Inputs
+   - IP Reputation List
+4. Associate with load balancer
+5. Test and monitor
+
+**Phase 2: Enhanced Protection (Optional)**
+
+1. Add Bot Control managed rules
+2. Configure rate limiting rules
+3. Set up CloudWatch monitoring
+4. Create custom rules if needed
+
+**Phase 3: CloudFront Integration (If Needed)**
+
+1. Create CloudFront distribution
+2. Point origin to your load balancer
+3. Configure caching policies
+4. Associate WAF with CloudFront
+5. Update DNS to point to CloudFront
+
+**Monitoring and Maintenance:**
+
+```bash
+# Monitor WAF metrics
+aws wafv2 get-sampled-requests --web-acl-arn <your-web-acl-arn> --rule-metric-name <rule-name> --scope REGIONAL --time-window StartTime=<start>,EndTime=<end> --max-items 100
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

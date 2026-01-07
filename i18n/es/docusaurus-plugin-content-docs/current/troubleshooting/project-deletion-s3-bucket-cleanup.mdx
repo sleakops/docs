@@ -1,0 +1,127 @@
+---
+sidebar_position: 3
+title: "Problema de Eliminación de Proyecto Atascado - Problema de Limpieza de Bucket S3"
+description: "Solución para proyectos atascados en estado 'pendiente de eliminación' debido a problemas con la limpieza de buckets S3"
+date: "2024-10-31"
+category: "proyecto"
+tags: ["s3", "eliminación", "bucket", "limpieza", "aws"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problema de Eliminación de Proyecto Atascado - Problema de Limpieza de Bucket S3
+
+**Fecha:** 31 de octubre de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** S3, Eliminación, Bucket, Limpieza, AWS
+
+## Descripción del Problema
+
+**Contexto:** Al intentar eliminar un proyecto en SleakOps, el proyecto queda atascado en estado "pendiente de eliminación" debido a problemas con los procesos de limpieza del bucket S3.
+
+**Síntomas Observados:**
+
+- El proyecto permanece indefinidamente en estado "pendiente de eliminación"
+- El proceso de eliminación parece colgarse o agotar el tiempo
+- Los buckets S3 asociados al proyecto no se limpian correctamente
+- El error ocurre específicamente con buckets que contienen un gran número de objetos
+
+**Configuración Relevante:**
+
+- Tipo de proyecto: Cualquier proyecto con almacenamiento S3 asociado
+- Buckets AWS S3 con un conteo significativo de objetos
+- Procesos automatizados de limpieza de SleakOps
+
+**Condiciones de Error:**
+
+- Ocurre durante el proceso de eliminación del proyecto
+- Sucede cuando los buckets S3 contienen muchos objetos
+- El proceso de limpieza no maneja grandes volúmenes de objetos
+- La eliminación se queda atascada antes de completarse
+
+## Solución Detallada
+
+<TroubleshootingItem id="root-cause" summary="Comprendiendo la causa raíz">
+
+El problema ocurre porque AWS S3 requiere que todos los objetos sean eliminados de un bucket antes de que el bucket mismo pueda ser eliminado. Cuando un bucket contiene un gran número de objetos, el proceso de limpieza puede:
+
+1. **Agotar el tiempo**: El proceso de eliminación puede exceder los límites de tiempo
+2. **Límite de tasa**: Se pueden alcanzar los límites de tasa de la API de AWS durante eliminaciones masivas
+3. **Problemas de memoria**: Procesar demasiados objetos a la vez puede causar problemas de memoria
+4. **Limpieza incompleta**: Algunos objetos pueden quedar, impidiendo la eliminación del bucket
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-verification" summary="Cómo verificar el estado del bucket S3">
+
+Para comprobar si esto está afectando a tu proyecto:
+
+1. **Accede a la Consola AWS**
+2. **Navega al servicio S3**
+3. **Busca buckets** relacionados con el nombre de tu proyecto
+4. **Revisa el conteo de objetos** en cada bucket
+5. **Busca buckets** que deberían haber sido eliminados pero que aún existen
+
+```bash
+# Usando AWS CLI para revisar el contenido del bucket
+aws s3 ls s3://nombre-de-tu-bucket-del-proyecto --recursive --summarize
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="platform-fix" summary="Resolución en la plataforma SleakOps">
+
+El equipo de SleakOps ha implementado correcciones para este problema:
+
+1. **Procesamiento por lotes mejorado**: Los objetos ahora se eliminan en lotes más pequeños y manejables
+2. **Manejo de errores mejorado**: Mejores mecanismos de reintento para eliminaciones fallidas
+3. **Gestión de tiempos de espera**: Tiempos de espera extendidos para la limpieza de buckets grandes
+4. **Seguimiento del progreso**: Mejor monitoreo del progreso de la limpieza
+
+Si tu proyecto está actualmente atascado:
+
+- **Contacta soporte**: Reporta el proyecto atascado mediante un ticket de soporte
+- **Proporciona el nombre del proyecto**: Incluye el nombre exacto del proyecto que muestra "pendiente de eliminación"
+- **Espera la resolución**: El equipo completará manualmente el proceso de limpieza
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention" summary="Prevención de futuras ocurrencias">
+
+Para evitar este problema en futuras eliminaciones de proyectos:
+
+1. **Limpieza regular**: Limpia periódicamente archivos innecesarios en tu proyecto
+2. **Políticas de ciclo de vida**: Implementa políticas de ciclo de vida de S3 para eliminar automáticamente objetos antiguos
+3. **Monitoreo de almacenamiento**: Controla el conteo de objetos en los buckets S3 de tu proyecto
+4. **Eliminación escalonada**: Para proyectos con grandes cantidades de datos, considera limpieza manual antes de la eliminación
+
+```yaml
+# Ejemplo de política de ciclo de vida de S3
+LifecycleConfiguration:
+  Rules:
+    - Id: DeleteOldObjects
+      Status: Enabled
+      Filter:
+        Prefix: temp/
+      Expiration:
+        Days: 30
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring" summary="Monitoreo del progreso de eliminación">
+
+Mientras esperas que se complete una eliminación atascada:
+
+1. **Revisa el estado del proyecto** regularmente en el panel de SleakOps
+2. **Monitorea AWS CloudTrail** para eventos de eliminación en S3 (si tienes acceso)
+3. **Atento a notificaciones por correo** del equipo de SleakOps
+4. **Evita reintentar** el proceso de eliminación mientras se está resolviendo
+
+**Nota**: El proceso de resolución puede tomar algo de tiempo dependiendo del número de objetos que deben ser limpiados.
+
+</TroubleshootingItem>
+
+---
+
+_Este FAQ fue generado automáticamente el 1 de noviembre de 2024 basado en una consulta real de un usuario._

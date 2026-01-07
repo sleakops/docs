@@ -1,0 +1,227 @@
+---
+sidebar_position: 3
+title: "Problema de Ejecución Duplicada en Kubernetes CronJob"
+description: "Solución para CronJobs que se ejecutan múltiples veces debido a pods fallidos y configuración de reintentos"
+date: "2025-01-03"
+category: "workload"
+tags: ["cronjob", "kubernetes", "retry", "backofflimit", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problema de Ejecución Duplicada en Kubernetes CronJob
+
+**Fecha:** 3 de enero de 2025  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** CronJob, Kubernetes, Reintento, BackOffLimit, Solución de problemas
+
+## Descripción del Problema
+
+**Contexto:** Los CronJobs en un clúster de Kubernetes se están ejecutando múltiples veces en lugar de una sola vez en el horario programado. Este problema parece afectar a CronJobs específicos que han sido ejecutados manualmente a través de Lens o que han experimentado fallos.
+
+**Síntomas observados:**
+
+- Los CronJobs se ejecutan dos veces en lugar de una
+- Se crean dos pods por cada ejecución del CronJob
+- El primer pod parece fallar, lo que desencadena una segunda ejecución
+- No hay errores visibles en los registros de los pods fallidos
+- El problema persiste a través de despliegues y versiones
+- El problema afecta a CronJobs específicos que fueron ejecutados manualmente previamente
+
+**Configuración relevante:**
+
+- Comportamiento por defecto de reintento en Kubernetes CronJob: BackOffLimit = 1
+- CronJobs afectados después de ejecución manual vía Lens
+- Los jobs muestran estado fallido a pesar de no haber errores aparentes
+
+**Condiciones de error:**
+
+- Ocurre consistentemente para los CronJobs afectados
+- Sucede independientemente del éxito o fallo real del job
+- Persiste después de desplegar nuevas versiones
+- Afecta trabajos programados en producción
+
+## Solución Detallada
+
+<TroubleshootingItem id="root-cause-analysis" summary="Entendiendo la causa raíz">
+
+El problema de ejecución duplicada es causado por el mecanismo de reintento por defecto de Kubernetes para Jobs fallidos:
+
+1. **BackOffLimit por defecto**: Los CronJobs de Kubernetes tienen un `backoffLimit` por defecto de 1, lo que significa que reintentará una vez si falla
+2. **Detección de fallo del Job**: Aunque el código de tu aplicación se ejecute correctamente, el Job puede ser marcado como fallido debido a:
+
+   - Problemas con el código de salida
+   - Restricciones de recursos
+   - Configuraciones de timeout
+   - Problemas con el manejo de señales
+
+3. **Comportamiento de reintento**: Cuando un Job falla, Kubernetes crea automáticamente un nuevo pod para reintentar la ejecución
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-fix" summary="Solución rápida: Deshabilitar reintentos">
+
+Para detener inmediatamente las ejecuciones duplicadas, configura el `backoffLimit` a 0:
+
+**Usando Lens (método GUI):**
+
+1. Abre Lens y conéctate a tu clúster
+2. Navega a **Workloads** → **CronJobs** en la barra lateral
+3. Busca el CronJob afectado y haz clic en él
+4. Haz clic en **Editar** o ve a la vista YAML
+5. Localiza el campo `backoffLimit` (usualmente está en 1)
+6. Cámbialo a `0`:
+
+```yaml
+spec:
+  jobTemplate:
+    spec:
+      backoffLimit: 0 # Cambiado de 1 a 0
+      template:
+        spec:
+          # ... resto de la especificación del job
+```
+
+7. Guarda los cambios
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="permanent-solution" summary="Solución permanente: Corregir códigos de salida del job">
+
+Aunque deshabilitar los reintentos soluciona el síntoma, la solución correcta es asegurar que tus jobs finalicen exitosamente:
+
+**1. Verifica los códigos de salida de tu aplicación:**
+
+```bash
+# En el contenedor de tu job, asegura una salida adecuada
+exit 0  # Éxito
+# o
+exit 1  # Fallo (activará reintento si backoffLimit > 0)
+```
+
+**2. Revisa los logs del job para errores ocultos:**
+
+```bash
+kubectl logs <nombre-pod-job> --previous
+```
+
+**3. Problemas comunes que causan fallos "silenciosos":**
+
+- Timeout en conexión a base de datos
+- Variables de entorno faltantes
+- Problemas de permisos
+- Límites de memoria/CPU excedidos
+- Manejo inadecuado de señales
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-configuration" summary="Configuración en la plataforma SleakOps">
+
+En SleakOps puedes configurar el comportamiento de reintentos:
+
+**Solución temporal:**
+Usa Lens como se describió arriba hasta que SleakOps agregue soporte nativo para configurar BackOffLimit.
+
+**Configuración futura (cuando esté disponible):**
+El equipo de SleakOps está trabajando en añadir esta opción de configuración directamente en la interfaz de la plataforma.
+
+**Buenas prácticas para CronJobs en SleakOps:**
+
+```yaml
+# Configuración recomendada para CronJob
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: tu-cronjob
+spec:
+  schedule: "0 5 * * *" # Diario a las 5 AM
+  jobTemplate:
+    spec:
+      backoffLimit: 0 # Sin reintentos
+      activeDeadlineSeconds: 300 # Timeout de 5 minutos
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: tu-job
+              image: tu-imagen
+              command: ["/bin/sh"]
+              args: ["-c", "tu-comando && exit 0"]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-prevention" summary="Monitoreo y prevención">
+
+**Monitorea tus CronJobs:**
+
+1. **Revisa el estado de los jobs regularmente:**
+
+```bash
+kubectl get cronjobs
+kubectl get jobs
+```
+
+2. **Configura alertas para jobs fallidos:**
+
+```yaml
+# Ejemplo de alerta en Prometheus
+- alert: CronJobFailed
+  expr: kube_job_status_failed > 0
+  for: 0m
+  labels:
+    severity: warning
+  annotations:
+    summary: "CronJob {{ $labels.job_name }} falló"
+```
+
+**Estrategias de prevención:**
+
+- Siempre prueba los CronJobs primero en desarrollo
+- Usa códigos de salida adecuados en tus scripts
+- Implementa manejo correcto de errores
+- Establece límites razonables de recursos
+- Usa chequeos de salud cuando sea posible
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Pasos para solucionar ejecuciones duplicadas">
+
+Si aún experimentas ejecuciones duplicadas:
+
+**1. Verifica la configuración de BackOffLimit:**
+
+```bash
+kubectl get cronjob <nombre-cronjob> -o yaml | grep backoffLimit
+```
+
+**2. Revisa el historial reciente de jobs:**
+
+```bash
+kubectl get jobs --sort-by=.metadata.creationTimestamp
+```
+
+**3. Examina detalles de jobs fallidos:**
+
+```bash
+kubectl describe job <nombre-job>
+```
+
+**4. Revisa eventos de pods:**
+
+```bash
+kubectl get events --sort-by=.metadata.creationTimestamp
+```
+
+**5. Verifica restricciones de recursos:**
+
+```bash
+kubectl top pods
+kubectl describe nodes
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 3 de enero de 2025 basada en una consulta real de usuario._

@@ -1,0 +1,170 @@
+---
+sidebar_position: 3
+title: "Load Balancer Host Header Routing Issue"
+description: "Solution for HTTP 404 errors when using custom domains with load balancers"
+date: "2024-01-15"
+category: "workload"
+tags: ["load-balancer", "nginx", "host-header", "routing", "cloudflare"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Load Balancer Host Header Routing Issue
+
+**Date:** January 15, 2024  
+**Category:** Workload  
+**Tags:** Load Balancer, Nginx, Host Header, Routing, Cloudflare
+
+## Problem Description
+
+**Context:** User has deployed an Nginx service listening on port 80, configured to serve content for specific domains ("velo.la" and "www.velo.la"). The service is accessible via the SleakOps-provided domain but returns HTTP 404 when accessed through custom domains via Cloudflare CNAME or direct host header manipulation.
+
+**Observed Symptoms:**
+
+- Service works correctly when accessed via SleakOps domain: `main-proxy.develop.us-east-2.velo.la`
+- HTTP 404 error when accessing via Cloudflare CNAME redirect from `velo.la` to the SleakOps domain
+- HTTP 404 error when using `/etc/hosts` to point `velo.la` to the load balancer IP
+- `curl -H "Host: velo.la"` returns HTTP 404, while direct curl to SleakOps domain returns 200 OK
+- Nginx logs show requests arrive for direct domain access but not for custom host headers
+
+**Relevant Configuration:**
+
+- Service: Nginx listening on port 80
+- Expected domains: `velo.la`, `www.velo.la`
+- SleakOps domain: `main-proxy.develop.us-east-2.velo.la`
+- DNS: Cloudflare CNAME pointing custom domains to SleakOps domain
+
+**Error Conditions:**
+
+- HTTP 404 occurs when Host header differs from the SleakOps-provided domain
+- Load balancer appears to filter requests based on Host header
+- Requests with custom Host headers don't reach the Nginx container
+
+## Detailed Solution
+
+<TroubleshootingItem id="root-cause-analysis" summary="Understanding the root cause">
+
+The issue occurs because SleakOps load balancers perform **host-based routing** by default. When you access the service using a custom domain (via Host header or CNAME), the load balancer doesn't recognize the custom domain and returns a 404 before the request reaches your Nginx container.
+
+This is why:
+
+- `curl https://main-proxy.develop.us-east-2.velo.la` works (recognized domain)
+- `curl -H "Host: velo.la" https://main-proxy.develop.us-east-2.velo.la` fails (unrecognized domain)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="configure-custom-domains" summary="Configure custom domains in SleakOps">
+
+To fix this issue, you need to configure your custom domains in the SleakOps service configuration:
+
+1. **Access your service configuration** in the SleakOps dashboard
+2. **Navigate to the Networking section**
+3. **Add custom domains** to the allowed hosts list:
+
+```yaml
+# Service configuration example
+networking:
+  public: true
+  domains:
+    - "main-proxy.develop.us-east-2.velo.la" # Default SleakOps domain
+    - "velo.la" # Your custom domain
+    - "www.velo.la" # Your www subdomain
+  ports:
+    - port: 80
+      protocol: HTTP
+```
+
+4. **Apply the configuration** and wait for the deployment to update
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verify-nginx-configuration" summary="Verify Nginx server configuration">
+
+Ensure your Nginx configuration properly handles the custom domains:
+
+```nginx
+server {
+    listen 80;
+    server_name velo.la www.velo.la main-proxy.develop.us-east-2.velo.la;
+
+    location / {
+        # Your application configuration
+        root /usr/share/nginx/html;
+        index index.html index.htm;
+    }
+}
+```
+
+If you're using a custom Nginx configuration file, make sure it includes all the domains you want to serve.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cloudflare-configuration" summary="Cloudflare DNS configuration">
+
+For Cloudflare configuration, ensure you're using the correct setup:
+
+1. **CNAME Records:**
+
+   - `velo.la` → `main-proxy.develop.us-east-2.velo.la`
+   - `www.velo.la` → `main-proxy.develop.us-east-2.velo.la`
+
+2. **SSL/TLS Settings:**
+
+   - Set SSL/TLS encryption mode to **"Full"** or **"Full (strict)"**
+   - Ensure **"Always Use HTTPS"** is enabled if needed
+
+3. **Proxy Status:**
+   - You can keep the orange cloud (proxied) enabled
+   - Or disable it (gray cloud) for direct DNS resolution
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="testing-verification" summary="Testing and verification steps">
+
+After configuring custom domains, test the setup:
+
+1. **Test direct access:**
+
+```bash
+curl -v https://velo.la
+curl -v https://www.velo.la
+```
+
+2. **Test with explicit Host header:**
+
+```bash
+curl -v -H "Host: velo.la" https://main-proxy.develop.us-east-2.velo.la
+```
+
+3. **Test with different tools:**
+
+```bash
+# Test with wget
+wget --server-response --header="Host: velo.la" https://main-proxy.develop.us-east-2.velo.la
+
+# Test with different User-Agent
+curl -v -H "Host: velo.la" -H "User-Agent: Mozilla/5.0" https://main-proxy.develop.us-east-2.velo.la
+```
+
+4. **Monitor service logs:**
+
+   - Check application logs for incoming requests
+   - Monitor load balancer access logs if available
+   - Look for any SSL/TLS certificate issues
+
+5. **Validate DNS configuration:**
+   - Ensure CNAME records are properly configured
+   - Verify DNS propagation using tools like `dig` or `nslookup`
+   - Check for conflicting DNS records
+
+**Important Notes:**
+
+- Changes to load balancer configuration may require SleakOps support assistance
+- Custom domain configuration should be consistent across all environments
+- Always test configuration changes in development before applying to production
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

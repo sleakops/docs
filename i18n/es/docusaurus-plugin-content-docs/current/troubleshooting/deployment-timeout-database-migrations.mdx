@@ -1,0 +1,405 @@
+---
+sidebar_position: 3
+title: "Tiempo de Espera en el Despliegue Durante Migraciones de Base de Datos"
+description: "Solución para fallos en el despliegue causados por tiempos de espera en migraciones de base de datos en tareas previas al despliegue"
+date: "2024-04-25"
+category: "proyecto"
+tags:
+  [
+    "despliegue",
+    "base de datos",
+    "migraciones",
+    "tiempo de espera",
+    "pre-despliegue",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Tiempo de Espera en el Despliegue Durante Migraciones de Base de Datos
+
+**Fecha:** 25 de abril de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Despliegue, Base de Datos, Migraciones, Tiempo de Espera, Pre-despliegue
+
+## Descripción del Problema
+
+**Contexto:** El despliegue del servicio backend falla durante la fase previa al despliegue al ejecutar migraciones de base de datos, causando que todo el proceso de despliegue termine por tiempo de espera y falle.
+
+**Síntomas Observados:**
+
+- El despliegue falla durante la ejecución de la tarea previa al despliegue
+- Las migraciones de base de datos tardan demasiado en completarse
+- El proceso termina por límites de tiempo de espera
+- Múltiples intentos de despliegue muestran comportamiento similar de tiempo de espera
+- Pueden aparecer errores secundarios en la aplicación (ImportError) tras fallos por tiempo de espera
+
+**Configuración Relevante:**
+
+- Tipo de servicio: Aplicación backend
+- Tarea previa al despliegue: Migraciones de base de datos
+- Infraestructura: Nodos gestionados por Karpenter (no se detectaron problemas de aprovisionamiento)
+- Base de datos: Base de datos de producción con posibles grandes volúmenes de datos
+
+**Condiciones de Error:**
+
+- El error ocurre durante la fase previa al despliegue
+- Las migraciones exceden los límites de tiempo configurados
+- El problema aparece consistentemente en los intentos de despliegue
+- Puede ir seguido de errores de importación en la aplicación en intentos posteriores
+
+## Solución Detallada
+
+<TroubleshootingItem id="timeout-diagnosis" summary="Diagnóstico de problemas de tiempo de espera en migraciones">
+
+Los tiempos de espera en migraciones de base de datos suelen ocurrir debido a:
+
+1. **Migraciones de grandes volúmenes de datos**: Operaciones en tablas con millones de registros
+2. **Cambios en el esquema**: Añadir índices o columnas a tablas grandes
+3. **Contención de bloqueos**: Migraciones que entran en conflicto con conexiones activas a la base de datos
+4. **Restricciones de recursos**: CPU/memoria insuficiente en la base de datos durante la migración
+5. **Latencia de red**: Conexión lenta entre la aplicación y la base de datos
+
+Para diagnosticar la causa específica:
+
+```bash
+# Revisar los logs de migración
+kubectl logs -f deployment/your-backend-service -c pre-deploy
+
+# Monitorizar el rendimiento de la base de datos durante la migración
+# (Ejemplo AWS RDS)
+aws rds describe-db-instances --db-instance-identifier your-db
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="increase-timeout" summary="Incrementar los límites de tiempo de espera en pre-despliegue">
+
+En SleakOps, puedes configurar límites de tiempo de espera más largos para las tareas previas al despliegue:
+
+1. Ve a tus **Configuraciones del Proyecto**
+2. Navega a **Configuración de Despliegue**
+3. Busca **Configuración de Tareas Previas al Despliegue**
+4. Incrementa el valor de **Timeout**:
+
+```yaml
+# ejemplo sleakops.yaml
+services:
+  backend:
+    pre_deploy:
+      timeout: 1800 # 30 minutos en lugar de los 10 minutos por defecto
+      command: "python manage.py migrate"
+```
+
+Valores recomendados para timeout:
+
+- Aplicaciones pequeñas: 600 segundos (10 minutos)
+- Aplicaciones medianas: 1200 segundos (20 minutos)
+- Aplicaciones grandes: 1800+ segundos (30+ minutos)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="migration-optimization" summary="Optimizar migraciones de base de datos">
+
+Para hacer las migraciones más rápidas y confiables:
+
+**1. Dividir migraciones grandes:**
+
+```python
+# En lugar de una migración grande
+class Migration(migrations.Migration):
+    operations = [
+        # 50 operaciones aquí
+    ]
+
+# Dividir en migraciones más pequeñas
+class Migration001(migrations.Migration):
+    operations = [
+        # 10 operaciones aquí
+    ]
+
+class Migration002(migrations.Migration):
+    operations = [
+        # 10 operaciones más aquí
+    ]
+```
+
+**2. Usar optimizaciones específicas de la base de datos:**
+
+```python
+# Ejemplo PostgreSQL - añadir índices concurrentemente
+from django.contrib.postgres.operations import AddIndexConcurrently
+
+class Migration(migrations.Migration):
+    atomic = False  # Requerido para operaciones concurrentes
+    operations = [
+        AddIndexConcurrently(
+            model_name='yourmodel',
+            index=models.Index(fields=['field_name'], name='idx_field_name'),
+        ),
+    ]
+```
+
+**3. Ejecutar migraciones pesadas fuera de línea:**
+
+```bash
+# Para migraciones muy grandes, ejecútalas manualmente durante ventanas de mantenimiento
+kubectl exec -it deployment/backend-service -- python manage.py migrate --plan
+kubectl exec -it deployment/backend-service -- python manage.py migrate app_name migration_number
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-strategies" summary="Estrategias alternativas de despliegue">
+
+Si los tiempos de espera persisten, considera estas estrategias de despliegue:
+
+**1. Despliegue Blue-Green con migración manual:**
+
+```yaml
+# sleakops.yaml
+services:
+  backend:
+    deployment_strategy: blue_green
+    pre_deploy:
+      enabled: false # Deshabilitar migraciones automáticas
+    health_check:
+      path: /health
+      timeout: 30
+```
+
+Luego ejecuta las migraciones manualmente:
+
+```bash
+# Después de que el entorno azul esté listo
+kubectl exec -it deployment/backend-service-blue -- python manage.py migrate
+# Cambiar el tráfico después de completar la migración
+```
+
+**2. Despliegue Rolling con trabajos de migración:**
+
+```yaml
+# Crear un job separado para migraciones
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migration-job
+spec:
+  template:
+    spec:
+      containers:
+        - name: migrate
+          image: your-backend-image
+          command: ["python", "manage.py", "migrate"]
+      restartPolicy: Never
+  backoffLimit: 3
+```
+
+**3. Pooling de conexiones a la base de datos:**
+
+```python
+# settings.py - Optimizar conexiones a base de datos
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'CONN_MAX_AGE': 600,  # Pooling de conexiones
+        'OPTIONS': {
+            'MAX_CONNS': 20,
+            'MIN_CONNS': 5,
+        }
+    }
+}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-prevention" summary="Monitoreo y prevención">
+
+Para prevenir futuros problemas de tiempo de espera:
+
+**1. Monitorizar el rendimiento de las migraciones:**
+
+```bash
+# Añadir logging a las migraciones
+import logging
+logger = logging.getLogger(__name__)
+
+class Migration(migrations.Migration):
+    def apply_migration(self, project_state, schema_editor, collect_sql=False):
+        logger.info(f"Iniciando migración {self.name}")
+        start_time = time.time()
+        result = super().apply_migration(project_state, schema_editor, collect_sql)
+        duration = time.time() - start_time
+        logger.info(f"Migración {self.name} completada en {duration:.2f} segundos")
+        return result
+```
+
+**2. Configurar alertas:**
+
+```yaml
+# Alerta cuando las migraciones tardan demasiado
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: migration-alerts
+spec:
+  groups:
+    - name: migrations
+      rules:
+        - alert: MigrationTimeout
+          expr: increase(django_migration_duration_seconds[5m]) > 300
+          labels:
+            severity: warning
+          annotations:
+            summary: "Migración de base de datos tardando demasiado"
+```
+
+**3. Probar migraciones en staging:**
+
+```bash
+# Siempre probar con volúmenes de datos similares a producción
+# Usar snapshots de base de datos para pruebas realistas
+
+# Crear snapshot de producción para testing
+aws rds create-db-snapshot \
+  --db-instance-identifier prod-db \
+  --db-snapshot-identifier migration-test-$(date +%Y%m%d)
+
+# Restaurar snapshot en staging
+aws rds restore-db-instance-from-db-snapshot \
+  --db-instance-identifier staging-migration-test \
+  --db-snapshot-identifier migration-test-$(date +%Y%m%d)
+```
+
+**4. Implementar métricas de migración:**
+
+```python
+# middleware/migration_metrics.py
+import time
+from django.core.management.base import BaseCommand
+from django.db import connection
+
+class MigrationMetrics:
+    @staticmethod
+    def measure_migration_time(migration_func):
+        def wrapper(*args, **kwargs):
+            start_time = time.time()
+            result = migration_func(*args, **kwargs)
+            end_time = time.time()
+            
+            # Log métricas
+            print(f"Migración completada en {end_time - start_time:.2f} segundos")
+            
+            # Enviar métricas a sistema de monitoreo
+            # send_metric('migration.duration', end_time - start_time)
+            
+            return result
+        return wrapper
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="database-optimization" summary="Optimización de base de datos para migraciones">
+
+**1. Configurar parámetros de base de datos para migraciones:**
+
+```sql
+-- PostgreSQL: Optimizar para migraciones grandes
+SET maintenance_work_mem = '2GB';
+SET max_parallel_workers = 8;
+SET max_parallel_maintenance_workers = 4;
+
+-- MySQL: Configuraciones para migraciones
+SET innodb_buffer_pool_size = 2147483648;  -- 2GB
+SET innodb_log_file_size = 512M;
+SET innodb_flush_log_at_trx_commit = 2;
+```
+
+**2. Usar transacciones más pequeñas:**
+
+```python
+# Para migraciones de datos grandes
+from django.db import transaction
+
+class Migration(migrations.Migration):
+    def migrate_data_in_batches(apps, schema_editor):
+        Model = apps.get_model('app', 'Model')
+        batch_size = 1000
+        
+        total_count = Model.objects.count()
+        processed = 0
+        
+        while processed < total_count:
+            with transaction.atomic():
+                batch = Model.objects.all()[processed:processed + batch_size]
+                for obj in batch:
+                    # Procesar objeto
+                    obj.save()
+                processed += batch_size
+                print(f"Procesados {processed}/{total_count} registros")
+```
+
+**3. Índices y constraints:**
+
+```python
+# Crear índices después de insertar datos
+class Migration(migrations.Migration):
+    operations = [
+        # Primero insertar datos
+        migrations.RunPython(insert_data),
+        # Luego crear índices
+        migrations.AddIndex(
+            model_name='model',
+            index=models.Index(fields=['field'], name='idx_field'),
+        ),
+    ]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-checklist" summary="Lista de verificación para solución de problemas">
+
+**Antes del despliegue:**
+
+- [ ] Verificar el tamaño de las migraciones pendientes
+- [ ] Probar migraciones en staging con datos de producción
+- [ ] Configurar timeouts apropiados
+- [ ] Preparar plan de rollback
+- [ ] Verificar recursos de base de datos disponibles
+
+**Durante problemas de timeout:**
+
+- [ ] Revisar logs de migración para identificar operación lenta
+- [ ] Verificar métricas de CPU/memoria de la base de datos
+- [ ] Comprobar conexiones activas a la base de datos
+- [ ] Evaluar si hay bloqueos de tabla
+- [ ] Considerar ejecutar migración manualmente
+
+**Después de resolver:**
+
+- [ ] Documentar la causa raíz del problema
+- [ ] Actualizar timeouts si es necesario
+- [ ] Mejorar monitoreo para futuras migraciones
+- [ ] Revisar estrategia de migración para casos similares
+
+**Comandos útiles para diagnóstico:**
+
+```bash
+# Ver migraciones pendientes
+kubectl exec -it deployment/backend -- python manage.py showmigrations
+
+# Ver plan de migración
+kubectl exec -it deployment/backend -- python manage.py migrate --plan
+
+# Ejecutar migración específica
+kubectl exec -it deployment/backend -- python manage.py migrate app_name migration_name
+
+# Ver estado de la base de datos
+kubectl exec -it deployment/backend -- python manage.py dbshell
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 25 de abril de 2024 basada en una consulta real de usuario._

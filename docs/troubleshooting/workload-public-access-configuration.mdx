@@ -1,0 +1,146 @@
+---
+sidebar_position: 3
+title: "Workload Public Access Configuration"
+description: "How to configure workloads for public access without VPN connection"
+date: "2025-03-18"
+category: "workload"
+tags: ["workload", "public-access", "vpn", "configuration", "staging"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Workload Public Access Configuration
+
+**Date:** March 18, 2025  
+**Category:** Workload  
+**Tags:** Workload, Public Access, VPN, Configuration, Staging
+
+## Problem Description
+
+**Context:** Users need to access staging environments without being connected to VPN, but workloads are configured for private access by default in SleakOps.
+
+**Observed Symptoms:**
+
+- Staging workload is only accessible when connected to VPN
+- Team members cannot access staging environment without VPN connection
+- Need to make workload publicly accessible for broader team access
+
+**Relevant Configuration:**
+
+- Environment: Staging
+- Access method: Currently VPN-only
+- Desired access: Public internet access
+- Platform: SleakOps workload management
+
+**Error Conditions:**
+
+- Workload inaccessible without VPN connection
+- Connection timeouts when accessing from public internet
+- Need to modify workload configuration for public access
+
+## Detailed Solution
+
+<TroubleshootingItem id="workload-public-configuration" summary="How to configure workload for public access">
+
+To make a workload publicly accessible in SleakOps:
+
+1. **Navigate to your project** in the SleakOps dashboard
+2. **Select the workload** you want to make public
+3. **Go to workload settings** or configuration
+4. **Find the network/access configuration section**
+5. **Change the access type** from "Private" to "Public"
+6. **Save and redeploy** the workload
+
+The workload will now be accessible from the public internet without requiring VPN connection.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="access-types-explanation" summary="Understanding workload access types">
+
+**Private Access (Default):**
+
+- Workload is only accessible through VPN
+- Higher security for internal applications
+- Requires VPN connection for all access
+
+**Public Access:**
+
+- Workload is accessible from the public internet
+- Suitable for staging environments and public-facing applications
+- No VPN connection required
+- Should be used with proper authentication and security measures
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="security-considerations" summary="Security considerations for public workloads">
+
+When making workloads publicly accessible:
+
+1. **Enable authentication**: Ensure your application has proper login mechanisms
+2. **Use HTTPS**: Always enable SSL/TLS for public workloads
+3. **Implement rate limiting**: Protect against abuse and DDoS attacks
+4. **Monitor access logs**: Keep track of who is accessing your application
+5. **Regular security updates**: Keep your application and dependencies updated
+
+```yaml
+# Example workload configuration
+apiVersion: v1
+kind: Service
+metadata:
+  name: staging-app
+spec:
+  type: LoadBalancer # For public access
+  ports:
+    - port: 80
+      targetPort: 3000
+  selector:
+    app: staging-app
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-public-access" summary="Troubleshooting public access issues">
+
+If you're still having issues after making the workload public:
+
+1. **Check DNS propagation**: It may take a few minutes for DNS changes to propagate
+2. **Verify load balancer status**: Ensure the load balancer is properly configured
+3. **Check security groups**: Verify that necessary ports are open
+4. **Review application logs**: Look for any application-specific errors
+5. **Test from different networks**: Verify access from multiple locations
+
+**Common commands for troubleshooting:**
+
+```bash
+# Check service status
+kubectl get services
+
+# Check ingress configuration
+kubectl get ingress
+
+# View workload logs
+kubectl logs -f deployment/your-workload-name
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="staging-vs-production" summary="Best practices for staging vs production access">
+
+**Staging Environments:**
+
+- Can be made public for team collaboration
+- Should still have basic authentication
+- Consider IP whitelisting for additional security
+
+**Production Environments:**
+
+- Evaluate carefully before making public
+- Implement comprehensive security measures
+- Use proper monitoring and alerting
+- Consider gradual rollout strategies
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on March 18, 2025 based on a real user query._

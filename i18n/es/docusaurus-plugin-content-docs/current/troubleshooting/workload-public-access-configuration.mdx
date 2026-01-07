@@ -1,0 +1,146 @@
+---
+sidebar_position: 3
+title: "Configuración de Acceso Público para Workloads"
+description: "Cómo configurar workloads para acceso público sin conexión VPN"
+date: "2025-03-18"
+category: "workload"
+tags: ["workload", "acceso-publico", "vpn", "configuración", "staging"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Configuración de Acceso Público para Workloads
+
+**Fecha:** 18 de marzo de 2025  
+**Categoría:** Workload  
+**Etiquetas:** Workload, Acceso Público, VPN, Configuración, Staging
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios necesitan acceder a entornos de staging sin estar conectados a VPN, pero los workloads están configurados por defecto para acceso privado en SleakOps.
+
+**Síntomas Observados:**
+
+- El workload de staging solo es accesible cuando se está conectado a VPN
+- Los miembros del equipo no pueden acceder al entorno de staging sin conexión VPN
+- Necesidad de hacer el workload accesible públicamente para un acceso más amplio del equipo
+
+**Configuración Relevante:**
+
+- Entorno: Staging
+- Método de acceso: Actualmente solo VPN
+- Acceso deseado: Acceso desde internet público
+- Plataforma: Gestión de workloads en SleakOps
+
+**Condiciones de Error:**
+
+- Workload inaccesible sin conexión VPN
+- Tiempo de espera agotado al acceder desde internet público
+- Necesidad de modificar configuración del workload para acceso público
+
+## Solución Detallada
+
+<TroubleshootingItem id="workload-public-configuration" summary="Cómo configurar un workload para acceso público">
+
+Para hacer un workload accesible públicamente en SleakOps:
+
+1. **Navega a tu proyecto** en el panel de SleakOps
+2. **Selecciona el workload** que deseas hacer público
+3. **Ve a la configuración** o ajustes del workload
+4. **Encuentra la sección de configuración de red/acceso**
+5. **Cambia el tipo de acceso** de "Privado" a "Público"
+6. **Guarda y redepliega** el workload
+
+El workload ahora será accesible desde internet público sin requerir conexión VPN.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="access-types-explanation" summary="Entendiendo los tipos de acceso a workloads">
+
+**Acceso Privado (Por Defecto):**
+
+- El workload solo es accesible a través de VPN
+- Mayor seguridad para aplicaciones internas
+- Requiere conexión VPN para todo acceso
+
+**Acceso Público:**
+
+- El workload es accesible desde internet público
+- Adecuado para entornos de staging y aplicaciones públicas
+- No requiere conexión VPN
+- Debe usarse con mecanismos adecuados de autenticación y seguridad
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="security-considerations" summary="Consideraciones de seguridad para workloads públicos">
+
+Al hacer workloads accesibles públicamente:
+
+1. **Habilitar autenticación**: Asegúrate de que tu aplicación tenga mecanismos adecuados de inicio de sesión
+2. **Usar HTTPS**: Siempre activa SSL/TLS para workloads públicos
+3. **Implementar limitación de tasa**: Protege contra abusos y ataques DDoS
+4. **Monitorear registros de acceso**: Lleva control de quién accede a tu aplicación
+5. **Actualizaciones regulares de seguridad**: Mantén tu aplicación y dependencias actualizadas
+
+```yaml
+# Ejemplo de configuración de workload
+apiVersion: v1
+kind: Service
+metadata:
+  name: staging-app
+spec:
+  type: LoadBalancer # Para acceso público
+  ports:
+    - port: 80
+      targetPort: 3000
+  selector:
+    app: staging-app
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-public-access" summary="Solución de problemas con acceso público">
+
+Si aún tienes problemas después de hacer público el workload:
+
+1. **Verifica la propagación DNS**: Puede tardar algunos minutos en propagarse
+2. **Confirma el estado del balanceador de carga**: Asegúrate de que esté configurado correctamente
+3. **Revisa los grupos de seguridad**: Verifica que los puertos necesarios estén abiertos
+4. **Revisa los registros de la aplicación**: Busca errores específicos de la aplicación
+5. **Prueba desde diferentes redes**: Verifica el acceso desde múltiples ubicaciones
+
+**Comandos comunes para solución de problemas:**
+
+```bash
+# Ver estado de servicios
+kubectl get services
+
+# Ver configuración de ingress
+kubectl get ingress
+
+# Ver logs del workload
+kubectl logs -f deployment/your-workload-name
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="staging-vs-production" summary="Buenas prácticas para acceso en staging vs producción">
+
+**Entornos de Staging:**
+
+- Pueden hacerse públicos para colaboración del equipo
+- Deben tener autenticación básica
+- Considera listas blancas de IP para mayor seguridad
+
+**Entornos de Producción:**
+
+- Evaluar cuidadosamente antes de hacer públicos
+- Implementar medidas de seguridad completas
+- Usar monitoreo y alertas adecuadas
+- Considerar estrategias de despliegue gradual
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 18 de marzo de 2025 basada en una consulta real de usuario._

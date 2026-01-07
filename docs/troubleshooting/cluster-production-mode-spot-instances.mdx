@@ -1,0 +1,197 @@
+---
+sidebar_position: 3
+title: "Cluster Production Mode and Instance Types"
+description: "Understanding production mode, SPOT vs On-Demand instances, and Karpenter configuration"
+date: "2024-12-19"
+category: "cluster"
+tags: ["production", "spot-instances", "on-demand", "karpenter", "eks"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Cluster Production Mode and Instance Types
+
+**Date:** December 19, 2024  
+**Category:** Cluster  
+**Tags:** Production, SPOT Instances, On-Demand, Karpenter, EKS
+
+## Problem Description
+
+**Context:** Users need to understand the difference between production and development cluster modes in SleakOps, particularly regarding instance types (SPOT vs On-Demand) and their impact on cluster stability and costs.
+
+**Observed Symptoms:**
+
+- Confusion about when to use production mode
+- Uncertainty about SPOT vs On-Demand instances for nodepools
+- Questions about whether production mode automatically changes nodepool configurations
+- Pod scheduling issues related to node taints in Karpenter
+
+**Relevant Configuration:**
+
+- Cluster mode: Production vs Development
+- Instance types: SPOT vs On-Demand
+- Karpenter nodepool configuration
+- Critical system workloads (ALB, external-dns, etc.)
+
+**Error Conditions:**
+
+- Pods failing to schedule due to node taints
+- Cluster instability with SPOT instances
+- Confusion about cost optimization vs reliability
+
+## Detailed Solution
+
+<TroubleshootingItem id="production-mode-explanation" summary="What does Production Mode do?">
+
+Production mode in SleakOps affects **critical cluster infrastructure**, not your application workloads:
+
+**What Production Mode Changes:**
+
+- Uses On-Demand instances for critical system components (Karpenter, ALB Controller, External-DNS, etc.)
+- Applies additional configurations that improve cluster availability
+- Ensures system stability for production workloads
+
+**What Production Mode Does NOT Change:**
+
+- Your application nodepools remain unchanged
+- You can still use SPOT instances for your workloads
+- Application deployment configurations are not affected
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="spot-vs-ondemand" summary="SPOT vs On-Demand Instances: When to use each">
+
+**SPOT Instances:**
+
+- **Pros:** Up to 90% cost savings, good for fault-tolerant workloads
+- **Cons:** Can be terminated by AWS with 2-minute notice
+- **Best for:** Development environments, batch processing, stateless applications
+
+**On-Demand Instances:**
+
+- **Pros:** Guaranteed availability, predictable costs
+- **Cons:** Higher cost (full price)
+- **Best for:** Critical applications, databases, production workloads requiring high availability
+
+**Recommendation for Nodepools:**
+
+```yaml
+# For applications that can handle node rotation
+instance_type: spot
+
+# For critical applications requiring guaranteed availability
+instance_type: on-demand
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="karpenter-configuration" summary="Understanding Karpenter and Node Taints">
+
+Karpenter automatically manages different node types with specific taints:
+
+**Common Karpenter Taints:**
+
+- `karpenter.sh/nodepool: spot-amd64` - SPOT instances with AMD64 architecture
+- `karpenter.sh/nodepool: spot-arm64` - SPOT instances with ARM64 architecture
+- `karpenter.sh/nodepool: ondemand-amd64` - On-Demand instances with AMD64 architecture
+- `karpenter.sh/nodepool: ondemand-arm64` - On-Demand instances with ARM64 architecture
+
+**If pods can't schedule due to taints:**
+
+1. Check your pod tolerations
+2. Verify nodepool configuration
+3. Ensure Karpenter can provision appropriate nodes
+
+```yaml
+# Example toleration for SPOT instances
+tolerations:
+  - key: karpenter.sh/nodepool
+    operator: Equal
+    value: spot-amd64
+    effect: NoSchedule
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="production-recommendations" summary="Production Environment Recommendations">
+
+**For Production Clusters:**
+
+1. **Enable Production Mode:**
+
+   - Go to Cluster Settings
+   - Enable "Production Mode"
+   - This secures critical system components
+
+2. **Nodepool Strategy:**
+
+   - Use **On-Demand** for critical applications (databases, APIs)
+   - Use **SPOT** for fault-tolerant workloads (workers, batch jobs)
+   - Consider mixed nodepools for cost optimization
+
+3. **Application Preparation for SPOT:**
+   - Implement graceful shutdown handling
+   - Use horizontal pod autoscaling
+   - Design for node rotation tolerance
+   - Implement proper health checks
+
+**Example Mixed Configuration:**
+
+```yaml
+# Critical workloads nodepool
+critical_nodepool:
+  instance_type: on-demand
+  min_size: 2
+  max_size: 10
+
+# Batch processing nodepool
+batch_nodepool:
+  instance_type: spot
+  min_size: 0
+  max_size: 50
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-scheduling" summary="Troubleshooting Pod Scheduling Issues">
+
+If pods in `kube-system` namespace fail to schedule:
+
+**1. Check Node Availability:**
+
+```bash
+kubectl get nodes
+kubectl describe nodes
+```
+
+**2. Check Pod Status:**
+
+```bash
+kubectl get pods -n kube-system
+kubectl describe pod <pod-name> -n kube-system
+```
+
+**3. Check Karpenter Logs:**
+
+```bash
+kubectl logs -n karpenter deployment/karpenter
+```
+
+**4. Verify Nodepool Configuration:**
+
+- Ensure nodepools are properly configured
+- Check if Karpenter can provision new nodes
+- Verify AWS quotas and permissions
+
+**5. Common Solutions:**
+
+- Restart Karpenter deployment
+- Check AWS EC2 quotas
+- Verify subnet capacity
+- Review security group configurations
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

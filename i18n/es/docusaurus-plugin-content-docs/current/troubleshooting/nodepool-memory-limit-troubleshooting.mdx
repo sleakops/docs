@@ -1,0 +1,211 @@
+---
+sidebar_position: 3
+title: "Problemas con el Límite de Memoria de Nodepool"
+description: "Solución de problemas y resolución de problemas de capacidad de memoria en nodepool"
+date: "2025-02-27"
+category: "cluster"
+tags: ["nodepool", "memoria", "capacidad", "escalado", "solución de problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas con el Límite de Memoria de Nodepool
+
+**Fecha:** 27 de febrero de 2025  
+**Categoría:** Cluster  
+**Etiquetas:** Nodepool, Memoria, Capacidad, Escalado, Solución de Problemas
+
+## Descripción del Problema
+
+**Contexto:** Pods de producción fallando en la programación debido a que se alcanzan los límites de memoria del nodepool tras añadir nuevas cargas de trabajo durante la migración.
+
+**Síntomas Observados:**
+
+- Pods atascados en estado "Pending"
+- Fallos en la programación de pods por memoria insuficiente
+- Nodepool en capacidad máxima de memoria provisionada
+- Cargas críticas de producción afectadas (trabajos cron, aplicaciones)
+
+**Configuración Relevante:**
+
+- Tipo de nodepool: `spot-amd64`
+- Límite de memoria original: 120 GB
+- Incremento temporal: 160 GB
+- Nuevas cargas: despliegues de Redash y WordPress
+
+**Condiciones de Error:**
+
+- Ocurre cuando las solicitudes totales de memoria de los pods exceden la capacidad del nodepool
+- Se desencadena tras añadir nuevos despliegues al nodepool existente
+- Afecta la programación de pods y la disponibilidad de aplicaciones
+- El problema se agrava durante picos de uso o reinicios de pods
+
+## Solución Detallada
+
+<TroubleshootingItem id="immediate-resolution" summary="Incremento inmediato del límite de memoria">
+
+Para situaciones urgentes, puede aumentar temporalmente el límite de memoria del nodepool:
+
+1. **Acceda a la Consola SleakOps**
+2. Navegue a **Gestión de Clúster** → **Nodepools**
+3. Seleccione el nodepool afectado (por ejemplo, `spot-amd64`)
+4. Vaya a **Configuración** → **Recursos**
+5. Aumente el **Límite de Memoria** (por ejemplo, de 120GB a 200GB)
+6. Haga clic en **Aplicar Cambios**
+
+**Nota:** Esto proporciona un alivio inmediato pero debe seguirse con una planificación adecuada de capacidad.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="capacity-analysis" summary="Análisis del uso actual de memoria">
+
+Para entender su utilización actual de memoria:
+
+```bash
+# Ver uso de memoria de nodos
+kubectl top nodes
+
+# Ver solicitudes y límites de memoria de pods
+kubectl describe nodes | grep -A 5 "Allocated resources"
+
+# Listar pods con solicitudes de memoria
+kubectl get pods --all-namespaces -o custom-columns=NAME:.metadata.name,NAMESPACE:.metadata.namespace,MEMORY_REQUEST:.spec.containers[*].resources.requests.memory
+```
+
+Esto ayuda a identificar qué cargas consumen más memoria.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="nodepool-segregation" summary="Creación de nodepools dedicados">
+
+Para una mejor gestión de recursos, cree nodepools separados para diferentes tipos de cargas:
+
+1. **En la Consola SleakOps:**
+   - Vaya a **Gestión de Clúster** → **Nodepools**
+   - Haga clic en **Crear Nuevo Nodepool**
+   - Configure las especificaciones:
+
+```yaml
+# Ejemplo: Nodepool dedicado para cargas de datos
+name: "data-workloads"
+instance_type: "m5.xlarge"
+min_size: 1
+max_size: 5
+desired_size: 2
+memory_limit: "64GB"
+labels:
+  workload-type: "data"
+taints:
+  - key: "workload-type"
+    value: "data"
+    effect: "NoSchedule"
+```
+
+2. **Actualice los despliegues para usar el nuevo nodepool:**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redash-deployment
+spec:
+  template:
+    spec:
+      nodeSelector:
+        workload-type: "data"
+      tolerations:
+        - key: "workload-type"
+          operator: "Equal"
+          value: "data"
+          effect: "NoSchedule"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-setup" summary="Configuración de monitoreo de memoria">
+
+Implemente monitoreo para prevenir futuros problemas de capacidad:
+
+1. **Habilite el monitoreo del clúster** en SleakOps
+2. **Configure alertas** para uso de memoria del nodepool:
+
+   - Advertencia al 70% de capacidad
+   - Crítico al 85% de capacidad
+
+3. **Cree un panel** para rastrear:
+   - Utilización de memoria por nodepool
+   - Fallos en la programación de pods
+   - Solicitudes vs. límites de recursos
+
+```yaml
+# Ejemplo de configuración de alerta
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: nodepool-memory-alerts
+spec:
+  groups:
+    - name: nodepool.rules
+      rules:
+        - alert: NodepoolMemoryHigh
+          expr: (sum(kube_pod_container_resource_requests{resource="memory"}) by (node) / sum(kube_node_status_allocatable{resource="memory"}) by (node)) > 0.85
+          for: 5m
+          annotations:
+            summary: "El uso de memoria del nodepool es alto"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Buenas prácticas para la planificación de capacidad">
+
+**Prácticas recomendadas para la gestión de capacidad de nodepool:**
+
+1. **Reserve un buffer del 20-30%** para picos inesperados de carga
+2. **Separe cargas críticas y no críticas** en nodepools diferentes
+3. **Use solicitudes y límites de recursos** adecuadamente:
+
+```yaml
+resources:
+  requests:
+    memory: "512Mi" # Lo que el pod necesita
+    cpu: "250m"
+  limits:
+    memory: "1Gi" # Máximo que el pod puede usar
+    cpu: "500m"
+```
+
+4. **Revisiones regulares de capacidad** - evaluación mensual de patrones de uso
+5. **Implemente autoescalado horizontal de pods** para cargas variables
+6. **Use instancias spot con sabiduría** - asegure opciones de respaldo para cargas críticas
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="migration-considerations" summary="Manejo de cargas no gestionadas por SleakOps">
+
+Para despliegues creados fuera de la plataforma SleakOps:
+
+1. **Documente los despliegues externos:**
+
+   ```bash
+   # Listar todos los despliegues no gestionados por SleakOps
+   kubectl get deployments --all-namespaces -o yaml | grep -v "sleakops.com"
+   ```
+
+2. **Importe a SleakOps** (si es posible):
+
+   - Use la funcionalidad de importación de SleakOps
+   - Recree despliegues a través de la interfaz de SleakOps
+
+3. **Cree un nodepool dedicado** para cargas externas:
+
+   - Etiquete adecuadamente para identificación
+   - Establezca límites de recursos apropiados
+   - Monitoree separadamente de cargas gestionadas por la plataforma
+
+4. **Establezca gobernanza** para futuros despliegues y prevenir problemas similares
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 27 de febrero de 2025 basada en una consulta real de usuario._

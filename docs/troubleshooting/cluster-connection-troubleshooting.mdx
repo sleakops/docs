@@ -1,0 +1,230 @@
+---
+sidebar_position: 3
+title: "Cluster Connection Issues"
+description: "Troubleshooting guide for cluster connectivity problems"
+date: "2024-12-19"
+category: "cluster"
+tags: ["connection", "kubectl", "aws-sdk", "troubleshooting", "network"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Cluster Connection Issues
+
+**Date:** December 19, 2024  
+**Category:** Cluster  
+**Tags:** Connection, kubectl, AWS SDK, Troubleshooting, Network
+
+## Problem Description
+
+**Context:** User is unable to connect to a Kubernetes cluster through SleakOps platform, despite the cluster appearing to be running normally.
+
+**Observed Symptoms:**
+
+- Unable to establish connection to the cluster
+- Connection attempts fail without clear error messages
+- Cluster status appears normal on the platform
+- Issue persists across multiple connection attempts
+
+**Relevant Configuration:**
+
+- Platform: SleakOps Kubernetes cluster
+- Required tools: kubectl, AWS SDK, potential VPN client
+- Network: Variable (different internet connections)
+- Local environment: User's local machine
+
+**Error Conditions:**
+
+- Connection failures occur during cluster access attempts
+- Issue may be related to outdated local dependencies
+- Network connectivity may be a contributing factor
+- Problem persists despite cluster being operational
+
+## Detailed Solution
+
+<TroubleshootingItem id="dependency-update" summary="Update Required Dependencies">
+
+Ensure all required tools are updated to their latest versions:
+
+**kubectl:**
+
+```bash
+# Check current version
+kubectl version --client
+
+# Update kubectl (Linux/macOS)
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+# Update kubectl (Windows)
+choco upgrade kubernetes-cli
+```
+
+**AWS CLI:**
+
+```bash
+# Check current version
+aws --version
+
+# Update AWS CLI
+pip install --upgrade awscli
+# or
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install --update
+```
+
+**Pritunl (if using VPN):**
+
+- Download the latest version from the official Pritunl website
+- Uninstall the old version before installing the new one
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="network-troubleshooting" summary="Network Connectivity Checks">
+
+Perform these network diagnostics:
+
+**1. Test basic connectivity:**
+
+```bash
+# Test DNS resolution
+nslookup your-cluster-endpoint.eks.amazonaws.com
+
+# Test port connectivity
+telnet your-cluster-endpoint.eks.amazonaws.com 443
+```
+
+**2. Check firewall and proxy settings:**
+
+```bash
+# Check if behind corporate firewall
+curl -I https://your-cluster-endpoint.eks.amazonaws.com
+
+# Test with different network (mobile hotspot)
+# Switch to mobile data and retry connection
+```
+
+**3. VPN connection verification:**
+
+- Ensure VPN is connected if required
+- Try disconnecting/reconnecting VPN
+- Check VPN client logs for errors
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cluster-config-refresh" summary="Refresh Cluster Configuration">
+
+Update your local cluster configuration:
+
+**1. Re-download cluster config:**
+
+```bash
+# For AWS EKS clusters
+aws eks update-kubeconfig --region your-region --name your-cluster-name
+
+# Verify config
+kubectl config current-context
+kubectl config view
+```
+
+**2. Test cluster connectivity:**
+
+```bash
+# Test basic cluster access
+kubectl cluster-info
+kubectl get nodes
+kubectl get pods --all-namespaces
+```
+
+**3. Clear and regenerate credentials:**
+
+```bash
+# Clear AWS credentials cache
+rm -rf ~/.aws/cli/cache/
+
+# Re-authenticate if needed
+aws configure
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-connection-methods" summary="Alternative Connection Methods">
+
+If standard connection fails, try these alternatives:
+
+**1. Use SleakOps Web Terminal:**
+
+- Access cluster through the SleakOps web interface
+- Use the built-in terminal feature
+- This bypasses local configuration issues
+
+**2. Port forwarding for specific services:**
+
+```bash
+# Forward specific service ports
+kubectl port-forward service/your-service 8080:80
+```
+
+**3. Temporary cluster access:**
+
+```bash
+# Generate temporary kubeconfig
+kubectl config set-cluster temp-cluster --server=https://your-endpoint
+kubectl config set-context temp-context --cluster=temp-cluster
+kubectl config use-context temp-context
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="systematic-diagnosis" summary="Systematic Diagnosis Steps">
+
+Follow this step-by-step diagnosis process:
+
+**Step 1: Environment Check**
+
+```bash
+# Check all tool versions
+kubectl version --client
+aws --version
+helm version (if applicable)
+```
+
+**Step 2: Connectivity Test**
+
+```bash
+# Test cluster endpoint
+curl -k https://your-cluster-endpoint.eks.amazonaws.com/version
+```
+
+**Step 3: Authentication Verification**
+
+```bash
+# Verify AWS credentials
+aws sts get-caller-identity
+
+# Test cluster authentication
+kubectl auth can-i get pods
+```
+
+**Step 4: Network Analysis**
+
+- Try from different network (mobile data)
+- Check corporate firewall rules
+- Verify VPN connectivity if required
+
+**Step 5: Configuration Validation**
+
+```bash
+# Validate kubeconfig
+kubectl config validate
+
+# Check context
+kubectl config get-contexts
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

@@ -1,0 +1,215 @@
+---
+sidebar_position: 3
+title: "Lens Cluster Connection Issues"
+description: "Troubleshooting guide for Lens IDE connection problems with Kubernetes clusters"
+date: "2025-01-27"
+category: "cluster"
+tags: ["lens", "connection", "troubleshooting", "kubernetes", "networking"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Lens Cluster Connection Issues
+
+**Date:** January 27, 2025  
+**Category:** Cluster  
+**Tags:** Lens, Connection, Troubleshooting, Kubernetes, Networking
+
+## Problem Description
+
+**Context:** Users experience connectivity issues when trying to access their Kubernetes cluster through Lens IDE, despite the cluster services running normally and being accessible from external sources.
+
+**Observed Symptoms:**
+
+- Lens IDE cannot connect to the Kubernetes cluster
+- Cluster services continue running normally
+- External access to services works correctly
+- Connection issues appear suddenly without configuration changes
+- Lens shows connection timeout or authentication errors
+
+**Relevant Configuration:**
+
+- Tool: Lens IDE (Kubernetes IDE)
+- Cluster: SleakOps managed Kubernetes cluster
+- Network: Local development environment
+- Access method: kubectl configuration
+
+**Error Conditions:**
+
+- Connection fails specifically through Lens IDE
+- Problem occurs intermittently or after period of inactivity
+- Other kubectl commands may also be affected
+- VPN or network connectivity issues may be involved
+
+## Detailed Solution
+
+<TroubleshootingItem id="network-restart" summary="Restart network connectivity">
+
+The most common solution is to restart your network connection:
+
+**For Windows:**
+
+1. Open Command Prompt as Administrator
+2. Run the following commands:
+   ```cmd
+   ipconfig /release
+   ipconfig /renew
+   ipconfig /flushdns
+   ```
+3. Restart your network adapter from Network Settings
+
+**For macOS:**
+
+1. Turn off Wi-Fi from the menu bar
+2. Wait 10 seconds
+3. Turn Wi-Fi back on
+4. Or use Terminal:
+   ```bash
+   sudo dscacheutil -flushcache
+   sudo killall -HUP mDNSResponder
+   ```
+
+**For Linux:**
+
+```bash
+sudo systemctl restart NetworkManager
+# or
+sudo service network-manager restart
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="lens-troubleshooting" summary="Lens-specific troubleshooting steps">
+
+1. **Refresh cluster connection in Lens:**
+
+   - Right-click on your cluster in Lens
+   - Select "Refresh"
+   - Wait for the connection to re-establish
+
+2. **Clear Lens cache:**
+
+   - Close Lens completely
+   - Clear application cache:
+     - **Windows:** `%APPDATA%\Lens`
+     - **macOS:** `~/Library/Application Support/Lens`
+     - **Linux:** `~/.config/Lens`
+   - Restart Lens
+
+3. **Re-add cluster configuration:**
+   - Remove the cluster from Lens
+   - Re-import your kubeconfig file
+   - Test the connection
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="kubectl-verification" summary="Verify kubectl connectivity">
+
+Before troubleshooting Lens, verify that kubectl works:
+
+```bash
+# Test basic connectivity
+kubectl cluster-info
+
+# Check if you can list nodes
+kubectl get nodes
+
+# Verify authentication
+kubectl auth can-i get pods
+```
+
+If kubectl doesn't work, the issue is with your cluster configuration, not Lens specifically.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="vpn-connectivity" summary="Check VPN and network connectivity">
+
+If you're using a VPN to access your cluster:
+
+1. **Verify VPN connection:**
+
+   - Check VPN client status
+   - Ensure you're connected to the correct VPN server
+   - Try disconnecting and reconnecting
+
+2. **Test network connectivity:**
+
+   ```bash
+   # Ping your cluster API server
+   ping your-cluster-api-server.com
+
+   # Test port connectivity
+   telnet your-cluster-api-server.com 443
+   ```
+
+3. **DNS resolution issues:**
+
+   ```bash
+   # Check DNS resolution
+   nslookup your-cluster-api-server.com
+
+   # Try using different DNS servers
+   # Google DNS: 8.8.8.8, 8.8.4.4
+   # Cloudflare DNS: 1.1.1.1, 1.0.0.1
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="kubeconfig-refresh" summary="Refresh kubeconfig credentials">
+
+If your cluster uses temporary credentials (like AWS EKS), they may have expired:
+
+**For EKS clusters:**
+
+```bash
+# Update kubeconfig
+aws eks update-kubeconfig --region your-region --name your-cluster-name
+
+# Verify the update
+kubectl get nodes
+```
+
+**For other cloud providers:**
+
+- **GKE:** `gcloud container clusters get-credentials`
+- **AKS:** `az aks get-credentials`
+
+**Check token expiration:**
+
+```bash
+# View current context
+kubectl config current-context
+
+# View detailed config
+kubectl config view --minify
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="firewall-proxy" summary="Check firewall and proxy settings">
+
+1. **Firewall settings:**
+
+   - Ensure Lens is allowed through your firewall
+   - Check if ports 443 and 6443 are open
+   - Temporarily disable firewall to test
+
+2. **Corporate proxy:**
+
+   - Configure proxy settings in Lens preferences
+   - Set environment variables:
+     ```bash
+     export HTTP_PROXY=http://proxy.company.com:8080
+     export HTTPS_PROXY=http://proxy.company.com:8080
+     export NO_PROXY=localhost,127.0.0.1
+     ```
+
+3. **Certificate issues:**
+   - Check if your organization uses custom certificates
+   - Import certificates into your system's trust store
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 27, 2025 based on a real user query._

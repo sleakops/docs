@@ -1,0 +1,218 @@
+---
+sidebar_position: 3
+title: "Configuración de Nodepool OnDemand que Causa Problemas de Escalado de Pods"
+description: "Pods atascados en estado pendiente después de cambiar el nodepool de la configuración predeterminada a OnDemand"
+date: "2024-12-19"
+category: "cluster"
+tags: ["nodepool", "ondemand", "autoscaling", "pending", "scaling"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Configuración de Nodepool OnDemand que Causa Problemas de Escalado de Pods
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Clúster  
+**Etiquetas:** Nodepool, OnDemand, Autoscaling, Pendiente, Escalado
+
+## Descripción del Problema
+
+**Contexto:** El usuario cambió la configuración del nodepool de la predeterminada (sin valor) a OnDemand a solicitud del equipo de SleakOps. Después de este cambio, la funcionalidad de autoscaling no está funcionando correctamente.
+
+**Síntomas Observados:**
+
+- Los pods creados por autoscaling permanecen en estado pendiente
+- Solo los pods mínimos requeridos están activos
+- Los nuevos pods no pueden escalar y muestran errores
+- El autoscaling funcionaba antes del cambio de configuración del nodepool
+
+**Configuración Relevante:**
+
+- Tipo de nodepool: Cambiado de predeterminado (sin valor) a OnDemand
+- Autoscaling: Activado pero no funciona correctamente
+- Pods mínimos: Funcionando correctamente
+- Pods en escalado: Atascados en estado pendiente
+
+**Condiciones de Error:**
+
+- El error ocurre cuando el autoscaler intenta crear nuevos pods
+- Los pods permanecen en estado pendiente indefinidamente
+- El problema comenzó después del cambio de configuración del nodepool
+- Solo afecta a los pods escalados, no a los pods mínimos requeridos
+
+## Solución Detallada
+
+<TroubleshootingItem id="initial-diagnosis" summary="Comprendiendo el impacto de la configuración OnDemand">
+
+Al cambiar de la configuración predeterminada del nodepool a OnDemand, varios aspectos pueden afectar la programación de pods:
+
+1. **Provisión de instancias**: Las instancias OnDemand tienen características de provisión diferentes
+2. **Asignación de recursos**: La configuración OnDemand puede tener límites de recursos distintos
+3. **Restricciones de programación**: La nueva configuración podría introducir restricciones de programación
+4. **Planificación de capacidad**: Las instancias OnDemand pueden tener patrones de disponibilidad diferentes
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="pending-pod-diagnosis" summary="Diagnóstico de pods en estado pendiente">
+
+Para identificar por qué los pods están atascados en estado pendiente:
+
+```bash
+# Verificar estado y eventos de pods
+kubectl get pods -o wide
+kubectl describe pod <nombre-pod-pendiente>
+
+# Verificar capacidad y recursos de nodos
+kubectl get nodes -o wide
+kubectl describe nodes
+
+# Revisar logs del autoscaler del clúster
+kubectl logs -n kube-system deployment/cluster-autoscaler
+```
+
+Razones comunes para pods pendientes tras cambios en el nodepool:
+
+- Capacidad insuficiente de nodos
+- Restricciones de recursos (CPU/Memoria)
+- Desajustes en selectores de nodo
+- Problemas con taints y tolerancias
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="nodepool-verification" summary="Verificar configuración del nodepool">
+
+Verifique la configuración actual de su nodepool en SleakOps:
+
+1. **Navegue a Gestión de Clústeres**
+2. **Seleccione su clúster**
+3. **Vaya a la sección de Nodepools**
+4. **Verifique la configuración OnDemand**:
+   - Los tipos de instancia son apropiados
+   - Los límites mínimos/máximos de escalado son correctos
+   - Las zonas de disponibilidad están configuradas adecuadamente
+   - Las asignaciones de recursos coinciden con las necesidades de la carga de trabajo
+
+```yaml
+# Ejemplo de configuración correcta de nodepool OnDemand
+nodepool:
+  name: "ondemand-nodepool"
+  instance_type: ["t3.medium", "t3.large"]
+  capacity_type: "ON_DEMAND"
+  min_size: 2
+  max_size: 10
+  desired_size: 3
+  availability_zones: ["us-east-1a", "us-east-1b", "us-east-1c"]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="autoscaler-configuration" summary="Verificar configuración del autoscaler del clúster">
+
+Verifique que el autoscaler del clúster esté configurado correctamente para instancias OnDemand:
+
+```bash
+# Verificar configuración del autoscaler
+kubectl get configmap cluster-autoscaler-status -n kube-system -o yaml
+
+# Verificar despliegue del autoscaler
+kubectl get deployment cluster-autoscaler -n kube-system -o yaml
+```
+
+Asegúrese de que el autoscaler tenga:
+
+- Permisos adecuados para la gestión de instancias OnDemand
+- Configuración correcta para descubrir el nodepool
+- Políticas de escalado apropiadas
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="resource-requirements" summary="Revisar requisitos de recursos de los pods">
+
+Verifique si sus pods tienen solicitudes de recursos que coincidan con la capacidad del nodepool OnDemand:
+
+```yaml
+# Ejemplo de pod con solicitudes de recursos adecuadas
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+    - name: app
+      image: nginx
+      resources:
+        requests:
+          memory: "256Mi"
+          cpu: "250m"
+        limits:
+          memory: "512Mi"
+          cpu: "500m"
+```
+
+Problemas comunes:
+
+- Solicitudes de recursos demasiado altas para la capacidad disponible del nodo
+- Solicitudes de recursos faltantes que causan problemas de programación
+- Límites establecidos demasiado restrictivos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-solutions" summary="Pasos inmediatos para solución de problemas">
+
+1. **Escalar manualmente hacia abajo y hacia arriba**:
+
+   ```bash
+   kubectl scale deployment <su-despliegue> --replicas=1
+   kubectl scale deployment <su-despliegue> --replicas=<cantidad-deseada>
+   ```
+
+2. **Forzar escalado de nodos**:
+
+   - Aumente temporalmente la capacidad deseada del nodepool en SleakOps
+   - Espere a que los nodos se aprovisionen
+   - Verifique si los pods pueden programarse en los nodos nuevos
+
+3. **Verificar taints en nodos**:
+
+   ```bash
+   kubectl get nodes -o custom-columns=NAME:.metadata.name,TAINTS:.spec.taints
+   ```
+
+4. **Verificar tolerancias de pods** si los nodos tienen taints
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="long-term-solution" summary="Optimización de configuración a largo plazo">
+
+Para un rendimiento óptimo del nodepool OnDemand:
+
+1. **Tipos de instancia mixtos**: Use múltiples tipos de instancia para mejor disponibilidad
+2. **Planificación adecuada de recursos**: Asegure que las solicitudes de pods se alineen con la capacidad del nodo
+3. **Escalado gradual**: Configure políticas de escalado apropiadas
+4. **Monitoreo**: Configure alertas para pods pendientes y eventos de escalado
+
+```yaml
+# Configuración recomendada de HPA
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: app-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: your-app
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de un usuario._

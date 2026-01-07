@@ -1,0 +1,247 @@
+---
+sidebar_position: 3
+title: "Cluster Upgrade and Maintenance Scheduling"
+description: "Best practices for scheduling cluster upgrades and maintenance windows"
+date: "2024-12-19"
+category: "cluster"
+tags: ["cluster", "upgrade", "maintenance", "scheduling", "downtime"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Cluster Upgrade and Maintenance Scheduling
+
+**Date:** December 19, 2024  
+**Category:** Cluster  
+**Tags:** Cluster, Upgrade, Maintenance, Scheduling, Downtime
+
+## Problem Description
+
+**Context:** Organizations need to coordinate cluster upgrades and maintenance activities to minimize service disruption and ensure proper communication between SleakOps team and clients.
+
+**Observed Symptoms:**
+
+- Unexpected service interruptions during maintenance windows
+- Lack of clear communication about upgrade schedules
+- Incomplete cluster upgrades causing platform inconsistencies
+- Services becoming unavailable without prior notice
+- Confusion about maintenance start and end times
+
+**Relevant Configuration:**
+
+- Cluster upgrade processes (Kubernetes version updates)
+- Infrastructure migration activities
+- Domain and DNS configuration changes
+- Load balancer and ingress updates
+
+**Error Conditions:**
+
+- Services failing during unscheduled maintenance
+- Partial upgrades leaving clusters in inconsistent states
+- DNS and ingress configuration issues post-upgrade
+- Certificate validation problems after infrastructure changes
+
+## Detailed Solution
+
+<TroubleshootingItem id="maintenance-planning" summary="Planning maintenance windows">
+
+### Pre-Maintenance Planning
+
+Before scheduling any cluster upgrade or maintenance:
+
+1. **Assess Impact**: Identify all services and workloads that will be affected
+2. **Define Scope**: Clearly outline what will be upgraded or modified
+3. **Estimate Duration**: Provide realistic time estimates for the maintenance window
+4. **Prepare Rollback Plan**: Have a clear rollback strategy in case of issues
+
+### Communication Protocol
+
+- **Advance Notice**: Notify clients at least 48-72 hours before maintenance
+- **Detailed Schedule**: Provide specific start and end times
+- **Contact Information**: Ensure emergency contacts are available during maintenance
+- **Status Updates**: Send regular updates during the maintenance window
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="upgrade-coordination" summary="Coordinating cluster upgrades">
+
+### Cluster Upgrade Best Practices
+
+```yaml
+# Example maintenance schedule communication
+Maintenance Window:
+  Start: "2024-12-20 02:00 UTC"
+  End: "2024-12-20 06:00 UTC"
+  Timezone: "UTC-3 (Argentina Time: 23:00 - 03:00)"
+
+Affected Services:
+  - Kubernetes cluster upgrade (1.28 → 1.29)
+  - Node pool updates
+  - Load balancer configuration
+  - DNS and certificate renewal
+
+Expected Downtime:
+  - Estimated: 15-30 minutes
+  - Maximum: 2 hours
+```
+
+### Coordination Steps
+
+1. **Schedule Agreement**: Confirm maintenance window with client
+2. **Pre-upgrade Checklist**: Verify all prerequisites are met
+3. **Backup Creation**: Ensure all critical data is backed up
+4. **Staged Approach**: Upgrade non-production environments first
+5. **Monitoring Setup**: Have monitoring and alerting ready
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="communication-templates" summary="Communication templates">
+
+### Pre-Maintenance Notification
+
+```markdown
+Subject: Scheduled Maintenance - [Cluster Name] - [Date]
+
+Dear [Client],
+
+We have scheduled maintenance for your cluster:
+
+**Maintenance Details:**
+
+- Date: [Date]
+- Start Time: [Time] [Timezone]
+- End Time: [Time] [Timezone]
+- Expected Duration: [Duration]
+
+**What will be done:**
+
+- [List of activities]
+
+**Expected Impact:**
+
+- [Description of potential service interruptions]
+
+**Preparation Required:**
+
+- [Any actions needed from client]
+
+We will send updates during the maintenance window.
+
+Best regards,
+SleakOps Team
+```
+
+### During Maintenance Updates
+
+```markdown
+Subject: Maintenance Update - [Status] - [Time]
+
+**Status:** [In Progress/Completed/Issue]
+**Time:** [Current Time]
+**Progress:** [Description of current activities]
+**Next Steps:** [What happens next]
+**Estimated Completion:** [Updated time if different]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="post-maintenance" summary="Post-maintenance procedures">
+
+### Post-Maintenance Checklist
+
+1. **Service Verification**
+
+   - Test all critical services
+   - Verify DNS resolution
+   - Check SSL certificates
+   - Validate load balancer rules
+
+2. **Performance Monitoring**
+
+   - Monitor cluster performance for 24-48 hours
+   - Check resource utilization
+   - Verify auto-scaling functionality
+
+3. **Client Communication**
+   - Send completion notification
+   - Provide summary of changes made
+   - Include any post-maintenance instructions
+
+### Completion Notification Template
+
+```markdown
+Subject: Maintenance Completed - [Cluster Name]
+
+Dear [Client],
+
+The scheduled maintenance has been completed successfully.
+
+**Summary:**
+
+- Start Time: [Actual start time]
+- End Time: [Actual end time]
+- Duration: [Actual duration]
+
+**Changes Made:**
+
+- [List of completed activities]
+
+**Verification:**
+
+- All services are operational
+- Performance metrics are normal
+- No issues detected
+
+**Next Steps:**
+
+- Monitor your applications for the next 24 hours
+- Contact us immediately if you notice any issues
+
+Thank you for your patience.
+
+Best regards,
+SleakOps Team
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="emergency-procedures" summary="Emergency procedures during maintenance">
+
+### If Issues Occur During Maintenance
+
+1. **Immediate Assessment**
+
+   - Stop current activities if safe to do so
+   - Assess the severity of the issue
+   - Determine if rollback is necessary
+
+2. **Client Communication**
+
+   - Notify client immediately of any issues
+   - Provide realistic timeline for resolution
+   - Explain available options (continue, rollback, pause)
+
+3. **Escalation Process**
+   - Have senior team members available
+   - Establish clear escalation paths
+   - Maintain detailed logs of all activities
+
+### Emergency Contact Protocol
+
+```yaml
+Emergency Contacts:
+  Primary: "[Primary contact and phone]"
+  Secondary: "[Secondary contact and phone]"
+  Escalation: "[Management contact]"
+
+Communication Channels:
+  - Email (immediate)
+  - Phone/SMS (critical issues)
+  - Slack/Teams (real-time updates)
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

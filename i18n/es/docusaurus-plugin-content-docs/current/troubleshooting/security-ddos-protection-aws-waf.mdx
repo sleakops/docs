@@ -1,0 +1,214 @@
+---
+sidebar_position: 3
+title: "Protección contra DDoS y Prevención de Ataques de Bots para Servicios Web"
+description: "Configura AWS WAF y CloudFront para protección contra DDoS y prevención de ataques de bots en los servicios web de SleakOps"
+date: "2024-12-19"
+category: "workload"
+tags:
+  ["seguridad", "ddos", "waf", "cloudfront", "aws", "servicioweb", "protección"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Protección contra DDoS y Prevención de Ataques de Bots para Servicios Web
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Workload  
+**Etiquetas:** Seguridad, DDoS, WAF, CloudFront, AWS, ServicioWeb, Protección
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios necesitan entender qué protección contra DDoS y ataques de bots está disponible para los servicios web desplegados en SleakOps, y si se requieren medidas adicionales de CDN o seguridad.
+
+**Síntomas Observados:**
+
+- Incertidumbre sobre la protección DDoS existente para servicios web
+- Preguntas sobre si CloudFront ya está implementado
+- Necesidad de entender si se requiere configuración adicional de CDN
+- Preocupaciones sobre la prevención de ataques de bots
+
+**Configuración Relevante:**
+
+- Plataforma: Despliegue de SleakOps basado en AWS
+- Tipo de servicio: Servicios web con balanceadores de carga públicos
+- Requisito de seguridad: Protección contra DDoS y ataques de bots
+- Servicios AWS: WAF, CloudFront, Balanceador de carga
+
+**Condiciones de Error:**
+
+- Los servicios web pueden ser vulnerables a ataques DDoS sin la protección adecuada
+- Los ataques de bots podrían afectar la disponibilidad del servicio
+- Falta de claridad sobre las medidas de seguridad existentes
+
+## Solución Detallada
+
+<TroubleshootingItem id="ddos-protection-overview" summary="Entendiendo la Protección contra DDoS en SleakOps">
+
+Los servicios web de SleakOps no están protegidos automáticamente contra ataques DDoS por defecto. Es necesario configurar manualmente AWS WAF (Firewall de Aplicaciones Web) para proteger tus aplicaciones.
+
+**Puntos Clave:**
+
+- Los servicios web usan balanceadores de carga públicos que están expuestos a internet
+- AWS provee protección contra DDoS a través de AWS WAF
+- La protección debe configurarse explícitamente y asociarse a tu balanceador de carga
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="aws-waf-setup" summary="Configurando AWS WAF para Protección contra DDoS">
+
+Para configurar AWS WAF para tus servicios web de SleakOps:
+
+1. **Accede a la Consola de AWS**
+
+   - Ingresa a la Consola de AWS
+   - Busca "WAF" en la barra de búsqueda
+   - Selecciona "AWS WAF & Shield"
+
+2. **Crear Web ACL**
+
+   - Haz clic en "Crear web ACL"
+   - Elige "Recursos regionales (Application Load Balancer, API Gateway)"
+   - Selecciona la región donde está desplegado el clúster
+
+3. **Asociar con Balanceador de Carga**
+
+   - En la sección "Recursos AWS asociados"
+   - Añade el balanceador de carga público de tu clúster
+   - El balanceador debería aparecer en la lista desplegable
+
+4. **Configurar Reglas**
+   ```yaml
+   # Ejemplo de configuración WAF
+   Rules:
+     - Reglas Administradas de AWS - Conjunto de Reglas Básicas
+     - Reglas Administradas de AWS - Entradas Maliciosas Conocidas
+     - Reglas Administradas de AWS - Base de Datos SQL
+     - Regla de Limitación de Tasa (personalizada)
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="managed-vs-custom-rules" summary="Reglas Administradas de AWS vs Reglas Personalizadas">
+
+**Reglas Administradas de AWS (Recomendadas):**
+
+- Preconfiguradas por expertos en seguridad de AWS
+- Actualizadas automáticamente para nuevas amenazas
+- Más económicas que las reglas personalizadas
+- Cubren patrones comunes de ataque:
+  - Inyección SQL
+  - Cross-site scripting (XSS)
+  - Direcciones IP maliciosas conocidas
+  - Protección contra bots
+
+**Reglas Personalizadas:**
+
+- Más costosas de mantener
+- Requieren experiencia en seguridad para configurar
+- Útiles para proteger lógica de negocio específica
+- Pueden combinarse con reglas administradas
+
+**Configuración Recomendada:**
+
+```yaml
+Grupos de Reglas Administradas:
+  - AWSManagedRulesCommonRuleSet
+  - AWSManagedRulesKnownBadInputsRuleSet
+  - AWSManagedRulesBotControlRuleSet
+  - AWSManagedRulesAmazonIpReputationList
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cloudfront-integration" summary="CloudFront para Contenido Estático y Protección Adicional">
+
+**Beneficios de CloudFront:**
+
+- Sirve archivos estáticos de forma más eficiente
+- Proporciona protección adicional contra DDoS en ubicaciones edge
+- Reduce la carga en tus servicios web
+- Mejora el rendimiento global
+
+**Cuándo Usar CloudFront:**
+
+- Tu aplicación sirve contenido estático (imágenes, CSS, JS)
+- Tienes usuarios en múltiples regiones geográficas
+- Deseas protección adicional más allá de WAF
+- Necesitas reducir costos de ancho de banda
+
+**Configuración CloudFront + WAF:**
+
+```yaml
+# Configuración de distribución CloudFront
+Origin: tu-balanceador-sleakops.region.elb.amazonaws.com
+Caching:
+  - Archivos estáticos: Cache por 24 horas
+  - Contenido dinámico: Sin cache o TTL corto
+WAF: Asociar el mismo Web ACL de WAF con CloudFront
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cost-considerations" summary="Análisis de Costos y Recomendaciones">
+
+**Costos de AWS WAF:**
+
+- Web ACL: $1.00 por mes
+- Reglas: $0.60 por millón de solicitudes
+- Grupos de reglas administradas: $1.00-$10.00 por mes cada uno
+
+**Costos de CloudFront:**
+
+- Transferencia de datos: $0.085 por GB (varía según región)
+- Solicitudes: $0.0075 por cada 10,000 solicitudes
+- Costos adicionales de WAF si se aplica a CloudFront
+
+**Enfoque Rentable:**
+
+1. Comienza con AWS WAF solo en el balanceador de carga
+2. Usa reglas administradas de AWS (más económicas que personalizadas)
+3. Añade CloudFront si tienes contenido estático significativo
+4. Monitorea costos y ajusta reglas según sea necesario
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="implementation-steps" summary="Guía de Implementación Paso a Paso">
+
+**Fase 1: Protección Básica con WAF**
+
+1. Identifica el ARN del balanceador de carga de tu clúster
+2. Crea Web ACL de WAF en la Consola de AWS
+3. Añade grupos de reglas administradas:
+   - Conjunto de Reglas Básicas
+   - Entradas Maliciosas Conocidas
+   - Lista de Reputación IP
+4. Asócialo con el balanceador de carga
+5. Prueba y monitorea
+
+**Fase 2: Protección Mejorada (Opcional)**
+
+1. Añade reglas administradas de Control de Bots
+2. Configura reglas de limitación de tasa
+3. Configura monitoreo con CloudWatch
+4. Crea reglas personalizadas si es necesario
+
+**Fase 3: Integración con CloudFront (Si es Necesario)**
+
+1. Crea distribución CloudFront
+2. Apunta el origen a tu balanceador de carga
+3. Configura políticas de caché
+4. Asocia WAF con CloudFront
+5. Actualiza DNS para apuntar a CloudFront
+
+**Monitoreo y Mantenimiento:**
+
+```bash
+# Monitorear métricas de WAF
+aws wafv2 get-sampled-requests --web-acl-arn <tu-web-acl-arn> --rule-metric-name <nombre-de-regla> --scope REGIONAL --time-window StartTime=<inicio>,EndTime=<fin> --max-items 100
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de un usuario._

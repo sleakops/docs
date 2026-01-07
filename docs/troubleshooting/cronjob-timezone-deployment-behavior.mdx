@@ -1,0 +1,172 @@
+---
+sidebar_position: 3
+title: "CronJob Timezone and Deployment Behavior"
+description: "Understanding CronJob timezone configuration and execution behavior during deployments"
+date: "2024-10-24"
+category: "workload"
+tags: ["cronjob", "timezone", "deployment", "scheduling", "kubernetes"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# CronJob Timezone and Deployment Behavior
+
+**Date:** October 24, 2024  
+**Category:** Workload  
+**Tags:** CronJob, Timezone, Deployment, Scheduling, Kubernetes
+
+## Problem Description
+
+**Context:** User needs to configure CronJobs to run at specific times (e.g., 17:30 daily) and wants to understand timezone handling and execution behavior during deployments.
+
+**Observed Symptoms:**
+
+- CronJob appears to execute during deployment/release
+- Uncertainty about cluster timezone configuration
+- Need for precise scheduling at specific local times
+- Concern about unintended executions
+
+**Relevant Configuration:**
+
+- Cron expression: `30 17 * * *` (daily at 17:30)
+- Target timezone: Argentina (UTC-3)
+- Cluster timezone: UTC
+- Deployment triggers: Manual releases
+
+**Error Conditions:**
+
+- CronJob executes during deployment instead of scheduled time
+- Timezone confusion between UTC and local time
+- Multiple executions when only one daily execution is desired
+
+## Detailed Solution
+
+<TroubleshootingItem id="timezone-configuration" summary="Understanding Cluster Timezone">
+
+Kubernetes clusters in SleakOps are configured with **UTC timezone** by default. This means:
+
+- All CronJob schedules are interpreted in UTC time
+- Your cron expression `30 17 * * *` runs at 17:30 UTC
+- To run at 17:30 Argentina time (UTC-3), you need `30 20 * * *`
+
+**Time Conversion Example:**
+
+- Argentina time: 17:30 (UTC-3)
+- UTC equivalent: 20:30
+- Correct cron expression: `30 20 * * *`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deployment-behavior" summary="CronJob Behavior During Deployments">
+
+CronJobs should **NOT** execute during deployments. If this is happening, it indicates a configuration issue:
+
+**Normal Behavior:**
+
+- CronJobs only execute based on their schedule
+- Deployments update the CronJob definition but don't trigger execution
+- Existing scheduled jobs continue running
+
+**If CronJob runs during deployment, check:**
+
+1. **RestartPolicy**: Should be `OnFailure` or `Never`
+2. **Job History**: Verify `successfulJobsHistoryLimit` and `failedJobsHistoryLimit`
+3. **Concurrency**: Set `concurrencyPolicy: Forbid` to prevent overlapping jobs
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="correct-configuration" summary="Recommended CronJob Configuration">
+
+For a daily job at 17:30 Argentina time:
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: daily-job
+spec:
+  schedule: "30 20 * * *" # 20:30 UTC = 17:30 Argentina
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: job-container
+              image: your-image
+              command: ["your-command"]
+```
+
+**Key Settings:**
+
+- `concurrencyPolicy: Forbid`: Prevents multiple instances
+- `successfulJobsHistoryLimit: 3`: Keeps last 3 successful jobs
+- `restartPolicy: OnFailure`: Only restarts on failure
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="timezone-alternatives" summary="Alternative Timezone Solutions">
+
+If you need more precise timezone control:
+
+**Option 1: Kubernetes 1.25+ TimeZone Support**
+
+```yaml
+spec:
+  schedule: "30 17 * * *"
+  timeZone: "America/Argentina/Buenos_Aires"
+```
+
+**Option 2: Application-Level Timezone Handling**
+
+```bash
+# In your container
+export TZ=America/Argentina/Buenos_Aires
+date  # Will show Argentina time
+```
+
+**Option 3: Manual UTC Calculation**
+
+- Always calculate UTC equivalent of your desired local time
+- Account for daylight saving time changes
+- Update cron expressions when DST changes
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Troubleshooting CronJob Issues">
+
+**Check CronJob Status:**
+
+```bash
+kubectl get cronjobs
+kubectl describe cronjob your-cronjob-name
+```
+
+**View Job History:**
+
+```bash
+kubectl get jobs
+kubectl logs job/your-job-name
+```
+
+**Common Issues:**
+
+1. **Wrong timezone calculation**: Double-check UTC conversion
+2. **Deployment triggers execution**: Review job configuration
+3. **Multiple executions**: Set `concurrencyPolicy: Forbid`
+4. **Jobs not running**: Verify cron syntax and cluster time
+
+**Verify Cluster Time:**
+
+```bash
+kubectl run temp-pod --image=busybox --rm -it -- date
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on October 24, 2024 based on a real user query._

@@ -1,0 +1,193 @@
+---
+sidebar_position: 3
+title: "Problemas de Instalación de Grafana y Loki"
+description: "Solución de problemas de instalación atascada de Loki y problemas de tiempo de espera en Grafana"
+date: "2024-11-12"
+category: "dependencia"
+tags: ["grafana", "loki", "monitoreo", "complementos", "tiempo de espera"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de Instalación de Grafana y Loki
+
+**Fecha:** 12 de noviembre de 2024  
+**Categoría:** Dependencia  
+**Etiquetas:** Grafana, Loki, Monitoreo, Complementos, Tiempo de espera
+
+## Descripción del Problema
+
+**Contexto:** El usuario instaló los complementos Grafana y Loki en su clúster de producción a través de la plataforma SleakOps pero encontró problemas de instalación y acceso.
+
+**Síntomas observados:**
+
+- Grafana aparece como "instalado" pero retorna tiempo de espera al acceder a la interfaz web
+- La instalación de Loki parece atascada y nunca se completa
+- Grafana se vuelve accesible después de reanudar la instalación atascada de Loki
+- El acceso funciona correctamente cuando se conecta vía VPN
+
+**Configuración relevante:**
+
+- Entorno: Clúster de producción
+- Complementos: Grafana y Loki
+- Método de acceso: Se requiere conexión VPN
+- Estado de instalación: Grafana marcado como instalado, Loki atascado durante la instalación
+
+**Condiciones de error:**
+
+- Errores de tiempo de espera al acceder a la interfaz web de Grafana
+- El proceso de instalación de Loki se queda colgado indefinidamente
+- Los problemas se resuelven tras reanudar manualmente la instalación atascada
+
+## Solución Detallada
+
+<TroubleshootingItem id="check-installation-status" summary="Cómo verificar el estado de instalación del complemento">
+
+Para verificar el estado actual de tus complementos en SleakOps:
+
+1. Navega a tu **Panel del Clúster**
+2. Ve a la sección **Complementos**
+3. Revisa el estado de cada complemento:
+   - **Instalando**: Aún en progreso
+   - **Instalado**: Desplegado con éxito
+   - **Fallido**: La instalación encontró errores
+   - **Atascado**: La instalación parece congelada
+
+Si un complemento muestra "Instalando" por más de 30 minutos, puede estar atascado.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="resume-stuck-installation" summary="Cómo reanudar la instalación atascada de Loki">
+
+Cuando la instalación de Loki se atasca:
+
+1. Ve a **Panel del Clúster** → **Complementos**
+2. Encuentra el complemento Loki con estado "Instalando"
+3. Haz clic en el **menú de tres puntos** junto a Loki
+4. Selecciona **"Reanudar instalación"** o **"Reintentar"**
+5. Monitorea el progreso de la instalación
+6. Espera a que el estado cambie a "Instalado"
+
+**Método alternativo vía kubectl:**
+
+```bash
+# Verificar estado de los pods
+kubectl get pods -n loki-system
+
+# Revisar pods atascados\kubectl describe pod <nombre-pod-atascado> -n loki-system
+
+# Reiniciar pods atascados si es necesario
+kubectl delete pod <nombre-pod-atascado> -n loki-system
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="grafana-timeout-solution" summary="Resolución de problemas de tiempo de espera en Grafana">
+
+Los problemas de tiempo de espera en Grafana suelen estar relacionados con:
+
+1. **Instalación incompleta de Loki**: Grafana puede depender de que Loki esté completamente instalado
+2. **Conectividad de red**: Asegúrate de estar conectado vía VPN
+3. **Preparación de los pods**: Los pods de Grafana pueden no estar completamente listos
+
+**Pasos para resolver:**
+
+1. **Asegúrate de que Loki esté completamente instalado** (como se describió arriba)
+2. **Verifica el estado del pod de Grafana:**
+   ```bash
+   kubectl get pods -n grafana-system
+   kubectl logs -f <nombre-pod-grafana> -n grafana-system
+   ```
+3. **Verifica que la conexión VPN esté activa**
+4. **Espera 5-10 minutos** después de que la instalación de Loki finalice
+5. **Intenta acceder a Grafana nuevamente**
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="vpn-access-requirements" summary="Requisitos de acceso VPN para herramientas de monitoreo">
+
+Grafana y otras herramientas de monitoreo en SleakOps generalmente requieren acceso VPN por seguridad:
+
+**Requisitos:**
+
+- Conexión VPN activa a la red de tu clúster
+- Resolución DNS adecuada a través de la VPN
+- Reglas de firewall correctas que permitan el acceso
+
+**Pasos para verificar:**
+
+1. Confirma que la conexión VPN está activa
+2. Prueba la resolución DNS: `nslookup grafana.tu-cluster.local`
+3. Verifica si puedes acceder a otros servicios del clúster
+4. Asegúrate de que tu usuario tenga los permisos adecuados para acceder a Grafana
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-best-practices" summary="Buenas prácticas para prevenir problemas de instalación">
+
+Para evitar problemas similares en el futuro:
+
+**Orden de instalación:**
+
+1. Instala primero Loki (backend de registro)
+2. Espera a que Loki esté completamente listo
+3. Luego instala Grafana (frontend de visualización)
+
+**Monitoreo de la instalación:**
+
+- Revisa el estado de los complementos cada 10-15 minutos durante la instalación
+- No instales múltiples complementos pesados simultáneamente
+- Asegúrate de que el clúster tenga recursos suficientes antes de instalar
+
+**Requisitos de recursos:**
+
+```yaml
+# Recursos mínimos recomendados
+Loki:
+  memory: 2Gi
+  cpu: 500m
+Grafana:
+  memory: 1Gi
+  cpu: 250m
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-commands" summary="Comandos útiles para solución de problemas">
+
+**Verificar estado general del clúster:**
+
+```bash
+kubectl get nodes
+kubectl top nodes
+kubectl get pods --all-namespaces | grep -E "(loki|grafana)"
+```
+
+**Revisar logs específicos de complementos:**
+
+```bash
+# Logs de Loki
+kubectl logs -f deployment/loki -n loki-system
+
+# Logs de Grafana
+kubectl logs -f deployment/grafana -n grafana-system
+```
+
+**Verificar endpoints de servicios:**
+
+```bash
+kubectl get svc -n grafana-system
+kubectl get svc -n loki-system
+```
+
+**Verificar ingress/rutas:**
+
+```bash
+kubectl get ingress --all-namespaces
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 12 de noviembre de 2024 basada en una consulta real de un usuario._

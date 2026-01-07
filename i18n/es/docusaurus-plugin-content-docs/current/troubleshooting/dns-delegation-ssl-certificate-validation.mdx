@@ -1,0 +1,176 @@
+---
+sidebar_position: 3
+title: "Problemas de Delegación DNS y Validación de Certificados SSL"
+description: "Solución de problemas de delegación DNS y retrasos en la validación de certificados SSL de AWS"
+date: "2024-09-10"
+category: "provider"
+tags: ["dns", "ssl", "aws", "certificado", "delegación"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de Delegación DNS y Validación de Certificados SSL
+
+**Fecha:** 10 de septiembre de 2024  
+**Categoría:** Proveedor  
+**Etiquetas:** DNS, SSL, AWS, Certificado, Delegación
+
+## Descripción del Problema
+
+**Contexto:** Después de completar la configuración de la delegación DNS, los dominios aún aparecen como no delegados y los certificados SSL no están siendo validados por AWS, a pesar de que se espera que la propagación DNS haya finalizado.
+
+**Síntomas Observados:**
+
+- Los dominios se muestran como no delegados en el panel de SleakOps
+- Los certificados SSL permanecen sin validar por AWS
+- La propagación DNS parece incompleta a pesar de haber pasado tiempo suficiente
+- El proceso de validación del certificado está atascado en estado pendiente
+
+**Configuración Relevante:**
+
+- Delegación DNS: Configurada recientemente
+- Certificados SSL: Certificados gestionados por AWS
+- Proveedor: AWS
+- Método de validación de dominio: Validación DNS
+
+**Condiciones de Error:**
+
+- El problema persiste después del tiempo esperado para la propagación DNS
+- Los certificados permanecen en estado de validación pendiente
+- El estado de delegación del dominio no se actualiza en la plataforma
+
+## Solución Detallada
+
+<TroubleshootingItem id="dns-propagation-check" summary="Verificar el estado de la propagación DNS">
+
+La propagación DNS puede tardar hasta 48 horas en completarse a nivel global. Para verificar el estado actual:
+
+1. **Usar herramientas en línea de propagación DNS:**
+
+   - Visite https://www.whatsmydns.net/
+   - Ingrese su nombre de dominio
+   - Verifique si los registros NS están propagados globalmente
+
+2. **Verificación desde línea de comandos:**
+
+   ```bash
+   # Verificar registros NS
+   dig NS su-dominio.com
+
+   # Verificar desde diferentes servidores DNS
+   dig @8.8.8.8 NS su-dominio.com
+   dig @1.1.1.1 NS su-dominio.com
+   ```
+
+3. **Resultados esperados:**
+   - Todas las consultas deben devolver los mismos registros NS
+   - Los registros deben apuntar a los servidores de nombres de AWS Route53
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="aws-certificate-validation" summary="Proceso de validación de certificados SSL en AWS">
+
+La validación del Certificate Manager (ACM) de AWS puede tomar tiempo adicional después de la propagación DNS:
+
+1. **Cronograma de validación:**
+
+   - Propagación DNS: Hasta 48 horas
+   - Validación AWS: 24-72 horas adicionales después de la propagación
+   - Tiempo total: Hasta 5 días en algunos casos
+
+2. **Verificar estado del certificado en la Consola AWS:**
+
+   ```bash
+   # Usando AWS CLI
+   aws acm list-certificates --region us-east-1
+   aws acm describe-certificate --certificate-arn arn-del-certificado
+   ```
+
+3. **Verificación de registros de validación:**
+   - Asegúrese que los registros CNAME de validación estén presentes
+   - Verifique que los registros coincidan exactamente con lo que AWS requiere
+   - Confirme que no existan registros DNS conflictivos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Pasos para solucionar problemas de delegación">
+
+Si la delegación parece incompleta después de 24-48 horas:
+
+1. **Verificar configuración de servidores de nombres:**
+
+   ```bash
+   # Verificar servidores de nombres actuales
+   whois su-dominio.com | grep "Name Server"
+   ```
+
+2. **Problemas comunes a revisar:**
+
+   - Servidores de nombres no actualizados en el registrador del dominio
+   - Errores tipográficos en las entradas de servidores de nombres
+   - Registros DNS antiguos almacenados en caché localmente
+   - Registros A/CNAME conflictivos
+
+3. **Actualizar estado en la plataforma SleakOps:**
+   - Navegar a la configuración de su dominio
+   - Hacer clic en "Actualizar Estado" o "Verificar Delegación"
+   - Esperar a que la plataforma revalide el estado de delegación
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="certificate-regeneration" summary="Cuándo regenerar certificados">
+
+Considere regenerar los certificados si:
+
+1. **La validación ha estado pendiente por más de 5 días**
+2. **Los registros DNS fueron modificados durante el proceso de validación**
+3. **El certificado muestra errores de validación en la Consola AWS**
+
+**Pasos para regenerar:**
+
+1. En el panel de SleakOps:
+
+   - Ir a la sección de Certificados SSL
+   - Seleccionar el certificado problemático
+   - Hacer clic en "Regenerar Certificado"
+
+2. **Regeneración manual vía AWS:**
+
+   ```bash
+   # Eliminar certificado antiguo (si no está en uso)
+   aws acm delete-certificate --certificate-arn arn-cert-antiguo
+
+   # Solicitar nuevo certificado
+   aws acm request-certificate \
+     --domain-name su-dominio.com \
+     --validation-method DNS
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-validation" summary="Monitorear progreso de validación">
+
+**Configurar monitoreo para seguir el progreso:**
+
+1. **Eventos de AWS CloudWatch para cambios de estado del certificado**
+2. **Revisiones regulares de propagación DNS**
+3. **Notificaciones de la plataforma SleakOps**
+
+**Cronograma esperado:**
+
+- Hora 0-24: Inicio de propagación DNS
+- Hora 24-48: Propagación DNS completada globalmente
+- Hora 48-120: Validación del certificado AWS completa
+- Hora 120+: Considerar regeneración si aún está pendiente
+
+**Indicadores de finalización exitosa:**
+
+- El dominio aparece como "Delegado" en SleakOps
+- El estado del certificado cambia a "Emitido" en AWS
+- El acceso HTTPS funciona para su dominio
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

@@ -1,0 +1,164 @@
+---
+sidebar_position: 3
+title: "Problema de Inicio de Sesión y Configuración en AWS Marketplace"
+description: "Solución para problemas de inicio de sesión después de suscribirse a SleakOps a través de AWS Marketplace"
+date: "2024-01-15"
+category: "usuario"
+tags: ["aws-marketplace", "autenticación", "inicio de sesión", "configuración"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problema de Inicio de Sesión y Configuración en AWS Marketplace
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Usuario  
+**Etiquetas:** AWS Marketplace, Autenticación, Inicio de sesión, Configuración
+
+## Descripción del Problema
+
+**Contexto:** El usuario se suscribió a SleakOps a través de AWS Marketplace pero encuentra problemas de autenticación al intentar completar la configuración del producto.
+
+**Síntomas observados:**
+
+- Después de suscribirse a través de AWS Marketplace, al hacer clic en "Configurar Producto" redirige a la página de registro
+- El sistema no reconoce al usuario como conectado
+- El inicio de sesión manual redirige a la página principal sin completar la configuración
+- El problema persiste tras múltiples intentos en la misma sesión del navegador
+- El proceso de configuración nunca se completa con éxito
+
+**Configuración relevante:**
+
+- Método de suscripción: AWS Marketplace
+- Navegador: Mismo navegador usado durante todo el proceso
+- Estado de inicio de sesión: El usuario parece estar conectado pero el sistema no lo reconoce
+- Etapa de configuración: Configuración inicial del producto después de la suscripción en el marketplace
+
+**Condiciones del error:**
+
+- El error ocurre inmediatamente después de la suscripción en AWS Marketplace
+- Sucede al hacer clic en el botón "Configurar Producto"
+- Persiste después de intentos de inicio de sesión manual
+- Ocurre de forma consistente en múltiples sesiones del navegador
+
+## Solución Detallada
+
+<TroubleshootingItem id="marketplace-flow-explanation" summary="Entendiendo la Integración con AWS Marketplace">
+
+Cuando te suscribes a SleakOps a través de AWS Marketplace, hay un flujo de autenticación específico que debe completarse:
+
+1. **Suscripción en AWS Marketplace**: Te suscribes a través de AWS
+2. **Redirección a SleakOps**: AWS te redirige a nuestra plataforma con tokens especiales
+3. **Vinculación de Cuenta**: Tu cuenta de AWS se vincula con una cuenta de SleakOps
+4. **Finalización de Configuración**: Comienza el proceso de configuración del producto
+
+Si este flujo se interrumpe, pueden ocurrir problemas de autenticación.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="browser-cache-solution" summary="Limpiar Caché y Cookies del Navegador">
+
+La causa más común son conflictos con la caché del navegador. Sigue estos pasos:
+
+1. **Eliminar cookies de SleakOps**:
+
+   - Ve a la configuración de tu navegador
+   - Busca "Cookies y datos de sitios"
+   - Busca `sleakops.com` y elimina todas las cookies
+
+2. **Eliminar cookies de AWS Marketplace**:
+
+   - También elimina las cookies de `aws.amazon.com`
+   - Esto asegura un estado limpio de autenticación
+
+3. **Limpiar caché del navegador**:
+
+   - Borra imágenes y archivos en caché
+   - Esto evita que tokens antiguos de autenticación interfieran
+
+4. **Reiniciar el proceso**:
+   - Regresa a AWS Marketplace
+   - Haz clic nuevamente en "Configurar Producto"
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="incognito-mode-test" summary="Probar en Modo Incógnito/Privado">
+
+Para aislar problemas relacionados con el navegador:
+
+1. **Abre una ventana en modo incógnito/privado**
+2. **Ve a AWS Marketplace**
+3. **Navega a tu suscripción de SleakOps**
+4. **Haz clic en "Configurar Producto"**
+
+Si esto funciona, el problema está definitivamente relacionado con caché/cookies del navegador.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-account-linking" summary="Proceso Manual de Vinculación de Cuentas">
+
+Si el flujo automático falla, puedes vincular manualmente tus cuentas:
+
+1. **Crea una cuenta en SleakOps** (si no tienes una):
+
+   - Ve a `https://app.sleakops.com/register`
+   - Usa la misma dirección de correo electrónico que tu cuenta AWS
+
+2. **Contacta soporte** con:
+
+   - Tu ID de cuenta AWS
+   - El correo electrónico de tu cuenta SleakOps
+   - Detalles de tu suscripción en AWS Marketplace
+
+3. **Nosotros vincularemos manualmente** tus cuentas y activaremos tu suscripción
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-browsers" summary="Probar con Navegadores Diferentes">
+
+Algunos navegadores tienen políticas de seguridad más estrictas que pueden interferir con la autenticación entre dominios:
+
+**Navegadores recomendados:**
+
+- Chrome (última versión)
+- Firefox (última versión)
+- Safari (si usas macOS)
+
+**Navegadores a evitar:**
+
+- Versiones antiguas de Internet Explorer
+- Navegadores con bloqueadores de anuncios agresivos
+- Navegadores con configuraciones estrictas de privacidad
+
+**Configuraciones del navegador a revisar:**
+
+- Desactivar bloqueadores de anuncios para los dominios AWS y SleakOps
+- Permitir cookies de terceros temporalmente
+- Asegurarse que JavaScript esté habilitado
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="step-by-step-recovery" summary="Proceso Completo de Recuperación Paso a Paso">
+
+Si aún tienes problemas, sigue este proceso completo de recuperación:
+
+1. **Cerrar sesión de todos los servicios AWS**
+2. **Borrar todos los datos del navegador** (cookies, caché, almacenamiento local)
+3. **Reiniciar el navegador**
+4. **Iniciar sesión en la Consola AWS**
+5. **Ir a AWS Marketplace → Administrar suscripciones**
+6. **Buscar la suscripción a SleakOps**
+7. **Hacer clic en "Configurar Producto"**
+8. **Completar el flujo de autenticación sin interrupciones**
+
+Si esto aún no funciona, contacta a nuestro equipo de soporte con:
+
+- Tu ID de cuenta AWS
+- Capturas de pantalla del error
+- Información del navegador y versión
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de un usuario._

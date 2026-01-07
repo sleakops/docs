@@ -1,0 +1,300 @@
+---
+sidebar_position: 3
+title: "Production Environment Setup Guide"
+description: "Complete guide for setting up production environments with database migration and custom domains"
+date: "2024-01-15"
+category: "project"
+tags:
+  ["production", "deployment", "database", "migration", "domain", "environment"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Production Environment Setup Guide
+
+**Date:** January 15, 2024  
+**Category:** Project  
+**Tags:** Production, Deployment, Database, Migration, Domain, Environment
+
+## Problem Description
+
+**Context:** User needs to set up a production environment by replicating staging configuration, including dependencies and variable groups, while managing database migration and custom domain configuration.
+
+**Observed Symptoms:**
+
+- Need to replicate staging environment configuration to production
+- Requirement to modify RAILS_ENV variable from staging to production
+- Need for database dump/restore procedures for off-hours deployment
+- Custom domain configuration needed for production access
+
+**Relevant Configuration:**
+
+- Source environment: Staging
+- Target environment: Production
+- Framework: Rails application
+- Custom domain: hub.supra.social
+- Database: Requires dump/restore capability
+
+**Error Conditions:**
+
+- Manual environment setup required
+- Database migration needed during off-hours
+- Domain configuration for production access
+
+## Detailed Solution
+
+<TroubleshootingItem id="environment-replication" summary="Replicating Staging Environment to Production">
+
+To replicate your staging environment configuration:
+
+1. **Access SleakOps Dashboard**
+
+   - Navigate to your project
+   - Go to **Environments** section
+
+2. **Create Production Environment**
+
+   ```bash
+   # Using SleakOps CLI
+   sleakops env create production --from-template staging
+   ```
+
+3. **Copy Dependencies**
+
+   - In the dashboard, go to **Dependencies** tab
+   - Select all dependencies from staging
+   - Click **Clone to Environment** → Select **Production**
+
+4. **Copy Variable Groups**
+   - Navigate to **Variables** → **Groups**
+   - Select staging variable group
+   - Click **Duplicate** → Name it for production
+   - **Important**: Change `RAILS_ENV` from `staging` to `production`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="database-migration" summary="Database Dump and Restore Procedures">
+
+### Creating Database Dump
+
+```bash
+# Connect to staging database pod
+kubectl exec -it <staging-db-pod> -- bash
+
+# Create dump (PostgreSQL example)
+pg_dump -U <username> -h localhost <database_name> > /tmp/production_dump.sql
+
+# Copy dump to local machine
+kubectl cp <staging-db-pod>:/tmp/production_dump.sql ./production_dump.sql
+```
+
+### Restoring to Production Database
+
+```bash
+# Copy dump to production database pod
+kubectl cp ./production_dump.sql <production-db-pod>:/tmp/production_dump.sql
+
+# Connect to production database pod
+kubectl exec -it <production-db-pod> -- bash
+
+# Restore database
+psql -U <username> -h localhost <database_name> < /tmp/production_dump.sql
+```
+
+### Automated Script for Off-Hours Deployment
+
+```bash
+#!/bin/bash
+# production-deploy.sh
+
+set -e
+
+echo "Starting production database migration at $(date)"
+
+# Step 1: Create backup of current production DB
+echo "Creating production backup..."
+kubectl exec -it <prod-db-pod> -- pg_dump -U <user> <db> > prod_backup_$(date +%Y%m%d_%H%M%S).sql
+
+# Step 2: Apply new dump
+echo "Applying new database dump..."
+kubectl cp ./production_dump.sql <prod-db-pod>:/tmp/
+kubectl exec -it <prod-db-pod> -- psql -U <user> <db> < /tmp/production_dump.sql
+
+# Step 3: Restart application pods
+echo "Restarting application..."
+kubectl rollout restart deployment/<app-name> -n <namespace>
+
+echo "Migration completed at $(date)"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="domain-configuration" summary="Custom Domain Setup (hub.supra.social)">
+
+### Configure Custom Domain in SleakOps
+
+1. **In SleakOps Dashboard:**
+
+   - Go to **Production Environment**
+   - Navigate to **Networking** → **Domains**
+   - Click **Add Custom Domain**
+   - Enter: `hub.supra.social`
+
+2. **DNS Configuration:**
+
+   ```dns
+   # Add CNAME record in your DNS provider
+   hub.supra.social. CNAME <sleakops-generated-url>
+   ```
+
+3. **SSL Certificate:**
+   - SleakOps will automatically provision SSL certificate
+   - Wait for certificate validation (usually 5-10 minutes)
+
+### Verify Domain Configuration
+
+```bash
+# Check DNS resolution
+nslookup hub.supra.social
+
+# Test HTTPS access
+curl -I https://hub.supra.social
+
+# Check certificate
+openssl s_client -connect hub.supra.social:443 -servername hub.supra.social
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deployment-checklist" summary="Production Deployment Checklist">
+
+### Pre-Deployment (Before 7 PM)
+
+- [ ] Verify staging environment is stable
+- [ ] Create database dump from staging
+- [ ] Test dump restoration in development
+- [ ] Prepare deployment script
+- [ ] Notify stakeholders of maintenance window
+
+### During Deployment (7 PM - Off Hours)
+
+- [ ] Create production database backup
+- [ ] Apply new database dump
+- [ ] Update environment variables (RAILS_ENV=production)
+- [ ] Deploy application with new configuration
+- [ ] Verify domain accessibility
+- [ ] Run smoke tests
+
+### Post-Deployment
+
+- [ ] Monitor application logs
+- [ ] Verify all features working
+- [ ] Check performance metrics
+- [ ] Notify team of successful deployment
+
+### Rollback Plan (If Issues Occur)
+
+```bash
+# Restore previous database backup
+kubectl cp prod_backup_<timestamp>.sql <prod-db-pod>:/tmp/
+kubectl exec -it <prod-db-pod> -- psql -U <user> <db> < /tmp/prod_backup_<timestamp>.sql
+
+# Revert to previous application version
+kubectl rollout undo deployment/<app-name> -n <namespace>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Common Issues and Solutions">
+
+### Database Connection Issues
+
+```bash
+# Check database pod status
+kubectl get pods -l app=database
+
+# Check database logs
+kubectl logs <db-pod-name>
+
+# Test database connectivity
+kubectl exec -it <app-pod> -- rails db:migrate:status
+```
+
+### Domain Not Accessible
+
+1. **Check DNS propagation:**
+
+   ```bash
+   dig hub.supra.social
+   ```
+
+2. **Verify ingress configuration:**
+
+   ```bash
+   kubectl get ingress -n <namespace>
+   kubectl describe ingress <ingress-name>
+   ```
+
+3. **Check certificate status:**
+
+   ```bash
+   kubectl get certificates -n <namespace>
+   kubectl describe certificate <certificate-name>
+   ```
+
+4. **Verify load balancer status:**
+   ```bash
+   kubectl get services -n <namespace>
+   kubectl describe service <service-name>
+   ```
+
+### Performance Issues
+
+1. **Monitor resource usage:**
+
+   ```bash
+   kubectl top pods -n <namespace>
+   kubectl top nodes
+   ```
+
+2. **Scale services if needed:**
+
+   - Access SleakOps dashboard
+   - Navigate to workloads
+   - Adjust replica count for high-traffic services
+
+3. **Database performance:**
+   - Monitor connection pool usage
+   - Check for slow queries
+   - Consider read replicas for production load
+
+### Best Practices for Production
+
+1. **Security:**
+
+   - Rotate all credentials after setup
+   - Enable SSL/TLS for all communications
+   - Implement proper access controls
+
+2. **Monitoring:**
+
+   - Set up alerts for critical metrics
+   - Monitor application logs regularly
+   - Configure uptime monitoring
+
+3. **Backup Strategy:**
+
+   - Schedule regular database backups
+   - Test restore procedures
+   - Document recovery processes
+
+4. **Deployment Strategy:**
+   - Use blue-green or rolling deployments
+   - Test all changes in staging first
+   - Maintain rollback procedures
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

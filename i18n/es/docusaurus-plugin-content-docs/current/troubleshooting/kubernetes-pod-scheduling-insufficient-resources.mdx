@@ -1,0 +1,171 @@
+---
+sidebar_position: 3
+title: "Fallos en la Programación de Pods en Kubernetes - Recursos Insuficientes"
+description: "Solución para fallos en la programación de pods debido a recursos insuficientes de CPU y memoria en clústeres de Kubernetes"
+date: "2024-03-12"
+category: "cluster"
+tags: ["kubernetes", "programación", "recursos", "nodepool", "karpenter"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Fallos en la Programación de Pods en Kubernetes - Recursos Insuficientes
+
+**Fecha:** 12 de marzo de 2024  
+**Categoría:** Clúster  
+**Etiquetas:** Kubernetes, Programación, Recursos, Nodepool, Karpenter
+
+## Descripción del Problema
+
+**Contexto:** Un despliegue que funcionaba previamente de repente falla al programar pods en un clúster de Kubernetes gestionado por SleakOps, mostrando errores de insuficiencia de recursos.
+
+**Síntomas Observados:**
+
+- Los pods no se programan con el error "0/X nodos disponibles"
+- Mensajes de "CPU insuficiente" y "Memoria insuficiente"
+- El error menciona requisitos específicos de recursos que no se cumplen
+- Despliegues que funcionaban anteriormente dejan de funcionar de repente
+
+**Configuración Relevante:**
+
+- Requisitos de recursos del pod: CPU 665m, Memoria 2000Mi
+- Nodepool: spot-arm64 con arquitectura ARM64
+- Clúster usando Karpenter para aprovisionamiento de nodos
+- Requisitos mínimos de nodo: 2GB RAM, 2 núcleos CPU
+
+**Condiciones de Error:**
+
+- El error ocurre durante la fase de programación de pods
+- Aparece cuando el nodepool alcanza los límites de recursos
+- Afecta despliegues que previamente fueron exitosos
+- Varios nodepools muestran problemas de incompatibilidad
+
+## Solución Detallada
+
+<TroubleshootingItem id="understanding-error" summary="Comprendiendo el error de programación">
+
+El mensaje de error indica varios problemas:
+
+1. **Recursos Insuficientes**: Los nodos no tienen suficiente CPU (se requieren 665m) o memoria (se requieren 2000Mi)
+2. **Límites del Nodepool**: El nodepool ha alcanzado sus límites de recursos configurados
+3. **Incompatibilidad de Taints**: Algunos nodos tienen taints que impiden la programación de pods
+4. **Restricciones de Tipo de Instancia**: No hay tipos de instancia disponibles que cumplan con los requisitos de recursos y restricciones
+
+```
+0/8 nodos disponibles:
+- 2 CPU insuficiente
+- 4 Memoria insuficiente
+- Taints que impiden la programación en ciertos nodos
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-solution" summary="Solución inmediata: Aumentar los límites del nodepool">
+
+Para resolver este problema de inmediato:
+
+1. **Acceder a la Configuración del Nodepool**:
+
+   - Ir a la Consola de SleakOps
+   - Navegar a Clusters → Tu Clúster → Configuración → Node Pools
+   - Seleccionar el nodepool afectado (ejemplo: "spot-arm64")
+
+2. **Incrementar los Límites de Recursos**:
+
+   - **Límite de CPU**: Aumentar desde el valor actual para acomodar más pods
+   - **Límite de Memoria**: Incrementar la asignación total de memoria (ejemplo: de 32GB a 64GB)
+   - **Cantidad de Nodos**: Asegurarse que el máximo de nodos permita el escalado
+
+3. **Guardar y Aplicar Cambios**:
+   - El clúster aprovisionará automáticamente nuevos nodos si es necesario
+   - Los pods existentes deberían reprogramarse en unos minutos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="nodepool-configuration" summary="Comprendiendo las secciones de configuración del nodepool">
+
+**Sección 1 - Límites de Recursos (Seguridad/Tope de Costos)**:
+
+- Actúa como un límite de seguridad para evitar costos inesperados
+- No afecta los costos a menos que aumentes el número de pods o habilites el escalado automático
+- Previene consumo descontrolado de recursos
+
+**Sección 2 - Configuración del Nodo**:
+
+- **Almacenamiento**: Configura el espacio en disco para cada nodo
+- **Configuración Avanzada**: Establece CPU y memoria mínimas por nodo
+  - Por defecto: 2GB RAM, 2 núcleos CPU mínimo
+  - Evita la programación en instancias muy pequeñas (t4g.nano, t4g.micro)
+  - Asegura que los daemonsets puedan ejecutarse correctamente
+
+```yaml
+# Ejemplo de configuración de nodepool
+resource_limits:
+  max_cpu: "32"
+  max_memory: "64Gi"
+  max_nodes: 10
+
+node_requirements:
+  min_cpu: "2"
+  min_memory: "2Gi"
+  storage: "20Gi"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cost-implications" summary="Implicaciones en costos al cambiar límites de recursos">
+
+**Importante**: Incrementar los límites de recursos NO incrementa los costos inmediatamente.
+
+**Lo que afecta los costos**:
+
+- **Uso real de recursos**: Solo pagas por los nodos que realmente se crean
+- **Escalado de pods**: Más pods = más nodos = costos más altos
+- **Escalado automático**: Si está habilitado, escala automáticamente según la demanda
+
+**Lo que no afecta los costos**:
+
+- **Aumentar límites**: Solo eleva el techo, no crea recursos
+- **Capacidades máximas de memoria/CPU**: Solo afecta el uso máximo posible
+
+**Buenas prácticas**:
+
+- Establecer límites razonables basados en la carga máxima esperada
+- Monitorizar el uso real vs. límites regularmente
+- Usar instancias spot para optimizar costos cuando sea posible
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-monitoring" summary="Prevención y monitoreo">
+
+**Monitorear uso de recursos**:
+
+1. **Panel de SleakOps**: Revisar la utilización de recursos del clúster
+2. **Configurar Alertas**: Establecer notificaciones para uso alto de recursos
+3. **Revisiones periódicas**: Revisar y ajustar límites regularmente
+
+**Estrategias de prevención**:
+
+- **Escalado gradual**: Aumentar límites gradualmente según necesidades reales
+- **Solicitudes de recursos**: Asegurar que los pods tengan solicitudes de recursos adecuadas
+- **Múltiples nodepools**: Usar diferentes nodepools para distintos tipos de carga
+- **Spot vs On-Demand**: Balancear costo y necesidades de confiabilidad
+
+**Comandos para solución de problemas**:
+
+```bash
+# Revisar recursos de nodos
+kubectl describe nodes
+
+# Revisar solicitudes de recursos de un pod
+kubectl describe pod <nombre-pod> -n <namespace>
+
+# Ver estado de nodepools
+kubectl get nodepools
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 12 de marzo de 2024 basada en una consulta real de usuario._

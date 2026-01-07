@@ -1,0 +1,255 @@
+---
+sidebar_position: 3
+title: "Application Crashes and Memory Issues in Production"
+description: "Troubleshooting application crashes, memory issues, and 502 errors in SleakOps environments"
+date: "2024-06-09"
+category: "workload"
+tags: ["memory", "crashes", "502-error", "production", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Application Crashes and Memory Issues in Production
+
+**Date:** June 9, 2024  
+**Category:** Workload  
+**Tags:** Memory, Crashes, 502 Error, Production, Troubleshooting
+
+## Problem Description
+
+**Context:** Applications deployed in SleakOps experiencing crashes and connectivity issues in both development and production environments, with specific memory-related errors causing service disruptions.
+
+**Observed Symptoms:**
+
+- Development environment fails to start properly
+- Production application crashes after deployment
+- 502 Bad Gateway errors when accessing the application
+- Memory-related errors in application logs
+- Port-forward functionality not working correctly
+- DNS resolution issues for some subdomains
+
+**Relevant Configuration:**
+
+- Environment: Both development and production
+- Application: Monorepo-based web application
+- Error location: Line 805 in logs (memory issue)
+- Host: app.takenos.com
+- Service: web-app with tRPC endpoints
+
+**Error Conditions:**
+
+- Crashes occur during deployment to production
+- Memory exhaustion at specific code locations
+- Intermittent connectivity issues
+- Application appears healthy in Kubernetes but returns errors
+
+## Detailed Solution
+
+<TroubleshootingItem id="memory-diagnosis" summary="Diagnosing Memory Issues">
+
+When your application crashes due to memory issues, follow these steps:
+
+1. **Check current memory limits:**
+
+   ```bash
+   kubectl describe pod <pod-name> -n <namespace>
+   ```
+
+2. **Monitor memory usage:**
+
+   ```bash
+   kubectl top pod <pod-name> -n <namespace>
+   ```
+
+3. **Review application logs for memory errors:**
+   ```bash
+   kubectl logs <pod-name> -n <namespace> --tail=100
+   ```
+
+Look for errors like:
+
+- "Out of memory"
+- "JavaScript heap out of memory"
+- "Cannot allocate memory"
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="increase-memory-limits" summary="Increasing Memory Limits">
+
+To increase memory limits for your application in SleakOps:
+
+1. **Access your project configuration**
+2. **Navigate to the affected workload (web service)**
+3. **Go to Advanced Configuration → Resources**
+4. **Increase memory limits:**
+
+```yaml
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "2Gi" # Increase this value
+    cpu: "1000m"
+```
+
+**Recommended memory increases:**
+
+- For Node.js applications: Start with 2Gi, increase to 4Gi if needed
+- For Java applications: Start with 4Gi, increase to 8Gi if needed
+- For Python applications: Start with 1Gi, increase to 2Gi if needed
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="502-error-troubleshooting" summary="Troubleshooting 502 Bad Gateway Errors">
+
+When experiencing 502 errors despite healthy-looking pods:
+
+1. **Verify pod health:**
+
+   ```bash
+   kubectl get pods -n <namespace>
+   kubectl describe pod <pod-name> -n <namespace>
+   ```
+
+2. **Check service endpoints:**
+
+   ```bash
+   kubectl get endpoints -n <namespace>
+   ```
+
+3. **Test pod connectivity directly:**
+
+   ```bash
+   kubectl port-forward pod/<pod-name> 8080:8080 -n <namespace>
+   curl http://localhost:8080/health
+   ```
+
+4. **Verify ingress configuration:**
+   ```bash
+   kubectl describe ingress <ingress-name> -n <namespace>
+   ```
+
+**Common causes:**
+
+- Application not listening on the correct port
+- Health check endpoints failing
+- Internal application errors not reflected in pod status
+- Ingress misconfiguration
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dns-ingress-verification" summary="DNS and Ingress Verification">
+
+To verify DNS and ingress configuration:
+
+1. **Check DNS resolution:**
+
+   ```bash
+   dig A your-domain.com
+   nslookup your-domain.com
+   ```
+
+2. **Verify load balancer status:**
+
+   ```bash
+   kubectl get svc -n <namespace>
+   kubectl describe svc <service-name> -n <namespace>
+   ```
+
+3. **Check ingress controller logs:**
+
+   ```bash
+   kubectl logs -n ingress-nginx deployment/ingress-nginx-controller
+   ```
+
+4. **Test direct load balancer access:**
+   ```bash
+   curl -H "Host: your-domain.com" http://<load-balancer-ip>
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="production-deployment-best-practices" summary="Production Deployment Best Practices">
+
+To prevent crashes during production deployments:
+
+1. **Implement proper health checks:**
+
+   ```yaml
+   livenessProbe:
+     httpGet:
+       path: /health
+       port: 8080
+     initialDelaySeconds: 30
+     periodSeconds: 10
+
+   readinessProbe:
+     httpGet:
+       path: /ready
+       port: 8080
+     initialDelaySeconds: 5
+     periodSeconds: 5
+   ```
+
+2. **Use rolling deployment strategy:**
+
+   ```yaml
+   strategy:
+     type: RollingUpdate
+     rollingUpdate:
+       maxUnavailable: 1
+       maxSurge: 1
+   ```
+
+3. **Set appropriate resource limits:**
+
+   - Always set both requests and limits
+   - Monitor actual usage and adjust accordingly
+   - Leave headroom for traffic spikes
+
+4. **Test in staging environment first:**
+   - Deploy to development/staging before production
+   - Run load tests to verify memory usage
+   - Monitor for memory leaks over time
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="emergency-recovery" summary="Emergency Recovery Steps">
+
+If your production application is down:
+
+1. **Immediate rollback:**
+
+   ```bash
+   kubectl rollout undo deployment/<deployment-name> -n <namespace>
+   ```
+
+2. **Scale up replicas temporarily:**
+
+   ```bash
+   kubectl scale deployment <deployment-name> --replicas=3 -n <namespace>
+   ```
+
+3. **Check recent changes:**
+
+   ```bash
+   kubectl rollout history deployment/<deployment-name> -n <namespace>
+   ```
+
+4. **Monitor recovery:**
+
+   ```bash
+   kubectl get pods -n <namespace> -w
+   ```
+
+5. **Verify application is responding:**
+   ```bash
+   curl -I https://your-domain.com
+   ```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on June 9, 2024 based on a real user query._

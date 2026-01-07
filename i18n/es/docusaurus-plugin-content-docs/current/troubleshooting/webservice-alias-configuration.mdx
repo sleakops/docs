@@ -1,0 +1,165 @@
+---
+sidebar_position: 3
+title: "Configuración de Alias de Servicios Web"
+description: "Cómo crear y administrar alias para servicios web en SleakOps"
+date: "2024-12-19"
+category: "workload"
+tags: ["servicioweb", "alias", "configuración", "redes"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Configuración de Alias de Servicios Web
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** Servicio Web, Alias, Configuración, Redes
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios necesitan crear alias de dominio personalizados para sus servicios web en SleakOps para proporcionar URLs alternativas o nombres de dominio personalizados para acceder a sus aplicaciones.
+
+**Síntomas Observados:**
+
+- Necesidad de nombres de dominio personalizados para servicios web
+- Requisito de acceder a servicios a través de múltiples URLs
+- Deseo de usar nombres de dominio con marca o amigables para el usuario
+- Necesidad de balanceo de carga entre múltiples puntos finales
+
+**Configuración Relevante:**
+
+- Despliegue de servicio web en SleakOps
+- Nombres de dominio personalizados o subdominios
+- Requisitos de configuración DNS
+- Gestión de certificados SSL/TLS
+
+**Condiciones de Error:**
+
+- Las URLs por defecto del servicio pueden no cumplir con los requisitos de marca
+- Se necesitan múltiples puntos de acceso para el mismo servicio
+- Requisitos de enrutamiento de dominio personalizado
+
+## Solución Detallada
+
+<TroubleshootingItem id="alias-creation" summary="Cómo crear alias para servicios web">
+
+Para crear alias para tus servicios web en SleakOps:
+
+1. **Navega a los Detalles del Servicio Web**:
+
+   - Ve al panel de tu proyecto
+   - Selecciona el servicio web que deseas configurar
+   - Haz clic en el nombre del servicio web para acceder a sus detalles
+
+2. **Accede a la Configuración de Alias**:
+
+   - En la página de detalles del servicio web, busca la sección "Alias" o "Redes"
+   - Haz clic en "Agregar Alias" o botón similar
+
+3. **Configura el Alias**:
+   - Ingresa tu nombre de dominio personalizado (ej., `api.miempresa.com`)
+   - Selecciona el protocolo adecuado (HTTP/HTTPS)
+   - Configura reglas adicionales de enrutamiento si es necesario
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dns-configuration" summary="Requisitos de configuración DNS">
+
+Antes de crear un alias, asegúrate de que tu DNS esté configurado correctamente:
+
+1. **Registro CNAME**: Crea un registro CNAME apuntando tu dominio personalizado al endpoint del servicio SleakOps
+2. **Registro A**: Alternativamente, usa un registro A apuntando a la dirección IP del servicio
+3. **Verificación**: Asegúrate de que la propagación DNS esté completa antes de probar
+
+```bash
+# Ejemplo de configuración DNS
+# Registro CNAME
+api.miempresa.com.    IN    CNAME    tu-servicio.sleakops.io.
+
+# O registro A
+api.miempresa.com.    IN    A        192.168.1.100
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="ssl-certificates" summary="Gestión de certificados SSL">
+
+Para alias HTTPS, SleakOps puede gestionar automáticamente los certificados SSL:
+
+1. **Certificados Automáticos**: SleakOps puede aprovisionar automáticamente certificados Let's Encrypt
+2. **Certificados Personalizados**: Sube tus propios certificados SSL si es necesario
+3. **Renovación de Certificados**: La renovación automática la maneja la plataforma
+
+**Pasos para habilitar HTTPS**:
+
+- Habilita SSL/TLS en la configuración del alias
+- Elige entre certificado automático o personalizado
+- Verifica la instalación del certificado después de la creación
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="multiple-aliases" summary="Administración de múltiples alias">
+
+Puedes crear múltiples alias para el mismo servicio web:
+
+1. **Dominios Diferentes**: Apunta múltiples dominios al mismo servicio
+2. **Enrutamiento por Subdominios**: Usa diferentes subdominios para distintos propósitos
+3. **Específico por Ambiente**: Crea alias para diferentes ambientes
+
+**Ejemplos de casos de uso**:
+
+- `api.miempresa.com` - API de producción
+- `api-staging.miempresa.com` - Ambiente de staging
+- `v1.api.miempresa.com` - Punto final específico de versión
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Pasos comunes para solución de problemas">
+
+Si tu alias no funciona correctamente:
+
+1. **Propagación DNS**: Espera a que los cambios DNS se propaguen (hasta 48 horas)
+2. **Problemas con Certificados**: Revisa el estado y validez del certificado SSL
+3. **Reglas de Firewall**: Asegúrate de que no haya reglas de firewall bloqueando el tráfico
+4. **Estado del Servicio**: Verifica que el servicio web subyacente esté funcionando correctamente
+
+**Comandos de verificación**:
+
+```bash
+# Verificar resolución DNS
+nslookup api.miempresa.com
+
+# Probar conectividad HTTP
+curl -I http://api.miempresa.com
+
+# Probar conectividad HTTPS
+curl -I https://api.miempresa.com
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Mejores prácticas para configuración de alias">
+
+**Convenciones de Nombres**:
+
+- Usa nombres de subdominios descriptivos
+- Sigue patrones de nombres consistentes
+- Considera prefijos de ambiente (prod-, staging-, dev-)
+
+**Consideraciones de Seguridad**:
+
+- Usa siempre HTTPS para servicios en producción
+- Implementa una gestión adecuada de certificados
+- Considera usar certificados comodín para múltiples subdominios
+
+**Optimización de Rendimiento**:
+
+- Usa integración con CDN cuando esté disponible
+- Configura encabezados de caché apropiados
+- Monitorea el rendimiento y uso del alias
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 19 de diciembre de 2024 basado en una consulta real de un usuario._

@@ -1,0 +1,157 @@
+---
+sidebar_position: 3
+title: "Explicación de la alerta de configuración de dominio"
+description: "Comprendiendo la alerta 'Configurar dominio' y cuándo se requiere acción"
+date: "2024-01-15"
+category: "proyecto"
+tags: ["dominio", "alerta", "configuración", "solución de problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Explicación de la alerta de configuración de dominio
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Dominio, Alerta, Configuración, Solución de problemas
+
+## Descripción del problema
+
+**Contexto:** Los usuarios reciben alertas de "Configurar dominio" para dominios que parecen funcionar correctamente, causando confusión sobre si se requiere alguna acción.
+
+**Síntomas observados:**
+
+- Múltiples dominios muestran la alerta "Configurar dominio"
+- Los dominios son accesibles y funcionan normalmente (por ejemplo, https://www.mocona.com.ar/)
+- La alerta aparece a pesar de la funcionalidad adecuada del dominio
+- Incertidumbre sobre las acciones requeridas
+
+**Configuración relevante:**
+
+- Estado del dominio: Funcional y accesible
+- Tipo de alerta: "Configurar dominio"
+- Ejemplos de dominios: Dominios externos como mocona.com.ar
+- Plataforma: Gestión de dominios de SleakOps
+
+**Condiciones de error:**
+
+- La alerta aparece para dominios que funcionan
+- No hay problemas funcionales aparentes con los dominios
+- La alerta persiste a pesar del funcionamiento normal
+
+## Solución detallada
+
+<TroubleshootingItem id="alert-meaning" summary="¿Qué significa la alerta 'Configurar dominio'?">
+
+La alerta "Configurar dominio" en SleakOps indica una de las siguientes condiciones:
+
+1. **Configuración DNS incompleta**: Los registros DNS del dominio no están configurados correctamente para apuntar a tus servicios de SleakOps
+2. **Certificado SSL pendiente**: El certificado SSL para el dominio aún está en proceso de provisión o validación
+3. **Verificación de dominio pendiente**: La plataforma está esperando la verificación de propiedad del dominio
+4. **Desajuste en la configuración**: Hay una discrepancia entre la configuración esperada y la configuración real del dominio
+
+Esta alerta puede aparecer incluso cuando el dominio es accesible porque puede estar apuntando a un servidor o servicio diferente.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="when-action-needed" summary="¿Cuándo necesitas tomar acción?">
+
+Debes tomar acción si:
+
+- **Tu aplicación no es accesible** a través del dominio
+- Aparecen **errores de certificado SSL** al acceder al dominio
+- **Quieres que el dominio apunte a tu despliegue en SleakOps** en lugar de su destino actual
+- Las **notificaciones por correo** indican fallos en despliegues o servicios
+
+Puedes **ignorar la alerta** si:
+
+- El dominio funciona como se espera
+- Apunta al destino correcto (aunque no sea SleakOps)
+- Estás usando el dominio para servicios externos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Cómo verificar si se necesita acción">
+
+Para determinar si necesitas tomar acción:
+
+1. **Verifica a dónde apunta tu dominio**:
+
+   ```bash
+   nslookup www.mocona.com.ar
+   # o
+   dig www.mocona.com.ar
+   ```
+
+2. **Verifica el certificado SSL**:
+
+   - Visita tu dominio en un navegador
+   - Comprueba si hay advertencias SSL
+   - Verifica el emisor del certificado
+
+3. **Revisa el estado del despliegue en SleakOps**:
+
+   - Ve al panel de tu proyecto
+   - Verifica si los servicios están en ejecución
+   - Revisa los registros de despliegue para errores
+
+4. **Prueba la funcionalidad de la aplicación**:
+   - Accede a todas las páginas críticas
+   - Prueba formularios y elementos interactivos
+   - Verifica los endpoints de API si aplica
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="resolving-alert" summary="Cómo resolver la alerta (si es necesario)">
+
+Si determinas que es necesario actuar:
+
+**Para configuración DNS:**
+
+1. Accede a la gestión DNS de tu registrador de dominios
+2. Actualiza los registros A para que apunten a las direcciones IP de SleakOps
+3. Actualiza los registros CNAME según lo especificado en tu proyecto SleakOps
+
+**Para problemas con el certificado SSL:**
+
+1. En el panel de SleakOps, ve a **Configuración de dominio**
+2. Haz clic en **Regenerar certificado SSL**
+3. Espera la validación (puede tardar hasta 24 horas)
+
+**Para verificación de dominio:**
+
+1. Revisa tu correo para solicitudes de verificación
+2. Sigue el enlace de verificación o agrega los registros DNS TXT requeridos
+3. Contacta soporte si la verificación falla
+
+**Ejemplo de configuración:**
+
+```dns
+# Registros DNS para SleakOps
+www.tudominio.com    A      1.2.3.4
+tudominio.com        A      1.2.3.4
+*.tudominio.com      CNAME  tu-proyecto.sleakops.com
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dismissing-alert" summary="Cómo descartar alertas innecesarias">
+
+Si el dominio funciona correctamente y no quieres que sea gestionado por SleakOps:
+
+1. Ve a **Configuración del proyecto** → **Dominios**
+2. Encuentra el dominio con la alerta
+3. Haz clic en **Eliminar dominio** o **Desactivar monitoreo**
+4. Confirma la acción
+
+Alternativamente, puedes:
+
+- **Silenciar notificaciones** para dominios específicos
+- **Configurar umbrales de alerta** para reducir falsos positivos
+- **Contactar soporte** para incluir dominios externos en la lista blanca
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

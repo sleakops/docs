@@ -1,0 +1,196 @@
+---
+sidebar_position: 3
+title: "Lens Connection Timeout to Kubernetes Cluster"
+description: "Solution for timeout errors when connecting to Kubernetes clusters through Lens IDE"
+date: "2024-04-29"
+category: "user"
+tags: ["lens", "kubernetes", "connection", "timeout", "vpn", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Lens Connection Timeout to Kubernetes Cluster
+
+**Date:** April 29, 2024  
+**Category:** User  
+**Tags:** Lens, Kubernetes, Connection, Timeout, VPN, Troubleshooting
+
+## Problem Description
+
+**Context:** Users experience timeout errors when attempting to connect to Kubernetes clusters through Lens IDE, despite following all setup steps correctly.
+
+**Observed Symptoms:**
+
+- Connection timeout errors in Lens IDE
+- Unable to access cluster resources through Lens
+- Successful authentication but failed cluster communication
+- Error occurs for specific team members while others can connect normally
+
+**Relevant Configuration:**
+
+- Tool: Lens Kubernetes IDE
+- Authentication: AWS IAM user credentials
+- Connection method: Through SleakOps VPN
+- Cluster type: EKS (Amazon Elastic Kubernetes Service)
+
+**Error Conditions:**
+
+- Timeout occurs during cluster connection attempt
+- Error persists despite correct configuration steps
+- Problem appears to be network-related rather than authentication-related
+- Issue may be intermittent or affect specific users
+
+## Detailed Solution
+
+<TroubleshootingItem id="initial-diagnosis" summary="Understanding the timeout issue">
+
+Lens connection timeouts to Kubernetes clusters typically occur due to:
+
+1. **Network connectivity issues**: VPN connection problems or firewall restrictions
+2. **DNS resolution problems**: Unable to resolve cluster endpoint
+3. **Authentication token expiration**: AWS credentials or kubeconfig tokens expired
+4. **Cluster endpoint accessibility**: EKS cluster endpoint not reachable from current network
+5. **Lens configuration issues**: Incorrect kubeconfig or context settings
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="vpn-verification" summary="Verify VPN connection">
+
+First, ensure your VPN connection is working properly:
+
+1. **Check VPN status**: Verify you're connected to the SleakOps VPN
+2. **Test connectivity**: Try pinging internal resources
+3. **DNS resolution**: Ensure you can resolve internal hostnames
+
+```bash
+# Test VPN connectivity
+ping internal-resource.sleakops.local
+
+# Check DNS resolution
+nslookup your-cluster-endpoint.eks.amazonaws.com
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="kubeconfig-refresh" summary="Refresh kubeconfig and credentials">
+
+Update your kubeconfig file to ensure fresh credentials:
+
+```bash
+# Update kubeconfig for EKS cluster
+aws eks update-kubeconfig --region your-region --name your-cluster-name
+
+# Verify the configuration
+kubectl config current-context
+
+# Test basic connectivity
+kubectl get nodes
+```
+
+If using AWS CLI profiles:
+
+```bash
+# Specify the profile
+aws eks update-kubeconfig --region your-region --name your-cluster-name --profile your-profile
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="lens-configuration" summary="Configure Lens properly">
+
+Ensure Lens is configured correctly:
+
+1. **Import kubeconfig**: Go to **File** → **Add Cluster** → **From kubeconfig**
+2. **Select correct context**: Choose the right cluster context
+3. **Verify proxy settings**: Check if Lens proxy settings match your network configuration
+
+**Lens Proxy Configuration:**
+
+- Go to **Preferences** → **Proxy**
+- Ensure proxy settings match your VPN configuration
+- Try disabling proxy if using VPN
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="network-troubleshooting" summary="Advanced network troubleshooting">
+
+If the problem persists, perform these network diagnostics:
+
+```bash
+# Check if cluster endpoint is reachable
+telnet your-cluster-endpoint.eks.amazonaws.com 443
+
+# Test with curl
+curl -k https://your-cluster-endpoint.eks.amazonaws.com/version
+
+# Check routing
+traceroute your-cluster-endpoint.eks.amazonaws.com
+```
+
+**Common network issues:**
+
+- Corporate firewall blocking Kubernetes API ports (443, 6443)
+- VPN not routing traffic to AWS regions properly
+- DNS not resolving EKS endpoints correctly
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Alternative connection methods">
+
+If Lens continues to timeout, try these alternatives:
+
+1. **Use kubectl directly**: Test if kubectl works without Lens
+2. **Try different network**: Test from a different network location
+3. **Use AWS CloudShell**: Access cluster through AWS Console CloudShell
+4. **Port forwarding**: Use kubectl port-forward for specific services
+
+```bash
+# Test direct kubectl access
+kubectl get pods --all-namespaces
+
+# Port forward for specific services
+kubectl port-forward service/your-service 8080:80
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="aws-user-verification" summary="Verify AWS user permissions">
+
+Ensure the AWS IAM user has proper permissions:
+
+1. **Check IAM policies**: Verify EKS access policies are attached
+2. **Verify aws-auth ConfigMap**: Ensure user is mapped in the cluster
+3. **Test AWS CLI access**: Confirm AWS credentials work
+
+```bash
+# Test AWS credentials
+aws sts get-caller-identity
+
+# Check EKS cluster access
+aws eks describe-cluster --name your-cluster-name
+
+# Verify kubectl access
+kubectl auth can-i get pods
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="temporary-workaround" summary="Temporary workaround while investigating">
+
+While the VPN server issue is being resolved:
+
+1. **Use AWS Console**: Access Kubernetes resources through AWS EKS console
+2. **AWS CloudShell**: Use CloudShell for kubectl commands
+3. **Local port forwarding**: Forward specific services to localhost
+4. **Alternative VPN**: If available, try connecting through a different VPN endpoint
+
+```bash
+# Example port forward for dashboard access
+kubectl port-forward -n kubernetes-dashboard service/kubernetes-dashboard 8443:443
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on 4/29/2024 based on a real user query._

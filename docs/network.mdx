@@ -1,0 +1,70 @@
+---
+id: network-resources
+title: Network Resources
+sidebar_label: Network Resources
+sidebar_position: 9
+---
+import Zoom from "react-medium-image-zoom";
+
+# Network Resources
+
+This documentation provides a clear and simple overview of the network architecture that SleakOps deploys in client environments. It explains how the network is organized, how resources are protected, and how both internal and external communication is managed.
+
+> ❓ **Note:** The network is designed to ensure security, scalability, and high availability. It enables environment separation, protects sensitive data, and exposes services in a secure and controlled way.
+
+## 1. Overview of the Architecture
+
+The SleakOps network infrastructure is based on the following key components:
+
+- **VPC (Virtual Private Cloud):** Segregates networks by environment (Management, Production, Development).
+- **Subnets:**
+  - *Public:* exposed to the Internet.
+  - *Private:* restricted access, Internet access via NAT Gateway.
+  - *Persistence:* for databases and storage.
+- **Internet Gateway:** Enables communication between the VPC and the Internet.
+- **Route Tables:** Define routing paths between subnets and to/from the Internet.
+- **Security Groups:** Virtual firewalls that control inbound and outbound traffic for resources.
+- **Internal DNS:** Allows internal resources to communicate using hostnames instead of IP addresses.
+- **External-DNS:** Runs inside each Kubernetes (EKS) cluster and automatically manages public DNS records in Route53 for exposed services.
+
+## 2. Typical Communication Flow
+
+The following illustrates a typical flow of network traffic in SleakOps:
+
+1. **Access from the Internet:**  
+   A user accesses a publicly exposed service (e.g., an API). Traffic reaches the Internet Gateway and is routed to the public subnet.
+
+2. **Access Control:**  
+   The Security Group associated with the resource evaluates whether the connection is allowed.
+
+3. **Internal Communication:**  
+   Internal services (in private or persistence subnets) communicate using internal DNS, under Security Group rules.
+
+4. **Service Exposure:**  
+   If a service within a Kubernetes cluster needs to be publicly accessible (e.g., an API), it is exposed via an Application Load Balancer, and External-DNS registers the public domain automatically in Route53.
+
+> This segmentation and control ensure that only necessary services are exposed while keeping sensitive data protected.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/network/sleakops-network.png"
+    alt="reference-architecture"
+  />
+</Zoom>
+
+## 3. External-DNS and Route53
+
+An automated solution is used to manage public DNS records for deployed services, integrating the infrastructure with external DNS providers like Route53.
+
+- External-DNS **does not expose services directly**. It automates DNS record management for resources that are already exposed (e.g., via an Application Load Balancer).
+- This allows services to be securely and easily accessible from the Internet.
+
+## 4. Cross-Environment Connectivity via VPC Peering
+
+To enable controlled communication between environments (e.g., between Management and Production), SleakOps sets up **VPC Peering connections** between the different VPCs.
+
+- **VPC Peering** enables two VPCs to exchange internal traffic as if they were part of the same network.
+- **It does not require** Internet, NAT Gateway, or VPN traffic routing.
+- It is a direct connection between two networks.
+
+> 💡 Besides Internet Gateway access, SleakOps also supports other connectivity options such as **Pritunl VPN**, **NAT Gateway**, and **Transit Gateway**, depending on use case and required isolation level.

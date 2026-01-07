@@ -1,0 +1,290 @@
+---
+sidebar_position: 3
+title: "AWS Fargate Pods Not Terminating - Cost Increase Issue"
+description: "Solution for AWS Fargate pods that don't terminate properly causing unexpected cost increases"
+date: "2024-03-14"
+category: "cluster"
+tags: ["fargate", "aws", "cost", "pods", "termination", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# AWS Fargate Pods Not Terminating - Cost Increase Issue
+
+**Date:** March 14, 2024  
+**Category:** Cluster  
+**Tags:** Fargate, AWS, Cost, Pods, Termination, Troubleshooting
+
+## Problem Description
+
+**Context:** Users experience unexpected cost increases in their AWS EKS cluster when Fargate pods running deployments fail to terminate properly after job completion.
+
+**Observed Symptoms:**
+
+- Dramatic increase in AWS costs over several days
+- Multiple Fargate replicas visible in Jobs listing
+- Pods accumulating without proper cleanup
+- Cost forecast showing significant spikes
+- Individual pod costs are low but accumulate over time
+
+**Relevant Configuration:**
+
+- Cluster type: AWS EKS with Fargate
+- Workload type: Deployments running on Fargate nodes
+- Monitoring: Prometheus with insufficient RAM allocation (1250MB)
+- Cost monitoring: Enabled with forecasting
+
+**Error Conditions:**
+
+- Fargate pods don't terminate after deployment completion
+- Prometheus memory issues causing node allocation problems
+- Unused nodes remain active generating costs
+- Problem appears intermittently without clear trigger
+
+## Detailed Solution
+
+<TroubleshootingItem id="root-cause-analysis" summary="Understanding the root causes">
+
+This cost increase issue typically stems from two main problems:
+
+1. **Fargate Pod Lifecycle Issue**: Fargate pods running deployments don't always terminate properly, causing them to accumulate over time
+2. **Prometheus Resource Constraints**: Insufficient RAM allocation (1250MB) causes Prometheus to allocate nodes that become unusable but remain active
+
+Both issues result in resources staying active longer than necessary, generating unexpected costs.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prometheus-fix" summary="Fix Prometheus memory allocation">
+
+To resolve the Prometheus memory issue:
+
+1. **Access the Prometheus addon configuration** in your cluster
+2. **Increase the minimum RAM allocation** from 1250MB to 2GB (2048MB)
+3. **Apply the configuration changes**
+
+```yaml
+# Prometheus addon configuration
+resources:
+  requests:
+    memory: "2Gi"
+    cpu: "500m"
+  limits:
+    memory: "2Gi"
+    cpu: "1000m"
+```
+
+This prevents Prometheus from entering nodes with insufficient resources and creating unusable but active nodes.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="fargate-monitoring" summary="Monitor and clean up Fargate pods">
+
+To address the Fargate pod accumulation:
+
+1. **Check current Fargate pods**:
+
+```bash
+kubectl get pods --all-namespaces -o wide | grep fargate
+```
+
+2. **Identify stuck pods**:
+
+```bash
+kubectl get pods --all-namespaces --field-selector=status.phase=Succeeded
+kubectl get pods --all-namespaces --field-selector=status.phase=Failed
+```
+
+3. **Clean up completed pods**:
+
+```bash
+# Remove completed pods
+kubectl delete pods --all-namespaces --field-selector=status.phase=Succeeded
+kubectl delete pods --all-namespaces --field-selector=status.phase=Failed
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="automated-cleanup" summary="Implement automated pod cleanup">
+
+To prevent future accumulation, implement automated cleanup:
+
+1. **Create a cleanup CronJob**:
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pod-cleanup
+  namespace: kube-system
+spec:
+  schedule: "0 2 * * *" # Run daily at 2 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: pod-cleanup
+          containers:
+            - name: kubectl
+              image: bitnami/kubectl:latest
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  kubectl delete pods --all-namespaces --field-selector=status.phase=Succeeded
+                  kubectl delete pods --all-namespaces --field-selector=status.phase=Failed
+          restartPolicy: OnFailure
+```
+
+2. **Create the necessary RBAC**:
+
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pod-cleanup
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pod-cleanup
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["list", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pod-cleanup
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: pod-cleanup
+subjects:
+  - kind: ServiceAccount
+    name: pod-cleanup
+    namespace: kube-system
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cost-monitoring" summary="Monitor costs and set up alerts">
+
+To prevent future cost surprises:
+
+1. **Set up cost alerts** in AWS:
+
+   - Go to AWS Billing → Budgets
+   - Create a budget for your EKS cluster
+   - Set alerts at 80% and 100% of expected costs
+
+2. **Monitor Fargate usage**:
+
+```bash
+# Check Fargate pod count
+kubectl get pods --all-namespaces -o json | jq '.items[] | select(.spec.nodeName | contains("fargate")) | .metadata.name' | wc -l
+```
+
+3. **Regular cost reviews**:
+   - Check AWS Cost Explorer weekly
+   - Monitor EKS costs by service
+   - Review Fargate usage patterns
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-best-practices" summary="Best practices to prevent recurrence">
+
+**Deployment Configuration:**
+
+- Set appropriate `activeDeadlineSeconds` for jobs
+- Use `ttlSecondsAfterFinished` for automatic cleanup
+- Configure proper resource limits
+
+**Monitoring:**
+
+- Set up Prometheus alerts for pod accumulation
+- Monitor cluster resource usage regularly
+- Implement cost tracking dashboards
+
+**Maintenance:**
+
+- Schedule regular cluster health checks
+- Implement automated cleanup processes
+- Review and update resource allocations periodically
+
+```yaml
+# Example job with automatic cleanup
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: example-job
+spec:
+  ttlSecondsAfterFinished: 300 # Clean up 5 minutes after completion
+  activeDeadlineSeconds: 3600 # Kill job after 1 hour
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: job-container
+          image: your-image
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+```
+
+**Resource Optimization:**
+
+- Right-size your Fargate pods to avoid over-provisioning
+- Use spot instances where appropriate for cost savings
+- Implement horizontal pod autoscaling for variable workloads
+
+**Cluster Maintenance:**
+
+- Regularly review and clean up unused resources
+- Monitor cluster health and performance metrics
+- Keep Kubernetes and addon versions up to date
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cost-optimization-strategies" summary="Long-term cost optimization strategies">
+
+**Resource Right-Sizing:**
+
+1. **Analyze actual resource usage**:
+   ```bash
+   kubectl top pods --all-namespaces
+   kubectl top nodes
+   ```
+
+2. **Adjust resource requests and limits** based on actual usage
+3. **Use Vertical Pod Autoscaler** for automatic right-sizing
+
+**Scheduling Optimization:**
+
+- Use node affinity to optimize pod placement
+- Implement pod disruption budgets for controlled updates
+- Consider using mixed instance types for cost optimization
+
+**Monitoring and Alerting:**
+
+- Set up comprehensive cost monitoring dashboards
+- Implement alerts for unusual cost spikes
+- Regular cost reviews and optimization sessions
+
+**Automation:**
+
+- Automate resource cleanup processes
+- Implement policy-based resource management
+- Use tools like Karpenter for intelligent node provisioning
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ section was automatically generated on March 14, 2024, based on a real user inquiry._
+```

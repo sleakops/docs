@@ -1,0 +1,199 @@
+---
+sidebar_position: 3
+title: "Configuración de Despliegue Automático con GitHub Actions"
+description: "Cómo configurar despliegues automáticos con GitHub Actions en SleakOps"
+date: "2024-12-17"
+category: "proyecto"
+tags: ["github-actions", "ci-cd", "despliegue", "automatización"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Configuración de Despliegue Automático con GitHub Actions
+
+**Fecha:** 17 de diciembre de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** GitHub Actions, CI/CD, Despliegue, Automatización
+
+## Descripción del Problema
+
+**Contexto:** El usuario desea configurar despliegues automáticos que se activen al hacer push de código a un repositorio de GitHub usando la plataforma SleakOps.
+
+**Síntomas Observados:**
+
+- Necesidad de configurar una pipeline CI/CD para despliegues automáticos
+- Deseo de que los despliegues se activen con eventos de push en Git
+- Busca integración entre GitHub y SleakOps
+- Requiere orientación sobre la configuración de GitHub Actions
+
+**Configuración Relevante:**
+
+- Plataforma: SleakOps
+- Control de Versiones: GitHub
+- Herramienta CI/CD: GitHub Actions
+- Destino de Despliegue: Infraestructura gestionada por SleakOps
+
+**Condiciones de Error:**
+
+- Actualmente se usa un proceso de despliegue manual
+- No hay pipeline automatizada configurada
+- Necesidad de establecer conexión entre GitHub y SleakOps
+
+## Solución Detallada
+
+<TroubleshootingItem id="sleakops-cli-setup" summary="Configuración del CLI de SleakOps para CI/CD">
+
+SleakOps proporciona una herramienta CLI diseñada específicamente para integración CI/CD. Puedes encontrar la documentación completa en: https://docs.sleakops.com/cli
+
+El CLI te permite:
+
+- Desplegar aplicaciones automáticamente
+- Gestionar despliegues desde pipelines CI/CD
+- Integrar con varias plataformas CI/CD incluyendo GitHub Actions
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="github-actions-configuration" summary="Generación de la configuración de GitHub Actions desde la consola de SleakOps">
+
+Para generar el archivo de workflow de GitHub Actions:
+
+1. **Accede a la Consola de SleakOps**
+
+   - Inicia sesión en tu panel de SleakOps
+   - Navega a tu proyecto
+
+2. **Genera la Configuración CI/CD**
+
+   - Busca la sección CI/CD o GitHub Actions
+   - La consola te proporcionará un archivo de workflow preconfigurado
+   - Este archivo incluye todos los pasos necesarios para el despliegue
+
+3. **Descarga la Configuración**
+   - Copia el archivo de workflow generado
+   - Toma nota de las claves secretas requeridas que se mostrarán
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="workflow-file-setup" summary="Configuración del archivo workflow de GitHub Actions">
+
+Una vez que tengas el archivo workflow de la consola de SleakOps:
+
+1. **Crea el Directorio de Workflow**
+
+   ```bash
+   mkdir -p .github/workflows
+   ```
+
+2. **Agrega el Archivo Workflow**
+
+   - Crea un archivo nuevo: `.github/workflows/deploy.yml`
+   - Pega la configuración proporcionada por la consola de SleakOps
+
+3. **Estructura Básica del Workflow**
+
+   ```yaml
+   name: Deploy to SleakOps
+
+   on:
+     push:
+       branches: [main, master]
+
+   jobs:
+     deploy:
+       runs-on: ubuntu-latest
+       steps:
+         - uses: actions/checkout@v3
+         - name: Deploy to SleakOps
+           run: |
+             # Aquí irán los comandos CLI de SleakOps
+           env:
+             SLEAKOPS_TOKEN: ${{ secrets.SLEAKOPS_TOKEN }}
+             SLEAKOPS_PROJECT_ID: ${{ secrets.SLEAKOPS_PROJECT_ID }}
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="secrets-configuration" summary="Configuración de Secrets en GitHub">
+
+Para configurar los secretos requeridos en GitHub:
+
+1. **Accede a la Configuración del Repositorio**
+
+   - Ve a tu repositorio en GitHub
+   - Haz clic en la pestaña **Settings**
+   - Navega a **Secrets and variables** → **Actions**
+
+2. **Agrega los Secrets Requeridos**
+   La consola de SleakOps te mostrará los secretos exactos necesarios, típicamente:
+
+   - `SLEAKOPS_TOKEN`: Tu token API de SleakOps
+   - `SLEAKOPS_PROJECT_ID`: El identificador de tu proyecto
+   - Cualquier otro secreto específico del entorno
+
+3. **Crear Nuevo Secret**
+   - Haz clic en **New repository secret**
+   - Introduce el nombre del secreto exactamente como se muestra en la consola de SleakOps
+   - Pega el valor correspondiente
+   - Haz clic en **Add secret**
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="testing-deployment" summary="Prueba del despliegue automático">
+
+Para verificar que tu configuración funciona correctamente:
+
+1. **Haz un Commit de Prueba**
+
+   ```bash
+   git add .
+   git commit -m "Prueba de despliegue automático"
+   git push origin main
+   ```
+
+2. **Monitorea GitHub Actions**
+
+   - Ve a la pestaña **Actions** de tu repositorio
+   - Observa la ejecución del workflow
+   - Revisa si hay errores en los logs
+
+3. **Verifica el Despliegue**
+   - Consulta la consola de SleakOps para el estado del despliegue
+   - Verifica que tu aplicación esté actualizada
+   - Prueba la aplicación desplegada
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Pasos comunes para resolución de problemas">
+
+Si el despliegue falla:
+
+1. **Verifica los Secrets**
+
+   - Asegúrate de que todos los secretos requeridos estén configurados
+   - Confirma que los nombres de los secretos coincidan exactamente
+   - Revisa que los tokens no hayan expirado
+
+2. **Revisa los Logs del Workflow**
+
+   - Examina los logs de GitHub Actions para errores específicos
+   - Busca problemas de autenticación o permisos
+   - Verifica que los comandos CLI se ejecuten correctamente
+
+3. **Valida la Configuración de SleakOps**
+
+   - Confirma que tu proyecto SleakOps esté correctamente configurado
+   - Asegúrate de que el CLI tenga los permisos necesarios
+   - Verifica que el ID del proyecto sea correcto
+
+4. **Prueba el CLI Localmente**
+   ```bash
+   # Instala localmente el CLI de SleakOps para pruebas
+   npm install -g @sleakops/cli
+   sleakops deploy --help
+   ```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 17 de diciembre de 2024 basada en una consulta real de usuario._

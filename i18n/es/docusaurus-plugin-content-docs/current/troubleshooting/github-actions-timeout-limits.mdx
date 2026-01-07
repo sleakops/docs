@@ -1,0 +1,207 @@
+---
+sidebar_position: 3
+title: "Límites de Tiempo de Espera y Mensuales de GitHub Actions"
+description: "Solución para despliegues con GitHub Actions que se agotan en tiempo y superan límites mensuales"
+date: "2024-01-15"
+category: "proyecto"
+tags: ["github-actions", "despliegue", "timeout", "ci-cd", "límites"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Límites de Tiempo de Espera y Mensuales de GitHub Actions
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** GitHub Actions, Despliegue, Timeout, CI/CD, Límites
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios experimentan fallos en despliegues al usar GitHub Actions para CI/CD, con construcciones que toman mucho más tiempo del esperado y que potencialmente superan los límites mensuales de uso de GitHub.
+
+**Síntomas Observados:**
+
+- Despliegues que normalmente tardan 10-14 minutos están ejecutándose por más de 45 minutos
+- Trabajos de GitHub Actions fallando después de 8 segundos tras un push
+- Múltiples despliegues quedándose en estado "en ejecución"
+- Fallos en pipeline CI/CD sin mensajes de error claros
+
+**Configuración Relevante:**
+
+- Plataforma: Integración de GitHub Actions con SleakOps
+- Tiempo normal de despliegue: 10-14 minutos
+- Tiempo observado de despliegue: más de 45 minutos
+- Tipo de proyecto: despliegue de aplicación web
+
+**Condiciones de Error:**
+
+- Error ocurre inmediatamente después del git push (en menos de 8 segundos)
+- Múltiples despliegues ejecutándose simultáneamente
+- Límites mensuales de GitHub Actions potencialmente superados
+- Configuración de CI.yml parece correcta
+
+## Solución Detallada
+
+<TroubleshootingItem id="github-limits-check" summary="Verificar uso y límites de GitHub Actions">
+
+Para verificar si has superado los límites de GitHub Actions:
+
+1. Ve a la **Configuración de tu Organización en GitHub**
+2. Navega a **Configuración** → **Facturación**
+3. Revisa la sección **Actions & Packages**
+4. Consulta:
+   - Minutos usados este mes
+   - Minutos disponibles restantes
+   - Límites del plan actual
+
+**Límites del Plan Gratuito:**
+
+- 2,000 minutos/mes para repositorios privados
+- Ilimitado para repositorios públicos
+
+**Límites del Plan de Pago:**
+
+- Varía según el plan (Pro: 3,000 min/mes, Team: 10,000 min/mes)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-alternative" summary="Usar compilación y despliegue nativo de SleakOps">
+
+En lugar de depender de GitHub Actions, puedes usar el sistema nativo de compilación y despliegue de SleakOps:
+
+1. **Accede al panel de SleakOps**
+2. Navega a tu proyecto
+3. Ve a la sección **Build & Deploy**
+4. Configura el **Despliegue Directo** desde SleakOps:
+
+```yaml
+# Ejemplo de configuración de despliegue en SleakOps
+build:
+  strategy: "sleakops-native"
+  timeout: "15m"
+
+deploy:
+  auto_deploy: true
+  branch: "dev"
+  environment: "development"
+```
+
+**Beneficios:**
+
+- No consume minutos de GitHub Actions
+- Tiempos de compilación más confiables
+- Mejor integración con funciones de SleakOps
+- Registros detallados de compilación y monitoreo
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="optimize-github-actions" summary="Optimizar flujo de trabajo existente de GitHub Actions">
+
+Si prefieres continuar usando GitHub Actions, optimiza tu flujo de trabajo:
+
+```yaml
+# .github/workflows/ci.yml
+name: Pipeline CI/CD
+
+on:
+  push:
+    branches: [dev, main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20 # Establecer tiempo de espera explícito
+
+    steps:
+      - uses: actions/checkout@v3
+
+      # Usar caché para reducir tiempo de compilación
+      - name: Cachear dependencias
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+
+      # Optimizar compilaciones Docker
+      - name: Configurar Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Compilar y subir
+        uses: docker/build-push-action@v3
+        with:
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-setup" summary="Configurar monitoreo y alertas">
+
+Para prevenir problemas futuros, implementa monitoreo:
+
+**1. Monitoreo de GitHub Actions:**
+
+```yaml
+# Añadir a tu flujo de trabajo
+- name: Notificar en compilaciones largas
+  if: ${{ job.status == 'failure' || job.duration > 1200 }}
+  uses: 8398a7/action-slack@v3
+  with:
+    status: custom
+    custom_payload: |
+      {
+        text: "Compilación tardando más de lo esperado: ${{ job.duration }}s"
+      }
+```
+
+**2. Monitoreo en SleakOps:**
+
+- Habilita alertas de tiempo de compilación en el panel de SleakOps
+- Configura notificaciones para compilaciones que excedan 15 minutos
+- Monitorea tendencias en uso de recursos
+
+**3. Seguimiento de uso:**
+
+- Revisión semanal del uso de GitHub Actions
+- Configura alertas al acercarte al 80% del límite mensual
+- Considera actualizar tu plan de GitHub si alcanzas consistentemente los límites
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-immediate" summary="Pasos inmediatos para solución de problemas">
+
+Para resolución inmediata:
+
+**1. Cancelar acciones en ejecución:**
+
+```bash
+# Usando GitHub CLI
+gh run list --status in_progress
+gh run cancel [RUN_ID]
+```
+
+**2. Revisar estado del flujo de trabajo:**
+
+- Ve a la pestaña **Actions** en tu repositorio
+- Cancela cualquier flujo atascado
+- Revisa los registros para mensajes de error específicos
+
+**3. Solución temporal:**
+
+- Deshabilita temporalmente GitHub Actions
+- Usa despliegue manual con SleakOps
+- Reactiva cuando se reinicien los límites (mensualmente)
+
+**4. Despliegue de emergencia:**
+Si necesitas un despliegue inmediato:
+
+1. Accede al panel de SleakOps
+2. Ve a proyecto → **Despliegue Manual**
+3. Selecciona rama y entorno
+4. Despliega directamente desde SleakOps
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

@@ -1,0 +1,150 @@
+---
+sidebar_position: 3
+title: "Error de Validación de Certificado SSL en AWS ACM"
+description: "Cómo resolver problemas de validación de certificados SSL cuando los certificados ACM no se validan dentro de 72 horas"
+date: "2024-11-07"
+category: "provider"
+tags: ["aws", "acm", "ssl", "certificado", "dns", "validacion"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Error de Validación de Certificado SSL en AWS ACM
+
+**Fecha:** 7 de noviembre de 2024  
+**Categoría:** Proveedor  
+**Etiquetas:** AWS, ACM, SSL, Certificado, DNS, Validación
+
+## Descripción del Problema
+
+**Contexto:** Al desplegar aplicaciones con dominios personalizados en SleakOps, los certificados de AWS Certificate Manager (ACM) pueden no validarse si la validación DNS no se completa dentro de las 72 horas posteriores a la creación del certificado.
+
+**Síntomas observados:**
+
+- El certificado ACM muestra estado "Fallido" o "Tiempo de validación agotado"
+- No se pueden configurar correctamente los alias de dominio
+- Las conexiones SSL/TLS fallan para el dominio personalizado
+- El certificado aparece como "erróneo" en la consola de AWS
+- Las aplicaciones pueden ser inaccesibles vía HTTPS en dominios personalizados
+
+**Configuración relevante:**
+
+- Tipo de certificado: AWS Certificate Manager (ACM)
+- Método de validación: Validación DNS
+- Dominio: Dominio personalizado con gestión DNS externa
+- Límite de tiempo: 72 horas desde la creación del certificado
+
+**Condiciones de error:**
+
+- Validación del certificado no completada dentro de la ventana de 72 horas
+- Registros DNS TXT no configurados correctamente
+- Propiedad del dominio no verificada mediante DNS
+- Se requiere regeneración del certificado
+
+## Solución Detallada
+
+<TroubleshootingItem id="certificate-regeneration" summary="Regenerar el certificado ACM fallido">
+
+Cuando un certificado ACM falla en la validación, debes regenerarlo:
+
+1. **Accede a tu panel de ejecución de SleakOps**
+2. **Navega a la ejecución afectada** (por ejemplo, tu landing page o aplicación web)
+3. **Ve a la sección SSL/Certificado**
+4. **Haz clic en "Regenerar Certificado"** o una opción similar
+5. **Espera a que se cree el nuevo certificado**
+
+SleakOps creará automáticamente un nuevo certificado ACM con registros de validación actualizados.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dns-validation-setup" summary="Configurar registros de validación DNS">
+
+Después de regenerar el certificado, debes agregar los registros de validación DNS:
+
+1. **Copia la información de validación** desde los detalles de tu ejecución en SleakOps:
+
+   - **Nombre**: `_[validation-hash].tudominio.com`
+   - **Valor**: `_[validation-value].acm-validations.aws.`
+   - **Tipo**: `TXT`
+
+2. **Agrega el registro TXT en tu proveedor DNS**:
+
+   ```
+   Nombre: _595d6ebeeb98358afc0357d079d068f4.tudominio.com
+   Tipo: TXT
+   Valor: _139389a2dc765df9b1c6bc66a1367077.djqtsrsxkq.acm-validations.aws.
+   TTL: 300 (o el mínimo de tu proveedor)
+   ```
+
+3. **Guarda el registro DNS** y espera la propagación (usualmente 5-15 minutos)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="validation-verification" summary="Verificar la validación del certificado">
+
+Después de agregar los registros DNS:
+
+1. **Espera la propagación DNS** (usualmente 5-15 minutos)
+2. **Usa el botón "Verificar Certificado"** en SleakOps para activar la validación manualmente
+3. **Monitorea el estado del certificado** en tu panel de ejecución
+4. **Verifica la propagación del registro DNS** con herramientas como:
+   ```bash
+   dig TXT _595d6ebeeb98358afc0357d079d068f4.tudominio.com
+   ```
+   o
+   ```bash
+   nslookup -type=TXT _595d6ebeeb98358afc0357d079d068f4.tudominio.com
+   ```
+
+**Resultado esperado**: El estado del certificado debe cambiar a "Emitido" o "Válido"
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-dns-issues" summary="Solucionar problemas comunes de validación DNS">
+
+**Si la validación continúa fallando, revisa estos problemas comunes:**
+
+1. **Formato incorrecto del registro DNS**:
+
+   - Asegúrate de que el nombre del registro TXT incluya el subdominio completo de validación
+   - No agregues comillas adicionales alrededor del valor
+   - Usa exactamente los valores proporcionados por AWS/SleakOps
+
+2. **Retrasos en la propagación DNS**:
+
+   - Algunos proveedores DNS tardan más en propagar cambios
+   - Espera hasta 1 hora antes de considerar que falló
+   - Verifica con múltiples herramientas de consulta DNS
+
+3. **Múltiples registros de validación**:
+
+   - Elimina registros antiguos o duplicados de validación
+   - Mantén solo el registro de validación actual
+
+4. **Limitaciones del proveedor DNS**:
+   - Algunos proveedores no soportan nombres largos en registros TXT
+   - Contacta a tu proveedor DNS si los registros no se guardan correctamente
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-tips" summary="Prevenir futuros problemas de validación de certificados">
+
+**Para evitar que se agote el tiempo para la validación del certificado:**
+
+1. **Configura los registros DNS inmediatamente** después de crear el certificado
+2. **Monitorea el estado del certificado** regularmente en el panel de SleakOps
+3. **Usa proveedores DNS automatizados** cuando sea posible (Route53, API de Cloudflare)
+4. **Establece recordatorios en el calendario** para renovaciones de certificados
+5. **Prueba los cambios DNS** antes de aplicarlos en dominios de producción
+
+**Buenas prácticas:**
+
+- Completa la validación DNS dentro de las 24 horas posteriores a la creación del certificado
+- Mantén las credenciales de gestión DNS accesibles para tu equipo
+- Documenta tu proceso de validación DNS para futuras referencias
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 7 de noviembre de 2024 basada en una consulta real de un usuario._

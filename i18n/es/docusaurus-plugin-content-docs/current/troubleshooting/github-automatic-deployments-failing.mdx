@@ -1,0 +1,177 @@
+---
+sidebar_position: 3
+title: "Despliegues Automáticos de GitHub No Funcionan"
+description: "Solución para despliegues automáticos desde GitHub que han dejado de funcionar"
+date: "2024-01-15"
+category: "proyecto"
+tags:
+  ["github", "despliegue", "automatización", "ci-cd", "solución de problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Despliegues Automáticos de GitHub No Funcionan
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** GitHub, Despliegue, Automatización, CI/CD, Solución de Problemas
+
+## Descripción del Problema
+
+**Contexto:** Los despliegues automáticos desde repositorios de GitHub han dejado de funcionar en la plataforma SleakOps, impidiendo que los cambios de código se desplieguen automáticamente en el entorno objetivo.
+
+**Síntomas Observados:**
+
+- Los despliegues automáticos desde GitHub no se activan
+- Aparecen mensajes de error en los registros de despliegue
+- Los cambios de código enviados al repositorio no se reflejan en la aplicación desplegada
+- El problema ha ocurrido durante varios días
+
+**Configuración Relevante:**
+
+- Plataforma: SleakOps
+- Origen: Repositorio de GitHub
+- Tipo de despliegue: Despliegues automáticos
+- Duración: Varios días de fallo
+
+**Condiciones de Error:**
+
+- Los despliegues fallan consistentemente durante varios días
+- El error ocurre después de enviar código a GitHub
+- La canalización de despliegue automático no se ejecuta
+- Puede requerirse intervención manual
+
+## Solución Detallada
+
+<TroubleshootingItem id="initial-diagnosis" summary="Verificar configuración del webhook de GitHub">
+
+La causa más común de fallos en despliegues automáticos son problemas con la configuración del webhook:
+
+1. **Verificar estado del webhook en GitHub:**
+
+   - Ve a tu repositorio → Configuración → Webhooks
+   - Comprueba si el webhook de SleakOps está activo
+   - Revisa si hay fallos recientes en las entregas
+
+2. **Comprobar URL del webhook:**
+
+   - Asegúrate que la URL del webhook apunta al endpoint correcto de SleakOps
+   - Verifica el formato de la URL: `https://api.sleakops.com/webhooks/github/{project-id}`
+
+3. **Validar el secreto del webhook:**
+   - Confirma que el secreto del webhook coincide con la configuración de tu proyecto en SleakOps
+   - Si tienes dudas, regenera el webhook en la configuración de SleakOps
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="permissions-check" summary="Verificar permisos y tokens de GitHub">
+
+Verifica si los tokens de acceso o permisos de GitHub han expirado:
+
+1. **Permisos de la App de GitHub:**
+
+   - Ve a SleakOps → Configuración del Proyecto → Integración con GitHub
+   - Verifica que la App de GitHub sigue conectada
+   - Comprueba que los permisos incluyen acceso al repositorio
+
+2. **Token de Acceso Personal (si se usa):**
+
+   - Verifica que el token no haya expirado
+   - Asegúrate que el token tenga los alcances necesarios: `repo`, `workflow`
+   - Regenera el token si es necesario
+
+3. **Acceso al repositorio:**
+   - Confirma que SleakOps aún tiene acceso al repositorio
+   - Revisa si el repositorio fue movido o renombrado
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deployment-logs" summary="Revisar registros de despliegue y estado de la canalización">
+
+Examina los registros de despliegue para mensajes de error específicos:
+
+1. **Acceder a los registros de despliegue:**
+
+   - Ve al Panel de SleakOps → Tu Proyecto → Despliegues
+   - Haz clic en los intentos de despliegue fallidos
+   - Revisa mensajes de error y trazas de pila
+
+2. **Patrones comunes de error:**
+
+   - `Authentication failed`: Problemas con token o webhook
+   - `Repository not found`: Problemas de acceso o nombres
+   - `Build failed`: Problemas de compilación o dependencias
+   - `Timeout`: Problemas de recursos o conectividad de red
+
+3. **Configuración de la canalización:**
+   - Verifica que la configuración de la canalización de despliegue sea correcta
+   - Revisa si se hicieron cambios recientes en la configuración de despliegue
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-trigger" summary="Probar con despliegue manual">
+
+Intenta activar un despliegue manual para aislar el problema:
+
+1. **Prueba de despliegue manual:**
+
+   - Ve a SleakOps → Tu Proyecto → Despliegues
+   - Haz clic en "Desplegar Ahora" o "Despliegue Manual"
+   - Selecciona la rama que deseas desplegar
+
+2. **Si el despliegue manual funciona:**
+
+   - El problema está específicamente en los disparadores automáticos
+   - Enfócate en la solución de problemas del webhook y la integración con GitHub
+
+3. **Si el despliegue manual falla:**
+   - El problema está en el proceso de despliegue mismo
+   - Revisa configuración de compilación, dependencias y asignación de recursos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="github-integration-reset" summary="Restablecer integración con GitHub">
+
+Si otras soluciones no funcionan, intenta restablecer la integración con GitHub:
+
+1. **Desconectar y reconectar:**
+
+   - Ve a SleakOps → Configuración del Proyecto → Integraciones
+   - Desconecta la integración con GitHub
+   - Reconéctala y vuelve a autorizar el acceso
+
+2. **Reconfigurar webhook:**
+
+   - Elimina el webhook existente del repositorio de GitHub
+   - Deja que SleakOps recree el webhook automáticamente
+   - Prueba con un nuevo commit
+
+3. **Verificar configuración:**
+   - Asegúrate que las configuraciones de ramas sean correctas
+   - Confirma que los disparadores de despliegue estén habilitados
+   - Revisa si hay reglas o condiciones de despliegue que bloqueen la ejecución
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="contact-support" summary="Cuándo contactar al soporte">
+
+Contacta al soporte de SleakOps si:
+
+- Se han intentado todos los pasos de solución de problemas
+- Los despliegues manuales también fallan
+- Los mensajes de error son poco claros o relacionados con el sistema
+- El problema afecta a múltiples proyectos
+
+**Información para proporcionar:**
+
+- Nombre e ID del proyecto
+- URL del repositorio de GitHub
+- Capturas de pantalla de los mensajes de error
+- Cronología de cuándo comenzó el problema
+- Cambios recientes realizados en el proyecto o repositorio
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

@@ -1,0 +1,150 @@
+---
+sidebar_position: 3
+title: "SSL Certificate Validation Error in AWS ACM"
+description: "How to resolve SSL certificate validation issues when ACM certificates fail to validate within 72 hours"
+date: "2024-11-07"
+category: "provider"
+tags: ["aws", "acm", "ssl", "certificate", "dns", "validation"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# SSL Certificate Validation Error in AWS ACM
+
+**Date:** November 7, 2024  
+**Category:** Provider  
+**Tags:** AWS, ACM, SSL, Certificate, DNS, Validation
+
+## Problem Description
+
+**Context:** When deploying applications with custom domains in SleakOps, AWS Certificate Manager (ACM) certificates may fail to validate if the DNS validation is not completed within 72 hours of certificate creation.
+
+**Observed Symptoms:**
+
+- ACM certificate shows "Failed" or "Validation timed out" status
+- Domain aliases cannot be properly configured
+- SSL/TLS connections fail for the custom domain
+- Certificate appears as "erroneous" in AWS console
+- Applications may be inaccessible via HTTPS on custom domains
+
+**Relevant Configuration:**
+
+- Certificate type: AWS Certificate Manager (ACM)
+- Validation method: DNS validation
+- Domain: Custom domain with external DNS management
+- Time limit: 72 hours from certificate creation
+
+**Error Conditions:**
+
+- Certificate validation not completed within 72-hour window
+- DNS TXT records not properly configured
+- Domain ownership not verified through DNS
+- Certificate regeneration required
+
+## Detailed Solution
+
+<TroubleshootingItem id="certificate-regeneration" summary="Regenerate the failed ACM certificate">
+
+When an ACM certificate fails validation, you need to regenerate it:
+
+1. **Access your SleakOps execution dashboard**
+2. **Navigate to the affected execution** (e.g., your landing page or web application)
+3. **Go to the SSL/Certificate section**
+4. **Click "Regenerate Certificate"** or similar option
+5. **Wait for the new certificate to be created**
+
+SleakOps will automatically create a new ACM certificate with fresh validation records.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dns-validation-setup" summary="Configure DNS validation records">
+
+After regenerating the certificate, you must add DNS validation records:
+
+1. **Copy the validation information** from your SleakOps execution details:
+
+   - **Name**: `_[validation-hash].yourdomain.com`
+   - **Value**: `_[validation-value].acm-validations.aws.`
+   - **Type**: `TXT`
+
+2. **Add the TXT record to your DNS provider**:
+
+   ```
+   Name: _595d6ebeeb98358afc0357d079d068f4.yourdomain.com
+   Type: TXT
+   Value: _139389a2dc765df9b1c6bc66a1367077.djqtsrsxkq.acm-validations.aws.
+   TTL: 300 (or your provider's minimum)
+   ```
+
+3. **Save the DNS record** and wait for propagation (usually 5-15 minutes)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="validation-verification" summary="Verify certificate validation">
+
+After adding the DNS records:
+
+1. **Wait for DNS propagation** (5-15 minutes typically)
+2. **Use the "Check Certificate" button** in SleakOps to manually trigger validation
+3. **Monitor the certificate status** in your execution dashboard
+4. **Verify DNS record propagation** using tools like:
+   ```bash
+   dig TXT _595d6ebeeb98358afc0357d079d068f4.yourdomain.com
+   ```
+   or
+   ```bash
+   nslookup -type=TXT _595d6ebeeb98358afc0357d079d068f4.yourdomain.com
+   ```
+
+**Expected result**: Certificate status should change to "Issued" or "Valid"
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-dns-issues" summary="Troubleshoot common DNS validation issues">
+
+**If validation continues to fail, check these common issues:**
+
+1. **Incorrect DNS record format**:
+
+   - Ensure the TXT record name includes the full validation subdomain
+   - Don't add extra quotes around the value
+   - Use the exact values provided by AWS/SleakOps
+
+2. **DNS propagation delays**:
+
+   - Some DNS providers take longer to propagate changes
+   - Wait up to 1 hour before considering it failed
+   - Check with multiple DNS lookup tools
+
+3. **Multiple validation records**:
+
+   - Remove any old/duplicate validation records
+   - Only keep the current validation record
+
+4. **DNS provider limitations**:
+   - Some providers don't support long TXT record names
+   - Contact your DNS provider if records aren't saving properly
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-tips" summary="Prevent future certificate validation issues">
+
+**To avoid certificate validation timeouts:**
+
+1. **Set up DNS records immediately** after certificate creation
+2. **Monitor certificate status** regularly in SleakOps dashboard
+3. **Use automated DNS providers** when possible (Route53, Cloudflare API)
+4. **Set calendar reminders** for certificate renewals
+5. **Test DNS changes** before applying them to production domains
+
+**Best practices:**
+
+- Complete DNS validation within 24 hours of certificate creation
+- Keep DNS management credentials accessible to your team
+- Document your DNS validation process for future reference
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on November 7, 2024 based on a real user query._

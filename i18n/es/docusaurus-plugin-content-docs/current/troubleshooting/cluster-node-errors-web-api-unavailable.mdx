@@ -1,0 +1,178 @@
+---
+sidebar_position: 3
+title: "Web y API no disponibles debido a errores en los nodos"
+description: "Solución para servicios web y API que fallan debido a problemas en los nodos de Kubernetes"
+date: "2024-01-15"
+category: "cluster"
+tags: ["nodos", "web", "api", "solución de problemas", "kubernetes"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Web y API no disponibles debido a errores en los nodos
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Cluster  
+**Etiquetas:** Nodos, Web, API, Solución de problemas, Kubernetes
+
+## Descripción del problema
+
+**Contexto:** El usuario reporta que tanto los servicios web como API no funcionan correctamente, con mensajes de error que indican problemas relacionados con los nodos en el clúster de Kubernetes.
+
+**Síntomas observados:**
+
+- Servicio web inaccesible
+- Endpoints de API sin respuesta
+- Mensajes de error mencionando problemas en los nodos
+- Indisponibilidad completa del servicio
+
+**Configuración relevante:**
+
+- Plataforma: clúster Kubernetes de SleakOps
+- Servicios afectados: frontend web y backend API
+- Tipo de error: errores relacionados con nodos
+
+**Condiciones de error:**
+
+- Fallo simultáneo de servicios web y API
+- Errores apuntan a problemas en la infraestructura subyacente de los nodos
+- Los servicios permanecen indisponibles hasta que se resuelven los problemas en los nodos
+
+## Solución detallada
+
+<TroubleshootingItem id="initial-diagnosis" summary="Diagnosticar estado de los nodos">
+
+Primero, verifica el estado de los nodos de tu clúster para identificar el problema específico:
+
+1. **Accede al panel de SleakOps**
+2. Navega a **Clusters** → **Tu Clúster**
+3. Ve a la sección **Nodos**
+4. Revisa los nodos con estado:
+   - `NotReady`
+   - `Unknown`
+   - `SchedulingDisabled`
+
+Alternativamente, si tienes acceso a kubectl:
+
+```bash
+kubectl get nodes
+kubectl describe nodes
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-node-issues" summary="Problemas comunes en nodos y soluciones">
+
+**Agotamiento de recursos en nodos:**
+
+- **Síntoma**: Nodos con alto uso de CPU/memoria
+- **Solución**: Escalar el grupo de nodos o añadir más nodos
+
+**Problemas de conectividad de red:**
+
+- **Síntoma**: Nodos no pueden comunicarse con el plano de control
+- **Solución**: Verificar grupos de seguridad y configuración de red
+
+**Problemas de espacio en disco:**
+
+- **Síntoma**: Nodos sin espacio suficiente en disco
+- **Solución**: Limpiar imágenes no usadas o aumentar el tamaño del disco
+
+**Fallo de nodo:**
+
+- **Síntoma**: Nodos completamente no responsivos
+- **Solución**: Reemplazar nodos fallidos a través de SleakOps
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="restart-services" summary="Reiniciar servicios afectados">
+
+Una vez resueltos los problemas en los nodos, reinicia tus servicios web y API:
+
+1. **En el panel de SleakOps:**
+
+   - Ve a **Proyectos** → **Tu Proyecto**
+   - Encuentra tus cargas de trabajo web y API
+   - Haz clic en **Reiniciar** en cada servicio
+
+2. **Mediante kubectl (si está disponible):**
+
+```bash
+# Reiniciar despliegue web
+gkubectl rollout restart deployment/web-app -n tu-namespace
+
+# Reiniciar despliegue API
+kubectl rollout restart deployment/api-app -n tu-namespace
+
+# Verificar estado del rollout
+kubectl rollout status deployment/web-app -n tu-namespace
+kubectl rollout status deployment/api-app -n tu-namespace
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="scale-nodepool" summary="Escalar grupo de nodos si es necesario">
+
+Si el problema está relacionado con capacidad insuficiente de nodos:
+
+1. **Accede al panel de SleakOps**
+2. Ve a **Clusters** → **Tu Clúster**
+3. Navega a **Grupos de nodos**
+4. Selecciona el grupo de nodos afectado
+5. Incrementa el **Tamaño deseado** o el **Tamaño máximo**
+6. Haz clic en **Actualizar grupo de nodos**
+
+El sistema aprovisionará automáticamente nuevos nodos y redistribuirá las cargas de trabajo.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitor-recovery" summary="Monitorear la recuperación del servicio">
+
+Después de implementar las soluciones, monitorea la recuperación:
+
+1. **Verifica el estado de los nodos** hasta que todos muestren `Ready`
+2. **Verifica el estado de los pods**:
+   ```bash
+   kubectl get pods -n tu-namespace
+   ```
+3. **Prueba el servicio web** accediendo a la URL de tu aplicación
+4. **Prueba los endpoints de la API** usando curl o tu herramienta preferida:
+   ```bash
+   curl -X GET https://tu-url-api/health
+   ```
+5. **Monitorea los logs** para detectar errores restantes:
+   ```bash
+   kubectl logs -f deployment/web-app -n tu-namespace
+   kubectl logs -f deployment/api-app -n tu-namespace
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention" summary="Prevenir futuras ocurrencias">
+
+Para evitar problemas similares:
+
+1. **Configura alertas de monitoreo** para la salud de los nodos
+2. **Configura autoescalado** para los grupos de nodos
+3. **Implementa solicitudes y límites de recursos** para tus aplicaciones
+4. **Realiza chequeos de salud regulares** en servicios críticos
+5. **Monitorea métricas del clúster** regularmente desde el panel de SleakOps
+
+**Configuración recomendada para monitoreo:**
+
+```yaml
+# Ejemplo de límites de recursos
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "250m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

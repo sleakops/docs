@@ -1,0 +1,208 @@
+---
+sidebar_position: 15
+title: "Loki Read Pods Connection Issue"
+description: "Solution for Loki read pods not reconnecting to backend after restart"
+date: "2024-04-21"
+category: "dependency"
+tags: ["loki", "grafana", "monitoring", "pods", "connection", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Loki Read Pods Connection Issue
+
+**Date:** April 21, 2024  
+**Category:** Dependency  
+**Tags:** Loki, Grafana, Monitoring, Pods, Connection, Troubleshooting
+
+## Problem Description
+
+**Context:** Loki monitoring stack experiencing connectivity issues where read pods fail to reconnect to the backend service after the backend pod restarts or becomes unavailable.
+
+**Observed Symptoms:**
+
+- Loki read pods (`loki-read`) cannot connect to Loki backend
+- Connection errors persist even after backend pods are restored
+- Grafana dashboards show data retrieval issues
+- Log queries fail or return incomplete results
+
+**Relevant Configuration:**
+
+- Component: Loki read pods (`loki-read`)
+- Backend service: `loki-backend`
+- Platform: Kubernetes-based Loki deployment
+- Connection behavior: Initial connection only, no automatic reconnection
+
+**Error Conditions:**
+
+- Occurs when `loki-backend` pods restart or crash
+- Read pods only attempt connection at startup
+- No automatic reconnection mechanism in current Loki version
+- Requires manual intervention to restore connectivity
+
+## Detailed Solution
+
+<TroubleshootingItem id="immediate-fix" summary="Immediate solution: Restart Loki read pods">
+
+To resolve the connection issue immediately:
+
+1. **Identify the affected pods:**
+
+   ```bash
+   kubectl get pods -l app=loki-read -n monitoring
+   ```
+
+2. **Restart the Loki read pods:**
+
+   ```bash
+   kubectl delete pods -l app=loki-read -n monitoring
+   ```
+
+3. **Verify pods are running:**
+
+   ```bash
+   kubectl get pods -l app=loki-read -n monitoring -w
+   ```
+
+4. **Check connectivity:**
+   ```bash
+   kubectl logs -l app=loki-read -n monitoring --tail=50
+   ```
+
+The pods will automatically reconnect to the backend upon restart.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="root-cause" summary="Understanding the root cause">
+
+The issue occurs because:
+
+1. **Single connection attempt**: Loki read pods only attempt to connect to the backend during their initialization phase
+2. **No reconnection logic**: Current Loki versions lack automatic reconnection mechanisms
+3. **Backend dependency**: When `loki-backend` restarts, existing connections are lost
+4. **Static connection**: Read pods maintain a static connection without health checks
+
+This is a known limitation in older Loki versions that has been addressed in newer releases.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="permanent-solution" summary="Permanent solution: Upgrade Loki version">
+
+The permanent fix involves upgrading to a Loki version that includes [PR #17063](https://github.com/grafana/loki/pull/17063):
+
+**What the PR addresses:**
+
+- Adds health check capabilities to Loki read pods
+- Implements automatic reconnection logic
+- Improves connection resilience
+
+**Implementation steps:**
+
+1. **Check current Loki version:**
+
+   ```bash
+   kubectl get deployment loki-read -n monitoring -o jsonpath='{.spec.template.spec.containers[0].image}'
+   ```
+
+2. **Update Helm values to include health checks:**
+
+   ```yaml
+   loki:
+     read:
+       livenessProbe:
+         enabled: true
+         httpGet:
+           path: /ready
+           port: 3100
+         initialDelaySeconds: 30
+         periodSeconds: 10
+       readinessProbe:
+         enabled: true
+         httpGet:
+           path: /ready
+           port: 3100
+         initialDelaySeconds: 15
+         periodSeconds: 5
+   ```
+
+3. **Upgrade using Helm:**
+   ```bash
+   helm upgrade loki grafana/loki -n monitoring -f values.yaml
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-prevention" summary="Monitoring and prevention">
+
+To prevent and quickly detect this issue:
+
+**Set up monitoring alerts:**
+
+```yaml
+# Prometheus alert rule
+groups:
+  - name: loki-connectivity
+    rules:
+      - alert: LokiReadPodsDisconnected
+        expr: up{job="loki-read"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Loki read pods are disconnected"
+          description: "Loki read pods have been disconnected for more than 2 minutes"
+```
+
+**Health check script:**
+
+```bash
+#!/bin/bash
+# Check Loki read pods connectivity
+READ_PODS=$(kubectl get pods -l app=loki-read -n monitoring --no-headers | wc -l)
+READY_PODS=$(kubectl get pods -l app=loki-read -n monitoring --no-headers | grep Running | wc -l)
+
+if [ "$READ_PODS" -ne "$READY_PODS" ]; then
+    echo "Warning: Not all Loki read pods are ready"
+    kubectl get pods -l app=loki-read -n monitoring
+fi
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Additional troubleshooting steps">
+
+If the problem persists after restarting pods:
+
+1. **Check backend pod status:**
+
+   ```bash
+   kubectl get pods -l app=loki-backend -n monitoring
+   kubectl logs -l app=loki-backend -n monitoring --tail=100
+   ```
+
+2. **Verify service connectivity:**
+
+   ```bash
+   kubectl get svc loki-backend -n monitoring
+   kubectl describe svc loki-backend -n monitoring
+   ```
+
+3. **Test internal connectivity:**
+
+   ```bash
+   kubectl run test-pod --rm -i --tty --image=busybox -- /bin/sh
+   # Inside the pod:
+   nslookup loki-backend.monitoring.svc.cluster.local
+   wget -qO- http://loki-backend.monitoring.svc.cluster.local:3100/ready
+   ```
+
+4. **Check network policies:**
+   ```bash
+   kubectl get networkpolicies -n monitoring
+   ```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on April 21, 2024 based on a real user query._

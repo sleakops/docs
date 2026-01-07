@@ -1,0 +1,185 @@
+---
+sidebar_position: 3
+title: "Internal Workload Configuration Issue"
+description: "Unable to modify internal workload configurations in SleakOps platform"
+date: "2025-03-28"
+category: "workload"
+tags: ["workload", "internal", "configuration", "ui", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Internal Workload Configuration Issue
+
+**Date:** March 28, 2025  
+**Category:** Workload  
+**Tags:** Workload, Internal, Configuration, UI, Troubleshooting
+
+## Problem Description
+
+**Context:** Users attempting to modify internal workload configurations through the SleakOps platform interface encounter UI navigation issues that prevent them from completing the configuration process.
+
+**Observed Symptoms:**
+
+- "Next" button in Service Schema step becomes unresponsive
+- Unable to advance through configuration wizard for internal workloads
+- Problem affects multiple internal workloads consistently
+- Public workloads can be modified without issues
+- Configuration changes cannot be saved or applied
+
+**Relevant Configuration:**
+
+- Workload type: Internal workloads
+- Affected step: Service Schema configuration step
+- UI component: Next button functionality
+- Working alternative: Public workloads function normally
+
+**Error Conditions:**
+
+- Error occurs specifically with internal workload types
+- Problem appears during Service Schema step of configuration wizard
+- Affects all internal workloads uniformly
+- Does not affect public workload configurations
+
+## Detailed Solution
+
+<TroubleshootingItem id="immediate-workaround" summary="Immediate workaround using Lens">
+
+While the platform UI issue is being resolved, you can modify internal workload configurations directly using Lens:
+
+1. **Access your cluster through Lens**
+2. **Navigate to Workloads** → **Deployments**
+3. **Find your internal workload**
+4. **Edit the deployment directly**
+
+For common modifications:
+
+```yaml
+# To change replica count
+spec:
+  replicas: 3  # Change this value
+
+# To modify resource limits
+spec:
+  template:
+    spec:
+      containers:
+      - name: your-container
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="kubectl-alternative" summary="Alternative using kubectl">
+
+You can also use kubectl to modify internal workloads:
+
+```bash
+# Get current deployment configuration
+kubectl get deployment <workload-name> -o yaml > workload-backup.yaml
+
+# Edit the deployment
+kubectl edit deployment <workload-name>
+
+# Or apply changes from a file
+kubectl apply -f modified-workload.yaml
+
+# Verify changes
+kubectl get deployment <workload-name>
+kubectl describe deployment <workload-name>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-modifications" summary="Common internal workload modifications">
+
+**Scaling replicas:**
+
+```bash
+kubectl scale deployment <workload-name> --replicas=5
+```
+
+**Updating resource limits:**
+
+```bash
+kubectl patch deployment <workload-name> -p '{
+  "spec": {
+    "template": {
+      "spec": {
+        "containers": [{
+          "name": "<container-name>",
+          "resources": {
+            "limits": {
+              "cpu": "1000m",
+              "memory": "1Gi"
+            },
+            "requests": {
+              "cpu": "500m",
+              "memory": "512Mi"
+            }
+          }
+        }]
+      }
+    }
+  }
+}'
+```
+
+**Updating environment variables:**
+
+```bash
+kubectl set env deployment/<workload-name> NEW_VAR=new_value
+```
+
+**Rolling restart:**
+
+```bash
+kubectl rollout restart deployment/<workload-name>
+```
+
+**Check rollout status:**
+
+```bash
+kubectl rollout status deployment/<workload-name>
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-monitoring" summary="Prevention and monitoring">
+
+To prevent similar issues in the future:
+
+1. **Monitor platform status:**
+
+   - Check SleakOps status page for known issues
+   - Subscribe to platform notifications
+   - Join community channels for updates
+
+2. **Maintain kubectl access:**
+
+   - Keep local kubectl configuration updated
+   - Ensure Lens is installed and configured
+   - Document common commands for your team
+
+3. **Backup configurations:**
+
+   - Export workload configurations regularly
+   - Keep local copies of important deployments
+   - Version control your Kubernetes manifests
+
+4. **Report UI issues:**
+   - Contact SleakOps support when encountering UI problems
+   - Provide detailed reproduction steps
+   - Include browser and platform version information
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on March 28, 2025 based on a real user query._

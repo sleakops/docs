@@ -1,0 +1,164 @@
+---
+sidebar_position: 3
+title: "Comportamiento de la Eliminación de Proyectos y Dependencias"
+description: "Entendiendo qué sucede con las dependencias al eliminar un proyecto en SleakOps"
+date: "2025-01-28"
+category: "proyecto"
+tags: ["proyecto", "dependencias", "redis", "eliminación", "limpieza"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Comportamiento de la Eliminación de Proyectos y Dependencias
+
+**Fecha:** 28 de enero de 2025  
+**Categoría:** Proyecto  
+**Etiquetas:** Proyecto, Dependencias, Redis, Eliminación, Limpieza
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios necesitan entender el comportamiento de las dependencias del proyecto (como Redis, bases de datos, cachés) cuando un proyecto es eliminado de la plataforma SleakOps.
+
+**Síntomas Observados:**
+
+- Incertidumbre sobre la limpieza de dependencias al eliminar proyectos
+- Necesidad de entender si las dependencias se eliminan automáticamente
+- Preocupación por pérdida de datos o recursos huérfanos
+- Preguntas sobre los procedimientos de limpieza
+
+**Configuración Relevante:**
+
+- Proyecto con dependencias adjuntas (Redis, PostgreSQL, MySQL, etc.)
+- Interfaz de gestión de proyectos de SleakOps
+- Gestión del ciclo de vida de dependencias
+
+**Condiciones de Error:**
+
+- Riesgo de recursos huérfanos si las dependencias no se limpian correctamente
+- Posible pérdida de datos si las dependencias se eliminan inesperadamente
+- Preocupaciones de facturación por recursos no usados
+
+## Solución Detallada
+
+<TroubleshootingItem id="dependency-deletion-behavior" summary="¿Qué sucede con las dependencias al eliminar un proyecto">
+
+**Sí, las dependencias se eliminan automáticamente cuando borras un proyecto en SleakOps.**
+
+Cuando eliminas un proyecto que contiene dependencias como Redis, PostgreSQL, MySQL u otros servicios, ocurre lo siguiente:
+
+1. **Todas las dependencias del proyecto se eliminan** junto con el proyecto
+2. **Los datos almacenados en estas dependencias se borran permanentemente**
+3. **Los recursos en la nube asociados se limpian** para evitar cargos continuos
+4. **La eliminación es irreversible** - no podrás recuperar los datos después
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deletion-process" summary="Proceso paso a paso de eliminación">
+
+El proceso de eliminación sigue esta secuencia:
+
+1. **El usuario inicia la eliminación del proyecto**
+2. **Se detienen las cargas de trabajo** (servicios web, workers, trabajos cron)
+3. **Se identifican las dependencias** y se marcan para eliminación
+4. **Se muestra advertencia de respaldo de datos** (si aplica)
+5. **Se eliminan las dependencias** en orden inverso de dependencia
+6. **Se limpian los recursos del proyecto**
+7. **Confirmación de eliminación completa**
+
+```bash
+# Ejemplo de lo que se elimina:
+- Instancia de Redis y todos los datos en caché
+- Base de datos PostgreSQL y todos los datos almacenados
+- Base de datos MySQL y todos los datos almacenados
+- Volúmenes y almacenamiento asociados
+- Configuraciones de red
+- Balanceadores de carga y reglas de ingreso
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="data-backup-recommendations" summary="Recomendaciones para respaldo de datos antes de eliminar">
+
+**Importante: Siempre haz respaldo de los datos críticos antes de eliminar un proyecto.**
+
+### Para Redis:
+
+```bash
+# Conéctate a tu instancia Redis y crea un respaldo
+redis-cli --rdb /ruta/al/respaldo.rdb
+
+# O exporta claves específicas
+redis-cli --scan --pattern "*" | xargs redis-cli MGET
+```
+
+### Para PostgreSQL:
+
+```bash
+# Crea un volcado de la base de datos
+pg_dump -h tu-host -U tu-usuario -d tu-base-de-datos > respaldo.sql
+
+# O usa el CLI de SleakOps si está disponible
+sleakops project backup --project-id ID_PROYECTO --service postgres
+```
+
+### Para MySQL:
+
+```bash
+# Crea un volcado de la base de datos
+mysqldump -h tu-host -u tu-usuario -p tu-base-de-datos > respaldo.sql
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-measures" summary="Cómo prevenir la pérdida accidental de datos">
+
+### Antes de eliminar un proyecto:
+
+1. **Revisa todas las dependencias**:
+
+   - Ve a Configuración del Proyecto → Dependencias
+   - Lista todos los servicios adjuntos (Redis, bases de datos, etc.)
+   - Identifica datos críticos que necesiten respaldo
+
+2. **Crea respaldos**:
+
+   - Exporta datos importantes de Redis
+   - Realiza volcados de bases de datos
+   - Guarda archivos de configuración
+
+3. **Considera alternativas**:
+   - **Pausar el proyecto** en lugar de eliminar (si está disponible)
+   - **Migrar dependencias** a otro proyecto
+   - **Desvincular dependencias** antes de eliminar (si se soporta)
+
+### Lista de verificación de seguridad:
+
+- [ ] Todos los datos críticos han sido respaldados
+- [ ] Los miembros del equipo están informados de la eliminación
+- [ ] No hay usuarios activos que dependan de los servicios
+- [ ] Hay soluciones alternativas disponibles si es necesario
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="recovery-options" summary="Opciones de recuperación tras eliminación accidental">
+
+**Desafortunadamente, una vez que un proyecto y sus dependencias son eliminados, la recuperación generalmente no es posible.**
+
+Sin embargo, revisa estas opciones:
+
+1. **Respaldos del proveedor en la nube**: Algunos proveedores mantienen respaldos automáticos
+2. **Soporte de SleakOps**: Contacta soporte inmediatamente si la eliminación fue accidental
+3. **Respaldos a nivel de aplicación**: Verifica si tu aplicación creó sus propios respaldos
+
+### Prevención para el futuro:
+
+- Configura respaldos automáticos regulares
+- Usa entornos de staging para probar eliminaciones
+- Implementa estrategias de respaldo en el código de tu aplicación
+- Considera usar servicios externos de respaldo
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 28 de enero de 2025 basada en una consulta real de usuario._

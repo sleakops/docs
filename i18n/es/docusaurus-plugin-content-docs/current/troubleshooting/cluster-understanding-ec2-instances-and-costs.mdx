@@ -1,0 +1,202 @@
+---
+sidebar_position: 3
+title: "Comprendiendo las Instancias EC2 y los Costos en Clústeres EKS"
+description: "Explicación de las instancias EC2 creadas por SleakOps y sus implicaciones de costo"
+date: "2025-01-29"
+category: "cluster"
+tags: ["eks", "aws", "ec2", "costos", "karpenter", "vpn"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Comprendiendo las Instancias EC2 y los Costos en Clústeres EKS
+
+**Fecha:** 29 de enero de 2025  
+**Categoría:** Clúster  
+**Etiquetas:** EKS, AWS, EC2, Costos, Karpenter, VPN
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios notan múltiples instancias EC2 ejecutándose en su cuenta AWS junto con su clúster EKS y desean entender el propósito de cada instancia y los costos asociados.
+
+**Síntomas Observados:**
+
+- Múltiples instancias EC2 apareciendo en la consola AWS (por ejemplo, t4g.medium, t3a.small, c7g.xlarge)
+- Incertidumbre sobre qué instancias son para VPN vs nodos del clúster
+- Preguntas sobre las implicaciones de costo a medida que las cargas de trabajo escalan
+- Necesidad de comprender la relación entre pods e instancias EC2
+
+**Configuración Relevante:**
+
+- Clúster EKS con gestión de nodos por Karpenter
+- Configuración de instancias Spot para pods
+- Instancia VPN para acceso seguro
+- Varios tipos de instancia (t4g.medium, t3a.small, c7g.xlarge)
+
+**Condiciones de Error:**
+
+- No hay errores técnicos, pero sí confusión sobre costos de infraestructura
+- Necesidad de comprensión para optimización de costos
+- Aclaración del comportamiento de escalado requerida
+
+## Solución Detallada
+
+<TroubleshootingItem id="instance-purposes" summary="Propósito de cada tipo de instancia EC2">
+
+**Instancia VPN:**
+
+- **Propósito**: Proporciona acceso VPN seguro a tu clúster y recursos
+- **Tamaño típico**: Usualmente t3a.small o una instancia pequeña similar
+- **Costo**: Costo fijo, funciona continuamente independientemente de la carga
+- **Escalado**: No escala con la carga de tu aplicación
+
+**Nodos Trabajadores del Clúster:**
+
+- **Propósito**: Ejecutar tus pods de aplicación y cargas de trabajo Kubernetes
+- **Gestionados por**: Karpenter (provisión automática de nodos)
+- **Tipos de instancia**: Varias tamaños (t4g.medium, c7g.xlarge, etc.)
+- **Costo**: Variable, escala con la demanda de tu carga de trabajo
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="karpenter-management" summary="Cómo Karpenter gestiona tus nodos">
+
+Karpenter gestiona automáticamente los nodos de tu clúster:
+
+```yaml
+# Ejemplo de configuración de Nodepool
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
+metadata:
+  name: default
+spec:
+  template:
+    spec:
+      requirements:
+        - key: kubernetes.io/arch
+          operator: In
+          values: ["amd64"]
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["spot", "on-demand"]
+      nodeClassRef:
+        apiVersion: karpenter.k8s.aws/v1beta1
+        kind: EC2NodeClass
+        name: default
+```
+
+**Comportamientos clave:**
+
+- **Escalado automático**: Crea instancias cuando los pods necesitan recursos
+- **Optimización de costos**: Prefiere instancias spot cuando están disponibles
+- **Dimensionamiento adecuado**: Selecciona tipos de instancia apropiados para los requisitos
+- **Limpieza**: Termina instancias no usadas para reducir costos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cost-implications" summary="Comprendiendo las implicaciones de costo">
+
+**Costos Fijos:**
+
+- Instancia VPN: ~10-20 USD/mes (dependiendo del tamaño de instancia)
+- Plano de control EKS: 0.10 USD/hora (~73 USD/mes)
+
+**Costos Variables (escala con la carga):**
+
+- Instancias nodos trabajadores: Depende de:
+  - Número de pods en ejecución
+  - Requerimientos de recursos (CPU/memoria)
+  - Tipos de instancia seleccionados por Karpenter
+  - Precios Spot vs On-Demand
+
+**Consejos para optimización de costos:**
+
+```bash
+# Monitorea la utilización de tus nodos
+kubectl top nodes
+
+# Revisa las solicitudes de recursos de los pods
+kubectl describe pods -A | grep -A 5 "Requests:"
+
+# Visualiza las decisiones de nodos de Karpenter
+kubectl logs -n karpenter deployment/karpenter
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="scaling-behavior" summary="Cómo funciona el escalado con más pods">
+
+**Proceso de Escalado:**
+
+1. **Creación de Pod:** Despliegas más pods en tu clúster
+2. **Evaluación de Recursos:** Karpenter evalúa los requerimientos de recursos
+3. **Provisión de Nodo:** Si los nodos existentes no pueden alojar nuevos pods:
+   - Karpenter provisiona nuevas instancias EC2
+   - Selecciona el tipo de instancia óptimo según requerimientos
+   - Prefiere instancias spot para ahorro de costos
+4. **Programación de Pods:** Kubernetes programa los pods en nodos disponibles
+5. **Reducción de Escala:** Cuando se eliminan pods, Karpenter elimina nodos no usados
+
+**Ejemplo de escenario de escalado:**
+
+```yaml
+# Si tienes pods con estos requerimientos:
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+```
+
+Karpenter:
+
+- Calcula las necesidades totales de recursos
+- Selecciona tipos de instancia costo-efectivos
+- Proporciona el número mínimo de instancias necesarias
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-costs" summary="Monitoreo y control de costos">
+
+**Herramientas para Monitoreo de Costos:**
+
+1. **AWS Cost Explorer**: Rastrea el gasto en EC2 por tipo de instancia
+2. **Métricas de Karpenter**: Monitorea las decisiones de provisión de nodos
+3. **Dashboard de SleakOps**: Visualiza la utilización de recursos del clúster
+
+**Estrategias para Controlar Costos:**
+
+```yaml
+# Establece límites de recursos en tus despliegues
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  template:
+    spec:
+      containers:
+        - name: app
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+```
+
+**Controles de costo en Nodepool:**
+
+- Configura tamaños máximos de instancia
+- Establece límites en el grupo de nodos
+- Usa instancias spot cuando sea posible
+- Configura solicitudes de recursos apropiadas
+
+Para configuración detallada de nodepool, consulta: [Documentación de Nodepool](https://docs.sleakops.com/cluster/nodepools)
+
+</TroubleshootingItem>
+
+---
+
+_Este FAQ fue generado automáticamente el 29 de enero de 2025 basado en una consulta real de usuario._

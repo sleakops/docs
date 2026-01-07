@@ -1,0 +1,172 @@
+---
+sidebar_position: 3
+title: "Frontend Environment Variables Not Working During Build"
+description: "Solution for frontend projects not receiving environment variables during Docker build process"
+date: "2024-12-23"
+category: "project"
+tags: ["frontend", "environment-variables", "docker", "build", "configuration"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Frontend Environment Variables Not Working During Build
+
+**Date:** December 23, 2024  
+**Category:** Project  
+**Tags:** Frontend, Environment Variables, Docker, Build, Configuration
+
+## Problem Description
+
+**Context:** Frontend projects in SleakOps are not receiving environment variables during the build process, affecting multiple applications across different frontend frameworks.
+
+**Observed Symptoms:**
+
+- Environment variables are not available in frontend applications
+- Variables that work in other project types fail in frontend projects
+- Build process completes successfully but variables are undefined at runtime
+- Issue affects multiple frontend applications consistently
+
+**Relevant Configuration:**
+
+- Project type: Frontend applications
+- Build process: Docker-based builds
+- Environment variables: Configured in SleakOps project settings
+- Variable access: Required during build time, not just runtime
+
+**Error Conditions:**
+
+- Variables are undefined or null in the built application
+- Environment variables work in backend services but not frontend
+- Issue occurs across different frontend frameworks (React, Vue, Angular, etc.)
+- Problem persists regardless of variable naming conventions
+
+## Detailed Solution
+
+<TroubleshootingItem id="root-cause" summary="Why frontend projects need special configuration">
+
+Frontend projects require environment variables during the **build process**, not just at runtime. Unlike backend services that can access environment variables when the container starts, frontend applications need these variables to be "baked in" during the build step because:
+
+1. Frontend code runs in the browser, not on the server
+2. Environment variables must be embedded into the static files during build
+3. The build process needs access to variables to generate the final bundle
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="docker-args-solution" summary="Configure Docker Args for build-time variables">
+
+To fix this issue, you need to configure Docker Args in your project settings:
+
+1. Go to your **Projects** list in SleakOps
+2. Find your frontend project and click **Edit**
+3. Navigate to the **Docker Args** section
+4. Add your environment variables as build arguments
+
+**Example configuration:**
+
+```bash
+# In Docker Args section
+REACT_APP_API_URL=${API_URL}
+REACT_APP_ENV=${ENVIRONMENT}
+VUE_APP_BASE_URL=${BASE_URL}
+NEXT_PUBLIC_API_KEY=${API_KEY}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-requirements" summary="Update your Dockerfile to use build args">
+
+Your Dockerfile must be configured to accept and use these build arguments:
+
+```dockerfile
+# Accept build arguments
+ARG REACT_APP_API_URL
+ARG REACT_APP_ENV
+ARG VUE_APP_BASE_URL
+ARG NEXT_PUBLIC_API_KEY
+
+# Set them as environment variables during build
+ENV REACT_APP_API_URL=$REACT_APP_API_URL
+ENV REACT_APP_ENV=$REACT_APP_ENV
+ENV VUE_APP_BASE_URL=$VUE_APP_BASE_URL
+ENV NEXT_PUBLIC_API_KEY=$NEXT_PUBLIC_API_KEY
+
+# Run your build command
+RUN npm run build
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="framework-specific" summary="Framework-specific variable naming">
+
+Different frontend frameworks have specific naming conventions for environment variables:
+
+**React:**
+
+- Must start with `REACT_APP_`
+- Example: `REACT_APP_API_URL`
+
+**Vue.js:**
+
+- Must start with `VUE_APP_`
+- Example: `VUE_APP_BASE_URL`
+
+**Next.js:**
+
+- Must start with `NEXT_PUBLIC_` for client-side access
+- Example: `NEXT_PUBLIC_API_KEY`
+
+**Angular:**
+
+- No specific prefix required, but often use custom configuration
+- Access through `environment.ts` files
+
+**Vite-based projects:**
+
+- Must start with `VITE_`
+- Example: `VITE_API_ENDPOINT`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification" summary="How to verify the configuration works">
+
+To verify your environment variables are working:
+
+1. **Check build logs**: Look for the variables being set during build
+2. **Browser console**: Use `console.log(process.env.REACT_APP_API_URL)` in your code
+3. **Network tab**: Verify API calls are using the correct URLs
+4. **Build output**: Check if variables appear in the bundled files (be careful with sensitive data)
+
+**Test code example:**
+
+```javascript
+// Add this temporarily to verify
+console.log("Environment variables:", {
+  apiUrl: process.env.REACT_APP_API_URL,
+  environment: process.env.REACT_APP_ENV,
+});
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Common troubleshooting steps">
+
+If variables still don't work after configuration:
+
+1. **Check variable names**: Ensure they follow framework conventions
+2. **Verify Docker Args syntax**: Make sure the syntax is correct in SleakOps
+3. **Rebuild the project**: Changes to Docker Args require a full rebuild
+4. **Check Dockerfile**: Ensure ARG and ENV statements are present
+5. **Validate variable values**: Ensure the source environment variables have values
+
+**Common mistakes:**
+
+- Forgetting framework-specific prefixes
+- Not rebuilding after configuration changes
+- Missing ARG statements in Dockerfile
+- Incorrect variable substitution syntax
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 23, 2024 based on a real user query._

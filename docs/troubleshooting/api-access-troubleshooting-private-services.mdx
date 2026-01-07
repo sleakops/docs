@@ -1,0 +1,254 @@
+---
+sidebar_position: 3
+title: "Private API Service Access Issues"
+description: "Troubleshooting connectivity issues with private API services in Kubernetes clusters"
+date: "2024-12-19"
+category: "user"
+tags: ["api", "vpn", "private-service", "connectivity", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Private API Service Access Issues
+
+**Date:** December 19, 2024  
+**Category:** User  
+**Tags:** API, VPN, Private Service, Connectivity, Troubleshooting
+
+## Problem Description
+
+**Context:** Users experiencing connectivity issues when trying to access private API services deployed in Kubernetes clusters through SleakOps platform.
+
+**Observed Symptoms:**
+
+- Unable to connect to private API services
+- API requests timing out or failing
+- Intermittent connectivity issues
+- Services accessible internally but not externally
+
+**Relevant Configuration:**
+
+- Service type: Private API service
+- Network: Kubernetes cluster with private networking
+- Access method: VPN connection required
+- Service exposure: Internal cluster networking
+
+**Error Conditions:**
+
+- Connection failures when VPN is not active
+- API unreachable from external networks
+- No response from private service endpoints
+- Network timeout errors
+
+## Detailed Solution
+
+<TroubleshootingItem id="vpn-connection-check" summary="Verify VPN Connection Status">
+
+First, ensure your VPN connection is active and properly configured:
+
+1. **Check VPN Status:**
+
+   - Verify VPN client is connected
+   - Check connection status in your VPN client
+   - Ensure you're connected to the correct VPN profile
+
+2. **Test VPN Connectivity:**
+
+   ```bash
+   # Test connectivity to cluster internal networks
+   ping <cluster-internal-ip>
+
+   # Check if you can reach cluster DNS
+   nslookup <service-name>.<namespace>.svc.cluster.local
+   ```
+
+3. **Verify Network Routes:**
+   ```bash
+   # Check routing table
+   route -n  # Linux/Mac
+   route print  # Windows
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="service-accessibility" summary="Verify Service Configuration">
+
+Check if the API service is properly configured for private access:
+
+1. **Check Service Type:**
+
+   ```bash
+   kubectl get svc <service-name> -n <namespace>
+   ```
+
+2. **Verify Service Endpoints:**
+
+   ```bash
+   kubectl get endpoints <service-name> -n <namespace>
+   ```
+
+3. **Check Service Configuration:**
+   ```yaml
+   # Example private service configuration
+   apiVersion: v1
+   kind: Service
+   metadata:
+     name: private-api-service
+     namespace: default
+   spec:
+     type: ClusterIP # Internal access only
+     ports:
+       - port: 80
+         targetPort: 8080
+     selector:
+       app: api-service
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="pod-logs-analysis" summary="Analyze Pod Logs for API Issues">
+
+Examine pod logs to identify potential issues:
+
+1. **Check API Pod Logs:**
+
+   ```bash
+   # Get pod logs
+   kubectl logs <pod-name> -n <namespace>
+
+   # Follow logs in real-time
+   kubectl logs -f <pod-name> -n <namespace>
+
+   # Get logs from all containers in pod
+   kubectl logs <pod-name> -n <namespace> --all-containers
+   ```
+
+2. **Look for Common Issues:**
+
+   - Connection timeouts
+   - Authentication failures
+   - Resource constraints
+   - Database connectivity issues
+
+3. **Check Pod Status:**
+   ```bash
+   kubectl get pods -n <namespace>
+   kubectl describe pod <pod-name> -n <namespace>
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="network-troubleshooting" summary="Network Connectivity Troubleshooting">
+
+Perform network-level troubleshooting:
+
+1. **Test from Within Cluster:**
+
+   ```bash
+   # Create a debug pod
+   kubectl run debug-pod --image=nicolaka/netshoot -it --rm
+
+   # Test connectivity from inside cluster
+   curl http://<service-name>.<namespace>.svc.cluster.local
+   ```
+
+2. **Check Network Policies:**
+
+   ```bash
+   kubectl get networkpolicies -n <namespace>
+   ```
+
+3. **Verify DNS Resolution:**
+
+   ```bash
+   # From debug pod
+   nslookup <service-name>.<namespace>.svc.cluster.local
+   ```
+
+4. **Test Port Connectivity:**
+   ```bash
+   # Test specific port
+   telnet <service-ip> <port>
+   nc -zv <service-ip> <port>
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="ingress-configuration" summary="Configure Ingress for External Access">
+
+If you need external access to the private API:
+
+1. **Create Ingress Resource:**
+
+   ```yaml
+   apiVersion: networking.k8s.io/v1
+   kind: Ingress
+   metadata:
+     name: private-api-ingress
+     namespace: default
+     annotations:
+       nginx.ingress.kubernetes.io/rewrite-target: /
+   spec:
+     rules:
+       - host: api.yourdomain.com
+         http:
+           paths:
+             - path: /
+               pathType: Prefix
+               backend:
+                 service:
+                   name: private-api-service
+                   port:
+                     number: 80
+   ```
+
+2. **Configure TLS (Optional):**
+   ```yaml
+   spec:
+     tls:
+       - hosts:
+           - api.yourdomain.com
+         secretName: api-tls-secret
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-solutions" summary="Common Solutions and Best Practices">
+
+**Quick Fixes:**
+
+1. **Restart VPN Connection:**
+
+   - Disconnect and reconnect VPN
+   - Try different VPN servers if available
+
+2. **Clear DNS Cache:**
+
+   ```bash
+   # Linux
+   sudo systemctl flush-dns
+
+   # macOS
+   sudo dscacheutil -flushcache
+
+   # Windows
+   ipconfig /flushdns
+   ```
+
+3. **Check Firewall Rules:**
+   - Ensure local firewall allows VPN traffic
+   - Verify corporate firewall settings
+
+**Best Practices:**
+
+- Always connect to VPN before accessing private services
+- Use service discovery instead of hardcoded IPs
+- Implement proper health checks for API services
+- Monitor service logs regularly
+- Set up alerts for service availability
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

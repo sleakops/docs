@@ -1,0 +1,161 @@
+---
+sidebar_position: 3
+title: "PostgreSQL Database Restore Errors"
+description: "Solutions for common PostgreSQL database restore errors including constraint and index conflicts"
+date: "2024-01-15"
+category: "dependency"
+tags: ["postgresql", "database", "restore", "constraints", "indexes"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# PostgreSQL Database Restore Errors
+
+**Date:** January 15, 2024  
+**Category:** Dependency  
+**Tags:** PostgreSQL, Database, Restore, Constraints, Indexes
+
+## Problem Description
+
+**Context:** When attempting to restore a PostgreSQL database dump, users encounter errors related to constraint dependencies and index conflicts during the restoration process.
+
+**Observed Symptoms:**
+
+- Error: "cannot drop index active_storage_blobs_pkey because constraint active_storage_blobs_pkey on table active_storage_blobs requires it"
+- Error: "cannot drop constraint users_pkey on table public.users because other objects depend on it"
+- Error: "column 'id' does not exist" when recreating indexes
+- Restoration process fails during index and constraint manipulation
+
+**Relevant Configuration:**
+
+- Database: PostgreSQL (RDS instance)
+- Environment variables: `SUPRADBPRODPOSTGRESQL_POSTGRESQL_ADDRESS`, `SUPRADBPRODPOSTGRESQL_POSTGRESQL_USERNAME`, `SUPRADBPRODPOSTGRESQL_POSTGRESQL_NAME`
+- Restoration tool: `pg_restore`
+- Database contains Rails ActiveStorage tables and complex foreign key relationships
+
+**Error Conditions:**
+
+- Occurs during database restoration from dump files
+- Happens when trying to drop primary key constraints that have dependent foreign keys
+- Appears when restoration script tries to drop and recreate indexes in incorrect order
+- Error persists across multiple restoration attempts
+
+## Detailed Solution
+
+<TroubleshootingItem id="clean-database-approach" summary="Clean database restoration approach">
+
+When encountering constraint and index errors, the most reliable solution is to start with a completely clean database:
+
+```bash
+# Connect to RDS instance and drop/recreate the database
+psql -h "${SUPRADBPRODPOSTGRESQL_POSTGRESQL_ADDRESS}" \
+-U "${SUPRADBPRODPOSTGRESQL_POSTGRESQL_USERNAME}" \
+-d postgres \
+-c "DROP DATABASE IF EXISTS ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_NAME};" \
+-c "CREATE DATABASE ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_NAME};"
+```
+
+This approach eliminates all existing constraints and indexes that might conflict with the restoration process.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="schema-preparation" summary="Prepare database schema before restoration">
+
+Some applications require specific schemas to exist before restoration. Create necessary schemas:
+
+```bash
+# Connect to your RDS and create required schemas
+psql -h ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_ADDRESS} \
+-U ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_USERNAME} \
+-d ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_NAME} \
+-c "CREATE SCHEMA IF NOT EXISTS heroku_ext;"
+```
+
+This is particularly important for applications migrated from Heroku or other platforms that use custom schemas.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="constraint-order-fix" summary="Fix constraint dropping order in restoration script">
+
+If you need to modify the restoration script, ensure constraints are dropped in the correct order:
+
+1. **Drop foreign key constraints first**
+2. **Then drop primary key constraints**
+3. **Finally drop indexes**
+
+The error occurs because the script tries to drop primary keys before dropping the foreign keys that depend on them.
+
+```sql
+-- Correct order example:
+-- 1. Drop foreign key constraints
+ALTER TABLE campaign_agency_users DROP CONSTRAINT IF EXISTS fk_rails_80e17a26a2;
+
+-- 2. Drop primary key constraints
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_pkey;
+
+-- 3. Drop indexes
+DROP INDEX IF EXISTS active_storage_blobs_pkey CASCADE;
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-restoration-methods" summary="Alternative restoration methods">
+
+If the standard restoration continues to fail, try these alternatives:
+
+**Method 1: Use pg_restore with specific options**
+
+```bash
+pg_restore --verbose --clean --no-acl --no-owner \
+-h ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_ADDRESS} \
+-U ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_USERNAME} \
+-d ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_NAME} \
+your_dump_file.dump
+```
+
+**Method 2: Restore data only (skip schema)**
+
+```bash
+pg_restore --data-only --verbose \
+-h ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_ADDRESS} \
+-U ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_USERNAME} \
+-d ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_NAME} \
+your_dump_file.dump
+```
+
+**Method 3: Manual schema creation**
+
+1. Create the database schema manually using Rails migrations or SQL scripts
+2. Then restore only the data using `--data-only` option
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Verify successful restoration">
+
+After restoration, verify the database integrity:
+
+```bash
+# Check if all tables exist
+psql -h ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_ADDRESS} \
+-U ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_USERNAME} \
+-d ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_NAME} \
+-c "\dt"
+
+# Check constraints
+psql -h ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_ADDRESS} \
+-U ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_USERNAME} \
+-d ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_NAME} \
+-c "SELECT conname FROM pg_constraint WHERE contype = 'f';"
+
+# Verify data integrity
+psql -h ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_ADDRESS} \
+-U ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_USERNAME} \
+-d ${SUPRADBPRODPOSTGRESQL_POSTGRESQL_NAME} \
+-c "SELECT COUNT(*) FROM users;"
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

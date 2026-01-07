@@ -1,0 +1,192 @@
+---
+sidebar_position: 3
+title: "Fallo en el trabajo de compilación con advertencia de desaprobación de pkg_resources de New Relic"
+description: "Solución para fallos en la compilación causados por advertencias de desaprobación de pkg_resources de New Relic en entornos Python"
+date: "2025-06-10"
+category: "proyecto"
+tags: ["compilación", "python", "newrelic", "pkg_resources", "despliegue"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Fallo en el trabajo de compilación con advertencia de desaprobación de pkg_resources de New Relic
+
+**Fecha:** 10 de junio de 2025  
+**Categoría:** Proyecto  
+**Etiquetas:** Compilación, Python, New Relic, pkg_resources, Despliegue
+
+## Descripción del problema
+
+**Contexto:** Los usuarios experimentan fallos en los trabajos de compilación al intentar desplegar en producción, con mensajes de error relacionados con el uso por parte de New Relic de la API obsoleta pkg_resources, incluso cuando New Relic no se usa explícitamente en su aplicación.
+
+**Síntomas observados:**
+
+- Los trabajos de compilación fallan durante el despliegue en producción
+- Aparece un mensaje de advertencia sobre la desaprobación de pkg_resources
+- El error se origina en el módulo de configuración de New Relic
+- El problema bloquea despliegues críticos a producción
+
+**Configuración relevante:**
+
+- Versión de Python: 3.9
+- Ubicación del paquete New Relic: `/usr/local/lib/python3.9/site-packages/newrelic/config.py`
+- Versión de setuptools: Probablemente 81 o superior
+- Entorno de compilación: contenedores gestionados por SleakOps
+
+**Condiciones del error:**
+
+- El error ocurre durante el proceso de compilación
+- Aparece en la tubería de despliegue a producción
+- La advertencia hace referencia a la desaprobación de pkg_resources programada para el 30-11-2025
+- El problema persiste aunque New Relic no se use activamente
+
+## Solución detallada
+
+<TroubleshootingItem id="root-cause-analysis" summary="Comprendiendo la causa raíz">
+
+Este problema ocurre porque:
+
+1. **El agente de New Relic está instalado** en el entorno base de Python usado por los contenedores de compilación de SleakOps
+2. **pkg_resources está desaprobado** en versiones recientes de setuptools (81+)
+3. **New Relic no ha actualizado** su código para usar la nueva API importlib.metadata
+4. La advertencia se trata como un error en el proceso de compilación
+
+Aunque no uses New Relic directamente, puede estar instalado como parte de la imagen base del contenedor para propósitos de monitoreo.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-workaround" summary="Solución inmediata - Fijar versión de Setuptools">
+
+Agrega esto a tu `requirements.txt` o `pyproject.toml` para fijar setuptools a una versión anterior a la desaprobación:
+
+**Para requirements.txt:**
+
+```txt
+setuptools&lt;81
+```
+
+**Para pyproject.toml:**
+
+```toml
+[build-system]
+requires = ["setuptools&lt;81", "wheel"]
+
+[project]
+dependencies = [
+    "setuptools&lt;81",
+    # tus otras dependencias
+]
+```
+
+**Para Dockerfile:**
+
+```dockerfile
+RUN pip install "setuptools&lt;81"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="environment-variable-solution" summary="Suprimir advertencias con variables de entorno">
+
+Puedes suprimir la advertencia específica configurando variables de entorno en tu configuración de compilación:
+
+**En tu configuración de despliegue:**
+
+```yaml
+environment:
+  PYTHONWARNINGS: "ignore::UserWarning:newrelic.config"
+```
+
+**O suprimir todas las UserWarnings (menos recomendado):**
+
+```yaml
+environment:
+  PYTHONWARNINGS: "ignore::UserWarning"
+```
+
+**En Dockerfile:**
+
+```dockerfile
+ENV PYTHONWARNINGS="ignore::UserWarning:newrelic.config"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="newrelic-update-solution" summary="Actualizar o eliminar el agente de New Relic">
+
+Si New Relic está instalado pero no se usa:
+
+**Opción 1: Eliminar New Relic completamente**
+
+```bash
+pip uninstall newrelic
+```
+
+**Opción 2: Actualizar a la última versión de New Relic**
+
+```bash
+pip install --upgrade newrelic
+```
+
+**Opción 3: Agregar a requirements.txt con la versión más reciente**
+
+```txt
+newrelic>=9.0.0
+```
+
+Consulta las [versiones del agente Python de New Relic](https://github.com/newrelic/newrelic-python-agent/releases) para obtener la última versión que soluciona este problema.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-complete-solution" summary="Solución completa con Dockerfile">
+
+Aquí tienes un enfoque completo con Dockerfile que aborda el problema:
+
+```dockerfile
+FROM python:3.9-slim
+
+# Fijar setuptools para evitar advertencias de desaprobación de pkg_resources
+RUN pip install --upgrade pip "setuptools&lt;81" wheel
+
+# Establecer variable de entorno para suprimir advertencias de New Relic si es necesario
+ENV PYTHONWARNINGS="ignore::UserWarning:newrelic.config"
+
+# Copiar e instalar requerimientos
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+# Resto de tu Dockerfile
+COPY . .
+CMD ["python", "app.py"]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="long-term-solution" summary="Solución a largo plazo y prevención">
+
+Para una solución permanente:
+
+1. **Monitorea actualizaciones de New Relic**: Mantente atento a cuando New Relic lance una versión que use `importlib.metadata` en lugar de `pkg_resources`
+
+2. **Actualiza imágenes base regularmente**: Asegúrate de que las imágenes base de tus contenedores estén actualizadas con versiones compatibles
+
+3. **Gestión de dependencias**: Usa herramientas de gestión de dependencias como `pip-tools` o `poetry` para fijar versiones:
+
+```bash
+# Usando pip-tools
+pip-compile requirements.in
+```
+
+4. **Ajuste en la pipeline CI/CD**: Añade chequeos en tu pipeline para detectar estas advertencias temprano:
+
+```yaml
+# En tu configuración CI/CD
+script:
+  - python -W error::UserWarning -c "import sys; print('No warnings')" || echo "Advertencias detectadas"
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 10 de junio de 2025 basada en una consulta real de usuario._

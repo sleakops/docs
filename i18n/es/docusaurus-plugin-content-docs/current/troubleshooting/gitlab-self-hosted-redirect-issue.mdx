@@ -1,0 +1,185 @@
+---
+sidebar_position: 3
+title: "Problema de Redirección en GitLab Self-Hosted"
+description: "Solución para problemas de conexión con repositorios GitLab self-hosted con bucles de redirección"
+date: "2025-02-25"
+category: "proyecto"
+tags: ["gitlab", "self-hosted", "git", "conexión", "redirección"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problema de Redirección en GitLab Self-Hosted
+
+**Fecha:** 25 de febrero de 2025  
+**Categoría:** Proyecto  
+**Etiquetas:** GitLab, Self-hosted, Git, Conexión, Redirección
+
+## Descripción del Problema
+
+**Contexto:** El usuario intenta conectar un repositorio GitLab self-hosted a SleakOps pero encuentra redirecciones continuas a la página de GitLab en lugar de una autenticación exitosa.
+
+**Síntomas Observados:**
+
+- No puede conectar con el repositorio GitLab self-hosted
+- Redirección continua a la página de GitLab durante la autenticación
+- El proceso de conexión no se completa
+- Imposibilidad de acceder al repositorio a través de la plataforma SleakOps
+
+**Configuración Relevante:**
+
+- Tipo de repositorio: GitLab self-hosted
+- Método de conexión: Configuración → Autorizaciones
+- Plataforma: SleakOps
+- Flujo de autenticación: OAuth / basado en redirección
+
+**Condiciones del Error:**
+
+- Ocurre un bucle de redirección durante la autenticación
+- El problema persiste tras múltiples intentos de conexión
+- El problema es específico de instancias GitLab self-hosted
+- Las conexiones estándar a GitLab.com pueden funcionar normalmente
+
+## Solución Detallada
+
+<TroubleshootingItem id="initial-verification" summary="Verificar configuración de GitLab">
+
+Antes de solucionar la conexión, asegúrate de que tu instancia de GitLab esté configurada correctamente:
+
+1. **Revisar configuración de la aplicación OAuth en GitLab**:
+
+   - Ve a tu instancia de GitLab: `Área de Administración → Aplicaciones`
+   - Verifica que exista la aplicación OAuth para SleakOps
+   - Confirma que la URI de redirección coincida con la URL de callback de SleakOps
+
+2. **Verificar accesibilidad de GitLab**:
+   - Asegúrate de que tu instancia GitLab sea accesible desde redes externas
+   - Comprueba que HTTPS esté configurado correctamente
+   - Verifica que los certificados SSL sean válidos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="connection-method" summary="Procedimiento correcto de conexión">
+
+Sigue estos pasos para conectar tu GitLab self-hosted:
+
+1. **En la plataforma SleakOps**:
+
+   - Navega a **Configuración → Autorizaciones**
+   - Haz clic en **Agregar proveedor Git**
+   - Selecciona **GitLab Self-Hosted**
+
+2. **Configura la instancia GitLab**:
+
+   ```
+   URL de GitLab: https://tu-instancia-gitlab.com
+   ID de la Aplicación: [desde la app OAuth de GitLab]
+   Secreto de la Aplicación: [desde la app OAuth de GitLab]
+   ```
+
+3. **Completa el flujo OAuth**:
+   - Haz clic en **Conectar**
+   - Serás redirigido a tu instancia GitLab
+   - Autoriza la aplicación SleakOps
+   - Deberías ser redirigido de vuelta a SleakOps
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="redirect-troubleshooting" summary="Solución de problemas de redirección">
+
+Si experimentas bucles de redirección, revisa estos problemas comunes:
+
+**1. URI de redirección incorrecta**:
+
+- En la configuración de la app OAuth de GitLab, asegúrate que la URI de redirección sea:
+  ```
+  https://app.sleakops.com/auth/gitlab/callback
+  ```
+
+**2. Conectividad de red**:
+
+- Verifica que SleakOps pueda alcanzar tu instancia GitLab
+- Revisa reglas de firewall y políticas de red
+- Asegúrate que ningún proxy interfiera en la conexión
+
+**3. Configuración de la instancia GitLab**:
+
+- Verifica el `external_url` en la configuración de GitLab
+- Revisa si GitLab está detrás de un proxy inverso
+- Asegura una configuración HTTPS adecuada
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="oauth-app-setup" summary="Crear aplicación OAuth en GitLab">
+
+Si la aplicación OAuth no existe, créala:
+
+1. **En el Área de Administración de GitLab**:
+
+   - Ve a **Área de Administración → Aplicaciones**
+   - Haz clic en **Nueva Aplicación**
+
+2. **Configuración de la aplicación**:
+
+   ```
+   Nombre: SleakOps
+   URI de redirección: https://app.sleakops.com/auth/gitlab/callback
+   Alcances:
+   ✓ api
+   ✓ read_user
+   ✓ read_repository
+   ✓ write_repository
+   ```
+
+3. **Guardar y anotar credenciales**:
+   - Copia el ID de la Aplicación
+   - Copia el Secreto
+   - Usa estos datos en la configuración de SleakOps
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Métodos alternativos de conexión">
+
+Si OAuth sigue fallando, prueba estas alternativas:
+
+**1. Token de Acceso Personal**:
+
+- Crea un Token de Acceso Personal en GitLab
+- Usa autenticación basada en token en lugar de OAuth
+- Configura en SleakOps con las credenciales del token
+
+**2. Autenticación con clave SSH**:
+
+- Genera un par de claves SSH en SleakOps
+- Añade la clave pública al usuario/proyecto en GitLab
+- Usa URLs de repositorio basadas en SSH
+
+**3. Contactar Soporte**:
+Si los problemas persisten, contacta al soporte de SleakOps con:
+
+- URL de la instancia GitLab
+- Detalles de configuración de red
+- Registros de error de SleakOps y GitLab
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Verificar conexión exitosa">
+
+Tras la configuración, verifica que la conexión funcione:
+
+1. **Probar acceso al repositorio**:
+
+   - Intenta navegar los repositorios en SleakOps
+   - Intenta crear un nuevo proyecto desde el repositorio GitLab
+   - Verifica que los webhooks estén configurados correctamente
+
+2. **Revisar permisos**:
+   - Asegura que SleakOps pueda leer el contenido del repositorio
+   - Verifica permisos de escritura para operaciones CI/CD
+   - Prueba la entrega de webhooks
+
+</TroubleshootingItem>
+
+---
+
+_Este FAQ fue generado automáticamente el 25 de febrero de 2025 basado en una consulta real de un usuario._

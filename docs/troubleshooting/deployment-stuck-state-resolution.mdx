@@ -1,0 +1,181 @@
+---
+sidebar_position: 3
+title: "Deployment Stuck in Pending State"
+description: "Solution for deployments that get stuck and block subsequent deployments"
+date: "2024-12-28"
+category: "project"
+tags: ["deployment", "stuck", "troubleshooting", "build"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Deployment Stuck in Pending State
+
+**Date:** December 28, 2024  
+**Category:** Project  
+**Tags:** Deployment, Stuck, Troubleshooting, Build
+
+## Problem Description
+
+**Context:** User experiences a deployment that gets stuck in a pending state, preventing any new deployments from being created. The deployment pod is not created and builds remain in "starting" status indefinitely.
+
+**Observed Symptoms:**
+
+- Deployment stuck in pending state without creating pods
+- Cannot create new deployments for the same project
+- Multiple builds stuck in "starting" status
+- No error messages displayed in the UI
+- Deployment appears to be blocking the entire deployment pipeline
+
+**Relevant Configuration:**
+
+- Environment: Production
+- Project: Any project experiencing stuck deployments
+- Build status: "Starting" (indefinitely)
+- Deployment status: Pending/Stuck
+
+**Error Conditions:**
+
+- Occurs during deployment creation process
+- Blocks subsequent deployment attempts
+- Builds fail to progress beyond "starting" status
+- No automatic recovery mechanism triggers
+
+## Detailed Solution
+
+<TroubleshootingItem id="immediate-resolution" summary="Immediate resolution steps">
+
+If you encounter a stuck deployment, contact the SleakOps support team immediately. The resolution typically involves:
+
+1. **Task State Update**: Support team will identify tasks with outdated states
+2. **Manual State Correction**: Update task states to reflect current reality
+3. **Pipeline Unblocking**: Clear the deployment queue to allow new deployments
+
+**Contact Information:**
+
+- Email: support@sleakops.com
+- Include your project name and deployment details
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-measures" summary="Prevention and monitoring">
+
+To minimize the occurrence of stuck deployments:
+
+**Monitor Your Deployments:**
+
+```bash
+# Check deployment status regularly
+sleakops deployment list --project your-project
+
+# Monitor build progress
+sleakops build list --status starting
+```
+
+**Set Reasonable Timeouts:**
+
+- Configure appropriate build timeouts in your project settings
+- Monitor long-running builds that may indicate issues
+
+**Regular Health Checks:**
+
+- Verify deployment pipeline health before critical releases
+- Test deployments in staging environment first
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Self-diagnosis steps">
+
+Before contacting support, try these diagnostic steps:
+
+**1. Check Deployment Logs:**
+
+```bash
+sleakops deployment logs --deployment-id <deployment-id>
+```
+
+**2. Verify Resource Availability:**
+
+- Check if your cluster has sufficient resources
+- Verify node capacity and pod limits
+
+**3. Review Build Logs:**
+
+```bash
+sleakops build logs --build-id <build-id>
+```
+
+**4. Check Project Status:**
+
+```bash
+sleakops project status --project <project-name>
+```
+
+**5. Verify Dependencies:**
+
+- Ensure all required services are running
+- Check database connectivity
+- Verify external service availability
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="escalation-process" summary="When to escalate to support">
+
+Escalate to SleakOps support when:
+
+**Immediate Escalation Required:**
+
+- Production deployments are blocked
+- Multiple builds stuck for more than 30 minutes
+- Critical business operations are affected
+
+**Information to Include:**
+
+- Project name and environment
+- Deployment ID and timestamp
+- Build IDs that are stuck
+- Any error messages or logs
+- Business impact description
+
+**Support Response:**
+
+- Production issues: Within 2 hours
+- Non-production issues: Within 24 hours
+- Critical outages: Immediate response
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="post-resolution" summary="Post-resolution verification">
+
+After support resolves the issue:
+
+**1. Verify Deployment Pipeline:**
+
+```bash
+# Test a simple deployment
+sleakops deploy --project <project-name> --environment staging
+```
+
+**2. Check Build System:**
+
+```bash
+# Trigger a new build
+sleakops build create --project <project-name>
+```
+
+**3. Monitor for Recurrence:**
+
+- Watch subsequent deployments closely
+- Report any similar issues immediately
+- Document any patterns observed
+
+**4. Update Monitoring:**
+
+- Set up alerts for stuck deployments
+- Configure notifications for long-running builds
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 28, 2024 based on a real user query._

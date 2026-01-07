@@ -1,0 +1,245 @@
+---
+sidebar_position: 3
+title: "Problemas de Enrutamiento de Tráfico a Pods Backend"
+description: "Solución para problemas de enrutamiento de tráfico al acceder a servicios backend a través de subdominios"
+date: "2024-01-15"
+category: "workload"
+tags:
+  ["redes", "enrutamiento", "subdominio", "backend", "solución de problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de Enrutamiento de Tráfico a Pods Backend
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Carga de trabajo  
+**Etiquetas:** Redes, Enrutamiento, Subdominio, Backend, Solución de problemas
+
+## Descripción del Problema
+
+**Contexto:** El usuario tiene un servicio backend desplegado en SleakOps que puede conectarse a la base de datos con éxito, pero el tráfico externo a través de subdominios no está llegando a los pods backend.
+
+**Síntomas Observados:**
+
+- El reenvío de puerto directo al pod funciona en localhost
+- El acceso externo a través del subdominio falla con errores de enrutamiento
+- El backend puede conectarse a la base de datos exitosamente
+- La versión 1 de la base de datos está funcionando correctamente
+- Las solicitudes HTTP nunca llegan al servicio backend
+
+**Configuración Relevante:**
+
+- Servicio backend: desplegado y en ejecución
+- Base de datos: versión 1, conectada exitosamente
+- Redes: subdominio configurado pero no enruta tráfico
+- Reenvío de puerto: funciona localmente vía kubectl
+
+**Condiciones de Error:**
+
+- El acceso al subdominio falla con errores de redirección
+- El enrutamiento de tráfico falla entre ingress y pods backend
+- Las solicitudes externas no llegan a la aplicación
+- El reenvío de puerto local funciona correctamente
+
+## Solución Detallada
+
+<TroubleshootingItem id="initial-diagnosis" summary="Diagnosticar el problema de enrutamiento de tráfico">
+
+Este tipo de problema típicamente ocurre debido a uno de estos problemas comunes:
+
+1. **Configuración de ingress**: reglas de ingress faltantes o incorrectas
+2. **Configuración del servicio**: servicio no expone correctamente el backend
+3. **Configuración DNS**: subdominio no configurado correctamente
+4. **Políticas de red**: bloqueo del tráfico externo
+5. **Problemas con el balanceador de carga**: balanceador externo no enruta correctamente
+
+Primero, verifica que tu servicio esté correctamente configurado y en ejecución:
+
+```bash
+kubectl get services
+kubectl get pods
+kubectl get ingress
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="service-verification" summary="Verificar configuración del servicio">
+
+Revisa si tu servicio backend está correctamente configurado:
+
+```bash
+# Ver detalles del servicio
+kubectl describe service your-backend-service
+
+# Verificar endpoints del servicio
+kubectl get endpoints your-backend-service
+```
+
+Asegúrate de que la configuración de tu servicio incluya:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+spec:
+  selector:
+    app: your-backend-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080 # Tu puerto backend
+  type: ClusterIP
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="ingress-configuration" summary="Verificar configuración de ingress">
+
+Verifica que tu ingress esté configurado correctamente para el subdominio:
+
+```bash
+# Ver estado del ingress
+kubectl get ingress
+kubectl describe ingress your-ingress-name
+```
+
+Asegúrate de que la configuración de tu ingress sea correcta:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: backend-ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+    - host: your-subdomain.yourdomain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-service
+                port:
+                  number: 80
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dns-verification" summary="Verificar configuración DNS y del subdominio">
+
+Comprueba si tu subdominio está configurado correctamente:
+
+1. **Prueba resolución DNS**:
+
+```bash
+nslookup your-subdomain.yourdomain.com
+dig your-subdomain.yourdomain.com
+```
+
+2. **Verifica que el subdominio apunte a la IP correcta**:
+
+   - El subdominio debe apuntar a la IP del balanceador de carga de tu clúster
+   - Obtén la IP del balanceador: `kubectl get ingress`
+
+3. **Verifica en el panel de SleakOps**:
+   - Ve a la configuración de tu proyecto
+   - Revisa la configuración del subdominio
+   - Asegúrate que esté correctamente vinculado a tu servicio backend
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="connectivity-testing" summary="Probar conectividad paso a paso">
+
+Prueba la conectividad en diferentes niveles:
+
+1. **Probar pod directamente**:
+
+```bash
+kubectl port-forward pod/your-backend-pod 8080:8080
+curl http://localhost:8080/health
+```
+
+2. **Probar servicio internamente**:
+
+```bash
+kubectl run test-pod --image=curlimages/curl -it --rm -- sh
+# Dentro del pod:
+curl http://backend-service/health
+```
+
+3. **Probar ingress internamente**:
+
+```bash
+curl -H "Host: your-subdomain.yourdomain.com" http://INGRESS_IP/health
+```
+
+4. **Probar acceso externo**:
+
+```bash
+curl https://your-subdomain.yourdomain.com/health
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-fixes" summary="Soluciones comunes para problemas de enrutamiento">
+
+**Si el servicio no funciona:**
+
+- Verifica que el selector del servicio coincida con las etiquetas del pod
+- Verifica que la configuración de puertos coincida con el puerto del contenedor
+
+**Si ingress no funciona:**
+
+- Asegúrate que el controlador de ingress esté en ejecución: `kubectl get pods -n ingress-nginx`
+- Revisa la anotación de clase de ingress
+- Verifica que la configuración del host coincida con tu subdominio
+
+**Si DNS no resuelve:**
+
+- Revisa la configuración del subdominio en el panel de SleakOps
+- Verifica la propagación DNS (puede tardar hasta 24 horas)
+- Intenta usar un servidor DNS diferente para pruebas
+
+**Si hay problemas con SSL/TLS:**
+
+- Revisa el estado del certificado: `kubectl describe certificate`
+- Verifica que cert-manager esté funcionando: `kubectl get pods -n cert-manager`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-specific" summary="Solución de problemas específica para SleakOps">
+
+En la plataforma SleakOps:
+
+1. **Verifica la configuración del servicio**:
+
+   - Ve a tu proyecto → Servicios
+   - Verifica que el servicio backend esté correctamente configurado
+   - Revisa los mapeos de puertos y chequeos de salud
+
+2. **Verifica la configuración del subdominio**:
+
+   - Ve a configuración del proyecto → Dominios
+   - Asegúrate que el subdominio esté activo y configurado correctamente
+   - Revisa el estado del certificado SSL
+
+3. **Revisa los logs**:
+
+   - Consulta los logs del servicio backend en el panel de SleakOps
+   - Busca errores de arranque o problemas de conectividad
+   - Revisa los logs del controlador ingress si están disponibles
+
+4. **Políticas de red**:
+   - Asegúrate que no haya políticas de red bloqueando el tráfico
+   - Verifica si hay grupos de seguridad o reglas de firewall que interfieran
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

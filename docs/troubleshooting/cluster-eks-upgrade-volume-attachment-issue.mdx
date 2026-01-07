@@ -1,0 +1,165 @@
+---
+sidebar_position: 3
+title: "EKS Cluster Upgrade Failed Due to Orphaned Volume"
+description: "Solution for EKS cluster upgrade failures caused by volumes attached to nodes but not in use"
+date: "2024-12-19"
+category: "cluster"
+tags: ["eks", "upgrade", "volumes", "nodegroup", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# EKS Cluster Upgrade Failed Due to Orphaned Volume
+
+**Date:** December 19, 2024  
+**Category:** Cluster  
+**Tags:** EKS, Upgrade, Volumes, NodeGroup, Troubleshooting
+
+## Problem Description
+
+**Context:** During an EKS cluster upgrade to version 1.31, the NodeGroup upgrade process fails, leaving old nodes running while preventing the upgrade from completing successfully.
+
+**Observed Symptoms:**
+
+- EKS cluster upgrade fails during NodeGroup upgrade phase
+- Old nodes remain active instead of being replaced
+- CI/CD pipelines stop functioning properly
+- Deployment processes are affected
+- Volume attachment conflicts prevent node replacement
+
+**Relevant Configuration:**
+
+- EKS cluster version: Upgrading to 1.31
+- Affected volume: `/app/certs` (orphaned volume)
+- Volume status: Attached to node but not in use by any pods
+- Volume state in SleakOps: Marked as "deleted" but still physically attached
+
+**Error Conditions:**
+
+- NodeGroup upgrade fails due to volume attachment conflicts
+- Occurs when volumes are attached to nodes but not actively used
+- Problem appears during the node replacement phase of the upgrade
+- Affects clusters with previously deleted but still attached volumes
+
+## Detailed Solution
+
+<TroubleshootingItem id="root-cause-analysis" summary="Understanding the root cause">
+
+The upgrade failure occurs because:
+
+1. **Orphaned volumes**: Volumes that were deleted in SleakOps but remain physically attached to EC2 instances
+2. **Node replacement conflict**: During EKS upgrades, AWS needs to replace nodes, but attached volumes prevent clean node termination
+3. **Volume state mismatch**: The volume exists in AWS but is not tracked in the current deployment configuration
+
+This is a common issue when volumes are removed from SleakOps configuration but the underlying AWS EBS volumes remain attached to the nodes.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-resolution" summary="How to resolve the upgrade failure">
+
+To fix the upgrade issue:
+
+1. **Identify the problematic volume**:
+
+   ```bash
+   # Check attached volumes on the node
+   kubectl describe nodes
+   # Look for volumes in AWS EC2 console
+   aws ec2 describe-volumes --filters "Name=attachment.instance-id,Values=i-xxxxxxxxx"
+   ```
+
+2. **Detach the orphaned volume**:
+
+   ```bash
+   # Detach volume from EC2 instance
+   aws ec2 detach-volume --volume-id vol-xxxxxxxxx
+   ```
+
+3. **Retry the cluster upgrade**:
+   - The upgrade should proceed normally once the volume conflict is resolved
+   - Monitor the NodeGroup replacement process
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="volume-preservation" summary="Preserving volume data during resolution">
+
+Important considerations for data safety:
+
+1. **Volume data is preserved**: Detaching the volume does not delete the data
+2. **Volume remains in AWS**: The EBS volume stays intact in your AWS account
+3. **Recovery options**: You can reattach the volume later if needed
+
+```bash
+# Check volume status after detachment
+aws ec2 describe-volumes --volume-ids vol-xxxxxxxxx
+
+# Volume will show status as "available" instead of "in-use"
+```
+
+**Best practice**: Take a snapshot before detaching if the volume contains critical data:
+
+```bash
+# Create snapshot for safety
+aws ec2 create-snapshot --volume-id vol-xxxxxxxxx --description "Backup before cluster upgrade"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-strategies" summary="Preventing future occurrences">
+
+To avoid this issue in future upgrades:
+
+1. **Clean volume removal**: When removing volumes in SleakOps, ensure they are properly detached:
+
+   - Remove volume from SleakOps configuration
+   - Verify volume is detached from nodes
+   - Optionally delete the volume if no longer needed
+
+2. **Pre-upgrade checklist**:
+
+   ```bash
+   # Check for orphaned volumes before upgrading
+   kubectl get pv
+   kubectl get pvc --all-namespaces
+
+   # Verify no unused volumes are attached
+   aws ec2 describe-volumes --filters "Name=attachment.instance-id,Values=i-*"
+   ```
+
+3. **Regular maintenance**: Periodically audit and clean up unused volumes
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="post-upgrade-verification" summary="Verifying successful upgrade">
+
+After resolving the volume issue and completing the upgrade:
+
+1. **Verify cluster version**:
+
+   ```bash
+   kubectl version --short
+   aws eks describe-cluster --name your-cluster-name --query 'cluster.version'
+   ```
+
+2. **Check node status**:
+
+   ```bash
+   kubectl get nodes
+   # Verify all nodes are running the new version
+   ```
+
+3. **Test CI/CD functionality**:
+
+   - Deploy a test application
+   - Verify deployment pipelines work correctly
+   - Check that all services are accessible
+
+4. **Monitor for issues**:
+   - Watch cluster logs for any anomalies
+   - Verify all workloads are running normally
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

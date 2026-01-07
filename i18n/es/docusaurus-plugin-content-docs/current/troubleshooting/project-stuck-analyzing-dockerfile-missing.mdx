@@ -1,0 +1,151 @@
+---
+sidebar_position: 3
+title: "Proyecto Atascado en Estado de Análisis - Dockerfile Ausente"
+description: "Solución para proyectos que permanecen permanentemente atascados en estado de análisis debido a la ausencia del Dockerfile"
+date: "2024-12-11"
+category: "proyecto"
+tags: ["dockerfile", "analizando", "despliegue", "solución-de-problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Proyecto Atascado en Estado de Análisis - Dockerfile Ausente
+
+**Fecha:** 11 de diciembre de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Dockerfile, Análisis, Despliegue, Solución de problemas
+
+## Descripción del Problema
+
+**Contexto:** Un proyecto nuevo en SleakOps queda permanentemente atascado en el estado de "análisis" y no puede continuar con el proceso de despliegue.
+
+**Síntomas Observados:**
+
+- El proyecto permanece indefinidamente en estado de "análisis"
+- No hay avance en la pipeline de despliegue
+- El proceso de construcción no avanza a las siguientes etapas
+- No se muestran mensajes claros de error en la interfaz
+
+**Configuración Relevante:**
+
+- Tipo de proyecto: Proyecto nuevo
+- Estado: Atascado en fase de análisis
+- Repositorio: Conectado al repositorio de código fuente
+- Dockerfile: Ausente o no detectado
+
+**Condiciones de Error:**
+
+- El error ocurre durante el análisis inicial del proyecto
+- Sucede cuando SleakOps no puede encontrar un Dockerfile en el repositorio
+- El problema persiste hasta que el Dockerfile esté configurado correctamente
+- Puede ocurrir si el Dockerfile fue agregado después del análisis inicial
+
+## Solución Detallada
+
+<TroubleshootingItem id="dockerfile-verification" summary="Verificar la presencia y ubicación del Dockerfile">
+
+Primero, verifica si tu repositorio contiene un Dockerfile:
+
+1. **Revisa la raíz del repositorio**: Asegúrate de que haya un archivo llamado `Dockerfile` (sensible a mayúsculas) en el directorio raíz
+2. **Verifica el contenido del archivo**: El Dockerfile debe contener instrucciones válidas de Docker
+3. **Revisa los permisos del archivo**: Asegúrate de que el archivo sea legible y esté correctamente comprometido en el repositorio
+
+```bash
+# Ejemplo de una estructura básica de Dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-creation" summary="Crear un Dockerfile si falta">
+
+Si tu repositorio no tiene un Dockerfile, necesitas crear uno:
+
+1. **Crear el archivo**: Añade un archivo llamado `Dockerfile` en la raíz de tu repositorio
+2. **Elegir la imagen base adecuada**: Selecciona según la tecnología de tu aplicación
+3. **Definir los pasos de construcción**: Incluye todos los comandos necesarios para construir tu aplicación
+4. **Commit y push**: Asegúrate de comprometer el Dockerfile en tu repositorio
+
+**Plantillas comunes de Dockerfile:**
+
+```dockerfile
+# Aplicación Node.js
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+EXPOSE 3000
+CMD ["node", "server.js"]
+```
+
+```dockerfile
+# Aplicación Python
+FROM python:3.9-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+EXPOSE 8000
+CMD ["python", "app.py"]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="project-reanalysis" summary="Forzar el reanálisis del proyecto">
+
+Después de agregar o corregir el Dockerfile:
+
+1. **Commit de los cambios**: Asegúrate de que el Dockerfile esté comprometido en tu repositorio
+2. **Forzar reanálisis**: En el panel de SleakOps:
+   - Ve a tu proyecto
+   - Busca el botón "Re-analizar" o "Actualizar"
+   - Haz clic para iniciar un nuevo análisis
+3. **Monitorea el progreso**: Observa cómo el estado del proyecto cambia de "analizando" a la siguiente fase
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-validation" summary="Validar la sintaxis del Dockerfile">
+
+Antes de comprometer, valida tu Dockerfile:
+
+```bash
+# Probar Dockerfile localmente
+docker build -t test-image .
+
+# Revisar errores de sintaxis
+docker run --rm -i hadolint/hadolint < Dockerfile
+```
+
+**Problemas comunes en Dockerfile:**
+
+- Falta la instrucción `FROM`
+- Rutas incorrectas en comandos `COPY`
+- Permisos ejecutables faltantes
+- Configuración incorrecta del directorio de trabajo
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Soluciones alternativas si el problema persiste">
+
+Si el proyecto sigue atascado después de agregar un Dockerfile:
+
+1. **Verifica permisos del repositorio**: Asegúrate de que SleakOps tenga acceso para leer el repositorio
+2. **Verifica la rama**: Confirma que estás trabajando en la rama correcta
+3. **Limpiar caché**: Intenta desconectar y reconectar el repositorio
+4. **Contacta soporte**: Si el problema persiste, proporciona:
+   - URL del repositorio
+   - Contenido del Dockerfile
+   - Detalles de configuración del proyecto
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 11 de diciembre de 2024 basada en una consulta real de usuario._

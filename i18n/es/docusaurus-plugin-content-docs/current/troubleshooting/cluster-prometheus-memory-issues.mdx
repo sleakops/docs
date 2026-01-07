@@ -1,0 +1,204 @@
+---
+sidebar_position: 3
+title: "Problemas de Memoria de Prometheus que Causan Bloqueos en Pods"
+description: "Solución para problemas de memoria de Prometheus que causan que los pods de la aplicación se bloqueen en producción"
+date: "2024-12-23"
+category: "cluster"
+tags: ["prometheus", "memoria", "monitoreo", "solución de problemas", "pods"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de Memoria de Prometheus que Causan Bloqueos en Pods
+
+**Fecha:** 23 de diciembre de 2024  
+**Categoría:** Clúster  
+**Etiquetas:** Prometheus, Memoria, Monitoreo, Solución de Problemas, Pods
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios experimentan bloqueos en pods de aplicaciones en entornos de producción, donde los pods parecen saludables en herramientas de monitoreo como Lens pero las solicitudes a la API se vuelven completamente no responsivas. El problema está típicamente relacionado con el consumo de memoria de Prometheus que afecta la estabilidad del nodo.
+
+**Síntomas Observados:**
+
+- Los pods de la aplicación aparecen como "verdes" o saludables en las herramientas de monitoreo de Kubernetes
+- Las solicitudes a la API se bloquean completamente sin devolver respuestas
+- Solo algunos pods se bloquean mientras otros en el mismo despliegue continúan funcionando normalmente
+- El balanceador de carga distribuye tráfico tanto a pods funcionando como a los bloqueados
+- El problema ocurre principalmente en producción con alto tráfico, no en desarrollo
+- Los pods no se caen ni reinician, simplemente dejan de responder
+
+**Configuración Relevante:**
+
+- Addon de Prometheus instalado en el clúster
+- Múltiples réplicas de la aplicación (por ejemplo, 15 réplicas)
+- Entorno de producción con carga de tráfico significativa
+- Pods distribuidos en múltiples nodos
+
+**Condiciones de Error:**
+
+- Pod de Prometheus consumiendo memoria excesiva
+- Agotamiento de recursos del nodo causando bloqueos en pods
+- Fallas intermitentes afectando a un subconjunto de pods
+- Mala experiencia de usuario debido a tiempos de espera en solicitudes
+
+## Solución Detallada
+
+<TroubleshootingItem id="root-cause-analysis" summary="Comprendiendo la causa raíz">
+
+Este problema ocurre típicamente cuando:
+
+1. **Agotamiento de memoria de Prometheus**: El pod de Prometheus comienza a consumir más RAM de la asignada
+2. **Agotamiento de recursos del nodo**: Cuando Prometheus agota los recursos del nodo, afecta a todos los pods en ese nodo
+3. **Degradación parcial del servicio**: Solo los pods en nodos afectados se bloquean, mientras otros continúan funcionando
+4. **Latencia de servicios de terceros**: Las llamadas a APIs externas pueden contribuir al problema creando cuellos de botella
+
+El indicador clave es que los pods parecen saludables pero se vuelven no responsivos a las solicitudes.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-fix" summary="Solución inmediata: Aumentar la asignación de memoria de Prometheus">
+
+Para resolver el problema inmediato:
+
+1. **Acceder a la configuración del addon de Prometheus**:
+
+   - Ve a la sección **Addons** de tu clúster
+   - Encuentra **Prometheus** en la lista de addons
+   - Haz clic para abrir la configuración
+
+2. **Incrementar la asignación mínima de RAM**:
+
+   - Ubica la configuración "RAM mínima"
+   - Aumenta el valor a **2200 MB** (o más según tus necesidades)
+   - Guarda la configuración
+
+3. **Aplicar los cambios**:
+   - El sistema actualizará Prometheus con la nueva asignación de memoria
+   - Este proceso puede tardar hasta 20 minutos en completarse
+
+```yaml
+# Ejemplo de configuración de Prometheus
+prometheus:
+  resources:
+    requests:
+      memory: "2200Mi"
+    limits:
+      memory: "4000Mi"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="node-recovery" summary="Recuperar nodos afectados">
+
+Si los nodos ya están afectados:
+
+1. **Identificar el pod problemático de Prometheus**:
+
+   - Busca el pod de Prometheus con contenedores mostrando estado naranja/advertencia
+   - Anota en qué nodo está alojado este pod
+
+2. **Eliminar el nodo afectado**:
+
+   - Haz clic en el nombre del nodo para abrir detalles
+   - Selecciona "Eliminar" para remover el nodo
+   - **Importante**: Haz esto al mismo tiempo o justo antes de actualizar Prometheus
+
+3. **Verificar recuperación**:
+   - Espera a que el pod de Prometheus se reprograme en un nuevo nodo
+   - Comprueba que todos los contenedores muestren estado verde/saludable
+   - Monitorea los pods de la aplicación para confirmar que la funcionalidad se restauró
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-setup" summary="Configurar monitoreo adecuado y APM">
+
+Para prevenir problemas futuros y diagnosticar mejor:
+
+1. **Instalar Monitoreo de Rendimiento de Aplicaciones (APM)**:
+
+   - **OpenTelemetry** (disponible como addon de clúster, actualmente en beta)
+   - **New Relic** (servicio externo)
+   - **Datadog** (servicio externo)
+
+2. **Configurar OpenTelemetry en SleakOps**:
+
+   - Ve a **Clúster** → **Addons**
+   - Instala el addon **OpenTelemetry**
+   - Aplica a tus servicios de proyecto
+
+3. **Monitorear latencia de servicios de terceros**:
+   - Verifica tiempos de respuesta de APIs externas
+   - Identifica posibles cuellos de botella en dependencias de servicio
+   - Configura alertas para alta latencia o tiempos de espera
+
+```yaml
+# Ejemplo de configuración de OpenTelemetry
+opentelemetry:
+  enabled: true
+  exporters:
+    - jaeger
+    - prometheus
+  sampling_rate: 0.1
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-strategies" summary="Prevención y mejores prácticas">
+
+**Gestión de Recursos:**
+
+- Establece solicitudes y límites adecuados de recursos para todas las aplicaciones
+- Monitorea tendencias de uso de recursos a lo largo del tiempo
+- Escala recursos de Prometheus proactivamente según el tamaño del clúster
+
+**Configuración de Monitoreo:**
+
+- Implementa un APM completo para rastrear el rendimiento de la aplicación
+- Configura alertas para agotamiento de recursos
+- Monitorea dependencias de servicios externos
+
+**Proceso de Solución de Problemas:**
+
+- Crea tickets de soporte cuando ocurran problemas con intervalos de tiempo específicos
+- Documenta síntomas exactos y condiciones de error
+- Incluye detalles relevantes de configuración
+
+**Pruebas de Carga:**
+
+- Prueba las aplicaciones bajo cargas de tráfico similares a producción
+- Valida la asignación de recursos en entornos de staging
+- Monitorea fugas de memoria y degradación de rendimiento
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-checklist" summary="Lista de verificación para solución de problemas">
+
+Cuando se experimenten problemas similares:
+
+**Acciones Inmediatas:**
+
+1. Verifica el estado del pod de Prometheus y uso de recursos
+2. Identifica qué nodos están afectados
+3. Incrementa la asignación de memoria de Prometheus
+4. Elimina nodos afectados si es necesario
+
+**Pasos de Investigación:**
+
+1. Anota los intervalos de tiempo exactos cuando ocurren los problemas
+2. Revisa dashboards de Grafana para métricas de recursos
+3. Revisa logs de la aplicación para errores o tiempos de espera
+4. Monitorea tiempos de respuesta de servicios de terceros
+
+**Documentación:**
+
+1. Crea tickets de soporte con intervalos de tiempo específicos
+2. Incluye nombres de pods e información de nodos
+3. Describe síntomas exactos observados
+4. Anota cualquier cambio reciente en configuración
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 23 de diciembre de 2024 basada en una consulta real de usuario._

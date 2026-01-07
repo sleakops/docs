@@ -1,0 +1,171 @@
+---
+sidebar_position: 3
+title: "La instancia EC2 no recibe dirección IPv4 pública"
+description: "Solución para instancias EC2 creadas en VPC sin asignación de IP pública"
+date: "2024-01-15"
+category: "proveedor"
+tags: ["aws", "ec2", "vpc", "redes", "ip-publica"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# La instancia EC2 no recibe dirección IPv4 pública
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Proveedor  
+**Etiquetas:** AWS, EC2, VPC, Redes, IP Pública
+
+## Descripción del problema
+
+**Contexto:** El usuario crea una instancia EC2 dentro de una VPC de producción a través de SleakOps, pero la instancia no recibe una dirección IPv4 pública que pueda ser accedida externamente por proveedores terceros.
+
+**Síntomas observados:**
+
+- Instancia EC2 creada exitosamente en la VPC especificada
+- No se asignó dirección IPv4 pública a la instancia
+- La instancia no es accesible desde redes externas
+- Proveedores terceros no pueden acceder a la instancia
+
+**Configuración relevante:**
+
+- Entorno: VPC de producción
+- Tipo de instancia: EC2
+- Red: Despliegue basado en VPC
+- Requisito de acceso: Se necesita acceso externo para proveedores
+
+**Condiciones de error:**
+
+- No se asignó IP pública automáticamente durante la creación de la instancia
+- La instancia solo tiene IP privada dentro de la VPC
+- No hay conectividad externa disponible
+
+## Solución detallada
+
+<TroubleshootingItem id="subnet-configuration" summary="Verificar configuración de la subred">
+
+La razón más común por la que una instancia EC2 no obtiene una IP pública es que se lanza en una subred privada o en una subred pública sin habilitar la asignación automática de IP pública.
+
+**Para verificar la configuración de la subred:**
+
+1. Ir a **Consola AWS** → **VPC** → **Subredes**
+2. Buscar la subred donde se lanzó la instancia
+3. Revisar la configuración de **"Asignar automáticamente dirección IPv4 pública"**
+4. Si está deshabilitada, esto explica por qué no se asignó IP pública
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="assign-elastic-ip" summary="Asignar una dirección Elastic IP">
+
+La solución recomendada es asignar una Elastic IP (EIP) a tu instancia:
+
+**Pasos para asignar Elastic IP:**
+
+1. Ir a **Consola AWS** → **EC2** → **Elastic IPs**
+2. Hacer clic en **"Asignar dirección Elastic IP"**
+3. Elegir **el pool de direcciones IPv4 de Amazon**
+4. Hacer clic en **"Asignar"**
+5. Seleccionar la EIP recién creada
+6. Hacer clic en **"Acciones"** → **"Asociar dirección Elastic IP"**
+7. Seleccionar tu instancia EC2
+8. Hacer clic en **"Asociar"**
+
+```bash
+# Usando AWS CLI
+aws ec2 allocate-address --domain vpc
+aws ec2 associate-address --instance-id i-1234567890abcdef0 --allocation-id eipalloc-12345678
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="security-group-rules" summary="Configurar reglas del grupo de seguridad">
+
+Una vez que tengas una IP pública, asegúrate de que tus grupos de seguridad permitan el tráfico necesario:
+
+**Para acceso HTTP/HTTPS:**
+
+```
+Tipo: HTTP
+Protocolo: TCP
+Rango de puertos: 80
+Origen: 0.0.0.0/0
+
+Tipo: HTTPS
+Protocolo: TCP
+Rango de puertos: 443
+Origen: 0.0.0.0/0
+```
+
+**Para acceso específico de proveedores:**
+
+```
+Tipo: TCP personalizado
+Protocolo: TCP
+Rango de puertos: [PUERTO_DE_TU_APLICACIÓN]
+Origen: [RANGO_IP_DEL_PROVEEDOR]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="route-table-verification" summary="Verificar configuración de la tabla de rutas">
+
+Asegúrate de que la tabla de rutas de tu subred tenga una ruta hacia una puerta de enlace de Internet:
+
+1. Ir a **Consola AWS** → **VPC** → **Tablas de rutas**
+2. Buscar la tabla de rutas asociada a tu subred
+3. Verificar que exista una ruta como:
+   - **Destino:** `0.0.0.0/0`
+   - **Objetivo:** `igw-xxxxxxxxx` (Puerta de enlace de Internet)
+
+Si esta ruta no existe, tu instancia no tendrá acceso a internet incluso con una IP pública.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-configuration" summary="Configurar mediante SleakOps">
+
+Si gestionas esto a través de SleakOps, puedes configurar la asignación de IP pública:
+
+1. En la **Configuración del Proyecto**
+2. Ir a **Infraestructura** → **Computación**
+3. Habilitar **"Asignar IP pública"** para tus instancias EC2
+4. O configurar la asignación de **Elastic IP** en las opciones avanzadas
+
+```yaml
+# Ejemplo de configuración en SleakOps
+compute:
+  ec2_instances:
+    - name: "instancia-produccion"
+      instance_type: "t3.medium"
+      subnet_type: "publica"
+      assign_public_ip: true
+      elastic_ip: true
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cost-considerations" summary="Consideraciones de costos">
+
+**Información importante sobre costos:**
+
+- **Las Elastic IPs son gratuitas** cuando están asociadas a una instancia en ejecución
+- **Las Elastic IPs cuestan $0.005/hora** cuando no están asociadas a ninguna instancia
+- Se aplican **cargos por transferencia de datos** para tráfico saliente a internet
+- Siempre libera las Elastic IPs no usadas para evitar cargos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Soluciones alternativas">
+
+Si no deseas usar Elastic IPs, considera estas alternativas:
+
+1. **Application Load Balancer (ALB)**: Para aplicaciones web
+2. **Network Load Balancer (NLB)**: Para tráfico TCP/UDP
+3. **NAT Gateway**: Para acceso a internet solo de salida
+4. **Endpoints de VPC**: Para acceso a servicios AWS sin internet
+
+Estas soluciones pueden proporcionar acceso externo sin asignar IPs públicas directamente a las instancias.
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de un usuario._

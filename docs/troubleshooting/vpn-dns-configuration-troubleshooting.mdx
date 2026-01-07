@@ -1,0 +1,222 @@
+---
+sidebar_position: 3
+title: "VPN DNS Configuration Issues with Lens Cluster Access"
+description: "Troubleshooting DNS configuration problems when accessing Kubernetes clusters through VPN"
+date: "2024-12-19"
+category: "user"
+tags: ["vpn", "dns", "lens", "connectivity", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# VPN DNS Configuration Issues with Lens Cluster Access
+
+**Date:** December 19, 2024  
+**Category:** User  
+**Tags:** VPN, DNS, Lens, Connectivity, Troubleshooting
+
+## Problem Description
+
+**Context:** Users experience timeout issues when trying to access Kubernetes clusters through Lens after VPN connection, despite following DNS configuration guides.
+
+**Observed Symptoms:**
+
+- Persistent timeout errors when connecting to cluster via Lens
+- VPN connection appears to be working
+- DNS configuration in `/etc/resolv.conf` stops working after previously functioning
+- Connection issues appear intermittently or after system changes
+
+**Relevant Configuration:**
+
+- Operating System: Ubuntu 24.04.2 LTS (or similar Linux distributions)
+- VPN Client: Pritunl
+- Kubernetes Client: Lens
+- DNS Configuration: `/etc/resolv.conf`
+
+**Error Conditions:**
+
+- Timeout occurs when accessing cluster through Lens
+- Problem persists even after VPN reconnection
+- DNS configuration changes don't take effect
+- Previously working configuration suddenly stops functioning
+
+## Detailed Solution
+
+<TroubleshootingItem id="dns-configuration-method" summary="Proper DNS Configuration Method">
+
+The most common issue is incorrect DNS configuration in `/etc/resolv.conf`. Instead of appending DNS servers, you should replace the entire content:
+
+**Incorrect approach (appending):**
+
+```bash
+# Don't do this - appending to existing content
+echo "nameserver 10.0.0.2" >> /etc/resolv.conf
+```
+
+**Correct approach (replacing):**
+
+```bash
+# Replace the entire content
+sudo tee /etc/resolv.conf > /dev/null <<EOF
+nameserver 10.0.0.2
+nameserver 8.8.8.8
+nameserver 8.8.4.4
+EOF
+```
+
+Where `10.0.0.2` is your VPC's DNS server and `8.8.8.8`, `8.8.4.4` are public DNS servers as fallback.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="network-manager-dns" summary="Configure DNS through Network Manager">
+
+For a more permanent solution, configure DNS through your system's network manager:
+
+**For Ubuntu/GNOME:**
+
+1. Go to **Settings** → **Network**
+2. Click on your **WiFi** or **Ethernet** connection
+3. Go to **IPv4** or **IPv6** tab
+4. Set **DNS** to **Manual**
+5. Add DNS servers:
+   - Primary: `10.0.0.2` (VPC DNS server)
+   - Secondary: `8.8.8.8` (Google DNS)
+   - Tertiary: `8.8.4.4` (Google DNS backup)
+6. Click **Apply**
+
+**For command line:**
+
+```bash
+# Using nmcli
+nmcli con mod "Your-Connection-Name" ipv4.dns "10.0.0.2,8.8.8.8"
+nmcli con down "Your-Connection-Name"
+nmcli con up "Your-Connection-Name"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="pritunl-dns-settings" summary="Pritunl Client DNS Configuration">
+
+Ensure your Pritunl client is configured to handle DNS properly:
+
+1. Open **Pritunl Client**
+2. Click on the **gear icon** next to your profile
+3. Check **Advanced Settings**:
+   - Enable **DNS Suffix** if available
+   - Enable **Force DNS Configuration** (this forces the client to override system DNS)
+   - Disable **Block Outside DNS** if enabled
+4. Reconnect to the VPN
+
+**Alternative Pritunl configuration:**
+
+```bash
+# If using Pritunl from command line
+pritunl-client enable [profile-id]
+pritunl-client start [profile-id] --dns-force
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Verify DNS Resolution">
+
+After configuring DNS, verify that resolution works correctly:
+
+```bash
+# Check current DNS configuration
+cat /etc/resolv.conf
+
+# Test DNS resolution for your cluster
+nslookup your-cluster-endpoint.amazonaws.com
+
+# Test with dig for more details
+dig your-cluster-endpoint.amazonaws.com
+
+# Test connectivity to the cluster
+kubectl cluster-info
+
+# Test from Lens - check connection status
+```
+
+**Expected output:**
+
+- `/etc/resolv.conf` should show your VPC DNS server first
+- `nslookup` should resolve to internal IP addresses
+- `kubectl cluster-info` should connect successfully
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="persistent-dns-issues" summary="Handle Persistent DNS Issues">
+
+If DNS configuration keeps getting overwritten:
+
+**Make resolv.conf immutable:**
+
+```bash
+# After setting correct DNS configuration
+sudo chattr +i /etc/resolv.conf
+
+# To make it mutable again later
+sudo chattr -i /etc/resolv.conf
+```
+
+**Use systemd-resolved (Ubuntu 18.04+):**
+
+```bash
+# Configure systemd-resolved
+sudo systemctl enable systemd-resolved
+sudo systemctl start systemd-resolved
+
+# Edit resolved configuration
+sudo nano /etc/systemd/resolved.conf
+
+# Add your DNS servers
+[Resolve]
+DNS=10.0.0.2 8.8.8.8
+Domains=~.
+
+# Restart the service
+sudo systemctl restart systemd-resolved
+
+# Link resolv.conf to systemd-resolved
+sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="lens-specific-troubleshooting" summary="Lens-Specific Troubleshooting">
+
+If DNS is working but Lens still has issues:
+
+1. **Clear Lens cache:**
+
+   ```bash
+   # Remove Lens configuration and cache
+   rm -rf ~/.config/Lens
+   rm -rf ~/.cache/Lens
+   ```
+
+2. **Check kubeconfig:**
+
+   ```bash
+   # Verify kubeconfig is accessible
+   kubectl config current-context
+   kubectl config view
+   ```
+
+3. **Test direct connection:**
+
+   ```bash
+   # Test if you can reach the API server
+   curl -k https://your-cluster-endpoint.amazonaws.com/version
+   ```
+
+4. **Lens proxy settings:**
+   - Open Lens
+   - Go to **File** → **Preferences** → **Proxy**
+   - Ensure proxy settings don't interfere with VPN
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

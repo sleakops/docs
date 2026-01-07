@@ -1,0 +1,181 @@
+---
+sidebar_position: 3
+title: "SSL Certificate Management for Multiple Domains"
+description: "Managing SSL certificates across regions and multiple subdomains in SleakOps"
+date: "2024-12-19"
+category: "project"
+tags: ["ssl", "certificates", "domains", "aws", "cloudfront", "acm"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# SSL Certificate Management for Multiple Domains
+
+**Date:** December 19, 2024  
+**Category:** Project  
+**Tags:** SSL, Certificates, Domains, AWS, CloudFront, ACM
+
+## Problem Description
+
+**Context:** Users managing multiple subdomains and SSL certificates in SleakOps may encounter issues with certificate validation, regional placement, and certificate reuse across different aliases.
+
+**Observed Symptoms:**
+
+- SSL certificate not validating for specific subdomains (e.g., media.app.develop.domain.com)
+- Certificate working for some subdomains but not others (e.g., static.app.develop.domain.com works)
+- Certificates appearing in wrong AWS regions (us-east-1 instead of intended region)
+- Confusion about when to create individual certificates vs wildcard certificates
+
+**Relevant Configuration:**
+
+- Multiple subdomains under the same parent domain
+- AWS Certificate Manager (ACM) certificates
+- CloudFront distribution requirements
+- Regional certificate placement requirements
+
+**Error Conditions:**
+
+- Certificate validation failures for specific subdomains
+- Certificates created in us-east-1 when expected in other regions
+- Uncertainty about proper certificate management strategy
+
+## Detailed Solution
+
+<TroubleshootingItem id="certificate-reuse-mechanism" summary="How SleakOps handles certificate reuse">
+
+SleakOps has an automatic certificate reuse feature that:
+
+- **Reuses existing certificates** when adding new aliases that belong to an already managed domain
+- **Automatically detects** if a subdomain belongs to a domain with an existing certificate
+- **Prevents duplicate certificates** for the same domain hierarchy
+
+This feature was implemented to optimize certificate management and reduce AWS ACM limits.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="regional-certificate-requirements" summary="Why certificates appear in us-east-1">
+
+**CloudFront Certificate Requirement:**
+
+Certificates in `us-east-1` are specifically for CloudFront distributions:
+
+- **Static content URLs** (like `static.app.develop.domain.com`) use CloudFront
+- **CloudFront requires** SSL certificates to be in the `us-east-1` region
+- **This is an AWS requirement**, not a SleakOps configuration issue
+
+**Regional Distribution:**
+
+- Application certificates: Deployed in your chosen region (e.g., Ohio)
+- CloudFront certificates: Always in `us-east-1`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="certificate-recreation-process" summary="How to recreate certificates safely">
+
+To fix certificate validation issues:
+
+**Step 1: Delete existing certificates**
+
+1. Go to your SleakOps project dashboard
+2. Navigate to **Domains & SSL**
+3. Delete the problematic certificates
+4. **Important:** This will not break existing services immediately
+
+**Step 2: Recreate certificates**
+
+1. Add your domains again in SleakOps
+2. The platform will automatically create optimized certificates
+3. SleakOps will reuse certificates where appropriate
+
+**Step 3: Verify validation**
+
+1. Check that all subdomains validate correctly
+2. Monitor the certificate status in AWS ACM
+3. Test all affected URLs
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="wildcard-vs-individual-certificates" summary="Wildcard vs individual certificate strategy">
+
+**Recommended Approach:**
+
+For domains like `develop.domain.com` with multiple subdomains:
+
+```
+# Optimal certificate configuration
+Certificate 1: *.develop.domain.com, develop.domain.com
+- Covers: app.develop.domain.com
+- Covers: api.develop.domain.com
+- Covers: media.develop.domain.com
+- Covers: develop.domain.com (apex)
+
+Certificate 2: static.develop.domain.com (us-east-1 only)
+- For CloudFront distribution
+- Must be in us-east-1 region
+```
+
+**Benefits:**
+
+- Reduces certificate count
+- Simplifies management
+- Covers all current and future subdomains
+- Meets AWS regional requirements
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-validation-issues" summary="Troubleshooting certificate validation">
+
+**Common validation issues and solutions:**
+
+**Issue 1: DNS validation not completing**
+
+- Verify DNS records are properly configured
+- Check that domain ownership is confirmed in AWS
+- Ensure DNS propagation has completed (can take up to 24 hours)
+
+**Issue 2: Certificate not applying to subdomain**
+
+- Confirm the certificate includes the specific subdomain
+- Check wildcard certificate covers the subdomain pattern
+- Verify the certificate is in the correct region for the service
+
+**Issue 3: Mixed certificate regions**
+
+- Application services: Use certificates in your deployment region
+- CloudFront services: Must use us-east-1 certificates
+- This is normal and expected behavior
+
+**Verification commands:**
+
+```bash
+# Check certificate details
+aws acm describe-certificate --certificate-arn arn:aws:acm:region:account:certificate/cert-id
+
+# Test SSL connection
+openssl s_client -connect your-domain.com:443 -servername your-domain.com
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="SSL certificate management best practices">
+
+**Planning your certificate strategy:**
+
+1. **Group related domains**: Use wildcard certificates for multiple subdomains
+2. **Understand regional requirements**: Accept that CloudFront certificates will be in us-east-1
+3. **Use SleakOps automation**: Let the platform handle certificate reuse and optimization
+4. **Monitor expiration**: Set up alerts for certificate renewal
+5. **Document your setup**: Keep track of which certificates serve which domains
+
+**When to recreate certificates:**
+
+- Validation issues that persist after DNS propagation
+- Need to add many new subdomains to existing setup
+- Consolidating multiple individual certificates into wildcards
+- Migrating between different domain structures
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

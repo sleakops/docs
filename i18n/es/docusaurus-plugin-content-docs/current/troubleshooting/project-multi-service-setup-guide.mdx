@@ -1,0 +1,259 @@
+---
+sidebar_position: 15
+title: "Guía de Configuración de Proyecto Multi-Servicio"
+description: "Guía completa para configurar conexiones de Kafka, MySQL, MongoDB y proxy inverso Nginx en SleakOps"
+date: "2024-01-15"
+category: "proyecto"
+tags:
+  [
+    "kafka",
+    "mysql",
+    "mongodb",
+    "nginx",
+    "reverse-proxy",
+    "base-de-datos",
+    "configuración",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Guía de Configuración de Proyecto Multi-Servicio
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Kafka, MySQL, MongoDB, Nginx, Proxy Inverso, Base de Datos, Configuración
+
+## Descripción del Problema
+
+**Contexto:** Configurar un entorno completo de proyecto que requiere múltiples servicios incluyendo cola de mensajes (Kafka), base de datos relacional (MySQL), conexión a base de datos NoSQL (MongoDB) y configuración de proxy inverso (Nginx).
+
+**Síntomas Observados:**
+
+- Necesidad de desplegar servicio Kafka para procesamiento de mensajes
+- Requiere base de datos MySQL con capacidad de carga de datos
+- Necesidad de establecer conexión con instancia de producción MongoDB
+- Requiere configuración de Nginx para proxy inverso
+
+**Configuración Relevante:**
+
+- Servicios necesarios: Kafka, MySQL, Nginx
+- Conexión externa: MongoDB de producción
+- Configuración de proxy: Proxy inverso
+- Operaciones de base de datos: Carga de datos y conectividad
+
+**Condiciones de Error:**
+
+- Los servicios deben estar correctamente interconectados
+- Las conexiones a base de datos deben ser seguras y confiables
+- El proxy inverso debe manejar el tráfico correctamente
+- Todos los servicios deben ser accesibles dentro del entorno del proyecto
+
+## Solución Detallada
+
+<TroubleshootingItem id="kafka-setup" summary="Configuración del servicio Kafka">
+
+Para añadir Kafka a tu proyecto SleakOps:
+
+1. **Navega al panel de tu proyecto**
+2. **Ve a la sección de Dependencias**
+3. **Agrega la dependencia Kafka:**
+   - Haz clic en "Agregar Dependencia"
+   - Selecciona "Kafka" de la lista
+   - Configura los siguientes ajustes:
+
+```yaml
+# Ejemplo de configuración Kafka
+kafka:
+  version: "3.5"
+  replicas: 3
+  storage: "10Gi"
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+```
+
+4. **Configura los topics** (si es necesario):
+   - Añade variables de entorno para la configuración de topics
+   - Establece políticas de retención
+   - Configura particiones y factor de replicación
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="mysql-setup" summary="Configuración de MySQL con carga de datos">
+
+Para configurar MySQL y cargar tu base de datos:
+
+1. **Agrega la dependencia MySQL:**
+   - Ve a Dependencias → Agregar Dependencia → MySQL
+   - Configura la versión y recursos:
+
+```yaml
+# Configuración MySQL
+mysql:
+  version: "8.0"
+  database: "nombre_de_tu_base_de_datos"
+  username: "tu_usuario"
+  storage: "20Gi"
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+```
+
+2. **Carga los datos de la base de datos:**
+
+   - Usa la función **Scripts de Inicialización** en la configuración de MySQL
+   - Sube tus archivos de volcado SQL
+   - O usa variables de entorno para ejecutar comandos de inicialización
+
+3. **Accede a las credenciales:**
+   - Las credenciales de la base de datos se generan automáticamente
+   - Accede a ellas mediante variables de entorno en tus aplicaciones
+   - Formato de cadena de conexión: `mysql://usuario:contraseña@mysql-service:3306/base_de_datos`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="mongodb-connection" summary="Conexión a MongoDB de producción">
+
+Para conectar a una instancia externa de MongoDB en producción:
+
+1. **Agrega los detalles de conexión como secretos:**
+   - Ve a Configuración del Proyecto → Variables de Entorno
+   - Añade las variables de conexión MongoDB:
+
+```bash
+MONGO_PROD_URI=mongodb://usuario:contraseña@host-mongo-prod:27017/base_de_datos
+MONGO_PROD_DATABASE=tu_base_de_datos_de_producción
+MONGO_PROD_USERNAME=tu_usuario
+MONGO_PROD_PASSWORD=tu_contraseña
+```
+
+2. **Consideraciones de seguridad de red:**
+
+   - Asegúrate que tu clúster SleakOps pueda acceder al MongoDB de producción
+   - Configura reglas de firewall si es necesario
+   - Usa VPN o red privada si está disponible
+
+3. **Prueba la conectividad:**
+   - Crea una carga de trabajo simple para verificar la conexión
+   - Usa herramientas cliente de MongoDB para probar desde dentro del clúster
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="nginx-reverse-proxy" summary="Configuración de proxy inverso Nginx">
+
+Para configurar Nginx como proxy inverso:
+
+1. **Agrega la carga de trabajo Nginx:**
+
+   - Ve a Cargas de Trabajo → Agregar Carga de Trabajo → Servicio Web
+   - Selecciona Nginx como imagen base
+
+2. **Configura el proxy inverso:**
+   - Crea una configuración personalizada de Nginx:
+
+```nginx
+# Ejemplo nginx.conf
+server {
+    listen 80;
+    server_name tu-dominio.com;
+
+    # Proxy a tu aplicación principal
+    location / {
+        proxy_pass http://tu-servicio-app:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Proxy a la UI de gestión de Kafka (si es necesario)
+    location /kafka {
+        proxy_pass http://kafka-ui-service:8080;
+        proxy_set_header Host $host;
+    }
+
+    # Endpoint de chequeo de salud
+    location /health {
+        return 200 'OK';
+        add_header Content-Type text/plain;
+    }
+}
+```
+
+3. **Monta la configuración:**
+
+   - Sube tu archivo nginx.conf como un archivo de configuración
+   - Móntalo en `/etc/nginx/conf.d/default.conf`
+
+4. **Expón el servicio:**
+   - Configura ingreso o balanceador de carga
+   - Configura SSL/TLS si es requerido
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="service-integration" summary="Integración de todos los servicios">
+
+Para asegurar que todos los servicios funcionen juntos:
+
+1. **Descubrimiento de servicios:**
+
+   - Los servicios pueden comunicarse usando sus nombres de servicio
+   - Ejemplo: `kafka-service:9092`, `mysql-service:3306`
+
+2. **Variables de entorno para integración:**
+
+```bash
+# Variables de entorno de la aplicación
+KAFKA_BROKERS=kafka-service:9092
+MYSQL_HOST=mysql-service
+MYSQL_PORT=3306
+MYSQL_DATABASE=tu_base_de_datos
+MONGO_PROD_URI=mongodb://host-mongo-prod:27017/base_de_datos
+NGINX_UPSTREAM=tu-servicio-app:8080
+```
+
+3. **Chequeos de salud:**
+
+   - Configura chequeos de salud para cada servicio
+   - Monitorea la conectividad entre servicios
+   - Configura alertas para fallos de servicio
+
+4. **Prueba de la configuración completa:**
+   - Prueba la producción/consumo de mensajes Kafka
+   - Verifica consultas a la base de datos MySQL
+   - Confirma la conectividad con MongoDB de producción
+   - Prueba el ruteo del proxy inverso
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting" summary="Pasos comunes para solución de problemas">
+
+**Problemas de conectividad de servicios:**
+
+- Verifica nombres de servicios y puertos
+- Revisa políticas de red
+- Revisa configuraciones de firewall
+
+**Problemas de conexión a base de datos:**
+
+- Verifica credenciales y cadenas de conexión
+- Revisa estado del servicio de base de datos
+- Revisa conectividad de red
+
+**Problemas con proxy Nginx:**
+
+- Verifica sintaxis de configuración Nginx
+- Revisa logs de Nginx para errores
+- Confirma que los servicios upstream estén disponibles
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de usuario._

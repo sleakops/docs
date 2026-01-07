@@ -1,0 +1,176 @@
+---
+sidebar_position: 3
+title: "Environment Variables Not Available After Migration"
+description: "Solution for environment variables becoming unavailable during platform migrations affecting builds with default Dockerfile arguments"
+date: "2024-04-24"
+category: "deployment"
+tags: ["environment-variables", "migration", "dockerfile", "secrets", "build"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Environment Variables Not Available After Migration
+
+**Date:** April 24, 2024  
+**Category:** Deployment  
+**Tags:** Environment Variables, Migration, Dockerfile, Secrets, Build
+
+## Problem Description
+
+**Context:** During platform migrations that affect how secrets are exposed in environments, applications may lose access to environment variables, particularly affecting builds with default arguments in Dockerfiles.
+
+**Observed Symptoms:**
+
+- Environment variables suddenly become unavailable after deployment
+- Applications fail to connect to external services (e.g., login endpoints)
+- Variables that were previously working stop being received
+- Issue affects multiple environments (development, staging)
+- Problem occurs after merging PRs and triggering redeployments
+
+**Relevant Configuration:**
+
+- Platform: SleakOps on AWS
+- Affected environments: Development and Staging
+- Build type: Frontend applications with Dockerfile builds
+- Variable type: Environment variables used for API endpoints
+
+**Error Conditions:**
+
+- Occurs during platform migrations affecting secret exposure
+- Affects builds with default Dockerfile arguments
+- Problem persists across multiple deployments
+- Issue appears after successful PR merges and redeployments
+
+## Detailed Solution
+
+<TroubleshootingItem id="migration-impact" summary="Understanding migration impact on environment variables">
+
+During platform migrations, SleakOps may update how secrets and environment variables are exposed to applications. This can temporarily affect:
+
+- **Dockerfile builds with default arguments**: Variables passed as build arguments may not be available
+- **Runtime environment variables**: Variables needed during application execution
+- **Secret mounting**: How secrets are made available to containers
+
+The migration process ensures improved security and consistency but may cause temporary disruptions.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-troubleshooting" summary="Immediate troubleshooting steps">
+
+When environment variables become unavailable:
+
+1. **Check variable groups configuration**:
+
+   - Verify that variable groups are properly configured
+   - Ensure variables are assigned to the correct environments
+
+2. **Review Dockerfile build arguments**:
+
+   ```dockerfile
+   # Ensure ARG declarations are present
+   ARG API_ENDPOINT
+   ARG DATABASE_URL
+
+   # Use environment variables properly
+   ENV API_ENDPOINT=${API_ENDPOINT}
+   ENV DATABASE_URL=${DATABASE_URL}
+   ```
+
+3. **Validate environment-specific settings**:
+   - Check that variables are defined for each environment (dev, staging, prod)
+   - Verify variable names match exactly between configuration and code
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="post-migration-configuration" summary="Post-migration configuration steps">
+
+After migration completion:
+
+1. **Update variable groups**:
+
+   - Review and update variable group assignments
+   - Ensure all required variables are properly configured
+   - Test variable availability in each environment
+
+2. **Redeploy applications**:
+
+   ```bash
+   # Trigger a fresh deployment to pick up new variable configuration
+   git commit --allow-empty -m "Trigger redeploy after migration"
+   git push origin develop
+   ```
+
+3. **Verify application functionality**:
+   - Test all endpoints that depend on environment variables
+   - Check application logs for any remaining variable-related errors
+   - Validate connectivity to external services
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-best-practices" summary="Dockerfile best practices for environment variables">
+
+To avoid issues during future migrations:
+
+```dockerfile
+# 1. Declare all required build arguments
+ARG NODE_ENV=production
+ARG API_BASE_URL
+ARG DATABASE_URL
+
+# 2. Set environment variables from build arguments
+ENV NODE_ENV=${NODE_ENV}
+ENV API_BASE_URL=${API_BASE_URL}
+ENV DATABASE_URL=${DATABASE_URL}
+
+# 3. Provide fallback values where appropriate
+ENV API_TIMEOUT=${API_TIMEOUT:-30000}
+
+# 4. Validate critical variables
+RUN test -n "$API_BASE_URL" || (echo "API_BASE_URL is required" && exit 1)
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-monitoring" summary="Prevention and monitoring">
+
+To prevent similar issues:
+
+1. **Set up environment variable validation**:
+
+   ```javascript
+   // Add validation in your application startup
+   const requiredVars = ["API_BASE_URL", "DATABASE_URL", "JWT_SECRET"];
+
+   requiredVars.forEach((varName) => {
+     if (!process.env[varName]) {
+       console.error(`Missing required environment variable: ${varName}`);
+       process.exit(1);
+     }
+   });
+   ```
+
+2. **Implement health checks**:
+
+   ```javascript
+   // Health check endpoint to verify configuration
+   app.get("/health", (req, res) => {
+     const config = {
+       apiEndpoint: !!process.env.API_BASE_URL,
+       databaseConnected: !!process.env.DATABASE_URL,
+       // Don't expose actual values for security
+     };
+
+     res.json({ status: "ok", config });
+   });
+   ```
+
+3. **Monitor deployment notifications**:
+   - Subscribe to platform migration announcements
+   - Test applications immediately after platform updates
+   - Maintain staging environments that mirror production configuration
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on April 24, 2024 based on a real user query._

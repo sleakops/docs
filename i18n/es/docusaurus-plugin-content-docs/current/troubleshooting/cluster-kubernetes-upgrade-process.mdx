@@ -1,0 +1,168 @@
+---
+sidebar_position: 3
+title: "Proceso de Actualización del Clúster Kubernetes"
+description: "Cómo manejar las actualizaciones de clúster en la plataforma SleakOps"
+date: "2024-12-19"
+category: "clúster"
+tags: ["kubernetes", "actualización", "clúster", "mantenimiento"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Proceso de Actualización del Clúster Kubernetes
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Clúster  
+**Etiquetas:** Kubernetes, Actualización, Clúster, Mantenimiento
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios ven una notificación de "Actualización Requerida" en la sección Clúster de su panel de SleakOps y necesitan orientación sobre cómo proceder con la actualización del clúster Kubernetes.
+
+**Síntomas Observados:**
+
+- Aparece un banner de "Actualización Requerida" en la sección Clúster - Producción
+- Incertidumbre sobre el proceso de actualización y posible tiempo de inactividad
+- Preocupaciones sobre la interrupción del servicio durante la actualización
+- Preguntas sobre compatibilidad de código, versión o base de datos
+
+**Configuración Relevante:**
+
+- Plataforma: Clúster Kubernetes gestionado por SleakOps
+- Entorno: Clúster de producción
+- Tipo de actualización: Actualización de versión de Kubernetes con componentes centrales y complementos
+
+**Condiciones de Error:**
+
+- No hay errores reales, pero la notificación de actualización requiere acción
+- Posibles problemas de compatibilidad con recursos externos
+- Riesgo de interrupción del servicio si no se planifica adecuadamente
+
+## Solución Detallada
+
+<TroubleshootingItem id="upgrade-process" summary="Cómo proceder con la actualización del clúster">
+
+Cuando veas la notificación "Actualización Requerida":
+
+1. **Haz clic en Aceptar** en la notificación de actualización en tu panel de SleakOps
+2. El sistema comenzará automáticamente el proceso de actualización
+3. **No se requiere intervención manual** durante la actualización
+
+El proceso de actualización es completamente automatizado y gestionado por SleakOps.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="upgrade-timeline" summary="Duración esperada y tiempo de inactividad">
+
+**Duración:** Aproximadamente 1 hora para el proceso completo de actualización
+
+**Tiempo de inactividad:**
+
+- **No se espera tiempo de inactividad** para servicios correctamente configurados
+- Los servicios con múltiples réplicas de pods seguirán funcionando
+- Los servicios con un solo pod pueden experimentar breves interrupciones durante la actualización de nodos
+
+**Orden del proceso:**
+
+1. Los nodos principales de SleakOps se actualizan uno a uno (actualización progresiva)
+2. Los complementos internos se actualizan después de completar los nodos
+3. Se actualizan todos los componentes listados en la notificación de actualización
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="preparation-checklist" summary="Qué verificar antes de actualizar">
+
+**Preparación de la Aplicación:**
+
+- Asegúrate de que tus aplicaciones tengan **múltiples réplicas de pods** para alta disponibilidad
+- Verifica que tus servicios puedan manejar reinicios progresivos
+- Comprueba que tus aplicaciones no dependan de asignaciones específicas de nodos
+
+**Recursos Externos:**
+
+- Revisa cualquier **instalación externa** en tu clúster (no gestionada por SleakOps)
+- Consulta el registro de cambios de Kubernetes para recursos obsoletos
+- Verifica la compatibilidad de operadores personalizados o herramientas de terceros
+
+**Consideraciones de Base de Datos:**
+
+- No se necesitan preparaciones especiales de base de datos para actualizaciones gestionadas por SleakOps
+- Asegura que las conexiones a la base de datos puedan manejar breves interrupciones de red
+- Verifica que los volúmenes persistentes estén correctamente configurados
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="compatibility-check" summary="Verificación de recursos obsoletos">
+
+Antes de aceptar la actualización:
+
+1. **Revisa el registro de cambios de Kubernetes** proporcionado en la notificación de actualización
+2. **Verifica las APIs obsoletas** que puedan usar tus herramientas externas:
+   ```bash
+   kubectl api-resources --verbs=list --namespaced -o name | xargs -n 1 kubectl get --show-kind --ignore-not-found
+   ```
+3. **Actualiza cualquier herramienta externa** que use APIs obsoletas de Kubernetes
+4. **Prueba las aplicaciones críticas** en un entorno de pruebas si es posible
+
+**Recursos obsoletos comunes a verificar:**
+
+- Versiones antiguas de API para Deployments, Services, Ingress
+- Definiciones de Recursos Personalizados (CRDs) con esquemas obsoletos
+- Políticas de red que usan APIs obsoletas
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-upgrade" summary="Monitoreo del proceso de actualización">
+
+Durante la actualización:
+
+1. **Monitorea tus aplicaciones** mediante tus herramientas habituales de monitoreo
+2. **Revisa el panel de SleakOps** para el progreso de la actualización
+3. **Atiende cualquier alerta** de tus sistemas de monitoreo
+
+**Indicadores de actualización exitosa:**
+
+- Los nodos muestran la versión actualizada de Kubernetes
+- Todos los pods están en ejecución y saludables
+- Los servicios responden normalmente
+- No hay registros persistentes de errores
+
+**Si ocurren problemas:**
+
+- Contacta al soporte de SleakOps inmediatamente
+- Proporciona mensajes de error o síntomas específicos
+- Incluye los detalles de la notificación de actualización
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="post-upgrade-verification" summary="Pasos de verificación post-actualización">
+
+Después de que la actualización finalice:
+
+1. **Verifica el estado del clúster:**
+
+   ```bash
+   kubectl get nodes
+   kubectl get pods --all-namespaces
+   ```
+
+2. **Comprueba la salud de las aplicaciones:**
+
+   - Prueba los endpoints críticos de las aplicaciones
+   - Verifica la conectividad con la base de datos
+   - Confirma que el monitoreo y el registro funcionan
+
+3. **Revisa los registros de actualización:**
+
+   - Consulta el panel de SleakOps para el resumen de la actualización
+   - Revisa cualquier advertencia o aviso
+
+4. **Actualiza la documentación:**
+   - Registra la nueva versión de Kubernetes
+   - Actualiza cualquier configuración específica de versión
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de usuario._

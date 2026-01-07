@@ -1,0 +1,114 @@
+---
+sidebar_position: 3
+title: "Web Service Domain Reset During Replica Update"
+description: "Issue where domain name resets to project name when editing web service replicas"
+date: "2025-02-20"
+category: "workload"
+tags: ["webservice", "domain", "replicas", "frontend", "configuration"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Web Service Domain Reset During Replica Update
+
+**Date:** February 20, 2025  
+**Category:** Workload  
+**Tags:** WebService, Domain, Replicas, Frontend, Configuration
+
+## Problem Description
+
+**Context:** When editing a Web Service configuration to modify replica count, the domain name unexpectedly changes from the current production domain to the default project name, causing potential downtime.
+
+**Observed Symptoms:**
+
+- Domain name resets to project name when editing Web Service
+- Occurs when making simple changes like replica count updates
+- Causes temporary website downtime if not noticed immediately
+- Frontend shows project name instead of current production domain
+
+**Relevant Configuration:**
+
+- Component: Web Service configuration
+- Action: Editing replica count
+- Expected behavior: Domain should remain unchanged
+- Actual behavior: Domain resets to project name
+
+**Error Conditions:**
+
+- Occurs during Web Service editing process
+- Happens when modifying any Web Service parameter
+- Results in unintended domain changes
+- Can cause service interruption
+
+## Detailed Solution
+
+<TroubleshootingItem id="immediate-workaround" summary="Immediate workaround to prevent downtime">
+
+To avoid accidental domain changes when editing Web Services:
+
+1. **Always verify the domain field** before saving changes
+2. **Check that the domain matches your current production URL**
+3. **If the domain has reset, manually correct it** to your production domain
+4. **Save the configuration** only after verifying all fields
+
+**Important:** Always double-check the domain field even when making unrelated changes like replica count adjustments.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="current-behavior" summary="Understanding the current behavior">
+
+Currently, the Web Service edit form may display the project name as the default domain instead of preserving the existing production domain. This is a known frontend issue that can cause:
+
+- Unexpected domain changes
+- Service interruptions
+- Need for manual domain correction
+- Potential downtime if not caught immediately
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Best practices when editing Web Services">
+
+To minimize risk when editing Web Services:
+
+1. **Review all fields** before saving, not just the ones you intended to change
+2. **Take note of your current domain** before starting the edit process
+3. **Make changes during maintenance windows** when possible
+4. **Have monitoring in place** to quickly detect domain changes
+5. **Consider making changes in smaller batches** to limit impact
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-setup" summary="Setting up monitoring to detect domain changes">
+
+To quickly detect if your domain has been accidentally changed:
+
+1. **Set up external monitoring** for your production URLs
+2. **Configure alerts** for HTTP response changes
+3. **Monitor DNS resolution** for your domains
+4. **Use health checks** that verify the correct service is responding
+
+```bash
+# Example monitoring script
+curl -f https://your-production-domain.com/health || echo "Domain issue detected"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="recovery-steps" summary="Steps to recover from accidental domain change">
+
+If you've accidentally changed the domain:
+
+1. **Immediately edit the Web Service again**
+2. **Correct the domain field** to your production domain
+3. **Save the configuration**
+4. **Wait for the deployment to complete**
+5. **Verify the service is accessible** at the correct URL
+6. **Check that all traffic is routing correctly**
+
+The recovery process typically takes a few minutes for the changes to propagate.
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on February 20, 2025 based on a real user query._

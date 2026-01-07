@@ -1,0 +1,165 @@
+---
+sidebar_position: 3
+title: "La canalización CI/CD de GitHub Actions no se activa"
+description: "Solución para cuando las compilaciones de integración continua dejan de funcionar tras un push al repositorio"
+date: "2024-01-15"
+category: "proyecto"
+tags: ["github", "ci-cd", "despliegue", "solución de problemas", "pipeline"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# La canalización CI/CD de GitHub Actions no se activa
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** GitHub, CI/CD, Despliegue, Solución de problemas, Pipeline
+
+## Descripción del problema
+
+**Contexto:** El usuario experimenta problemas con la canalización de integración continua en SleakOps donde los flujos de trabajo de GitHub Actions dejan de activar compilaciones y despliegues automáticos tras hacer push a la rama de desarrollo.
+
+**Síntomas observados:**
+
+- El push a la rama de desarrollo ya no activa compilaciones automáticas
+- La canalización CI/CD que funcionaba previamente ha dejado de funcionar
+- No hay ejecución visible de flujos de trabajo en GitHub Actions
+- No se crean despliegues automáticamente
+
+**Configuración relevante:**
+
+- Repositorio: GitHub
+- Rama: dev (rama de desarrollo)
+- Proyecto: mx-simplee-web
+- Canalización: GitHub Actions con configuración YAML
+- Plataforma: Integración con SleakOps
+
+**Condiciones de error:**
+
+- La canalización funcionaba antes pero dejó de hacerlo repentinamente
+- No hay cambios aparentes en el archivo de configuración YAML
+- Los eventos push no disparan la ejecución del flujo de trabajo
+- No hay mensajes de error visibles en el repositorio
+
+## Solución detallada
+
+<TroubleshootingItem id="initial-diagnosis" summary="Verificar el estado de los flujos de trabajo de GitHub Actions">
+
+Primero, verifica el estado actual de tus flujos de trabajo en GitHub Actions:
+
+1. Ve a tu repositorio en GitHub
+2. Haz clic en la pestaña **Actions**
+3. Busca las ejecuciones más recientes de los flujos de trabajo
+4. Comprueba si los flujos de trabajo:
+   - No se están activando en absoluto
+   - Fallan durante la ejecución
+   - Están en cola pero no se ejecutan
+
+Esto ayudará a identificar si el problema está en la activación o en la ejecución.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="yaml-verification" summary="Verificar el archivo de configuración YAML">
+
+Aunque no hayas cambiado el archivo YAML recientemente, verifica su estado actual:
+
+1. Revisa la ubicación del archivo de flujo de trabajo: `.github/workflows/[nombre-del-flujo].yml`
+2. Verifica la configuración del disparador:
+
+```yaml
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+```
+
+3. Asegúrate de que el nombre de la rama coincida exactamente (sensible a mayúsculas/minúsculas)
+4. Revisa que no haya errores de sintaxis usando un validador YAML
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="branch-protection" summary="Verificar reglas de protección de rama">
+
+Las reglas de protección de rama pueden impedir que los flujos de trabajo se ejecuten:
+
+1. Ve a **Settings** → **Branches** en tu repositorio
+2. Revisa si existen reglas de protección en tu rama `dev`
+3. Asegúrate de que "Restringir pushes que crean archivos" no esté bloqueando el flujo de trabajo
+4. Verifica que las verificaciones de estado requeridas no estén impidiendo la ejecución
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="permissions-check" summary="Verificar permisos del repositorio">
+
+Comprueba si GitHub Actions tiene los permisos necesarios:
+
+1. Ve a **Settings** → **Actions** → **General**
+2. Asegúrate de que "Permisos de Actions" esté configurado para permitir flujos de trabajo
+3. Revisa "Permisos de flujo de trabajo" - debe ser "Permisos de lectura y escritura"
+4. Verifica que "Permitir que GitHub Actions cree y apruebe pull requests" esté habilitado si es necesario
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-integration" summary="Verificar la integración con SleakOps">
+
+Revisa la integración entre GitHub y SleakOps:
+
+1. En el panel de SleakOps, ve a la configuración de tu proyecto
+2. Verifica que la URL del repositorio conectado sea correcta
+3. Comprueba que la rama objetivo esté configurada como `dev`
+4. Asegúrate de que el webhook siga activo en GitHub:
+   - Ve a **Settings** → **Webhooks** en tu repositorio
+   - Busca el webhook de SleakOps y verifica que esté activo
+   - Revisa las entregas recientes para detectar solicitudes fallidas
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="workflow-recreation" summary="Recrear el flujo de trabajo si es necesario">
+
+Si el problema persiste, intenta recrear el flujo de trabajo:
+
+1. Crea una nueva rama desde `dev`
+2. Haz un cambio pequeño para activar el flujo de trabajo
+3. Crea un flujo de trabajo de prueba simple:
+
+```yaml
+name: Test CI
+on:
+  push:
+    branches: [dev]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Test
+        run: echo "Workflow está funcionando"
+```
+
+4. Haz push de los cambios y verifica que el flujo de trabajo se active
+5. Si funciona, agrega gradualmente los pasos originales de tu flujo de trabajo
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-fixes" summary="Soluciones comunes que resuelven el problema">
+
+Basado en escenarios comunes, prueba estas soluciones:
+
+1. **Volver a hacer push para activar**: Haz un commit pequeño y haz push de nuevo
+2. **Verificar cuotas**: Asegúrate de no haber excedido los minutos de GitHub Actions
+3. **Reiniciar flujos de trabajo**: Cancela cualquier flujo atascado y vuelve a intentarlo
+4. **Actualizar acción de checkout**: Usa la última versión `actions/checkout@v4`
+5. **Limpiar caché**: Elimina cachés de flujos de trabajo si están corruptos
+
+```bash
+# Forzar activación del flujo con un commit vacío
+git commit --allow-empty -m "Trigger workflow"
+git push origin dev
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

@@ -1,0 +1,685 @@
+---
+sidebar_position: 15
+title: "Database Restore in Pod Environment"
+description: "Procedures for restoring database dumps in Kubernetes pods with connection resilience"
+date: "2024-03-21"
+category: "dependency"
+tags: ["database", "restore", "dump", "pod", "tmux", "kubernetes"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Database Restore in Pod Environment
+
+**Date:** March 21, 2024  
+**Category:** Dependency  
+**Tags:** Database, Restore, Dump, Pod, Tmux, Kubernetes
+
+## Problem Description
+
+**Context:** When performing database restoration operations in Kubernetes pods, users need reliable procedures to handle large dump files while maintaining connection stability during long-running restore processes.
+
+**Observed Symptoms:**
+
+- Connection drops during long database restore operations
+- Volume space issues due to accumulated old dump files
+- Need for session persistence during restore processes
+- Requirement for monitoring restore progress
+
+**Relevant Configuration:**
+
+- Environment: Production database restoration
+- Platform: Kubernetes pods
+- Tools: Database dump files, tmux for session management
+- Storage: Pod volumes with limited space
+
+**Error Conditions:**
+
+- Connection timeouts during restore operations
+- Insufficient disk space for dump files
+- Process interruption due to network issues
+- Loss of restore progress when connection drops
+
+## Detailed Solution
+
+<TroubleshootingItem id="improved-restore-script" summary="Enhanced Database Restore Script">
+
+The improved restore script includes several optimizations:
+
+```bash
+#!/bin/bash
+# Enhanced database restore script
+
+set -e
+
+# Configuration
+DUMP_DIR="/data/dumps"
+LOG_FILE="/data/logs/restore_$(date +%Y%m%d_%H%M%S).log"
+MAX_DUMP_AGE_DAYS=7
+
+# Function to clean old dumps
+clean_old_dumps() {
+    echo "Cleaning dumps older than ${MAX_DUMP_AGE_DAYS} days..." | tee -a $LOG_FILE
+    find $DUMP_DIR -name "*.sql" -type f -mtime +$MAX_DUMP_AGE_DAYS -delete
+    find $DUMP_DIR -name "*.dump" -type f -mtime +$MAX_DUMP_AGE_DAYS -delete
+    echo "Old dumps cleaned successfully" | tee -a $LOG_FILE
+}
+
+# Function to check available space
+check_disk_space() {
+    AVAILABLE_SPACE=$(df $DUMP_DIR | awk 'NR==2 {print $4}')
+    REQUIRED_SPACE=1048576  # 1GB in KB
+
+    if [ $AVAILABLE_SPACE -lt $REQUIRED_SPACE ]; then
+        echo "Warning: Low disk space. Available: ${AVAILABLE_SPACE}KB" | tee -a $LOG_FILE
+        clean_old_dumps
+    fi
+}
+
+# Main restore function
+restore_database() {
+    local dump_file=$1
+    local database_name=$2
+
+    echo "Starting database restore: $dump_file -> $database_name" | tee -a $LOG_FILE
+    echo "Start time: $(date)" | tee -a $LOG_FILE
+
+    # Restore with progress monitoring
+    pv $dump_file | psql -h $DB_HOST -U $DB_USER -d $database_name 2>&1 | tee -a $LOG_FILE
+
+    echo "Restore completed at: $(date)" | tee -a $LOG_FILE
+}
+
+# Pre-restore checks
+check_disk_space
+clean_old_dumps
+
+# Execute restore
+restore_database "$1" "$2"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="tmux-session-management" summary="Using tmux for Connection Resilience">
+
+To handle connection drops during long restore operations, use tmux:
+
+```bash
+# Start a new tmux session for the restore
+kubectl exec -it <pod-name> -- tmux new-session -d -s restore
+
+# Attach to the session
+kubectl exec -it <pod-name> -- tmux attach-session -t restore
+
+# Inside the tmux session, run the restore
+./restore_script.sh /data/dumps/production_dump.sql production_db
+
+# Detach from session (Ctrl+b, then d)
+# Session continues running even if connection drops
+
+# Reattach later to check progress
+kubectl exec -it <pod-name> -- tmux attach-session -t restore
+
+# List all sessions
+kubectl exec -it <pod-name> -- tmux list-sessions
+```
+
+**Benefits of using tmux:**
+
+- Session persistence across connection drops
+- Ability to monitor progress remotely
+- Multiple windows for parallel operations
+- Session sharing between team members
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="volume-space-management" summary="Managing Pod Volume Space">
+
+To prevent volume space issues during restore operations:
+
+```yaml
+# Pod configuration with adequate storage
+apiVersion: v1
+kind: Pod
+metadata:
+  name: db-restore-pod
+spec:
+  containers:
+    - name: restore-container
+      image: postgres:14
+      volumeMounts:
+        - name: dump-storage
+          mountPath: /data/dumps
+        - name: logs-storage
+          mountPath: /data/logs
+      resources:
+        requests:
+          storage: "50Gi" # Adequate space for dumps
+  volumes:
+    - name: dump-storage
+      persistentVolumeClaim:
+        claimName: dump-pvc
+    - name: logs-storage
+      emptyDir: {}
+```
+
+**Space management commands:**
+
+```bash
+# Check current usage
+kubectl exec -it <pod-name> -- df -h /data/dumps
+
+# Clean old dumps manually
+kubectl exec -it <pod-name> -- find /data/dumps -name "*.sql" -mtime +7 -delete
+
+# Monitor space during restore
+kubectl exec -it <pod-name> -- watch "df -h /data/dumps"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-restore-progress" summary="Monitoring Restore Progress">
+
+To monitor the restore process effectively:
+
+```bash
+# Using pv (pipe viewer) for progress monitoring
+kubectl exec -it <pod-name> -- pv /data/dumps/large_dump.sql | psql -h localhost -U postgres -d target_db
+
+# Monitor logs in real-time
+kubectl exec -it <pod-name> -- tail -f /data/logs/restore_*.log
+
+# Check database size growth
+kubectl exec -it <pod-name> -- psql -h localhost -U postgres -c "SELECT pg_size_pretty(pg_database_size('target_db'));"
+
+# Monitor active connections
+kubectl exec -it <pod-name> -- psql -h localhost -U postgres -c "SELECT count(*) FROM pg_stat_activity WHERE datname='target_db';"
+```
+
+**Progress monitoring script:**
+
+```bash
+#!/bin/bash
+# progress_monitor.sh
+
+DB_NAME=$1
+while true; do
+    SIZE=$(psql -h localhost -U postgres -t -c "SELECT pg_size_pretty(pg_database_size('$DB_NAME'));")
+    echo "$(date): Database size: $SIZE"
+    sleep 30
+done
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="advanced-restore-procedures" summary="Advanced restore procedures with error handling">
+
+For complex restoration scenarios, use this enhanced procedure:
+
+**1. Pre-restore validation:**
+
+```bash
+#!/bin/bash
+# validate_restore.sh
+
+DB_HOST=${DB_HOST:-localhost}
+DB_PORT=${DB_PORT:-5432}
+DB_USER=${DB_USER:-postgres}
+DUMP_FILE=$1
+
+# Validate dump file
+if [ ! -f "$DUMP_FILE" ]; then
+    echo "ERROR: Dump file $DUMP_FILE not found"
+    exit 1
+fi
+
+# Check file size and format
+file_size=$(du -h "$DUMP_FILE" | cut -f1)
+echo "Dump file size: $file_size"
+
+# Verify dump file integrity
+pg_restore --list "$DUMP_FILE" > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+    echo "Dump file is valid (custom format)"
+    RESTORE_CMD="pg_restore"
+else
+    # Check if it's a plain SQL dump
+    head -20 "$DUMP_FILE" | grep -q "PostgreSQL database dump"
+    if [ $? -eq 0 ]; then
+        echo "Dump file is valid (SQL format)"
+        RESTORE_CMD="psql"
+    else
+        echo "ERROR: Invalid dump file format"
+        exit 1
+    fi
+fi
+
+echo "Pre-restore validation completed successfully"
+```
+
+**2. Database preparation:**
+
+```bash
+#!/bin/bash
+# prepare_database.sh
+
+DB_NAME=$1
+DB_HOST=${DB_HOST:-localhost}
+DB_USER=${DB_USER:-postgres}
+
+# Terminate existing connections
+psql -h $DB_HOST -U $DB_USER -d postgres -c "
+SELECT pg_terminate_backend(pid)
+FROM pg_stat_activity
+WHERE datname = '$DB_NAME' AND pid <> pg_backend_pid();"
+
+# Drop and recreate database
+psql -h $DB_HOST -U $DB_USER -d postgres -c "DROP DATABASE IF EXISTS $DB_NAME;"
+psql -h $DB_HOST -U $DB_USER -d postgres -c "CREATE DATABASE $DB_NAME;"
+
+echo "Database $DB_NAME prepared for restore"
+```
+
+**3. Comprehensive restore script:**
+
+```bash
+#!/bin/bash
+# comprehensive_restore.sh
+
+set -e  # Exit on any error
+
+DB_NAME=$1
+DUMP_FILE=$2
+DB_HOST=${DB_HOST:-localhost}
+DB_USER=${DB_USER:-postgres}
+TMUX_SESSION="db_restore_$(date +%s)"
+
+# Logging setup
+LOG_FILE="/tmp/restore_${DB_NAME}_$(date +%Y%m%d_%H%M%S).log"
+exec > >(tee -a "$LOG_FILE") 2>&1
+
+echo "Starting database restore at $(date)"
+echo "Database: $DB_NAME"
+echo "Dump file: $DUMP_FILE"
+echo "Log file: $LOG_FILE"
+
+# Validate inputs
+if [ -z "$DB_NAME" ] || [ -z "$DUMP_FILE" ]; then
+    echo "Usage: $0 <database_name> <dump_file>"
+    exit 1
+fi
+
+# Check if tmux session exists
+if tmux has-session -t "$TMUX_SESSION" 2>/dev/null; then
+    echo "ERROR: Tmux session $TMUX_SESSION already exists"
+    exit 1
+fi
+
+# Start tmux session and run restore
+tmux new-session -d -s "$TMUX_SESSION" bash -c "
+    set -e
+    echo 'Starting restore in tmux session: $TMUX_SESSION'
+
+    # Set up environment
+    export PGPASSWORD=\$POSTGRES_PASSWORD
+
+    # Run pre-restore validation
+    ./validate_restore.sh '$DUMP_FILE'
+
+    # Prepare database
+    ./prepare_database.sh '$DB_NAME'
+
+    # Start progress monitoring in background
+    ./progress_monitor.sh '$DB_NAME' &
+    MONITOR_PID=\$!
+
+    # Perform restore based on file type
+    if pg_restore --list '$DUMP_FILE' > /dev/null 2>&1; then
+        echo 'Restoring from custom format dump...'
+        pg_restore -h $DB_HOST -U $DB_USER -d '$DB_NAME' -v --no-owner --no-acl '$DUMP_FILE'
+    else
+        echo 'Restoring from SQL dump...'
+        psql -h $DB_HOST -U $DB_USER -d '$DB_NAME' -f '$DUMP_FILE'
+    fi
+
+    # Stop monitoring
+    kill \$MONITOR_PID 2>/dev/null || true
+
+    echo 'Restore completed successfully at \$(date)'
+
+    # Post-restore validation
+    ./post_restore_validation.sh '$DB_NAME'
+
+    echo 'Press any key to exit tmux session...'
+    read
+"
+
+echo "Restore started in tmux session: $TMUX_SESSION"
+echo "To attach: tmux attach-session -t $TMUX_SESSION"
+echo "To check progress: tmux capture-pane -t $TMUX_SESSION -p"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="post-restore-validation" summary="Post-restore validation and optimization">
+
+After restore completion, validate the restored database:
+
+**1. Data integrity validation:**
+
+```bash
+#!/bin/bash
+# post_restore_validation.sh
+
+DB_NAME=$1
+DB_HOST=${DB_HOST:-localhost}
+DB_USER=${DB_USER:-postgres}
+
+echo "Starting post-restore validation for $DB_NAME"
+
+# Check database size
+DB_SIZE=$(psql -h $DB_HOST -U $DB_USER -d $DB_NAME -t -c "SELECT pg_size_pretty(pg_database_size('$DB_NAME'));")
+echo "Final database size: $DB_SIZE"
+
+# Count tables and records
+TABLES=$(psql -h $DB_HOST -U $DB_USER -d $DB_NAME -t -c "
+SELECT count(*) FROM information_schema.tables
+WHERE table_schema = 'public' AND table_type = 'BASE TABLE';")
+echo "Number of tables: $TABLES"
+
+# Check for any errors in postgres log
+echo "Recent PostgreSQL errors (if any):"
+psql -h $DB_HOST -U $DB_USER -d $DB_NAME -c "
+SELECT message, detail, hint
+FROM pg_stat_database_conflicts
+WHERE datname = '$DB_NAME';" 2>/dev/null || echo "No conflicts found"
+
+# Validate critical tables (customize for your schema)
+echo "Validating critical tables..."
+psql -h $DB_HOST -U $DB_USER -d $DB_NAME -c "
+SELECT
+    schemaname,
+    tablename,
+    n_tup_ins as inserts,
+    n_tup_upd as updates,
+    n_tup_del as deletes
+FROM pg_stat_user_tables
+ORDER BY n_tup_ins DESC
+LIMIT 10;"
+
+# Check for missing indexes
+echo "Checking for missing indexes..."
+psql -h $DB_HOST -U $DB_USER -d $DB_NAME -c "
+SELECT
+    schemaname,
+    tablename,
+    indexname,
+    indexdef
+FROM pg_indexes
+WHERE schemaname = 'public'
+ORDER BY tablename, indexname;"
+
+echo "Post-restore validation completed"
+```
+
+**2. Performance optimization:**
+
+```sql
+-- Run after large restore operations
+-- Update table statistics
+ANALYZE;
+
+-- Rebuild indexes if needed
+REINDEX DATABASE your_database_name;
+
+-- Update vacuum statistics
+VACUUM ANALYZE;
+
+-- Check for bloated tables
+SELECT
+    schemaname,
+    tablename,
+    n_dead_tup,
+    n_live_tup,
+    round(n_dead_tup::numeric / NULLIF(n_live_tup + n_dead_tup, 0) * 100, 2) as dead_percentage
+FROM pg_stat_user_tables
+WHERE n_dead_tup > 0
+ORDER BY dead_percentage DESC;
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-restore-issues" summary="Troubleshooting common restore issues">
+
+**Common restore problems and solutions:**
+
+**1. Out of disk space:**
+
+```bash
+# Check available space before restore
+df -h /var/lib/postgresql/data
+
+# Clean up old dumps
+find /tmp -name "*.sql" -mtime +7 -delete
+find /tmp -name "*.dump" -mtime +7 -delete
+
+# Monitor space during restore
+watch -n 30 'df -h | grep -E "(Use%|/var/lib/postgresql)"'
+```
+
+**2. Permission errors:**
+
+```bash
+# Fix ownership issues
+chown -R postgres:postgres /var/lib/postgresql/data
+
+# Check PostgreSQL user permissions
+psql -c "SELECT rolname, rolsuper, rolcreaterole, rolcreatedb FROM pg_roles WHERE rolname = 'postgres';"
+
+# Grant necessary permissions
+GRANT CREATE ON DATABASE your_db TO your_user;
+ALTER USER your_user CREATEDB;
+```
+
+**3. Connection timeouts:**
+
+```bash
+# Increase connection timeout
+export PGCONNECT_TIMEOUT=300
+
+# Set statement timeout for long operations
+psql -c "SET statement_timeout = '1h';"
+
+# Use connection pooling for multiple operations
+psql -c "SET max_connections = 200;"
+```
+
+**4. Memory issues with large dumps:**
+
+```bash
+# Use streaming restore for large files
+pg_restore --clean --no-acl --no-owner --verbose \
+           --jobs=4 \
+           --dbname=postgresql://user:pass@host:port/dbname \
+           dump_file.dump
+
+# Monitor memory usage
+while true; do
+    echo "$(date): Memory usage:"
+    free -h
+    echo "PostgreSQL processes:"
+    ps aux | grep postgres | grep -v grep
+    sleep 60
+done
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-restore-progress" summary="Advanced monitoring and recovery procedures">
+
+**Real-time restore monitoring:**
+
+```bash
+#!/bin/bash
+# advanced_monitor.sh
+
+DB_NAME=$1
+DUMP_FILE=$2
+
+# Create monitoring dashboard
+tmux new-session -d -s "restore_monitor" bash -c "
+    # Window 1: Progress monitoring
+    tmux rename-window 'Progress'
+
+    # Window 2: Database metrics
+    tmux new-window -n 'DB_Metrics'
+    tmux send-keys 'watch -n 5 \"psql -d $DB_NAME -c \\\"SELECT
+        pg_size_pretty(pg_database_size(\\\\\"$DB_NAME\\\\\")) as db_size,
+        (SELECT count(*) FROM pg_stat_activity WHERE datname = \\\\\"$DB_NAME\\\\\") as connections,
+        (SELECT count(*) FROM pg_stat_activity WHERE state = \\\\\"active\\\\\") as active_queries;\\\"\"' Enter
+
+    # Window 3: System resources
+    tmux new-window -n 'Resources'
+    tmux send-keys 'htop' Enter
+
+    # Window 4: Disk usage
+    tmux new-window -n 'Disk'
+    tmux send-keys 'watch -n 10 \"df -h | grep -E \\\"(Use%|/var/lib/postgresql|/tmp)\\\"\"' Enter
+
+    # Return to first window
+    tmux select-window -t 0
+"
+
+echo "Monitoring dashboard started. Attach with: tmux attach-session -t restore_monitor"
+```
+
+**Recovery procedures for failed restores:**
+
+```bash
+#!/bin/bash
+# restore_recovery.sh
+
+DB_NAME=$1
+BACKUP_DB="${DB_NAME}_backup_$(date +%Y%m%d_%H%M%S)"
+
+echo "Starting restore recovery procedure..."
+
+# 1. Create backup of current state
+echo "Creating backup of current database state..."
+pg_dump -h localhost -U postgres $DB_NAME > "${BACKUP_DB}.sql"
+
+# 2. Analyze what went wrong
+echo "Analyzing restore failure..."
+tail -100 /var/log/postgresql/postgresql.log | grep ERROR
+
+# 3. Check for partial data
+echo "Checking for partial restore data..."
+psql -d $DB_NAME -c "
+SELECT
+    schemaname,
+    tablename,
+    n_tup_ins as row_count
+FROM pg_stat_user_tables
+WHERE n_tup_ins > 0
+ORDER BY n_tup_ins DESC;"
+
+# 4. Cleanup corrupted state
+echo "Cleaning up corrupted state..."
+psql -d postgres -c "
+SELECT pg_terminate_backend(pid)
+FROM pg_stat_activity
+WHERE datname = '$DB_NAME' AND pid <> pg_backend_pid();"
+
+# 5. Reset database
+echo "Resetting database for retry..."
+dropdb $DB_NAME
+createdb $DB_NAME
+
+echo "Recovery procedure completed. Database ready for restore retry."
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="production-best-practices" summary="Production environment best practices">
+
+**For production restore operations:**
+
+**1. Maintenance window procedures:**
+
+```bash
+#!/bin/bash
+# production_restore.sh
+
+# Pre-maintenance checks
+echo "=== PRE-MAINTENANCE CHECKS ==="
+echo "Current time: $(date)"
+echo "Database size: $(psql -t -c "SELECT pg_size_pretty(pg_database_size('$DB_NAME'));")"
+echo "Active connections: $(psql -t -c "SELECT count(*) FROM pg_stat_activity WHERE datname = '$DB_NAME';")"
+
+# Set maintenance mode
+echo "=== SETTING MAINTENANCE MODE ==="
+# Update application config or load balancer
+
+# Backup current state
+echo "=== CREATING SAFETY BACKUP ==="
+pg_dump $DB_NAME > "safety_backup_$(date +%Y%m%d_%H%M%S).sql"
+
+# Perform restore
+echo "=== STARTING RESTORE ==="
+# Run restore procedure here
+
+# Validate restore
+echo "=== POST-RESTORE VALIDATION ==="
+# Run validation scripts
+
+# Remove maintenance mode
+echo "=== REMOVING MAINTENANCE MODE ==="
+# Update application config
+
+echo "=== MAINTENANCE COMPLETED ==="
+```
+
+**2. Rollback procedures:**
+
+```bash
+#!/bin/bash
+# rollback_restore.sh
+
+ORIGINAL_BACKUP=$1
+
+if [ -z "$ORIGINAL_BACKUP" ]; then
+    echo "ERROR: Please provide original backup file"
+    exit 1
+fi
+
+echo "EMERGENCY ROLLBACK INITIATED"
+echo "Rolling back to: $ORIGINAL_BACKUP"
+
+# Quick rollback
+dropdb $DB_NAME
+createdb $DB_NAME
+psql $DB_NAME < "$ORIGINAL_BACKUP"
+
+echo "Rollback completed. Service should be restored."
+```
+
+**3. Documentation and audit trail:**
+
+```bash
+# Maintain restore log
+cat >> restore_audit.log << EOF
+Date: $(date)
+Database: $DB_NAME
+Dump File: $DUMP_FILE
+Operator: $(whoami)
+Result: SUCCESS/FAILURE
+Duration: $DURATION
+Notes: $NOTES
+EOF
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on March 21, 2024 based on a real user query._

@@ -1,0 +1,218 @@
+---
+sidebar_position: 3
+title: "Escalado de Nodos y Cambios en Recursos con Production Check"
+description: "Comprendiendo el escalado de nodos y los cambios en recursos al habilitar Production Check en clusters de SleakOps"
+date: "2024-11-20"
+category: "cluster"
+tags:
+  ["producción", "escalado", "karpenter", "nodos", "taints", "disponibilidad"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Escalado de Nodos y Cambios en Recursos con Production Check
+
+**Fecha:** 20 de noviembre de 2024  
+**Categoría:** Cluster  
+**Etiquetas:** Producción, Escalado, Karpenter, Nodos, Taints, Disponibilidad
+
+## Descripción del Problema
+
+**Contexto:** El usuario habilitó la verificación "Production" en su cluster SleakOps y configuró un grupo de nodos on-demand, pero notó un aumento significativo en la cantidad de nodos y en el uso de recursos de infraestructura.
+
+**Síntomas Observados:**
+
+- Incremento significativo en el número de nodos tras habilitar Production check
+- 7 nodos en total, con 4 asignados a infraestructura (cargas no relacionadas con aplicaciones)
+- Todos los nodos ahora tienen taints aplicados (antes solo los nodos no contenedorizados tenían taints)
+- Mayor consumo de recursos y costos de facturación
+- Separación de cargas de trabajo de infraestructura y de aplicaciones
+
+**Configuración Relevante:**
+
+- Production check: Habilitado
+- Tipo de grupo de nodos: solo instancias on-demand
+- Versión de SleakOps: 1.7.0 (con cambios en taints)
+- Karpenter: Habilitado con políticas de consolidación
+- Configuración de alta disponibilidad: despliegue multi-AZ
+
+**Condiciones de Error:**
+
+- Aumento de costos operativos debido a más nodos
+- Sobreaprovisionamiento de recursos en algunas cargas
+- Confusión sobre asignación de nodos a infraestructura vs aplicaciones
+
+## Solución Detallada
+
+<TroubleshootingItem id="production-check-changes" summary="Qué hace Production Check">
+
+Al habilitar Production check en SleakOps, se aplican automáticamente los siguientes cambios para aumentar la disponibilidad del cluster:
+
+**Cambios en la Infraestructura de Nodos:**
+
+- Añade un nodo adicional al grupo de nodos principal en una zona de disponibilidad diferente
+- Garantiza redundancia multi-AZ para componentes críticos del cluster
+- Separa cargas de infraestructura de cargas de aplicación usando taints
+
+**Redundancia de Sistemas Críticos:**
+
+- Añade redundancia a sistemas críticos del cluster como Karpenter y ALB Controller
+- Resulta en más pods ejecutándose para componentes de infraestructura
+- Asegura alta disponibilidad para servicios de gestión del cluster
+
+**Protección de Aplicaciones:**
+
+- Añade Pod Disruption Budgets (PDBs) a los despliegues
+- Evita que las políticas de consolidación de Karpenter afecten servicios en ejecución
+- Protege contra rotación de nodos que impacte la disponibilidad de aplicaciones
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="taint-changes-v17" summary="Comprendiendo los cambios en taints en la versión 1.7.0">
+
+Desde la versión 1.7.0 de SleakOps, la plataforma implementa una estrategia de separación de cargas basada en taints:
+
+**Cargas de Infraestructura:**
+
+- Se ejecutan en nodos dedicados con taints específicos
+- Usan instancias Graviton (más rentables)
+- Manejan componentes de gestión, monitoreo y logging del cluster
+
+**Cargas de Aplicación:**
+
+- Se ejecutan en nodos separados sin taints de infraestructura
+- Usan tipos de instancia estándar optimizados para aplicaciones
+- Aisladas de la competencia por recursos de infraestructura
+
+**Impacto en Costos:**
+
+- Nodos de infraestructura usan instancias Graviton más baratas
+- Nodos de aplicación mantienen características de rendimiento
+- El costo total puede ser similar a pesar de más nodos
+
+```yaml
+# Ejemplo de configuración de taints
+infrastructure_nodes:
+  taints:
+    - key: "sleakops.com/infrastructure"
+      value: "true"
+      effect: "NoSchedule"
+  instance_types: ["t4g.medium", "t4g.large"] # Instancias Graviton
+
+application_nodes:
+  taints: [] # Sin taints para cargas de aplicación
+  instance_types: ["t3.medium", "t3.large"] # Instancias estándar
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="resource-optimization" summary="Optimización de asignación de recursos">
+
+Para optimizar los recursos del cluster tras habilitar Production check:
+
+**Optimización de Memoria:**
+
+- Revisar solicitudes de memoria vs uso real
+- Ejemplo: trabajos worker usando 2GB pico pero solicitando 8GB totales
+- Ajustar solicitudes para reflejar consumo real
+
+```yaml
+# Antes de la optimización
+resources:
+  requests:
+    memory: "2Gi"
+    cpu: "500m"
+  limits:
+    memory: "4Gi"
+    cpu: "1000m"
+
+# Después de optimización basada en uso real
+resources:
+  requests:
+    memory: "512Mi"  # Reducido según uso real
+    cpu: "250m"
+  limits:
+    memory: "2Gi"    # Límite más realista
+    cpu: "500m"
+```
+
+**Ajuste de Componentes de Infraestructura:**
+
+- Requerimientos de recursos de Grafana pueden optimizarse
+- Almacenamiento y memoria de Loki pueden ajustarse
+- Reglas de anti-affinity podrían necesitar corrección para casos específicos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="karpenter-cost-optimization" summary="Cómo Karpenter optimiza costos">
+
+Karpenter optimiza automáticamente la selección de instancias y la consolidación:
+
+**Selección de Instancias:**
+
+- Siempre selecciona las instancias más baratas que cumplen con los requisitos
+- Considera precios spot vs on-demand cuando spot está habilitado
+- Equilibra requisitos de rendimiento con costo
+
+**Política de Consolidación:**
+
+- Consolida cargas automáticamente cuando es posible
+- Respeta Pod Disruption Budgets (PDBs) para mantener disponibilidad
+- Puede no resultar siempre en menos instancias, pero asegura eficiencia de costos
+
+**Compensación Disponibilidad vs Costo:**
+
+- Production check prioriza disponibilidad sobre costo
+- Instancias on-demand aumentan facturación pero brindan estabilidad
+- Despliegue multi-AZ asegura resiliencia pero requiere más recursos
+
+```yaml
+# Configuración de NodePool de Karpenter para optimización de costos
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
+metadata:
+  name: cost-optimized
+spec:
+  requirements:
+    - key: "karpenter.sh/capacity-type"
+      operator: In
+      values: ["spot", "on-demand"] # Preferir spot cuando esté disponible
+    - key: "node.kubernetes.io/instance-type"
+      operator: In
+      values: ["t3.medium", "t3.large", "t4g.medium", "t4g.large"]
+  disruption:
+    consolidationPolicy: WhenUnderutilized
+    consolidateAfter: 30s
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-recommendations" summary="Monitoreo y siguientes pasos">
+
+Para comprender y optimizar mejor su cluster:
+
+**Monitoreo de Recursos:**
+
+- Usar dashboards de Grafana para monitorear recursos reales vs solicitados
+- Seguir la utilización de nodos en diferentes grupos
+- Monitorear tendencias de costos tras habilitar Production check
+
+**Acciones de Optimización:**
+
+1. Revisar y ajustar solicitudes de recursos para todas las cargas
+2. Considerar habilitar instancias spot para cargas no críticas
+3. Monitorizar configuraciones de PDB para asegurar que no sean muy restrictivas
+4. Revisión periódica de métricas de consolidación de Karpenter
+
+**Resultados Esperados:**
+
+- Mayor disponibilidad y resiliencia
+- Rendimiento más predecible
+- Utilización optimizada de recursos con el tiempo
+- Mejor separación de responsabilidades entre infraestructura y aplicaciones
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 20 de noviembre de 2024 basada en una consulta real de usuario._

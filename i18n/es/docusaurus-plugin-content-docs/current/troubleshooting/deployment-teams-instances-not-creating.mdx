@@ -1,0 +1,196 @@
+---
+sidebar_position: 3
+title: "Despliegue y Creación de Instancias de Teams No Funcionan"
+description: "Solución de problemas de fallos en despliegues y problemas en la creación de instancias de Teams"
+date: "2024-01-15"
+category: "proyecto"
+tags: ["despliegue", "teams", "instancias", "solución de problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Despliegue y Creación de Instancias de Teams No Funcionan
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Despliegue, Teams, Instancias, Solución de problemas
+
+## Descripción del Problema
+
+**Contexto:** El usuario reporta que los despliegues no se están ejecutando y que las instancias de Teams no se están creando en la plataforma SleakOps.
+
+**Síntomas Observados:**
+
+- Los despliegues no se disparan ni completan
+- No se crean instancias de Teams
+- No hay progreso visible en la canalización de despliegue
+- Los servicios pueden aparecer atascados en estado pendiente
+
+**Configuración Relevante:**
+
+- Dominio: teams.simplee.cl
+- Plataforma: SleakOps
+- Tipo de despliegue: instancias de Teams
+
+**Condiciones de Error:**
+
+- El proceso de despliegue no inicia o no se completa
+- El proceso de creación de instancias no se ejecuta
+- Puede afectar múltiples servicios o entornos
+
+## Solución Detallada
+
+<TroubleshootingItem id="initial-diagnosis" summary="Verificar estado y registros del despliegue">
+
+Primero, verifica el estado actual de tus despliegues:
+
+1. **Navega a tu Panel de Proyecto**
+2. **Revisa la sección de Despliegues** para detectar despliegues fallidos o pendientes
+3. **Revisa los registros del despliegue** en busca de mensajes de error
+4. **Verifica el estado de la compilación** en la canalización CI/CD
+
+Busca indicadores comunes:
+
+- Indicadores de estado en rojo
+- Mensajes de error en los registros
+- Estados "pendientes" atascados
+- Problemas de asignación de recursos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="teams-configuration" summary="Verificar configuración de la instancia de Teams">
+
+Revisa la configuración de tu instancia de Teams:
+
+1. **Ve a Workloads** → **Servicios de Teams**
+2. **Verifica la configuración** para teams.simplee.cl
+3. **Revisa la asignación de recursos**:
+   - Límites de CPU y memoria
+   - Requerimientos de almacenamiento
+   - Configuración de red
+
+```yaml
+# Ejemplo de configuración de Teams
+apiVersion: v1
+kind: Service
+metadata:
+  name: teams-service
+spec:
+  selector:
+    app: teams
+  ports:
+    - port: 80
+      targetPort: 8080
+  type: LoadBalancer
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="resource-verification" summary="Verificar recursos y cuotas del clúster">
+
+Verifica que tu clúster tenga recursos suficientes:
+
+1. **Revisa los Recursos de los Nodos**:
+
+   - CPU y memoria disponibles
+   - Espacio en disco
+   - Capacidad de red
+
+2. **Verifica las Cuotas**:
+
+   - Cuotas de recursos por espacio de nombres
+   - Límites a nivel de clúster
+   - Cuotas específicas del proveedor (AWS, Azure, GCP)
+
+3. **Revisa el Estado de los Pods**:
+   ```bash
+   kubectl get pods -n tu-namespace
+   kubectl describe pod <nombre-del-pod> -n tu-namespace
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="networking-dns" summary="Verificar configuración de red y DNS">
+
+Para las instancias de Teams, la configuración de red es crítica:
+
+1. **Revisa la Configuración DNS**:
+
+   - Verifica los registros DNS de teams.simplee.cl
+   - Asegúrate que los registros A/CNAME apunten correctamente al balanceador de carga
+
+2. **Verifica el Balanceador de Carga**:
+
+   - Comprueba si el balanceador de carga está provisionado
+   - Verifica los grupos de seguridad y reglas de firewall
+
+3. **Prueba la Conectividad**:
+   ```bash
+   nslookup teams.simplee.cl
+   curl -I https://teams.simplee.cl
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-solutions" summary="Soluciones comunes para problemas de despliegue">
+
+**Reiniciar el Proceso de Despliegue**:
+
+1. Navega a tu proyecto
+2. Ve a la pestaña **Despliegues**
+3. Haz clic en **Re-desplegar** en el despliegue fallido
+
+**Eliminar Recursos Atascados**:
+
+1. Elimina manualmente pods atascados si es necesario
+2. Reinicia los controladores de despliegue
+3. Revisa bloqueos o conflictos de recursos
+
+**Actualizar Configuración**:
+
+1. Verifica todas las variables de entorno
+2. Revisa secretos y configmaps
+3. Asegúrate que los repositorios de imágenes sean accesibles
+
+**Escalar Recursos**:
+
+1. Incrementa la capacidad de los nodos si es necesario
+2. Ajusta las solicitudes y límites de recursos
+3. Considera usar tipos de instancia diferentes
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="escalation-steps" summary="Cuándo escalar el problema">
+
+Escala al soporte de SleakOps si:
+
+1. **Problemas de Infraestructura**:
+
+   - Los nodos del clúster no responden
+   - Fallos en servicios a nivel de proveedor
+   - Fallas persistentes en asignación de recursos
+
+2. **Problemas de Plataforma**:
+
+   - El panel de SleakOps no responde
+   - La canalización de despliegue está completamente rota
+   - Fallos de autenticación o autorización
+
+3. **Preocupaciones por Pérdida de Datos**:
+   - Volúmenes persistentes que no se montan
+   - Problemas de conectividad con la base de datos
+   - Problemas con respaldo y recuperación
+
+**Información a proporcionar al escalar**:
+
+- Nombre del proyecto y entorno
+- Mensajes de error específicos de los registros
+- Línea de tiempo de cuándo comenzó el problema
+- Cambios recientes realizados en la configuración
+- Capturas de pantalla de los estados de error
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de un usuario._

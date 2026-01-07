@@ -1,0 +1,175 @@
+---
+sidebar_position: 3
+title: "Docker Build Cache Issues in Production"
+description: "Solution for Docker build cache preventing code changes from being deployed"
+date: "2024-01-15"
+category: "project"
+tags: ["docker", "cache", "deployment", "build", "ecr"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Docker Build Cache Issues in Production
+
+**Date:** January 15, 2024  
+**Category:** Project  
+**Tags:** Docker, Cache, Deployment, Build, ECR
+
+## Problem Description
+
+**Context:** User made code changes that work correctly in local development environment, but after deploying to production, the old behavior persists despite the code being correctly updated in the repository.
+
+**Observed Symptoms:**
+
+- Code changes work correctly in local development
+- After deployment, production still shows old behavior/errors
+- Source code files are correctly updated in production
+- The issue appears to be related to Docker build caching
+
+**Relevant Configuration:**
+
+- Platform: SleakOps with Docker builds
+- Environment: Production deployment
+- Build system: Docker with layer caching
+- Registry: AWS ECR for image storage
+
+**Error Conditions:**
+
+- Problem occurs after code deployment
+- Local environment works correctly
+- Production deployment doesn't reflect code changes
+- Issue persists across multiple deployment attempts
+
+## Detailed Solution
+
+<TroubleshootingItem id="cache-invalidation" summary="Invalidate Docker build cache">
+
+The most common cause is Docker build cache not detecting changes in your application code. To force cache invalidation, add this line to your Dockerfile before copying your application files:
+
+```dockerfile
+# Add this before COPY commands
+# Cache invalidator
+RUN echo "Frontend cache bust: v2" > /dev/null
+
+# Then your normal COPY commands
+COPY ./ClientApp /app/ClientApp
+```
+
+This forces Docker to rebuild all subsequent layers, ensuring your code changes are included.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="ecr-cleanup" summary="Clear ECR repository images">
+
+If cache invalidation doesn't work, you may need to clear the Docker images stored in AWS ECR:
+
+1. **Access AWS Console**
+
+   - Switch to your production AWS account
+   - Navigate to **Amazon ECR** service
+
+2. **Find your repository**
+
+   - Locate the repository containing your project's Docker images
+   - It will typically be named after your project
+
+3. **Delete cached images**
+
+   - Select all images in the repository
+   - Delete them to force a complete rebuild
+
+4. **Deploy with new commit**
+   - Make a new commit (you can remove the cache invalidation line if desired)
+   - Deploy the changes
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-optimization" summary="Optimize Dockerfile for better caching">
+
+To prevent this issue in the future, structure your Dockerfile to maximize cache efficiency:
+
+```dockerfile
+# Good practice: Copy dependency files first
+COPY package.json package-lock.json ./
+RUN npm install
+
+# Copy application code last (changes most frequently)
+COPY ./ClientApp ./ClientApp
+COPY ./ServerApp ./ServerApp
+
+# Build your application
+RUN npm run build
+```
+
+This way, dependency installation is cached separately from your application code.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Alternative troubleshooting steps">
+
+If the problem persists, try these additional steps:
+
+1. **Force rebuild without cache**
+
+   ```bash
+   # If using Docker directly
+   docker build --no-cache -t your-image .
+   ```
+
+2. **Check build logs**
+
+   - Review the deployment logs in SleakOps
+   - Look for "Using cache" messages that might indicate stale layers
+
+3. **Verify file timestamps**
+
+   - Ensure your code changes have recent timestamps
+   - Check if the build process is picking up the correct files
+
+4. **Test with minimal changes**
+   - Make a small, visible change (like adding a console.log)
+   - Deploy and verify the change appears in production
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention" summary="Preventing future cache issues">
+
+To avoid this problem in the future:
+
+1. **Use .dockerignore properly**
+
+   ```
+   node_modules
+   .git
+   .env.local
+   *.log
+   ```
+
+2. **Implement proper cache busting**
+
+   - Use build arguments with timestamps
+   - Include version numbers in your builds
+
+3. **Monitor build processes**
+
+   - Check deployment logs regularly
+   - Verify that builds are actually rebuilding changed layers
+
+4. **Use multi-stage builds**
+
+   ```dockerfile
+   FROM node:16 AS builder
+   COPY package*.json ./
+   RUN npm install
+   COPY . .
+   RUN npm run build
+
+   FROM nginx:alpine
+   COPY --from=builder /app/dist /usr/share/nginx/html
+   ```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

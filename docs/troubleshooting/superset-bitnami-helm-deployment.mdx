@@ -1,0 +1,689 @@
+---
+sidebar_position: 3
+title: "Deploying Apache Superset with Bitnami Helm Chart"
+description: "Complete guide for deploying Apache Superset using Bitnami Helm chart with custom configurations and tolerations"
+date: "2024-12-20"
+category: "workload"
+tags: ["superset", "bitnami", "helm", "kubernetes", "deployment", "tolerations"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Deploying Apache Superset with Bitnami Helm Chart
+
+**Date:** December 20, 2024  
+**Category:** Workload  
+**Tags:** Superset, Bitnami, Helm, Kubernetes, Deployment, Tolerations
+
+## Problem Description
+
+**Context:** Users need to deploy Apache Superset using the Bitnami Helm chart in a Kubernetes cluster with specific configurations including database initialization tolerations and custom values.
+
+**Observed Symptoms:**
+
+- Need to add tolerations to database initialization pods
+- Bitnami chart doesn't support tolerations for init containers via values
+- Requires post-renderer script to modify chart templates
+- Complex configuration management for Superset deployment
+
+**Relevant Configuration:**
+
+- Chart: `bitnami/superset`
+- Namespace: `superset`
+- Custom values file: `values-def.yaml`
+- Post-renderer script: `add-tolerations.sh`
+
+**Error Conditions:**
+
+- Database initialization pods may fail to schedule without proper tolerations
+- Standard Helm values don't provide sufficient customization options
+- Manual chart modification required for specific use cases
+
+## Detailed Solution
+
+<TroubleshootingItem id="helm-repo-setup" summary="Setting up Bitnami Helm Repository">
+
+First, add and update the Bitnami Helm repository:
+
+```bash
+# Add Bitnami repository
+helm repo add bitnami https://charts.bitnami.com/bitnami
+
+# Update repositories to get latest charts
+helm repo update
+
+# Verify repository is added
+helm repo list
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="post-renderer-script" summary="Creating the Post-Renderer Script">
+
+Create a post-renderer script to add tolerations to database initialization pods:
+
+```bash
+#!/bin/bash
+# File: add-tolerations.sh
+
+# Make script executable
+chmod +x add-tolerations.sh
+
+# Read from stdin and apply transformations
+cat <&0 | \
+# Add tolerations to database init jobs
+yq eval '(.spec.template.spec.tolerations) = [
+  {
+    "key": "node-role",
+    "operator": "Equal",
+    "value": "spot",
+    "effect": "NoSchedule"
+  },
+  {
+    "key": "kubernetes.io/arch",
+    "operator": "Equal",
+    "value": "arm64",
+    "effect": "NoSchedule"
+  }
+] | select(.kind == "Job" and (.metadata.name | contains("postgresql-init")))' -
+```
+
+This script:
+
+- Adds tolerations for spot instances and ARM64 architecture
+- Only applies to Jobs with names containing "postgresql-init"
+- Uses `yq` to modify YAML on the fly
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="values-configuration" summary="Creating Superset values configuration">
+
+Create a comprehensive values file for Superset deployment:
+
+```yaml
+# File: values-def.yaml
+
+# Global configurations
+global:
+  postgresql:
+    auth:
+      existingSecret: ""
+      secretKeys:
+        adminPasswordKey: ""
+        userPasswordKey: ""
+
+# Superset configuration
+superset:
+  # Image configuration
+  image:
+    repository: bitnami/superset
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  # Superset admin configuration
+  admin:
+    user: admin
+    password: "your-secure-password"
+    firstName: Admin
+    lastName: User
+    email: admin@yourdomain.com
+
+  # Application configuration
+  config:
+    # Secret key for session encryption
+    secretKey: "your-superset-secret-key-here"
+
+    # Database configuration
+    databaseUri: "postgresql://superset:password@superset-postgresql:5432/superset"
+
+    # Redis configuration for caching
+    redisUri: "redis://superset-redis-master:6379/0"
+
+  # Resource allocation
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+
+  # Scaling configuration
+  replicaCount: 2
+
+  # Node selection and tolerations
+  nodeSelector:
+    kubernetes.io/arch: arm64
+
+  tolerations:
+    - key: "node-role"
+      operator: "Equal"
+      value: "spot"
+      effect: "NoSchedule"
+    - key: "kubernetes.io/arch"
+      operator: "Equal"
+      value: "arm64"
+      effect: "NoSchedule"
+
+# PostgreSQL database configuration
+postgresql:
+  enabled: true
+
+  # Database settings
+  auth:
+    database: superset
+    username: superset
+    password: "secure-database-password"
+
+  # Primary configuration
+  primary:
+    # Resources for primary database
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+
+    # Node selection for database
+    nodeSelector:
+      kubernetes.io/arch: arm64
+
+    # Tolerations for database pods
+    tolerations:
+      - key: "node-role"
+        operator: "Equal"
+        value: "spot"
+        effect: "NoSchedule"
+      - key: "kubernetes.io/arch"
+        operator: "Equal"
+        value: "arm64"
+        effect: "NoSchedule"
+
+    # Persistence configuration
+    persistence:
+      enabled: true
+      size: 20Gi
+      storageClass: "gp3"
+
+  # Initialization job configuration
+  # Note: This requires the post-renderer script to add tolerations
+  initdb:
+    scripts:
+      01_init.sql: |
+        CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+        GRANT ALL PRIVILEGES ON DATABASE superset TO superset;
+
+# Redis configuration for caching
+redis:
+  enabled: true
+
+  # Architecture configuration
+  architecture: standalone
+
+  # Master configuration
+  master:
+    resources:
+      limits:
+        cpu: 500m
+        memory: 1Gi
+      requests:
+        cpu: 250m
+        memory: 512Mi
+
+    # Node selection
+    nodeSelector:
+      kubernetes.io/arch: arm64
+
+    # Tolerations
+    tolerations:
+      - key: "node-role"
+        operator: "Equal"
+        value: "spot"
+        effect: "NoSchedule"
+      - key: "kubernetes.io/arch"
+        operator: "Equal"
+        value: "arm64"
+        effect: "NoSchedule"
+
+    # Persistence
+    persistence:
+      enabled: true
+      size: 8Gi
+      storageClass: "gp3"
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 8088
+  targetPort: 8088
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+  hosts:
+    - host: superset.yourdomain.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: superset-tls
+      hosts:
+        - superset.yourdomain.com
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deployment-commands" summary="Deployment commands and process">
+
+Execute the deployment with the following commands:
+
+```bash
+# 1. Create namespace
+kubectl create namespace superset
+
+# 2. Install Superset with post-renderer script
+helm install superset bitnami/superset \
+  --namespace superset \
+  --values values-def.yaml \
+  --post-renderer ./add-tolerations.sh \
+  --timeout 15m \
+  --wait
+
+# 3. Verify deployment status
+kubectl get pods -n superset
+
+# 4. Check service status
+kubectl get svc -n superset
+
+# 5. Monitor deployment progress
+kubectl logs -f deployment/superset -n superset
+
+# 6. Get initial admin credentials (if not set in values)
+kubectl get secret superset -n superset -o jsonpath="{.data.admin-password}" | base64 --decode
+```
+
+**Alternative deployment using Helm upgrade:**
+
+```bash
+# For updating existing deployment
+helm upgrade superset bitnami/superset \
+  --namespace superset \
+  --values values-def.yaml \
+  --post-renderer ./add-tolerations.sh \
+  --timeout 15m \
+  --wait
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="post-deployment-configuration" summary="Post-deployment configuration and verification">
+
+After successful deployment, perform these verification steps:
+
+**1. Verify all pods are running:**
+
+```bash
+# Check pod status
+kubectl get pods -n superset
+
+# Expected output should show all pods in Running state:
+# superset-xxx                    1/1     Running     0          5m
+# superset-postgresql-0           1/1     Running     0          5m
+# superset-redis-master-0         1/1     Running     0          5m
+```
+
+**2. Access Superset web interface:**
+
+```bash
+# Port forward to access locally (for testing)
+kubectl port-forward svc/superset 8088:8088 -n superset
+
+# Access via browser: http://localhost:8088
+```
+
+**3. Configure SSL certificate (if using ingress):**
+
+```bash
+# Create TLS secret for HTTPS
+kubectl create secret tls superset-tls \
+  --cert=path/to/your/cert.crt \
+  --key=path/to/your/cert.key \
+  -n superset
+
+# Or use cert-manager for automatic certificate generation
+kubectl apply -f - <<EOF
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: superset-cert
+  namespace: superset
+spec:
+  secretName: superset-tls
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  dnsNames:
+  - superset.yourdomain.com
+EOF
+```
+
+**4. Initial Superset configuration:**
+
+```bash
+# Initialize Superset database (if needed)
+kubectl exec -it deployment/superset -n superset -- superset db upgrade
+
+# Create admin user (if not using values.yaml config)
+kubectl exec -it deployment/superset -n superset -- superset fab create-admin \
+  --username admin \
+  --firstname Admin \
+  --lastname User \
+  --email admin@yourdomain.com \
+  --password your-secure-password
+
+# Initialize Superset roles and permissions
+kubectl exec -it deployment/superset -n superset -- superset init
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-common-issues" summary="Troubleshooting common deployment issues">
+
+**1. Pods stuck in Pending state:**
+
+```bash
+# Check pod events for scheduling issues
+kubectl describe pod -n superset superset-xxx
+
+# Common issues:
+# - Node selector not matching any nodes
+# - Tolerations not matching node taints
+# - Resource requests exceeding available capacity
+```
+
+**Solution:**
+
+- Verify your node labels match the nodeSelector
+- Ensure tolerations match existing node taints
+- Check resource availability on target nodes
+
+**2. Database connection errors:**
+
+```bash
+# Check PostgreSQL pod logs
+kubectl logs -n superset superset-postgresql-0
+
+# Check Superset logs for database errors
+kubectl logs -n superset deployment/superset | grep -i database
+```
+
+**Solution:**
+
+- Verify database credentials in values.yaml
+- Check network policies allowing communication
+- Ensure PostgreSQL is fully initialized before Superset starts
+
+**3. Init container tolerations not applied:**
+
+```bash
+# Check if post-renderer script is working
+helm template superset bitnami/superset \
+  --values values-def.yaml \
+  --post-renderer ./add-tolerations.sh | \
+  grep -A 10 -B 5 tolerations
+```
+
+**Solution:**
+
+- Verify post-renderer script has execute permissions
+- Check yq is installed and available
+- Test script independently with sample YAML
+
+**4. Resource limitations:**
+
+```bash
+# Check resource usage
+kubectl top pods -n superset
+
+# Check resource quotas
+kubectl describe quota -n superset
+```
+
+**Solution:**
+
+- Adjust resource requests/limits in values.yaml
+- Increase namespace resource quotas if needed
+- Consider using HPA for auto-scaling
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="backup-and-maintenance" summary="Backup and maintenance procedures">
+
+**Database Backup:**
+
+```bash
+# Create database backup
+kubectl exec -n superset superset-postgresql-0 -- pg_dump -U superset superset > superset-backup-$(date +%Y%m%d).sql
+
+# Automated backup script
+#!/bin/bash
+NAMESPACE="superset"
+BACKUP_DIR="/backups/superset"
+DATE=$(date +%Y%m%d-%H%M%S)
+
+mkdir -p $BACKUP_DIR
+kubectl exec -n $NAMESPACE superset-postgresql-0 -- pg_dump -U superset superset | gzip > $BACKUP_DIR/superset-backup-$DATE.sql.gz
+
+# Cleanup old backups (keep last 7 days)
+find $BACKUP_DIR -name "superset-backup-*.sql.gz" -mtime +7 -delete
+```
+
+**Configuration Backup:**
+
+```bash
+# Export current Helm values
+helm get values superset -n superset > superset-values-backup.yaml
+
+# Backup custom configurations
+kubectl get configmap -n superset -o yaml > superset-configmaps-backup.yaml
+kubectl get secret -n superset -o yaml > superset-secrets-backup.yaml
+```
+
+**Updating Superset:**
+
+```bash
+# Update Helm repository
+helm repo update
+
+# Check available versions
+helm search repo bitnami/superset --versions
+
+# Upgrade to latest version
+helm upgrade superset bitnami/superset \
+  --namespace superset \
+  --values values-def.yaml \
+  --post-renderer ./add-tolerations.sh \
+  --timeout 15m \
+  --wait
+
+# Rollback if needed
+helm rollback superset 1 -n superset
+```
+
+**Monitoring and Health Checks:**
+
+```bash
+# Set up health monitoring
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Service
+metadata:
+  name: superset-health-check
+  namespace: superset
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8088"
+    prometheus.io/path: "/health"
+spec:
+  selector:
+    app.kubernetes.io/name: superset
+  ports:
+  - port: 8088
+    targetPort: 8088
+EOF
+
+# Create alerting rules
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: superset-alerts
+  namespace: superset
+spec:
+  groups:
+  - name: superset
+    rules:
+    - alert: SupersetDown
+      expr: up{job="superset"} == 0
+      for: 5m
+      annotations:
+        summary: "Superset is down"
+        description: "Superset has been down for more than 5 minutes"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="production-considerations" summary="Production deployment considerations">
+
+**Security Hardening:**
+
+1. **Use strong passwords and secret keys:**
+
+```yaml
+# Generate secure passwords
+superset:
+  admin:
+    password: $(openssl rand -base64 32)
+  config:
+    secretKey: $(openssl rand -hex 32)
+
+postgresql:
+  auth:
+    password: $(openssl rand -base64 32)
+```
+
+2. **Network security:**
+
+```yaml
+# Network policies to restrict traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: superset-network-policy
+  namespace: superset
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: superset
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8088
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: postgresql
+      ports:
+        - protocol: TCP
+          port: 5432
+```
+
+**Performance Optimization:**
+
+1. **Resource sizing:**
+
+```yaml
+# Production resource recommendations
+superset:
+  resources:
+    requests:
+      cpu: 2000m
+      memory: 4Gi
+    limits:
+      cpu: 4000m
+      memory: 8Gi
+  replicaCount: 3
+
+postgresql:
+  primary:
+    resources:
+      requests:
+        cpu: 1000m
+        memory: 4Gi
+      limits:
+        cpu: 2000m
+        memory: 8Gi
+```
+
+2. **High availability setup:**
+
+```yaml
+# PostgreSQL HA configuration
+postgresql:
+  architecture: replication
+  readReplicas:
+    replicaCount: 2
+
+# Redis HA configuration
+redis:
+  architecture: replication
+  replica:
+    replicaCount: 2
+```
+
+**Monitoring and Observability:**
+
+```yaml
+# Enable metrics collection
+superset:
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: monitoring
+
+# Add logging configuration
+superset:
+  config:
+    logging:
+      version: 1
+      disable_existing_loggers: false
+      formatters:
+        default:
+          format: '[%(asctime)s] [%(levelname)s] %(message)s'
+      handlers:
+        console:
+          class: logging.StreamHandler
+          formatter: default
+          stream: ext://sys.stdout
+      root:
+        level: INFO
+        handlers: [console]
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 20, 2024 based on a real user query._

@@ -1,0 +1,175 @@
+---
+sidebar_position: 3
+title: "Monitoring Addons Pricing Guide"
+description: "Complete pricing breakdown for Grafana, Loki, KubeCost and OpenTelemetry monitoring addons"
+date: "2024-12-19"
+category: "general"
+tags:
+  [
+    "pricing",
+    "monitoring",
+    "grafana",
+    "loki",
+    "kubecost",
+    "opentelemetry",
+    "addons",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Monitoring Addons Pricing Guide
+
+**Date:** December 19, 2024  
+**Category:** General  
+**Tags:** Pricing, Monitoring, Grafana, Loki, KubeCost, OpenTelemetry, Addons
+
+## Problem Description
+
+**Context:** Users need to understand the pricing structure for monitoring and observability addons in SleakOps, including individual component costs and dependencies.
+
+**Observed Symptoms:**
+
+- Need for cost estimation before implementing monitoring stack
+- Uncertainty about individual addon pricing
+- Questions about dependencies between monitoring components
+- Confusion about what drives the actual costs
+
+**Relevant Configuration:**
+
+- Monitoring stack: Grafana + Loki + KubeCost + OpenTelemetry
+- Log retention: 14 days (configurable)
+- Infrastructure: Spot instances within existing cluster
+- Database: RDS required for Grafana
+
+**Error Conditions:**
+
+- Budget planning without clear cost breakdown
+- Potential over-provisioning due to lack of pricing transparency
+- Difficulty in justifying monitoring investments
+
+## Detailed Solution
+
+<TroubleshootingItem id="individual-pricing" summary="Individual Addon Pricing Breakdown">
+
+**Current Monitoring Addon Prices (Approximate):**
+
+- **Grafana**: $20 USD/month
+- **Loki**: $10 USD/month
+- **KubeCost**: $10 USD/month
+- **OpenTelemetry**: $10 USD/month (upcoming addon)
+
+**Important Notes:**
+
+- Loki requires Grafana to be installed first
+- Total cost for complete monitoring stack: ~$40-50 USD/month
+- Prices are approximate and may vary based on usage
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cost-structure" summary="Understanding the Cost Structure">
+
+**Fixed Costs:**
+
+- **RDS Database**: Required for Grafana (main fixed cost component)
+
+**Variable Costs:**
+
+- **Compute Resources**: Run on spot instances within your existing cluster
+- **Storage**: S3 buckets for log and metrics retention
+- **Network**: Data transfer costs (minimal)
+
+**Cost Optimization:**
+
+- Monitoring addons share instances with Essential addons
+- In many cases, no new instances are needed
+- Spot instances significantly reduce compute costs
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dependencies" summary="Addon Dependencies and Requirements">
+
+**Required Dependencies:**
+
+1. **Grafana** (standalone)
+
+   - Requires: RDS database
+   - Cost: $20 USD/month
+
+2. **Loki** (log aggregation)
+
+   - Requires: Grafana must be installed first
+   - Additional cost: $10 USD/month
+   - Combined with Grafana: $30 USD/month
+
+3. **KubeCost** (cost monitoring)
+
+   - Can be installed independently
+   - Cost: $10 USD/month
+
+4. **OpenTelemetry** (upcoming)
+   - Part of observability stack
+   - Estimated cost: $10 USD/month
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="retention-benefits" summary="Data Retention Advantages">
+
+**SleakOps Retention Benefits:**
+
+- **Standard retention**: 14 days (included in base price)
+- **Extended retention**: Up to 3 months with minimal cost increase
+- **Storage location**: S3 buckets (cost-effective)
+- **No performance impact**: Historical data doesn't affect cluster performance
+
+**Comparison with other solutions:**
+
+```yaml
+# Traditional monitoring (expensive)
+retention_days: 14
+storage_type: "cluster-local"
+cost_increase: "linear with retention"
+
+# SleakOps approach (cost-effective)
+retention_days: 90
+storage_type: "s3-bucket"
+cost_increase: "minimal"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="planning-recommendations" summary="Cost Planning Recommendations">
+
+**For Budget Planning:**
+
+1. **Minimum monitoring setup**:
+
+   - Grafana only: $20 USD/month
+   - Good for basic metrics visualization
+
+2. **Standard monitoring setup**:
+
+   - Grafana + Loki: $30 USD/month
+   - Includes log aggregation and analysis
+
+3. **Complete monitoring setup**:
+
+   - Grafana + Loki + KubeCost: $40 USD/month
+   - Full observability with cost tracking
+
+4. **Future-ready setup**:
+   - All addons + OpenTelemetry: $50 USD/month
+   - Complete observability and tracing
+
+**Cost Optimization Tips:**
+
+- Start with essential addons to share compute resources
+- Monitor actual usage before adding more components
+- Take advantage of S3 storage for long-term retention
+- Consider seasonal usage patterns for cost planning
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

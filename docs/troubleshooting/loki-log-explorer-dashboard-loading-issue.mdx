@@ -1,0 +1,197 @@
+---
+sidebar_position: 3
+title: "Loki Log Explorer Dashboard Loading Issue"
+description: "Solution for Grafana Log Explorer dashboard stuck in loading state"
+date: "2025-02-12"
+category: "dependency"
+tags: ["loki", "grafana", "logs", "dashboard", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Loki Log Explorer Dashboard Loading Issue
+
+**Date:** February 12, 2025  
+**Category:** Dependency  
+**Tags:** Loki, Grafana, Logs, Dashboard, Troubleshooting
+
+## Problem Description
+
+**Context:** Users experience issues with Grafana Log Explorer dashboard in SleakOps platform where logs fail to load and the interface remains stuck in a loading state indefinitely.
+
+**Observed Symptoms:**
+
+- Log Explorer dashboard shows continuous loading spinner
+- Logs never appear in the Grafana interface
+- Dashboard remains unresponsive
+- Other Grafana dashboards may work normally
+
+**Relevant Configuration:**
+
+- Component: Loki logging system
+- Interface: Grafana Log Explorer dashboard
+- Affected pods: `loki-backend` and `loki-read`
+- Platform: SleakOps Kubernetes environment
+
+**Error Conditions:**
+
+- Occurs specifically with log-related dashboards
+- Happens when `loki-backend` pods restart without `loki-read` pods restarting
+- Results in communication breakdown between Loki components
+
+## Detailed Solution
+
+<TroubleshootingItem id="root-cause-analysis" summary="Understanding the root cause">
+
+This is a known issue with Loki where the `loki-read` pods lose their ability to communicate with `loki-backend` pods after the backend restarts. This creates a state where:
+
+- The `loki-backend` pods are running with new configurations
+- The `loki-read` pods are still trying to use old connection parameters
+- The communication channel between components is broken
+- Log queries cannot be processed, resulting in infinite loading
+
+This issue is being tracked in the official Loki GitHub repository:
+
+- [Issue #14384](https://github.com/grafana/loki/issues/14384#issuecomment-2612675359)
+- [Issue #15191](https://github.com/grafana/loki/issues/15191)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-solution" summary="Quick fix: Restart loki-read pods">
+
+The immediate solution is to restart the `loki-read` pods to re-establish communication with the backend:
+
+**Using kubectl:**
+
+```bash
+# Find the loki-read pods
+kubectl get pods -n <namespace> | grep loki-read
+
+# Restart the loki-read pods
+kubectl delete pod <loki-read-pod-name> -n <namespace>
+
+# Or restart all loki-read pods at once
+kubectl delete pods -l app=loki-read -n <namespace>
+```
+
+**Using SleakOps interface:**
+
+1. Navigate to your cluster management
+2. Go to **Workloads** → **Pods**
+3. Filter by `loki-read`
+4. Select the pods and choose **Restart**
+
+The pods will automatically restart and re-establish connection with the backend.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Verify the fix is working">
+
+After restarting the `loki-read` pods:
+
+1. **Wait 2-3 minutes** for pods to fully restart
+2. **Check pod status:**
+
+   ```bash
+   kubectl get pods -n <namespace> | grep loki
+   ```
+
+   All pods should show `Running` status
+
+3. **Test the Log Explorer:**
+
+   - Open Grafana dashboard
+   - Navigate to Log Explorer
+   - Try querying recent logs
+   - Verify logs are loading properly
+
+4. **Check pod logs if issues persist:**
+   ```bash
+   kubectl logs -f <loki-read-pod-name> -n <namespace>
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-measures" summary="Prevention and monitoring">
+
+While this is a known Loki issue being addressed upstream, you can:
+
+**Monitor for the issue:**
+
+- Set up alerts for when Log Explorer stops responding
+- Monitor Loki pod restart events
+- Create health checks for log ingestion
+
+**Temporary workaround automation:**
+
+```yaml
+# Example monitoring script
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: loki-health-check
+spec:
+  schedule: "*/10 * * * *" # Every 10 minutes
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: health-check
+              image: curlimages/curl
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  # Check if Loki is responding
+                  if ! curl -f http://loki-gateway/ready; then
+                    echo "Loki not responding, may need intervention"
+                  fi
+          restartPolicy: OnFailure
+```
+
+**Stay updated:**
+
+- Monitor the GitHub issues mentioned above for permanent fixes
+- Update Loki when patches become available
+- Consider using Loki's distributed mode for better resilience
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-approaches" summary="Alternative troubleshooting steps">
+
+If restarting `loki-read` pods doesn't solve the issue:
+
+**1. Restart all Loki components:**
+
+```bash
+# Restart all Loki pods
+kubectl delete pods -l app.kubernetes.io/name=loki -n <namespace>
+```
+
+**2. Check Loki configuration:**
+
+```bash
+# Check Loki configmap
+kubectl get configmap loki-config -n <namespace> -o yaml
+```
+
+**3. Verify network connectivity:**
+
+```bash
+# Test connectivity between pods
+kubectl exec -it <loki-read-pod> -n <namespace> -- nslookup loki-backend
+```
+
+**4. Check resource constraints:**
+
+```bash
+# Check if pods are resource-constrained
+kubectl top pods -n <namespace> | grep loki
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on February 12, 2025 based on a real user query._

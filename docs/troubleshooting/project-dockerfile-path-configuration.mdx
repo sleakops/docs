@@ -1,0 +1,195 @@
+---
+sidebar_position: 3
+title: "Dockerfile Path Configuration Error in Projects"
+description: "Solution for Dockerfile path issues and exceptions when editing project configuration"
+date: "2025-02-20"
+category: "project"
+tags: ["dockerfile", "project", "configuration", "path", "repository"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Dockerfile Path Configuration Error in Projects
+
+**Date:** February 20, 2025  
+**Category:** Project  
+**Tags:** Dockerfile, Project, Configuration, Path, Repository
+
+## Problem Description
+
+**Context:** Users experience issues when configuring or editing the Dockerfile path in SleakOps project settings, resulting in the path being cleared or exceptions being thrown.
+
+**Observed Symptoms:**
+
+- Dockerfile path gets automatically cleared/deleted when editing
+- Exception thrown when trying to modify Dockerfile path
+- Configuration doesn't persist after saving
+- Project build fails due to missing Dockerfile reference
+
+**Relevant Configuration:**
+
+- Dockerfile path format: Relative path from repository root
+- Repository branch: Must match the branch where Dockerfile exists
+- Path structure: Must include full path including filename
+
+**Error Conditions:**
+
+- Error occurs when Dockerfile is not found in specified repository and branch
+- Path specification is incomplete or incorrect
+- Dockerfile doesn't exist at the specified location
+
+## Detailed Solution
+
+<TroubleshootingItem id="dockerfile-path-format" summary="Correct Dockerfile Path Format">
+
+The Dockerfile path in SleakOps must include the complete path from the repository root, including the filename:
+
+**Correct format:**
+
+```
+./docker/base/Dockerfile
+./docker/Dockerfile
+./Dockerfile
+```
+
+**Incorrect format:**
+
+```
+./docker/base  # Missing filename
+docker/base    # Missing ./ prefix
+base           # Incomplete path
+```
+
+**Example:**
+If your repository structure is:
+
+```
+my-repo/
+├── docker/
+│   └── base/
+│       └── Dockerfile
+└── src/
+```
+
+The correct path would be: `./docker/base/Dockerfile`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="repository-branch-verification" summary="Verify Repository and Branch Configuration">
+
+Ensure that:
+
+1. **Repository is correctly linked** to your project
+2. **Branch specification** matches where your Dockerfile exists
+3. **Dockerfile exists** in the specified branch
+
+**Steps to verify:**
+
+1. Go to your **Project Settings**
+2. Check the **Repository** field points to the correct repo
+3. Verify the **Branch** field matches your Dockerfile's branch
+4. Confirm the Dockerfile exists at the specified path in that branch
+
+**Common issues:**
+
+- Dockerfile exists in `main` branch but project is configured for `develop`
+- Repository URL is incorrect or outdated
+- Dockerfile was moved or renamed after initial configuration
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Troubleshooting Steps">
+
+If the Dockerfile path keeps getting cleared:
+
+1. **Verify file existence:**
+
+   ```bash
+   # Clone your repository and check
+   git clone <your-repo-url>
+   cd <your-repo>
+   git checkout <your-branch>
+   ls -la ./docker/base/Dockerfile  # Replace with your path
+   ```
+
+2. **Check file permissions:**
+
+   - Ensure the Dockerfile is readable
+   - Verify repository access permissions
+
+3. **Update configuration step by step:**
+
+   - First, ensure repository and branch are correct
+   - Then, add the complete Dockerfile path
+   - Save and verify the configuration persists
+
+4. **Test with a simple path:**
+   - Try placing Dockerfile in repository root: `./Dockerfile`
+   - If this works, gradually move to subdirectories
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Best Practices for Dockerfile Configuration">
+
+**Recommended practices:**
+
+1. **Use consistent naming:**
+
+   ```
+   ./Dockerfile              # For single service
+   ./docker/app/Dockerfile   # For multi-service apps
+   ./services/api/Dockerfile # For microservices
+   ```
+
+2. **Organize by environment:**
+
+   ```
+   ./docker/production/Dockerfile
+   ./docker/development/Dockerfile
+   ./docker/staging/Dockerfile
+   ```
+
+3. **Keep Dockerfiles in version control:**
+
+   - Always commit Dockerfile changes
+   - Use meaningful commit messages
+   - Tag releases that include Dockerfile changes
+
+4. **Test locally before configuring in SleakOps:**
+   ```bash
+   docker build -f ./docker/base/Dockerfile .
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Alternative Solutions">
+
+If the problem persists:
+
+1. **Use repository root Dockerfile:**
+
+   - Move your Dockerfile to the repository root
+   - Use path: `./Dockerfile`
+
+2. **Create a symbolic link:**
+
+   ```bash
+   ln -s ./docker/base/Dockerfile ./Dockerfile
+   ```
+
+3. **Use Docker Compose:**
+
+   - Configure docker-compose.yml in repository root
+   - Reference Dockerfile from compose file
+
+4. **Contact support with details:**
+   - Repository URL
+   - Branch name
+   - Exact Dockerfile path
+   - Screenshots of the error
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on February 20, 2025 based on a real user query._

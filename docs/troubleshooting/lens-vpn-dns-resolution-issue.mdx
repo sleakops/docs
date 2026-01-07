@@ -1,0 +1,156 @@
+---
+sidebar_position: 3
+title: "Lens VPN DNS Resolution Issue"
+description: "Solution for DNS resolution problems when using Lens with Pritunl VPN"
+date: "2025-03-05"
+category: "user"
+tags: ["lens", "vpn", "pritunl", "dns", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Lens VPN DNS Resolution Issue
+
+**Date:** March 5, 2025  
+**Category:** User  
+**Tags:** Lens, VPN, Pritunl, DNS, Troubleshooting
+
+## Problem Description
+
+**Context:** Users experience DNS resolution issues when trying to connect to Kubernetes clusters through Lens while connected to Pritunl VPN. The system resolves public DNS instead of internal DNS, preventing proper cluster access.
+
+**Observed Symptoms:**
+
+- Lens cannot connect to Kubernetes cluster despite being connected to VPN
+- DNS resolution errors when accessing cluster resources
+- Public DNS is being resolved instead of internal/private DNS
+- Connection works intermittently or not at all
+
+**Relevant Configuration:**
+
+- Tool: Lens (Kubernetes IDE)
+- VPN: Pritunl
+- Connection: VPN is active and connected
+- Kubeconfig: Properly configured and imported
+
+**Error Conditions:**
+
+- Error occurs when Lens tries to resolve cluster endpoints
+- Problem persists even with active VPN connection
+- DNS resolution defaults to public instead of private
+- Issue commonly occurs after system restarts or network changes
+
+## Detailed Solution
+
+<TroubleshootingItem id="dns-resolution-fix" summary="Fix DNS resolution issue">
+
+This is a common issue that occurs when the system resolves public DNS instead of the internal VPN DNS. Follow these steps to resolve it:
+
+1. **Close Lens completely**
+
+   - Make sure Lens is fully closed (check system tray)
+   - End any remaining Lens processes if necessary
+
+2. **Reconnect to Pritunl VPN**
+
+   - Disconnect from the current VPN connection
+   - Wait a few seconds
+   - Reconnect to the VPN
+
+3. **Reset DNS service in Pritunl**
+
+   - Open Pritunl client
+   - Go to **Options** or **Settings**
+   - Look for **"Reset DNS Service"** option
+   - Click on it to reset the DNS configuration
+
+4. **Reopen Lens**
+   - Launch Lens again
+   - Try connecting to your cluster
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-steps" summary="Verify the solution worked">
+
+To confirm the DNS resolution is working correctly:
+
+1. **Check VPN status**
+
+   ```bash
+   # On Windows
+   nslookup your-cluster-endpoint
+
+   # On macOS/Linux
+   dig your-cluster-endpoint
+   ```
+
+2. **Test cluster connectivity**
+
+   ```bash
+   kubectl cluster-info
+   kubectl get nodes
+   ```
+
+3. **Verify in Lens**
+   - Open Lens
+   - Connect to your cluster
+   - Check if resources load properly
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Alternative solutions if the problem persists">
+
+If the DNS reset doesn't work, try these alternatives:
+
+**Option 1: Restart network services**
+
+```bash
+# Windows (run as administrator)
+ipconfig /flushdns
+ipconfig /release
+ipconfig /renew
+
+# macOS
+sudo dscacheutil -flushcache
+sudo killall -HUP mDNSResponder
+
+# Linux
+sudo systemctl restart systemd-resolved
+```
+
+**Option 2: Manual DNS configuration**
+
+- Configure your system to use the VPN's DNS servers
+- Add the internal DNS servers to your network configuration
+- Ensure VPN DNS takes priority over system DNS
+
+**Option 3: Use kubectl directly**
+
+- If Lens continues having issues, use kubectl from terminal
+- This bypasses Lens DNS resolution
+- Configure your kubeconfig properly for direct access
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-tips" summary="Prevent future DNS issues">
+
+To minimize DNS resolution problems:
+
+1. **Always connect to VPN before opening Lens**
+2. **Use Pritunl's DNS reset feature regularly**
+3. **Keep Pritunl client updated**
+4. **Configure static DNS if needed**
+5. **Monitor network changes that might affect DNS**
+
+**Pro tip:** Create a script or routine:
+
+1. Connect to VPN
+2. Reset DNS service
+3. Wait 10 seconds
+4. Open Lens
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on March 5, 2025 based on a real user query._

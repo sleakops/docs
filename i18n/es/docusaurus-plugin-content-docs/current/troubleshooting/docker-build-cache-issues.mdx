@@ -1,0 +1,175 @@
+---
+sidebar_position: 3
+title: "Problemas con la Caché de Construcción de Docker en Producción"
+description: "Solución para la caché de construcción de Docker que impide que los cambios de código se desplieguen"
+date: "2024-01-15"
+category: "proyecto"
+tags: ["docker", "caché", "despliegue", "construcción", "ecr"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas con la Caché de Construcción de Docker en Producción
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** Proyecto  
+**Etiquetas:** Docker, Caché, Despliegue, Construcción, ECR
+
+## Descripción del Problema
+
+**Contexto:** El usuario realizó cambios en el código que funcionan correctamente en el entorno de desarrollo local, pero después de desplegar en producción, el comportamiento antiguo persiste a pesar de que el código está correctamente actualizado en el repositorio.
+
+**Síntomas Observados:**
+
+- Los cambios en el código funcionan correctamente en desarrollo local
+- Después del despliegue, producción sigue mostrando el comportamiento/errores antiguos
+- Los archivos del código fuente están correctamente actualizados en producción
+- El problema parece estar relacionado con la caché de construcción de Docker
+
+**Configuración Relevante:**
+
+- Plataforma: SleakOps con construcciones Docker
+- Entorno: Despliegue en producción
+- Sistema de construcción: Docker con caché de capas
+- Registro: AWS ECR para almacenamiento de imágenes
+
+**Condiciones de Error:**
+
+- El problema ocurre después del despliegue del código
+- El entorno local funciona correctamente
+- El despliegue en producción no refleja los cambios en el código
+- El problema persiste a través de múltiples intentos de despliegue
+
+## Solución Detallada
+
+<TroubleshootingItem id="cache-invalidation" summary="Invalidar la caché de construcción de Docker">
+
+La causa más común es que la caché de construcción de Docker no detecta cambios en el código de tu aplicación. Para forzar la invalidación de la caché, agrega esta línea a tu Dockerfile antes de copiar los archivos de tu aplicación:
+
+```dockerfile
+# Añade esto antes de los comandos COPY
+# Invalidador de caché
+RUN echo "Frontend cache bust: v2" > /dev/null
+
+# Luego tus comandos COPY normales
+COPY ./ClientApp /app/ClientApp
+```
+
+Esto obliga a Docker a reconstruir todas las capas posteriores, asegurando que tus cambios de código se incluyan.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="ecr-cleanup" summary="Limpiar las imágenes del repositorio ECR">
+
+Si la invalidación de caché no funciona, puede que necesites limpiar las imágenes Docker almacenadas en AWS ECR:
+
+1. **Accede a la Consola AWS**
+
+   - Cambia a tu cuenta AWS de producción
+   - Navega al servicio **Amazon ECR**
+
+2. **Encuentra tu repositorio**
+
+   - Localiza el repositorio que contiene las imágenes Docker de tu proyecto
+   - Por lo general estará nombrado según tu proyecto
+
+3. **Elimina las imágenes en caché**
+
+   - Selecciona todas las imágenes en el repositorio
+   - Elimínalas para forzar una reconstrucción completa
+
+4. **Despliega con un nuevo commit**
+   - Haz un nuevo commit (puedes eliminar la línea de invalidación de caché si lo deseas)
+   - Despliega los cambios
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dockerfile-optimization" summary="Optimiza el Dockerfile para mejor caché">
+
+Para prevenir este problema en el futuro, estructura tu Dockerfile para maximizar la eficiencia de la caché:
+
+```dockerfile
+# Buenas prácticas: copiar primero archivos de dependencias
+COPY package.json package-lock.json ./
+RUN npm install
+
+# Copiar el código de la aplicación al final (cambia con más frecuencia)
+COPY ./ClientApp ./ClientApp
+COPY ./ServerApp ./ServerApp
+
+# Construir la aplicación
+RUN npm run build
+```
+
+De esta manera, la instalación de dependencias se cachea separadamente del código de la aplicación.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Pasos alternativos de solución de problemas">
+
+Si el problema persiste, prueba estos pasos adicionales:
+
+1. **Forzar reconstrucción sin caché**
+
+   ```bash
+   # Si usas Docker directamente
+   docker build --no-cache -t tu-imagen .
+   ```
+
+2. **Revisar los registros de construcción**
+
+   - Revisa los logs de despliegue en SleakOps
+   - Busca mensajes "Using cache" que puedan indicar capas obsoletas
+
+3. **Verificar las marcas de tiempo de los archivos**
+
+   - Asegúrate que tus cambios de código tengan marcas de tiempo recientes
+   - Comprueba si el proceso de construcción está tomando los archivos correctos
+
+4. **Probar con cambios mínimos**
+   - Haz un cambio pequeño y visible (como agregar un console.log)
+   - Despliega y verifica que el cambio aparezca en producción
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention" summary="Prevención de futuros problemas de caché">
+
+Para evitar este problema en el futuro:
+
+1. **Usa correctamente .dockerignore**
+
+   ```
+   node_modules
+   .git
+   .env.local
+   *.log
+   ```
+
+2. **Implementa una correcta invalidación de caché**
+
+   - Usa argumentos de construcción con marcas de tiempo
+   - Incluye números de versión en tus builds
+
+3. **Monitorea los procesos de construcción**
+
+   - Revisa regularmente los logs de despliegue
+   - Verifica que las construcciones realmente reconstruyan las capas cambiadas
+
+4. **Usa construcciones multi-etapa**
+
+   ```dockerfile
+   FROM node:16 AS builder
+   COPY package*.json ./
+   RUN npm install
+   COPY . .
+   RUN npm run build
+
+   FROM nginx:alpine
+   COPY --from=builder /app/dist /usr/share/nginx/html
+   ```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._

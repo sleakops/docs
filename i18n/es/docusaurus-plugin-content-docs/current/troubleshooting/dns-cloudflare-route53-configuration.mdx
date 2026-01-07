@@ -1,0 +1,196 @@
+---
+sidebar_position: 3
+title: "Configuración DNS con Cloudflare y Route53"
+description: "Cómo configurar registros DNS al usar Cloudflare con delegación AWS Route53"
+date: "2024-12-19"
+category: "proveedor"
+tags: ["dns", "cloudflare", "route53", "aws", "configuración"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Configuración DNS con Cloudflare y Route53
+
+**Fecha:** 19 de diciembre de 2024  
+**Categoría:** Proveedor  
+**Etiquetas:** DNS, Cloudflare, Route53, AWS, Configuración
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios necesitan configurar registros DNS al usar Cloudflare como su proveedor DNS mientras tienen servicios AWS que requieren delegación Route53 para subdominios.
+
+**Síntomas Observados:**
+
+- Fallos en la resolución DNS para subdominios que apuntan a Load Balancers de AWS
+- Servicios inaccesibles mediante los nombres de dominio configurados
+- Problemas de propagación DNS entre Cloudflare y Route53
+- Conflictos en la configuración de registros CNAME/A
+
+**Configuración Relevante:**
+
+- Proveedor DNS: Cloudflare
+- Servicio AWS: ELB (Elastic Load Balancer)
+- Delegación de dominio: Route53 para subdominios específicos
+- Tipos de registro: CNAME o registros A
+
+**Condiciones de Error:**
+
+- Tiempo de espera en resolución de dominio
+- Servicios no accesibles vía dominios configurados
+- Delegación DNS no funcionando correctamente
+- Endpoints del balanceador no resolviendo
+
+## Solución Detallada
+
+<TroubleshootingItem id="dns-delegation-setup" summary="Configuración de la delegación DNS entre Cloudflare y Route53">
+
+Al usar Cloudflare como proveedor DNS principal pero necesitar Route53 para servicios AWS:
+
+1. **En Route53 (Consola AWS):**
+
+   - Crear una zona alojada para su subdominio
+   - Anotar los registros NS (Name Server) proporcionados por Route53
+
+2. **En Cloudflare:**
+
+   - Crear registros NS que apunten su subdominio a los servidores de nombres de Route53
+   - Ejemplo: `subdominio.sudominio.com` → registros NS de Route53
+
+3. **Verificar la delegación:**
+   ```bash
+   dig NS subdominio.sudominio.com
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="load-balancer-dns-records" summary="Configuración de registros DNS para Load Balancers de AWS">
+
+Para Load Balancers de AWS, debe crear los registros DNS apropiados:
+
+**En Cloudflare (para configuración directa):**
+
+```
+Tipo: CNAME
+Nombre: corebackupgenerator
+Valor: internal-k8s-autolabproduction-fc0a036b93-1779329228.us-east-1.elb.amazonaws.com
+TTL: Auto
+Estado proxy: Solo DNS (nube gris)
+```
+
+**En Route53 (si usa delegación):**
+
+```
+Tipo: A (Alias)
+Nombre: corebackupgenerator.autolab.com.co
+Destino Alias: internal-k8s-autolabproduction-fc0a036b93-1779329228.us-east-1.elb.amazonaws.com
+Política de enrutamiento: Simple
+```
+
+**Importante:** Use registros A (Alias) en Route53 para mejor rendimiento y resolución automática de IP.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cloudflare-proxy-settings" summary="Configuración del proxy de Cloudflare para servicios AWS">
+
+Al configurar registros DNS en Cloudflare para servicios AWS:
+
+1. **Deshabilitar Proxy de Cloudflare (Nube Gris):**
+
+   - Haga clic en el icono de nube naranja para que se vuelva gris
+   - Esto asegura conexión directa con los servicios AWS
+   - Requerido para servicios no HTTP o puertos personalizados
+
+2. **Configuración SSL/TLS:**
+
+   - Establecer el modo de cifrado SSL/TLS a "Completo" o "Completo (estricto)"
+   - Asegurar que los certificados coincidan entre Cloudflare y AWS
+
+3. **Reglas de Página (si es necesario):**
+   - Crear reglas para omitir Cloudflare en subdominios específicos
+   - Útil para endpoints API o conexiones WebSocket
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-dns" summary="Solución de problemas en resolución DNS">
+
+**Comandos de diagnóstico:**
+
+1. **Verificar propagación DNS:**
+
+   ```bash
+   dig corebackupgenerator.autolab.com.co
+   nslookup corebackupgenerator.autolab.com.co
+   ```
+
+2. **Probar desde diferentes servidores DNS:**
+
+   ```bash
+   dig @8.8.8.8 corebackupgenerator.autolab.com.co
+   dig @1.1.1.1 corebackupgenerator.autolab.com.co
+   ```
+
+3. **Verificar delegación:**
+   ```bash
+   dig NS autolab.com.co
+   dig NS corebackupgenerator.autolab.com.co
+   ```
+
+**Problemas comunes:**
+
+- **TTL demasiado alto:** Reducir TTL a 300 segundos durante cambios
+- **Proxy habilitado:** Deshabilitar proxy de Cloudflare para servicios AWS
+- **Tipo de registro incorrecto:** Usar CNAME para dominios externos, A para direcciones IP
+- **Delegación faltante:** Asegurar que los registros NS estén correctamente configurados
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Mejores prácticas para configuración DNS">
+
+**Para configuración Cloudflare + AWS:**
+
+1. **Usar delegación por subdominio:**
+
+   - Delegar subdominios específicos a Route53
+   - Mantener la gestión del dominio principal en Cloudflare
+
+2. **Selección de tipo de registro:**
+
+   - Usar registros A (Alias) en Route53 para recursos AWS
+   - Usar registros CNAME en Cloudflare para dominios externos
+
+3. **Monitoreo y validación:**
+
+   - Configurar monitoreo DNS
+   - Probar resolución regularmente desde diferentes ubicaciones
+   - Monitorear validez de certificados SSL
+
+4. **Documentación:**
+   - Documentar todas las delegaciones DNS
+   - Mantener registro de qué registros se gestionan en cada lugar
+   - Mantener información de contacto para emergencias
+
+**Ejemplo de configuración:**
+
+```yaml
+# Registros Cloudflare
+autolab.com.co:
+  - Tipo: A
+    Valor: 192.168.1.1
+  - Tipo: NS (para subdominio k8s)
+    Valor: servidores NS de Route53
+
+# Registros Route53 (zona k8s.autolab.com.co)
+k8s.autolab.com.co:
+  - Tipo: A (Alias)
+    Destino: nombre DNS del ELB
+
+corebackupgenerator.autolab.com.co:
+  - Tipo: A (Alias)
+    Destino: internal-k8s-autolabproduction-fc0a036b93-1779329228.us-east-1.elb.amazonaws.com
+```
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 19 de diciembre de 2024 basada en una consulta real de usuario._

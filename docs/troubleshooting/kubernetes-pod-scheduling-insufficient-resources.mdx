@@ -1,0 +1,171 @@
+---
+sidebar_position: 3
+title: "Kubernetes Pod Scheduling Failures - Insufficient Resources"
+description: "Solution for pod scheduling failures due to insufficient CPU and memory resources in Kubernetes clusters"
+date: "2024-03-12"
+category: "cluster"
+tags: ["kubernetes", "scheduling", "resources", "nodepool", "karpenter"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Kubernetes Pod Scheduling Failures - Insufficient Resources
+
+**Date:** March 12, 2024  
+**Category:** Cluster  
+**Tags:** Kubernetes, Scheduling, Resources, Nodepool, Karpenter
+
+## Problem Description
+
+**Context:** A deployment that was previously working suddenly fails to schedule pods in a Kubernetes cluster managed by SleakOps, showing resource insufficiency errors.
+
+**Observed Symptoms:**
+
+- Pods fail to schedule with "0/X nodes are available" error
+- "Insufficient cpu" and "Insufficient memory" messages
+- Error mentions specific resource requirements not being met
+- Previously working deployments suddenly stop functioning
+
+**Relevant Configuration:**
+
+- Pod resource requirements: CPU 665m, Memory 2000Mi
+- Nodepool: spot-arm64 with ARM64 architecture
+- Cluster using Karpenter for node provisioning
+- Minimum node requirements: 2GB RAM, 2 CPU cores
+
+**Error Conditions:**
+
+- Error occurs during pod scheduling phase
+- Appears when nodepool reaches resource limits
+- Affects deployments that were previously successful
+- Multiple nodepools show incompatibility issues
+
+## Detailed Solution
+
+<TroubleshootingItem id="understanding-error" summary="Understanding the scheduling error">
+
+The error message indicates several issues:
+
+1. **Insufficient Resources**: Nodes don't have enough CPU (665m required) or memory (2000Mi required)
+2. **Nodepool Limits**: The nodepool has reached its configured resource limits
+3. **Taint Incompatibility**: Some nodes have taints that prevent pod scheduling
+4. **Instance Type Constraints**: No available instance types meet the resource and constraint requirements
+
+```
+0/8 nodes are available:
+- 2 Insufficient cpu
+- 4 Insufficient memory
+- Taints preventing scheduling on certain nodes
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-solution" summary="Immediate solution: Increase nodepool limits">
+
+To resolve this issue immediately:
+
+1. **Access Nodepool Settings**:
+
+   - Go to SleakOps Console
+   - Navigate to Clusters → Your Cluster → Settings → Node Pools
+   - Select the affected nodepool (e.g., "spot-arm64")
+
+2. **Increase Resource Limits**:
+
+   - **CPU Limit**: Increase from current value to accommodate more pods
+   - **Memory Limit**: Increase total memory allocation (e.g., from 32GB to 64GB)
+   - **Node Count**: Ensure maximum node count allows for scaling
+
+3. **Save and Apply Changes**:
+   - The cluster will automatically provision new nodes if needed
+   - Existing pods should reschedule within a few minutes
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="nodepool-configuration" summary="Understanding nodepool configuration sections">
+
+**Section 1 - Resource Limits (Security/Cost Cap)**:
+
+- Acts as a safety limit to prevent unexpected costs
+- Doesn't affect costs unless you increase pod count or enable autoscaling
+- Prevents runaway resource consumption
+
+**Section 2 - Node Configuration**:
+
+- **Storage**: Configures disk space for each node
+- **Advanced Settings**: Sets minimum CPU and memory per node
+  - Default: 2GB RAM, 2 CPU cores minimum
+  - Prevents scheduling on very small instances (t4g.nano, t4g.micro)
+  - Ensures daemonsets can run properly
+
+```yaml
+# Example nodepool configuration
+resource_limits:
+  max_cpu: "32"
+  max_memory: "64Gi"
+  max_nodes: 10
+
+node_requirements:
+  min_cpu: "2"
+  min_memory: "2Gi"
+  storage: "20Gi"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cost-implications" summary="Cost implications of resource limit changes">
+
+**Important**: Increasing resource limits does NOT immediately increase costs.
+
+**What affects costs**:
+
+- **Actual resource usage**: Only pay for nodes that are actually created
+- **Pod scaling**: More pods = more nodes = higher costs
+- **Autoscaling**: If enabled, automatic scaling based on demand
+
+**What doesn't affect costs**:
+
+- **Increasing limits**: Just raises the ceiling, doesn't create resources
+- **Higher memory/CPU caps**: Only affects maximum possible usage
+
+**Best practices**:
+
+- Set reasonable limits based on expected maximum load
+- Monitor actual usage vs. limits regularly
+- Use spot instances for cost optimization when possible
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-monitoring" summary="Prevention and monitoring">
+
+**Monitor Resource Usage**:
+
+1. **SleakOps Dashboard**: Check cluster resource utilization
+2. **Set Alerts**: Configure notifications for high resource usage
+3. **Regular Reviews**: Periodically review and adjust limits
+
+**Prevention Strategies**:
+
+- **Gradual Scaling**: Increase limits gradually based on actual needs
+- **Resource Requests**: Ensure pods have appropriate resource requests set
+- **Multiple Nodepools**: Use different nodepools for different workload types
+- **Spot vs On-Demand**: Balance cost and reliability needs
+
+**Troubleshooting Commands**:
+
+```bash
+# Check node resources
+kubectl describe nodes
+
+# Check pod resource requests
+kubectl describe pod <pod-name> -n <namespace>
+
+# View nodepool status
+kubectl get nodepools
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on March 12, 2024 based on a real user query._

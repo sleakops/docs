@@ -1,0 +1,216 @@
+---
+sidebar_position: 3
+title: "Pérdida de Métricas Durante Fallos de Nodos en Clústeres de Kubernetes"
+description: "Comprender y prevenir la pérdida de métricas cuando los nodos fallan o son reemplazados en clústeres de Kubernetes"
+date: "2024-06-26"
+category: "cluster"
+tags: ["monitoring", "metrics", "node-failure", "prometheus", "persistence"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Pérdida de Métricas Durante Fallos de Nodos en Clústeres de Kubernetes
+
+**Fecha:** 26 de junio de 2024  
+**Categoría:** Clúster  
+**Etiquetas:** Monitoreo, Métricas, Fallo de Nodo, Prometheus, Persistencia
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios experimentan pérdida de métricas de monitoreo cuando los nodos de Kubernetes fallan o son reemplazados durante despliegues, afectando la disponibilidad de datos históricos para análisis y solución de problemas.
+
+**Síntomas Observados:**
+
+- Las métricas desaparecen cuando los nodos se caen o se terminan
+- Los datos históricos de monitoreo dejan de estar disponibles
+- Huecos en la continuidad de métricas durante el reemplazo de nodos
+- Pérdida de datos de rendimiento durante despliegues
+
+**Configuración Relevante:**
+
+- Retención de métricas: almacenamiento local por 2 horas antes de persistir en S3
+- Tipos de instancia: instancias bajo demanda (menos propensas a fallos)
+- Backend de almacenamiento: S3 para almacenamiento a largo plazo de métricas
+- Stack de monitoreo: colección de métricas basada en Prometheus
+
+**Condiciones de Error:**
+
+- Fallos de nodo durante la ventana de retención local de 2 horas
+- Despliegues que reemplazan nodos antes de que las métricas se persistan
+- Terminaciones inesperadas de nodos por problemas de infraestructura
+- Problemas de red que impiden la persistencia de métricas a S3
+
+## Solución Detallada
+
+<TroubleshootingItem id="understanding-metric-persistence" summary="Comprendiendo el modelo actual de persistencia de métricas">
+
+La arquitectura actual de métricas funciona de la siguiente manera:
+
+1. **Fase de Almacenamiento Local**: Las métricas se almacenan localmente en cada nodo durante 2 horas
+2. **Fase de Persistencia**: Después de 2 horas, las métricas se persisten automáticamente en S3
+3. **Ventana de Riesgo**: Si un nodo falla dentro de esa ventana de 2 horas, las métricas se pierden
+
+Este diseño optimiza para:
+
+- Reducir costos de tráfico de red
+- Seguir recomendaciones oficiales de herramientas
+- Balancear rendimiento con costos de almacenamiento
+
+```yaml
+# Ejemplo de configuración actual
+prometheus:
+  retention:
+    local: "2h"
+    remote_write:
+      interval: "2h"
+      destination: "s3://metrics-bucket"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="deployment-impact" summary="Impacto de los despliegues en la retención de métricas">
+
+Durante los despliegues, la pérdida de métricas puede ocurrir cuando:
+
+1. **Actualizaciones Continuas**: Los nodos antiguos se terminan antes de que las métricas se persistan
+2. **Reemplazo de Nodos**: Los nodos nuevos reemplazan a los antiguos dentro de la ventana de 2 horas
+3. **Operaciones de Escalado**: Nodos son removidos durante operaciones de reducción de escala
+
+**Escenarios de despliegue vs fallo de nodo:**
+
+- **Despliegues planificados**: Las métricas pueden perderse si el despliegue ocurre dentro de la ventana de 2 horas
+- **Fallas no planificadas**: Menos comunes con instancias bajo demanda pero aún posibles
+- **Problemas de infraestructura**: Problemas de red, interrupciones en servicios AWS
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-mitigation" summary="Estrategias de mitigación inmediata">
+
+Mientras se esperan mejoras en la plataforma, considere estos enfoques:
+
+**1. Programar despliegues**
+
+```bash
+# Verificar la última persistencia de métricas
+kubectl get configmap prometheus-config -o yaml | grep last_persist
+
+# Esperar al siguiente ciclo de persistencia antes de desplegar
+echo "Esperando la persistencia de métricas..."
+sleep 7200  # 2 horas
+```
+
+**2. Respaldo manual de métricas**
+
+```bash
+# Exportar métricas actuales antes del despliegue
+kubectl port-forward svc/prometheus 9090:9090
+curl -G 'http://localhost:9090/api/v1/query_range' \
+  --data-urlencode 'query=up' \
+  --data-urlencode 'start=2024-06-26T00:00:00Z' \
+  --data-urlencode 'end=2024-06-26T23:59:59Z' \
+  --data-urlencode 'step=60s' > metrics_backup.json
+```
+
+**3. Monitorear impacto del despliegue**
+
+```bash
+# Monitorear reemplazo de nodos durante el despliegue
+kubectl get events --field-selector reason=NodeReady -w
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="platform-roadmap" summary="Mejoras en desarrollo para la plataforma">
+
+El equipo de SleakOps está trabajando activamente en soluciones para prevenir la pérdida de métricas:
+
+**Mejoras planeadas:**
+
+1. **Claims de Volumen Persistente**: Almacenar métricas en almacenamiento persistente
+2. **Persistencia más rápida**: Reducir la ventana de 2 horas para minimizar riesgos
+3. **Apagado ordenado de nodos**: Asegurar que las métricas se guarden antes de la terminación del nodo
+4. **Almacenamiento redundante**: Múltiples copias de métricas en diferentes nodos
+
+**Cronograma:**
+
+- Estas mejoras están en la hoja de ruta del producto
+- Se comunicarán actualizaciones conforme estén disponibles
+- No se ha proporcionado una fecha estimada específica aún
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-best-practices" summary="Buenas prácticas para la confiabilidad de métricas">
+
+**1. Programación de despliegues**
+
+- Programar despliegues después de los ciclos de persistencia de métricas
+- Monitorear el estado de persistencia de métricas antes de desplegar
+- Usar ventanas de mantenimiento para despliegues críticos
+
+**2. Configuración de monitoreo**
+
+```yaml
+# Añadir alertas para problemas de persistencia de métricas
+groups:
+  - name: metrics.rules
+    rules:
+      - alert: MetricsPersistenceDelay
+        expr: time() - prometheus_tsdb_last_successful_snapshot_timestamp > 7200
+        for: 5m
+        annotations:
+          summary: "La persistencia de métricas está retrasada"
+```
+
+**3. Documentación**
+
+- Documentar procedimientos de despliegue que consideren las métricas
+- Capacitar a los miembros del equipo sobre ventanas de persistencia de métricas
+- Crear runbooks para procedimientos de recuperación de métricas
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Enfoques alternativos de monitoreo">
+
+Para entornos críticos que requieran cero pérdida de métricas:
+
+**1. Monitoreo externo**
+
+- Usar servicios externos de monitoreo (DataDog, New Relic)
+- Implementar métricas push hacia sistemas externos
+- Configurar infraestructura de monitoreo redundante
+
+**2. Persistencia personalizada**
+
+```yaml
+# Sidecar personalizado para persistencia inmediata
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: metrics-backup
+spec:
+  template:
+    spec:
+      containers:
+        - name: backup
+          image: prom/prometheus:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              while true; do
+                promtool query instant 'up' | aws s3 cp - s3://backup-metrics/$(date +%s).json
+                sleep 300
+              done
+```
+
+**3. Configuración de alta disponibilidad**
+
+- Desplegar Prometheus en modo HA
+- Usar Thanos para almacenamiento a largo plazo
+- Implementar replicación de métricas entre regiones
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 19/12/2024 basada en una consulta real de usuario._

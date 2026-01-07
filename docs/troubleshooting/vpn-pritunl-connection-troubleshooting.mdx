@@ -1,0 +1,163 @@
+---
+sidebar_position: 3
+title: "Pritunl VPN Connection Issues"
+description: "Troubleshooting guide for Pritunl VPN connection problems in SleakOps"
+date: "2024-12-19"
+category: "user"
+tags: ["vpn", "pritunl", "connection", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Pritunl VPN Connection Issues
+
+**Date:** December 19, 2024  
+**Category:** User  
+**Tags:** VPN, Pritunl, Connection, Troubleshooting
+
+## Problem Description
+
+**Context:** Users experiencing connectivity issues with Pritunl VPN in SleakOps production environment, where the VPN client shows "connecting" status but never establishes a successful connection.
+
+**Observed Symptoms:**
+
+- Pritunl client remains in "connecting" state indefinitely
+- No error messages displayed in the client
+- Unable to access internal resources through VPN
+- VPN server appears to be running but connections fail
+
+**Relevant Configuration:**
+
+- VPN Type: Pritunl OpenVPN
+- Environment: Production
+- Client: Pritunl desktop application
+- Profile format: .ovpn configuration file
+
+**Error Conditions:**
+
+- Connection attempts timeout without establishing tunnel
+- Issue may be intermittent or persistent
+- Problem can occur after profile updates or network changes
+- Local network configuration may interfere with connection
+
+## Detailed Solution
+
+<TroubleshootingItem id="initial-diagnosis" summary="Initial connectivity verification">
+
+Before troubleshooting the VPN profile, verify basic connectivity to the VPN server:
+
+1. **Test HTTPS connectivity** to the VPN server IP:
+   ```bash
+   # Replace with your actual VPN server IP
+   curl -k https://3.82.69.46/
+   ```
+2. **Expected behavior**: You should see an HTTPS response (even with certificate warnings)
+
+3. **If no response**: The issue is likely network-related (firewall, ISP blocking, etc.)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="profile-regeneration" summary="Regenerate VPN profile">
+
+The most common solution is to regenerate the VPN profile:
+
+1. **Access SleakOps Dashboard**
+2. Navigate to **VPN Settings** or **User Profile**
+3. **Generate new Pritunl URL**:
+   - Look for "Generate VPN Profile" or similar option
+   - Click to create a new temporary download link
+4. **Download fresh profile**:
+   - The generated URLs have limited validity (few hours)
+   - Download the new .ovpn profile immediately
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="profile-reinstallation" summary="Remove and reinstall VPN profile">
+
+Complete profile reinstallation process:
+
+1. **Remove existing profile**:
+
+   - Open Pritunl client
+   - Right-click on the problematic profile
+   - Select "Delete" or "Remove"
+
+2. **Clear any cached data**:
+
+   - Close Pritunl client completely
+   - Restart the application
+
+3. **Install new profile**:
+   - Import the newly downloaded .ovpn file
+   - Verify profile settings are correct
+   - Attempt connection
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="network-troubleshooting" summary="Network-specific troubleshooting">
+
+If profile regeneration doesn't work, try network-level troubleshooting:
+
+1. **Test different networks**:
+
+   - Try connecting from mobile hotspot
+   - Test from different WiFi network
+   - This helps identify ISP or local network issues
+
+2. **Check firewall settings**:
+
+   - Ensure OpenVPN ports are not blocked
+   - Common ports: 1194 (UDP), 443 (TCP)
+   - Temporarily disable local firewall for testing
+
+3. **DNS resolution**:
+   - Verify VPN server hostname resolves correctly
+   - Try using IP address instead of hostname in profile
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="server-side-verification" summary="Server-side verification (Admin)">
+
+For administrators with access to SleakOps backend:
+
+1. **Access Secrets Manager**:
+
+   - Find Pritunl server credentials
+   - Access Pritunl admin console
+
+2. **Check server logs**:
+
+   - Review connection attempts in Pritunl logs
+   - Look for authentication failures or network errors
+
+3. **Verify server status**:
+   - Ensure Pritunl service is running
+   - Check server resource usage
+   - Verify network connectivity from server side
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Alternative solutions">
+
+If standard troubleshooting doesn't resolve the issue:
+
+1. **Try different VPN protocols**:
+
+   - Switch between UDP and TCP if options available
+   - Test different ports if configurable
+
+2. **Update Pritunl client**:
+
+   - Ensure you're using the latest version
+   - Check for compatibility issues
+
+3. **Contact support with details**:
+   - Provide VPN server IP and connection logs
+   - Include network environment details
+   - Specify when the issue started occurring
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

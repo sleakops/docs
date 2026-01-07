@@ -1,0 +1,207 @@
+---
+sidebar_position: 3
+title: "Grafana 404 Error After Installation"
+description: "Troubleshooting Grafana 404 errors when accessing the dashboard URL"
+date: "2024-01-15"
+category: "dependency"
+tags: ["grafana", "monitoring", "404", "dns", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Grafana 404 Error After Installation
+
+**Date:** January 15, 2024  
+**Category:** Dependency  
+**Tags:** Grafana, Monitoring, 404, DNS, Troubleshooting
+
+## Problem Description
+
+**Context:** User successfully installs OpenTelemetry and Grafana in their development cluster through SleakOps, but encounters a 404 error when trying to access the Grafana dashboard URL.
+
+**Observed Symptoms:**
+
+- Grafana URL returns "This grafana.develop.takenos.com page can't be found" (404 error)
+- All pods appear healthy in Kubernetes Lens
+- Grafana pod shows normal logs without errors
+- No alerts or obvious error indicators in the cluster
+- DNS resolution works (different from "server IP address could not be found" errors)
+
+**Relevant Configuration:**
+
+- Environment: Development cluster
+- URL: `https://grafana.develop.takenos.com/`
+- Components: OpenTelemetry + Grafana
+- Monitoring tools: Kubernetes Lens
+
+**Error Conditions:**
+
+- Error occurs when accessing Grafana dashboard URL
+- Pods are running and healthy
+- DNS resolves correctly (no DNS resolution errors)
+- Issue persists after waiting for DNS propagation
+
+## Detailed Solution
+
+<TroubleshootingItem id="initial-diagnosis" summary="Understanding the 404 vs DNS errors">
+
+The key difference between error types helps diagnose the issue:
+
+- **404 Error**: "This grafana.develop.takenos.com page can't be found" - DNS resolves but the service/ingress isn't properly configured
+- **DNS Error**: "server IP address could not be found" - DNS resolution fails
+
+Since you're getting a 404, the DNS is working but there's a configuration issue with the ingress or service.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verify-ingress" summary="Verify Ingress Configuration">
+
+Check if the Grafana ingress is properly configured:
+
+```bash
+# Check ingress resources
+kubectl get ingress -A
+
+# Look for grafana ingress specifically
+kubectl get ingress -A | grep grafana
+
+# Describe the grafana ingress
+kubectl describe ingress grafana-ingress -n <namespace>
+```
+
+Verify that:
+
+- The ingress exists and has the correct host (`grafana.develop.takenos.com`)
+- The ingress has a valid backend service
+- The ingress controller is running
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="check-service" summary="Verify Service Configuration">
+
+Ensure the Grafana service is properly configured:
+
+```bash
+# List all services
+kubectl get svc -A
+
+# Check grafana service specifically
+kubectl get svc -A | grep grafana
+
+# Describe the grafana service
+kubectl describe svc grafana -n <namespace>
+
+# Test service connectivity
+kubectl port-forward svc/grafana 3000:3000 -n <namespace>
+```
+
+Then test locally: `http://localhost:3000`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verify-pods" summary="Verify Pod and Service Endpoints">
+
+Even though pods look healthy, verify they're properly connected:
+
+```bash
+# Check pod status and readiness
+kubectl get pods -A | grep grafana
+
+# Check pod logs for any startup issues
+kubectl logs <grafana-pod-name> -n <namespace>
+
+# Verify service endpoints
+kubectl get endpoints -A | grep grafana
+```
+
+Ensure the service endpoints show the pod IPs.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="ingress-controller" summary="Check Ingress Controller Status">
+
+Verify the ingress controller is working:
+
+```bash
+# Check ingress controller pods
+kubectl get pods -n ingress-nginx
+# or
+kubectl get pods -n kube-system | grep ingress
+
+# Check ingress controller logs
+kubectl logs -n ingress-nginx deployment/ingress-nginx-controller
+```
+
+Look for any errors related to your grafana ingress.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-specific" summary="SleakOps Specific Troubleshooting">
+
+In SleakOps platform:
+
+1. **Check the Monitoring Add-on Status**:
+
+   - Go to your cluster configuration
+   - Verify the monitoring add-on is fully deployed
+   - Check for any deployment warnings or errors
+
+2. **Verify DNS Configuration**:
+
+   - Ensure your domain is properly configured in SleakOps
+   - Check if SSL certificates are properly issued
+
+3. **Review Deployment Logs**:
+   - Check the deployment history for any failed steps
+   - Look for ingress or service creation failures
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-fixes" summary="Common Fixes for Grafana 404 Issues">
+
+**Fix 1: Recreate the Ingress**
+
+```bash
+kubectl delete ingress grafana-ingress -n <namespace>
+# Wait for SleakOps to recreate it, or manually apply the correct configuration
+```
+
+**Fix 2: Check Grafana Configuration**
+
+```bash
+# Check if Grafana is configured with the correct root URL
+kubectl get configmap grafana-config -n <namespace> -o yaml
+```
+
+**Fix 3: Restart Grafana Pod**
+
+```bash
+kubectl delete pod <grafana-pod-name> -n <namespace>
+```
+
+**Fix 4: Verify Path-based Routing**
+Some configurations use path-based routing. Try accessing:
+
+- `https://grafana.develop.takenos.com/grafana/`
+- `https://develop.takenos.com/grafana/`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification" summary="Verify the Fix">
+
+After applying fixes:
+
+1. **Wait for propagation** (2-5 minutes)
+2. **Clear browser cache** or try incognito mode
+3. **Test the URL**: `https://grafana.develop.takenos.com/`
+4. **Check ingress status**:
+   ```bash
+   kubectl get ingress grafana-ingress -n <namespace>
+   ```
+5. **Verify SSL certificate** if using HTTPS
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

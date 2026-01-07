@@ -1,0 +1,782 @@
+---
+sidebar_position: 3
+title: "Build Node Disk Space Issues"
+description: "Troubleshooting and resolving disk space problems on build nodes"
+date: "2024-09-10"
+category: "cluster"
+tags: ["build", "disk-space", "nodes", "troubleshooting", "storage"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Build Node Disk Space Issues
+
+**Date:** September 10, 2024  
+**Category:** Cluster  
+**Tags:** Build, Disk Space, Nodes, Troubleshooting, Storage
+
+## Problem Description
+
+**Context:** Build processes failing intermittently due to insufficient disk space on Kubernetes nodes, even after increasing node storage from 20GB to 40GB.
+
+**Observed Symptoms:**
+
+- Build processes crash intermittently due to disk space issues
+- Some builds fail while others succeed immediately after
+- Problem persists even after increasing node disk size to 40GB
+- Cluster memory usage shows approximately 60% utilization
+- Issue occurs sporadically rather than consistently
+
+**Relevant Configuration:**
+
+- Node disk size: Previously 20GB, increased to 40GB
+- Cluster memory usage: ~60%
+- Build system: Docker-based builds on Kubernetes nodes
+- Platform: SleakOps managed Kubernetes cluster
+
+**Error Conditions:**
+
+- Builds fail when nodes run out of disk space
+- Problem occurs during Docker image building process
+- Intermittent failures suggest temporary disk space exhaustion
+- Issue affects multiple builds but not consistently
+
+## Detailed Solution
+
+<TroubleshootingItem id="disk-usage-analysis" summary="Analyzing disk usage on build nodes">
+
+To identify what's consuming disk space on your build nodes:
+
+1. **SSH into the affected node** (if you have access)
+2. **Use ncdu command** to analyze disk usage:
+
+```bash
+# Install ncdu if not available
+sudo apt-get update && sudo apt-get install ncdu
+
+# Analyze disk usage starting from root
+sudo ncdu /
+
+# Focus on common problem areas
+sudo ncdu /var/lib/docker
+sudo ncdu /var/log
+sudo ncdu /tmp
+```
+
+3. **Check Docker-specific usage**:
+
+```bash
+# Check Docker system usage
+docker system df
+
+# List all containers and their sizes
+docker ps -a --size
+
+# List all images and their sizes
+docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}"
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-causes" summary="Common causes of disk space issues">
+
+Typical causes of disk space exhaustion on build nodes:
+
+1. **Docker layer accumulation**:
+
+   - Unused Docker images consuming space
+   - Intermediate build layers not being cleaned up
+   - Docker build cache growing over time
+
+2. **Log file accumulation**:
+
+   - Container logs in `/var/log/containers/`
+   - System logs in `/var/log/`
+   - Build logs not being rotated
+
+3. **Temporary files**:
+
+   - Build artifacts in `/tmp`
+   - Package manager caches
+   - Application temporary files
+
+4. **Large Docker images**:
+   - Base images that are unnecessarily large
+   - Multi-stage builds not properly optimized
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-cleanup" summary="Immediate cleanup actions">
+
+To free up disk space immediately:
+
+```bash
+# Clean up Docker system (removes unused containers, networks, images)
+docker system prune -af
+
+# Remove unused volumes
+docker volume prune -f
+
+# Clean up build cache
+docker builder prune -af
+
+# Clean up logs (be careful with this command)
+sudo journalctl --vacuum-time=7d
+sudo find /var/log -name "*.log" -type f -mtime +7 -delete
+
+# Clean up temporary files
+sudo rm -rf /tmp/*
+sudo apt-get clean
+```
+
+**Note**: Always backup important data before running cleanup commands.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="docker-optimization" summary="Optimizing Docker builds">
+
+To prevent future disk space issues, optimize your Docker builds:
+
+1. **Use multi-stage builds**:
+
+```dockerfile
+# Multi-stage build example
+FROM node:16 AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+
+FROM node:16-alpine AS runtime
+WORKDIR /app
+COPY --from=builder /app/node_modules ./node_modules
+COPY . .
+CMD ["npm", "start"]
+```
+
+2. **Use .dockerignore file**:
+
+```dockerignore
+node_modules
+.git
+.gitignore
+README.md
+.env
+.nyc_output
+coverage
+.cache
+```
+
+3. **Clean up in the same RUN command**:
+
+```dockerfile
+RUN apt-get update && \
+    apt-get install -y package-name && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-prevention" summary="Monitoring and prevention">
+
+Set up monitoring to prevent future issues:
+
+1. **Monitor disk usage**:
+
+```bash
+# Check current disk usage
+df -h
+
+# Monitor disk usage over time
+watch -n 5 'df -h'
+
+# Set up alerts for disk usage > 80%
+```
+
+2. **Implement automated cleanup**:
+
+```bash
+# Create a cleanup script
+#!/bin/bash
+# cleanup-docker.sh
+
+echo "Starting Docker cleanup..."
+docker system prune -f
+docker volume prune -f
+echo "Docker cleanup completed"
+
+# Add to crontab to run daily
+# 0 2 * * * /path/to/cleanup-docker.sh
+```
+
+3. **Configure log rotation**:
+
+```json
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "50m",
+    "max-file": "3"
+  }
+}
+```
+
+Add this to your Docker daemon configuration at `/etc/docker/daemon.json`.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-disk-usage" summary="Monitoring and alerting for disk space">
+
+Set up monitoring to prevent future disk space issues:
+
+**1. Kubernetes resource monitoring:**
+
+```yaml
+# disk-space-monitor.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: disk-monitor-script
+data:
+  monitor.sh: |
+    #!/bin/bash
+    THRESHOLD=80
+    USAGE=$(df / | awk 'NR==2 {print $5}' | sed 's/%//')
+    
+    if [ $USAGE -gt $THRESHOLD ]; then
+        echo "ALERT: Disk usage is ${USAGE}% - exceeds threshold of ${THRESHOLD}%"
+        # Trigger cleanup
+        docker system prune -f
+        docker volume prune -f
+        
+        # Log to stdout for monitoring
+        echo "$(date): Emergency cleanup performed due to disk usage: ${USAGE}%"
+    else
+        echo "$(date): Disk usage normal: ${USAGE}%"
+    fi
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: disk-space-monitor
+spec:
+  schedule: "*/15 * * * *"  # Every 15 minutes
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: monitor
+            image: alpine:latest
+            command: ["/bin/sh"]
+            args: ["/scripts/monitor.sh"]
+            volumeMounts:
+            - name: docker-socket
+              mountPath: /var/run/docker.sock
+            - name: host-root
+              mountPath: /host
+              readOnly: true
+            - name: script
+              mountPath: /scripts
+          volumes:
+          - name: docker-socket
+            hostPath:
+              path: /var/run/docker.sock
+          - name: host-root
+            hostPath:
+              path: /
+          - name: script
+            configMap:
+              name: disk-monitor-script
+              defaultMode: 0755
+          restartPolicy: OnFailure
+```
+
+**2. Prometheus monitoring rules:**
+
+```yaml
+# prometheus-rules.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: disk-space-alerts
+spec:
+  groups:
+  - name: disk-space
+    rules:
+    - alert: NodeDiskSpaceHigh
+      expr: (1 - (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"})) * 100 > 85
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Node {{ $labels.instance }} disk space usage is above 85%"
+        description: "Disk usage on {{ $labels.instance }} is {{ $value }}%"
+    
+    - alert: NodeDiskSpaceCritical
+      expr: (1 - (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"})) * 100 > 95
+      for: 2m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Node {{ $labels.instance }} disk space critically low"
+        description: "Only {{ $value }}% disk space remaining on {{ $labels.instance }}"
+```
+
+**3. Custom monitoring dashboard:**
+
+```bash
+#!/bin/bash
+# disk-usage-dashboard.sh
+
+# Create simple monitoring script
+cat > /usr/local/bin/disk-monitor.sh << 'EOF'
+#!/bin/bash
+
+# Colors for output
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
+# Function to check disk usage
+check_disk_usage() {
+    local path=$1
+    local threshold=${2:-80}
+    local usage=$(df "$path" | awk 'NR==2 {print $5}' | sed 's/%//')
+    
+    if [ $usage -gt 90 ]; then
+        echo -e "${RED}CRITICAL: $path usage: ${usage}%${NC}"
+        return 2
+    elif [ $usage -gt $threshold ]; then
+        echo -e "${YELLOW}WARNING: $path usage: ${usage}%${NC}"
+        return 1
+    else
+        echo -e "${GREEN}OK: $path usage: ${usage}%${NC}"
+        return 0
+    fi
+}
+
+# Function to check Docker space
+check_docker_space() {
+    echo "=== Docker Space Usage ==="
+    docker system df
+    echo ""
+    
+    echo "=== Docker Image Sizes ==="
+    docker images --format "table {{.Repository}}:{{.Tag}}\t{{.Size}}" | head -10
+    echo ""
+    
+    echo "=== Docker Container Sizes ==="
+    docker ps -s --format "table {{.Names}}\t{{.Size}}" | head -10
+}
+
+# Main monitoring
+echo "=== Disk Space Monitor - $(date) ==="
+check_disk_usage "/"
+check_disk_usage "/var/lib/docker" 85
+check_disk_usage "/tmp" 75
+
+echo ""
+check_docker_space
+
+echo ""
+echo "=== Cleanup Recommendations ==="
+# Check for large log files
+find /var/log -type f -size +100M 2>/dev/null | head -5 | while read file; do
+    echo "Large log file: $file ($(du -h "$file" | cut -f1))"
+done
+
+# Check for old docker images
+IMAGES_TO_CLEAN=$(docker images -f "dangling=true" -q | wc -l)
+if [ $IMAGES_TO_CLEAN -gt 0 ]; then
+    echo "Found $IMAGES_TO_CLEAN dangling images that can be cleaned"
+fi
+
+CONTAINERS_TO_CLEAN=$(docker ps -aq -f status=exited | wc -l)
+if [ $CONTAINERS_TO_CLEAN -gt 0 ]; then
+    echo "Found $CONTAINERS_TO_CLEAN exited containers that can be cleaned"
+fi
+EOF
+
+chmod +x /usr/local/bin/disk-monitor.sh
+
+# Add to crontab for regular monitoring
+(crontab -l 2>/dev/null; echo "*/30 * * * * /usr/local/bin/disk-monitor.sh >> /var/log/disk-monitor.log 2>&1") | crontab -
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="automated-cleanup-strategies" summary="Automated cleanup strategies">
+
+Implement automated cleanup to prevent disk space issues:
+
+**1. Docker cleanup automation:**
+
+```bash
+#!/bin/bash
+# advanced-docker-cleanup.sh
+
+# Configuration
+MAX_DISK_USAGE=85
+DOCKER_ROOT="/var/lib/docker"
+LOG_FILE="/var/log/docker-cleanup.log"
+
+log() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') $1" | tee -a "$LOG_FILE"
+}
+
+# Function to get disk usage percentage
+get_disk_usage() {
+    df "$1" | awk 'NR==2 {print $5}' | sed 's/%//'
+}
+
+# Function to cleanup Docker resources
+cleanup_docker() {
+    local level=$1
+    
+    case $level in
+        "light")
+            log "Performing light cleanup..."
+            docker container prune -f
+            docker image prune -f
+            ;;
+        "moderate")
+            log "Performing moderate cleanup..."
+            docker container prune -f
+            docker image prune -f -a
+            docker volume prune -f
+            ;;
+        "aggressive")
+            log "Performing aggressive cleanup..."
+            docker system prune -a -f --volumes
+            ;;
+    esac
+}
+
+# Function to cleanup build cache
+cleanup_build_cache() {
+    log "Cleaning build cache..."
+    docker builder prune -f -a
+    
+    # Clean buildkit cache if available
+    if command -v buildctl >/dev/null 2>&1; then
+        buildctl prune
+    fi
+}
+
+# Function to cleanup old logs
+cleanup_logs() {
+    log "Cleaning up old logs..."
+    
+    # Clean Docker container logs
+    find /var/lib/docker/containers -name "*.log" -type f -mtime +7 -delete 2>/dev/null
+    
+    # Clean system logs
+    journalctl --vacuum-time=7d
+    
+    # Clean application logs
+    find /var/log -name "*.log" -type f -mtime +30 -delete 2>/dev/null
+    find /tmp -name "*.log" -type f -mtime +7 -delete 2>/dev/null
+}
+
+# Main cleanup logic
+main() {
+    log "Starting automated cleanup..."
+    
+    CURRENT_USAGE=$(get_disk_usage "$DOCKER_ROOT")
+    log "Current disk usage: ${CURRENT_USAGE}%"
+    
+    if [ "$CURRENT_USAGE" -gt 95 ]; then
+        log "CRITICAL: Disk usage above 95%, performing aggressive cleanup"
+        cleanup_docker "aggressive"
+        cleanup_build_cache
+        cleanup_logs
+        
+        # Stop non-essential containers if still critical
+        NEW_USAGE=$(get_disk_usage "$DOCKER_ROOT")
+        if [ "$NEW_USAGE" -gt 90 ]; then
+            log "Still critical, stopping non-essential containers..."
+            docker ps --format "{{.Names}}" | grep -E "(test|dev|temp)" | xargs -r docker stop
+        fi
+        
+    elif [ "$CURRENT_USAGE" -gt "$MAX_DISK_USAGE" ]; then
+        log "WARNING: Disk usage above ${MAX_DISK_USAGE}%, performing moderate cleanup"
+        cleanup_docker "moderate"
+        cleanup_build_cache
+        
+    elif [ "$CURRENT_USAGE" -gt 70 ]; then
+        log "INFO: Disk usage above 70%, performing light cleanup"
+        cleanup_docker "light"
+    else
+        log "INFO: Disk usage normal (${CURRENT_USAGE}%), no cleanup needed"
+    fi
+    
+    FINAL_USAGE=$(get_disk_usage "$DOCKER_ROOT")
+    log "Cleanup completed. Final disk usage: ${FINAL_USAGE}%"
+    
+    # Send alert if still high
+    if [ "$FINAL_USAGE" -gt "$MAX_DISK_USAGE" ]; then
+        log "ALERT: Disk usage still high after cleanup: ${FINAL_USAGE}%"
+        # Send notification (implement your notification system here)
+        # send_alert "Disk cleanup insufficient" "Usage: ${FINAL_USAGE}%"
+    fi
+}
+
+# Execute main function
+main "$@"
+```
+
+**2. Kubernetes-based cleanup job:**
+
+```yaml
+# automated-cleanup-job.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: node-cleanup
+spec:
+  schedule: "0 */6 * * *"  # Every 6 hours
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          hostNetwork: true
+          hostPID: true
+          nodeSelector:
+            node-role.kubernetes.io/worker: "true"
+          containers:
+          - name: cleanup
+            image: alpine/k8s:1.24.0
+            securityContext:
+              privileged: true
+            command: ["/bin/sh"]
+            args:
+            - -c
+            - |
+              set -e
+              
+              # Mount host filesystem
+              chroot /host /bin/bash -c '
+                # Docker cleanup
+                docker container prune -f
+                docker image prune -f
+                docker volume prune -f
+                
+                # Log cleanup
+                find /var/log -name "*.log" -mtime +7 -delete 2>/dev/null || true
+                find /tmp -name "*.tmp" -mtime +1 -delete 2>/dev/null || true
+                
+                # Package cache cleanup
+                apt-get clean 2>/dev/null || true
+                yum clean all 2>/dev/null || true
+                
+                echo "Cleanup completed on $(hostname)"
+              '
+            volumeMounts:
+            - name: host
+              mountPath: /host
+            - name: docker-socket
+              mountPath: /var/run/docker.sock
+          volumes:
+          - name: host
+            hostPath:
+              path: /
+          - name: docker-socket
+            hostPath:
+              path: /var/run/docker.sock
+          restartPolicy: OnFailure
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="emergency-procedures" summary="Emergency procedures for critical disk space">
+
+When disk space becomes critically low:
+
+**1. Immediate emergency cleanup:**
+
+```bash
+#!/bin/bash
+# emergency-cleanup.sh
+
+echo "EMERGENCY: Performing immediate cleanup..."
+
+# Stop all non-critical containers
+docker ps --format "{{.Names}}" | grep -vE "(essential|critical|monitoring)" | xargs -r docker stop
+
+# Remove all stopped containers
+docker container prune -f
+
+# Remove all unused images
+docker image prune -a -f
+
+# Remove all unused volumes
+docker volume prune -f
+
+# Remove all build cache
+docker builder prune -a -f
+
+# Clean system
+rm -rf /tmp/*
+find /var/log -name "*.log" -exec truncate -s 0 {} \;
+
+# Report final status
+df -h /
+echo "Emergency cleanup completed"
+```
+
+**2. Disk space recovery procedures:**
+
+```bash
+#!/bin/bash
+# disk-recovery.sh
+
+# Function to find largest directories
+find_large_dirs() {
+    echo "=== Largest directories ==="
+    du -ah / 2>/dev/null | sort -rh | head -20
+}
+
+# Function to find largest files
+find_large_files() {
+    echo "=== Largest files ==="
+    find / -type f -size +1G 2>/dev/null | xargs -r ls -lh | sort -k5 -rh
+}
+
+# Function to analyze Docker usage
+analyze_docker() {
+    echo "=== Docker analysis ==="
+    echo "Images:"
+    docker images --format "table {{.Repository}}:{{.Tag}}\t{{.Size}}\t{{.CreatedAt}}"
+    
+    echo -e "\nContainers:"
+    docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Size}}"
+    
+    echo -e "\nVolumes:"
+    docker volume ls --format "table {{.Name}}\t{{.Driver}}"
+    
+    echo -e "\nSystem usage:"
+    docker system df -v
+}
+
+# Function to safe cleanup with confirmation
+safe_cleanup() {
+    echo "Preparing cleanup recommendations..."
+    
+    # Identify cleanup targets
+    DANGLING_IMAGES=$(docker images -q -f dangling=true | wc -l)
+    EXITED_CONTAINERS=$(docker ps -aq -f status=exited | wc -l)
+    UNUSED_VOLUMES=$(docker volume ls -q -f dangling=true | wc -l)
+    
+    echo "Found:"
+    echo "- $DANGLING_IMAGES dangling images"
+    echo "- $EXITED_CONTAINERS exited containers"
+    echo "- $UNUSED_VOLUMES unused volumes"
+    
+    echo "Safe cleanup commands:"
+    echo "docker container prune -f"
+    echo "docker image prune -f"
+    echo "docker volume prune -f"
+    echo "docker builder prune -f"
+}
+
+# Execute analysis
+find_large_dirs
+echo ""
+find_large_files
+echo ""
+analyze_docker
+echo ""
+safe_cleanup
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-strategies" summary="Long-term prevention strategies">
+
+**1. Node sizing recommendations:**
+
+```yaml
+# Recommended node configuration for builds
+apiVersion: v1
+kind: Node
+metadata:
+  name: build-node
+spec:
+  # Minimum recommended storage for build nodes
+  capacity:
+    storage: 100Gi  # Increased from 40GB
+    ephemeral-storage: 50Gi
+  
+  # Node taints for build workloads
+  taints:
+  - key: "workload-type"
+    value: "build"
+    effect: "NoSchedule"
+```
+
+**2. Build optimization strategies:**
+
+```dockerfile
+# Multi-stage build to reduce image size
+FROM node:16-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+
+FROM node:16-alpine AS runtime
+WORKDIR /app
+COPY --from=builder /app/node_modules ./node_modules
+COPY . .
+RUN npm run build && npm prune --production
+
+# Use .dockerignore to exclude unnecessary files
+# .dockerignore
+node_modules
+.git
+.gitignore
+README.md
+Dockerfile
+.dockerignore
+npm-debug.log
+coverage/
+.nyc_output
+```
+
+**3. Storage optimization:**
+
+```yaml
+# Use node affinity for build workloads
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: build-service
+spec:
+  template:
+    spec:
+      nodeSelector:
+        node-type: "build-optimized"
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: storage-tier
+                operator: In
+                values: ["ssd", "high-performance"]
+      containers:
+      - name: builder
+        resources:
+          requests:
+            ephemeral-storage: "10Gi"
+          limits:
+            ephemeral-storage: "20Gi"
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on September 10, 2024 based on a real user query._

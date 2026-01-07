@@ -1,0 +1,220 @@
+---
+sidebar_position: 3
+title: "Prometheus Memory Issues Causing Grafana Data Loss"
+description: "Solution for Prometheus backend pod crashes due to insufficient RAM causing Grafana to show no data"
+date: "2024-12-11"
+category: "dependency"
+tags: ["prometheus", "grafana", "memory", "monitoring", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Prometheus Memory Issues Causing Grafana Data Loss
+
+**Date:** December 11, 2024  
+**Category:** Dependency  
+**Tags:** Prometheus, Grafana, Memory, Monitoring, Troubleshooting
+
+## Problem Description
+
+**Context:** Grafana dashboards showing no data or empty metrics for several days due to underlying Prometheus backend pod failures caused by insufficient memory allocation.
+
+**Observed Symptoms:**
+
+- Grafana dashboards display no data or metrics
+- Prometheus backend pod crashes or remains in failed state
+- Missing metrics collection for extended periods (days)
+- Default namespace filter showing empty results in Grafana
+- Loki dashboard not displaying log information
+
+**Relevant Configuration:**
+
+- Prometheus backend pod memory limit: Below required threshold
+- Default Grafana namespace filter: 'default' (empty namespace)
+- Affected timeframe: Multiple days of missing data
+- Memory requirement: Minimum 1250Mi RAM needed
+
+**Error Conditions:**
+
+- Prometheus pod fails due to OOMKilled (Out of Memory)
+- Metrics collection stops completely
+- Grafana cannot retrieve historical data from failed period
+- Problem persists until manual intervention
+
+## Detailed Solution
+
+<TroubleshootingItem id="prometheus-memory-fix" summary="Fix Prometheus Memory Issues">
+
+**Immediate Solution:**
+
+1. **Identify the failed Prometheus pod:**
+
+   ```bash
+   kubectl get pods -n monitoring | grep prometheus
+   kubectl describe pod <prometheus-pod-name> -n monitoring
+   ```
+
+2. **Check memory usage and limits:**
+
+   ```bash
+   kubectl top pod <prometheus-pod-name> -n monitoring
+   kubectl get pod <prometheus-pod-name> -n monitoring -o yaml | grep -A 5 -B 5 resources
+   ```
+
+3. **Increase memory allocation manually:**
+
+   ```yaml
+   # Edit the Prometheus deployment
+   kubectl edit deployment prometheus-server -n monitoring
+
+   # Add or modify the resources section:
+   resources:
+     requests:
+       memory: "1250Mi"
+     limits:
+       memory: "2Gi"
+   ```
+
+4. **Restart the deployment:**
+   ```bash
+   kubectl rollout restart deployment prometheus-server -n monitoring
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="grafana-namespace-fix" summary="Fix Grafana Default Namespace Issue">
+
+**Problem:** Grafana opens with 'default' namespace filter which typically contains no deployed applications.
+
+**Solution:**
+
+1. **Access Grafana dashboard**
+2. **Change namespace filter:**
+
+   - Look for the namespace dropdown (usually at the top)
+   - Select a namespace that contains your applications
+   - Common namespaces: `kube-system`, `monitoring`, `default`, or your application namespaces
+
+3. **Set a meaningful default:**
+   - Choose a namespace with active workloads
+   - Save the dashboard with the correct namespace selected
+
+**Available Dashboards:**
+
+- Kubernetes cluster overview
+- Node metrics
+- Pod metrics
+- Application-specific dashboards
+- Network monitoring
+- Storage metrics
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="loki-logs-fix" summary="Fix Loki Log Collection Issues">
+
+**Problem:** Loki dashboard not showing log information due to read component failure.
+
+**Solution:**
+
+1. **Identify the Loki read pod:**
+
+   ```bash
+   kubectl get pods -n monitoring | grep loki-read
+   ```
+
+2. **Delete the problematic pod:**
+
+   ```bash
+   kubectl delete pod <loki-read-pod-name> -n monitoring
+   ```
+
+3. **Verify automatic recreation:**
+
+   ```bash
+   kubectl get pods -n monitoring | grep loki-read
+   kubectl logs <new-loki-read-pod-name> -n monitoring
+   ```
+
+4. **Test log collection:**
+   - Wait 2-3 minutes for the pod to fully start
+   - Check Grafana Loki dashboard for new log entries
+   - Verify logs are being collected from your applications
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevent-future-issues" summary="Prevent Future Memory Issues">
+
+**Monitoring Setup:**
+
+1. **Set up alerts for Prometheus memory usage:**
+
+   ```yaml
+   # Example alert rule
+   - alert: PrometheusHighMemoryUsage
+     expr: (container_memory_usage_bytes{pod=~"prometheus.*"} / container_spec_memory_limit_bytes{pod=~"prometheus.*"}) > 0.8
+     for: 5m
+     labels:
+       severity: warning
+     annotations:
+       summary: "Prometheus is using high memory"
+   ```
+
+2. **Regular memory monitoring:**
+
+   ```bash
+   # Check current memory usage
+   kubectl top pods -n monitoring
+
+   # Monitor over time
+   watch kubectl top pods -n monitoring
+   ```
+
+3. **Scaling considerations:**
+   - As cluster grows, Prometheus memory requirements increase
+   - Monitor metrics retention period
+   - Consider Prometheus federation for large clusters
+   - Adjust memory limits based on cluster size and retention policies
+
+**Future Platform Improvements:**
+
+- Memory limits will be adjustable through the SleakOps frontend
+- Automatic scaling based on cluster size
+- Proactive monitoring and alerting for resource constraints
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="data-recovery" summary="Data Recovery Considerations">
+
+**Important Notes:**
+
+- **Lost metrics cannot be recovered:** Data from the period when Prometheus was down is permanently lost
+- **Plan for redundancy:** Consider setting up Prometheus federation or external storage for critical metrics
+- **Backup strategies:** Implement regular Prometheus data backups for critical environments
+
+**Mitigation for Production:**
+
+1. **High Availability setup:**
+
+   ```yaml
+   # Example HA Prometheus configuration
+   prometheus:
+     prometheusSpec:
+       replicas: 2
+       retention: 30d
+       resources:
+         requests:
+           memory: 2Gi
+         limits:
+           memory: 4Gi
+   ```
+
+2. **External storage:**
+   - Configure remote write to external TSDB
+   - Use Thanos for long-term storage
+   - Implement cross-region backup strategies
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 11, 2024 based on a real user query._

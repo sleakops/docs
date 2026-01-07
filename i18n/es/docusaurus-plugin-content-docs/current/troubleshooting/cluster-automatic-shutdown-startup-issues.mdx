@@ -1,0 +1,232 @@
+---
+sidebar_position: 3
+title: "Problemas con el Apagado y Arranque Automático del Clúster"
+description: "Solución de problemas con el apagado/arranque automático del clúster que causa fallos en la API"
+date: "2025-02-14"
+category: "clúster"
+tags:
+  ["clúster", "automatización", "apagado", "arranque", "step-functions", "aws"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas con el Apagado y Arranque Automático del Clúster
+
+**Fecha:** 14 de febrero de 2025  
+**Categoría:** Clúster  
+**Etiquetas:** Clúster, Automatización, Apagado, Arranque, Step Functions, AWS
+
+## Descripción del Problema
+
+**Contexto:** Los clústeres SleakOps configurados con horarios automáticos de apagado/arranque pueden experimentar problemas donde el clúster no arranca correctamente, causando fallos en la API y tiempo de inactividad en las aplicaciones.
+
+**Síntomas Observados:**
+
+- Aplicaciones mostrando errores de conexión o tiempos de espera
+- Endpoints de API devolviendo respuestas de error
+- Servicios backend que no responden a chequeos de salud
+- Todas las aplicaciones en el clúster apareciendo como no disponibles
+- Problemas que ocurren después de períodos programados de apagado del clúster
+
+**Configuración Relevante:**
+
+- Tipo de clúster: Entornos de desarrollo/pruebas
+- Apagado automático: Configurado para horas nocturnas
+- Arranque automático: Configurado para horas laborales
+- AWS Step Functions: Usado para la gestión del ciclo de vida del clúster
+- Región: us-east-1 (típicamente)
+
+**Condiciones de Error:**
+
+- Errores que aparecen en la mañana tras el arranque automático
+- El clúster parece estar en ejecución pero las aplicaciones no son accesibles
+- La ejecución de Step Function puede haber fallado o completado con errores
+- Se requiere intervención manual para restaurar el servicio
+
+## Solución Detallada
+
+<TroubleshootingItem id="immediate-fix" summary="Solución inmediata: Arranque manual del clúster">
+
+Si estás experimentando este problema ahora mismo, puedes resolverlo activando manualmente el arranque del clúster:
+
+1. **Accede a la Consola de AWS** en tu cuenta de desarrollo
+2. **Navega al servicio Step Functions**
+3. **Encuentra la Step Function de arranque del clúster** (normalmente nombrada con el patrón: `*-up-sfn-*`)
+4. **Ejecuta la Step Function** manualmente
+5. **Espera la finalización** (típicamente 5-10 minutos)
+6. **Verifica que las aplicaciones** sean accesibles nuevamente
+
+**Formato de enlace directo:**
+
+```
+https://us-east-1.console.aws.amazon.com/states/home?region=us-east-1#/statemachines/view/[TU_STEP_FUNCTION_ARN]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="root-cause" summary="Comprendiendo la causa raíz">
+
+Este problema normalmente ocurre debido a:
+
+1. **Fallos en la ejecución de Step Functions**: El proceso automático de arranque encuentra errores
+2. **Problemas de sincronización**: Dependencias entre servicios durante el arranque
+3. **Restricciones de recursos**: Recursos insuficientes durante la inicialización del clúster
+4. **Conectividad de red**: Problemas temporales de red durante el arranque
+5. **Desviación en la configuración**: Cambios en la configuración del clúster que afectan la automatización
+
+**Puntos comunes de fallo:**
+
+- Problemas con el escalado de grupos de nodos
+- Problemas en la programación de pods
+- Retrasos en el descubrimiento de servicios
+- Fallos en los chequeos de salud del balanceador de carga
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-prevention" summary="Estrategias de monitoreo y prevención">
+
+Para prevenir que este problema se repita:
+
+**1. Monitorea las ejecuciones de Step Functions:**
+
+```bash
+# Ver ejecuciones recientes
+aws stepfunctions list-executions --state-machine-arn [TU_ARN] --max-items 10
+```
+
+**2. Configura alarmas en CloudWatch:**
+
+- Fallos en ejecuciones de Step Functions
+- Duración del arranque del clúster que excede los umbrales
+- Fallos en chequeos de salud de aplicaciones
+
+**3. Implementa mecanismos de reintento:**
+
+- Configura Step Functions con lógica de reintentos
+- Añade retroceso exponencial para pasos fallidos
+- Incluye pasos de aprobación manual para fallos críticos
+
+**4. Mejoras en chequeos de salud:**
+
+- Extiende los tiempos de espera de chequeos de salud
+- Añade chequeos de dependencia entre servicios
+- Implementa secuencias de arranque ordenadas y suaves
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Pasos detallados para solución de problemas">
+
+**Paso 1: Verifica el estado de la Step Function**
+
+```bash
+# Obtener detalles de la ejecución
+aws stepfunctions describe-execution --execution-arn [EJECUCION_ARN]
+```
+
+**Paso 2: Verifica el estado del clúster**
+
+```bash
+# Comprobar estado del clúster
+kubectl get nodes
+kubectl get pods --all-namespaces
+```
+
+**Paso 3: Revisa los logs de las aplicaciones**
+
+```bash
+# Revisar logs de pods para errores
+kubectl logs -f deployment/[TU_APP] -n [NAMESPACE]
+```
+
+**Paso 4: Verifica la conectividad del servicio**
+
+```bash
+# Probar conectividad interna del servicio
+kubectl exec -it [NOMBRE_POD] -- curl http://[NOMBRE_SERVICIO]:8080/health
+```
+
+**Paso 5: Revisa el ingreso y balanceador de carga**
+
+```bash
+# Verificar estado del ingreso
+kubectl get ingress
+kubectl describe ingress [NOMBRE_INGRESS]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="configuration-best-practices" summary="Mejores prácticas de configuración">
+
+**Optimización de la secuencia de arranque:**
+
+1. **Arranque escalonado:** No iniciar todos los servicios simultáneamente
+2. **Orden de dependencias:** Iniciar bases de datos antes que las aplicaciones
+3. **Retrasos en chequeos de salud:** Permitir tiempo suficiente para la inicialización de servicios
+4. **Reservas de recursos:** Asegurar CPU/memoria adecuadas durante el arranque
+
+**Configuración de Step Functions:**
+
+```json
+{
+  "Comment": "Arranque del clúster con lógica de reintentos",
+  "StartAt": "StartCluster",
+  "States": {
+    "StartCluster": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:eks:updateCluster",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 30,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Next": "WaitForCluster"
+    }
+  }
+}
+```
+
+**Configuración de monitoreo:**
+
+- Configurar alertas para ejecuciones fallidas
+- Monitorear utilización de recursos del clúster
+- Rastrear tiempos de arranque de aplicaciones
+- Registrar todos los eventos de automatización
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Soluciones alternativas">
+
+Si el apagado/arranque automático sigue causando problemas:
+
+**Opción 1: Ajustar horarios de apagado/arranque**
+
+- Extender el tiempo de arranque antes de las horas laborales
+- Añadir tiempo de margen para inicialización completa
+- Escalonar el apagado de diferentes servicios
+
+**Opción 2: Implementar chequeos de salud**
+
+- Añadir chequeos de salud completos antes de marcar el clúster como listo
+- Incluir verificación de salud a nivel de aplicación
+- Implementar reversión automática ante fallos en chequeos de salud
+
+**Opción 3: Usar autoscaling del clúster**
+
+- Configurar autoscaler para escalado automático
+- Usar aprovisionamiento automático de nodos para optimización de costos
+- Implementar presupuestos de interrupción de pods
+
+**Opción 4: Considerar mantener siempre encendidos los entornos críticos**
+
+- Mantener entornos tipo producción siempre activos
+- Usar optimización de costos mediante dimensionamiento adecuado en lugar de apagado
+- Implementar cuotas y límites de recursos
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 14 de febrero de 2025 basada en una consulta real de usuario._

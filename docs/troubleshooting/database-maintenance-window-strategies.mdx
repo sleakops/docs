@@ -1,0 +1,524 @@
+---
+sidebar_position: 15
+title: "Database Maintenance Window Strategies"
+description: "Solutions for performing database migrations without blocking operations"
+date: "2024-01-15"
+category: "dependency"
+tags:
+  [
+    "database",
+    "migrations",
+    "maintenance",
+    "mysql",
+    "postgresql",
+    "read-replicas",
+  ]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Database Maintenance Window Strategies
+
+**Date:** January 15, 2024  
+**Category:** Dependency  
+**Tags:** Database, Migrations, Maintenance, MySQL, PostgreSQL, Read-replicas
+
+## Problem Description
+
+**Context:** Users need to perform database migrations (like ALTER TABLE operations) on production databases that have high connection volumes from multiple sources including web services, cronjobs, and serverless functions.
+
+**Observed Symptoms:**
+
+- Database migrations get blocked due to table locks
+- ALTER operations cannot complete due to concurrent connections
+- High number of active connections from various services
+- Migration timeouts or failures during peak usage
+
+**Relevant Configuration:**
+
+- Database: Production database with high connection volume
+- Migration type: ALTER TABLE operations
+- Connection sources: Web services, cronjobs, Lambda functions
+- Table size: Small tables (2 records) but high query frequency
+
+**Error Conditions:**
+
+- Migrations fail due to table locking conflicts
+- ALTER operations wait indefinitely for table locks
+- Database performance degradation during migration attempts
+
+## Detailed Solution
+
+<TroubleshootingItem id="application-level-maintenance" summary="Implement Application-Level Maintenance Mode">
+
+Since SleakOps doesn't currently provide a built-in maintenance window feature, you can implement this at the application level:
+
+**Option 1: Feature Flag Approach**
+
+```javascript
+// Environment variable or config
+const MAINTENANCE_MODE = process.env.MAINTENANCE_MODE === "true";
+
+// In your application routes
+app.use((req, res, next) => {
+  if (MAINTENANCE_MODE && req.path !== "/health") {
+    return res.status(503).json({
+      message: "System under maintenance. Please try again later.",
+      retryAfter: 300, // seconds
+    });
+  }
+  next();
+});
+```
+
+**Option 2: Database Connection Pooling Control**
+
+```javascript
+// Temporarily reduce connection pool size
+const pool = mysql.createPool({
+  host: "localhost",
+  user: "user",
+  password: "password",
+  database: "mydb",
+  connectionLimit: MAINTENANCE_MODE ? 1 : 10,
+});
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="read-replica-setup" summary="Configure Read Replicas for Better Performance">
+
+Implementing a master-slave architecture can significantly reduce load on your primary database:
+
+**Database Configuration:**
+
+```yaml
+# In your SleakOps database configuration
+database:
+  type: mysql # or postgresql
+  master:
+    instance_class: db.t3.medium
+    allocated_storage: 100
+  read_replicas:
+    - instance_class: db.t3.small
+      allocated_storage: 100
+      region: same # or different for geographic distribution
+```
+
+**Application Code Changes:**
+
+```javascript
+// Separate connection pools
+const masterPool = mysql.createPool({
+  host: process.env.DB_MASTER_HOST,
+  // ... master config
+});
+
+const replicaPool = mysql.createPool({
+  host: process.env.DB_REPLICA_HOST,
+  // ... replica config
+});
+
+// Use replica for read operations
+function getCountries() {
+  return replicaPool.query("SELECT * FROM countries");
+}
+
+// Use master for write operations
+function updateCountry(id, data) {
+  return masterPool.query("UPDATE countries SET ? WHERE id = ?", [data, id]);
+}
+```
+
+**Important Considerations:**
+
+- Read replicas have eventual consistency (few seconds delay)
+- Critical reads that need immediate consistency should use master
+- Route all writes to master database
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="application-caching" summary="Implement Application-Level Caching">
+
+For small, rarely-changing datasets like country information, application-level caching is highly effective:
+
+**In-Memory Caching:**
+
+```javascript
+class CountryCache {
+  constructor() {
+    this.cache = new Map();
+    this.lastUpdate = null;
+    this.TTL = 60 * 60 * 1000; // 1 hour
+  }
+
+  async getCountries() {
+    const now = Date.now();
+
+    if (!this.lastUpdate || now - this.lastUpdate > this.TTL) {
+      const countries = await this.fetchFromDatabase();
+      this.cache.set("countries", countries);
+      this.lastUpdate = now;
+      return countries;
+    }
+
+    return this.cache.get("countries");
+  }
+
+  async fetchFromDatabase() {
+    // Use replica for this read
+    return replicaPool.query("SELECT * FROM countries");
+  }
+}
+
+const countryCache = new CountryCache();
+```
+
+**Redis Caching (Alternative):**
+
+```javascript
+const redis = require("redis");
+const client = redis.createClient(process.env.REDIS_URL);
+
+async function getCachedCountries() {
+  const cached = await client.get("countries");
+
+  if (cached) {
+    return JSON.parse(cached);
+  }
+
+  const countries = await replicaPool.query("SELECT * FROM countries");
+  await client.setex("countries", 3600, JSON.stringify(countries)); // 1 hour TTL
+
+  return countries;
+}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="migration-strategies" summary="Safe Migration Execution Strategies">
+
+**Strategy 1: Off-Peak Execution**
+
+```bash
+# Schedule migrations during low-traffic periods
+# Use cron or your CI/CD pipeline
+0 2 * * * /path/to/migration-script.sh
+```
+
+**Strategy 2: Online Schema Changes (MySQL)**
+
+```sql
+-- Use pt-online-schema-change for large tables
+pt-online-schema-change \
+  --alter "ADD COLUMN new_field VARCHAR(255)" \
+  --execute \
+  D=database_name,t=table_name
+```
+
+**Strategy 3: Blue-Green Database Deployment**
+
+```bash
+# 1. Create new database instance
+# 2. Apply migrations to new instance
+# 3. Set up replication from old to new
+# 4. Switch application to new database
+# 5. Verify and cleanup old instance
+```
+
+**Strategy 4: Connection Throttling**
+
+```javascript
+// Temporarily limit connections before migration
+const connectionSemaphore = new Semaphore(2); // Allow only 2 concurrent connections
+
+async function executeQuery(query) {
+  await connectionSemaphore.acquire();
+  try {
+    return await pool.query(query);
+  } finally {
+    connectionSemaphore.release();
+  }
+}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="monitoring-setup" summary="Monitor Database Performance During Migrations">
+
+**Key Metrics to Monitor:**
+
+```javascript
+// Database connection monitoring
+const dbMetrics = {
+  activeConnections: () => pool.pool._allConnections.length,
+  availableConnections: () => pool.pool._freeConnections.length,
+  pendingConnections: () => pool.pool._connectionQueue.length,
+  queryQueueLength: () => pool.pool._acquiringConnections.length
+};
+
+// Log metrics during migration
+setInterval(() => {
+  console.log('DB Metrics:', {
+    active: dbMetrics.activeConnections(),
+    available: dbMetrics.availableConnections(),
+    pending: dbMetrics.pendingConnections(),
+    queue: dbMetrics.queryQueueLength()
+  });
+}, 5000); // Every 5 seconds
+```
+
+**Database Performance Queries:**
+
+```sql
+-- MySQL: Monitor running queries
+SHOW PROCESSLIST;
+
+-- Check for locked tables
+SHOW OPEN TABLES WHERE In_use > 0;
+
+-- Monitor slow queries
+SHOW FULL PROCESSLIST;
+
+-- PostgreSQL: Monitor active connections
+SELECT pid, usename, application_name, client_addr, state, query 
+FROM pg_stat_activity 
+WHERE state = 'active';
+
+-- Check for locks
+SELECT blocked_locks.pid AS blocked_pid,
+       blocked_activity.usename AS blocked_user,
+       blocking_locks.pid AS blocking_pid,
+       blocking_activity.usename AS blocking_user,
+       blocked_activity.query AS blocked_statement,
+       blocking_activity.query AS current_statement_in_blocking_process
+FROM pg_catalog.pg_locks blocked_locks
+JOIN pg_catalog.pg_stat_activity blocked_activity ON blocked_activity.pid = blocked_locks.pid
+JOIN pg_catalog.pg_locks blocking_locks ON blocking_locks.locktype = blocked_locks.locktype
+AND blocking_locks.DATABASE IS NOT DISTINCT FROM blocked_locks.DATABASE
+JOIN pg_catalog.pg_stat_activity blocking_activity ON blocking_activity.pid = blocking_locks.pid
+WHERE NOT blocked_locks.GRANTED;
+```
+
+**AWS CloudWatch Integration:**
+
+```javascript
+const AWS = require('aws-sdk');
+const cloudwatch = new AWS.CloudWatch();
+
+async function publishCustomMetric(metricName, value) {
+  const params = {
+    Namespace: 'SleakOps/Database',
+    MetricData: [{
+      MetricName: metricName,
+      Value: value,
+      Unit: 'Count',
+      Timestamp: new Date()
+    }]
+  };
+  
+  await cloudwatch.putMetricData(params).promise();
+}
+
+// Example usage during migration
+await publishCustomMetric('ActiveConnections', dbMetrics.activeConnections());
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="emergency-procedures" summary="Emergency Procedures and Rollback Strategies">
+
+**Connection Killing Procedures:**
+
+```sql
+-- MySQL: Kill problematic connections
+-- First, identify the connection
+SHOW PROCESSLIST;
+
+-- Kill specific connection
+KILL CONNECTION <connection_id>;
+
+-- Kill all connections from specific user (emergency)
+SELECT CONCAT('KILL CONNECTION ', id, ';') as kill_command
+FROM INFORMATION_SCHEMA.PROCESSLIST 
+WHERE USER = 'problem_user';
+
+-- PostgreSQL: Terminate connections
+-- Find problematic connections
+SELECT pid, usename, application_name, client_addr, state, query_start, query
+FROM pg_stat_activity
+WHERE state = 'active';
+
+-- Terminate specific connection
+SELECT pg_terminate_backend(<pid>);
+
+-- Terminate all connections from specific application
+SELECT pg_terminate_backend(pid)
+FROM pg_stat_activity
+WHERE application_name = 'problem_app';
+```
+
+**Migration Rollback Procedures:**
+
+```bash
+#!/bin/bash
+# Emergency rollback script
+
+# 1. Stop application traffic
+kubectl scale deployment myapp --replicas=0
+
+# 2. Restore from backup
+aws rds restore-db-instance-from-db-snapshot \
+  --db-instance-identifier mydb-rollback \
+  --db-snapshot-identifier mydb-before-migration
+
+# 3. Update DNS or connection strings
+# 4. Scale application back up
+kubectl scale deployment myapp --replicas=3
+
+# 5. Verify functionality
+curl -f http://myapp.example.com/health || exit 1
+```
+
+**Automated Circuit Breaker:**
+
+```javascript
+class DatabaseCircuitBreaker {
+  constructor(threshold = 5, timeout = 60000) {
+    this.failureCount = 0;
+    this.threshold = threshold;
+    this.timeout = timeout;
+    this.state = 'CLOSED'; // CLOSED, OPEN, HALF_OPEN
+    this.nextAttempt = Date.now();
+  }
+
+  async execute(operation) {
+    if (this.state === 'OPEN') {
+      if (Date.now() < this.nextAttempt) {
+        throw new Error('Circuit breaker is OPEN');
+      }
+      this.state = 'HALF_OPEN';
+    }
+
+    try {
+      const result = await operation();
+      this.onSuccess();
+      return result;
+    } catch (error) {
+      this.onFailure();
+      throw error;
+    }
+  }
+
+  onSuccess() {
+    this.failureCount = 0;
+    this.state = 'CLOSED';
+  }
+
+  onFailure() {
+    this.failureCount++;
+    if (this.failureCount >= this.threshold) {
+      this.state = 'OPEN';
+      this.nextAttempt = Date.now() + this.timeout;
+    }
+  }
+}
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="best-practices" summary="Best Practices for Production Database Maintenance">
+
+**Pre-Migration Checklist:**
+
+1. **Backup Verification:**
+   ```bash
+   # Verify backup integrity
+   aws rds describe-db-snapshots --db-instance-identifier mydb
+   aws rds restore-db-instance-from-db-snapshot --dry-run
+   ```
+
+2. **Performance Baseline:**
+   ```bash
+   # Capture performance metrics before migration
+   aws cloudwatch get-metric-statistics \
+     --namespace AWS/RDS \
+     --metric-name DatabaseConnections \
+     --start-time $(date -d '1 hour ago' -u +%Y-%m-%dT%H:%M:%S) \
+     --end-time $(date -u +%Y-%m-%dT%H:%M:%S) \
+     --period 300 \
+     --statistics Average
+   ```
+
+3. **Communication Plan:**
+   ```markdown
+   ## Maintenance Window Notification Template
+   
+   **Subject:** Scheduled Database Maintenance - [Date/Time]
+   
+   **What:** Database schema update for improved performance
+   **When:** [Date] at [Time] ([Timezone])
+   **Duration:** Estimated 30 minutes
+   **Impact:** Minimal - read-only mode during migration
+   **Rollback:** Available within 15 minutes if needed
+   ```
+
+**Post-Migration Verification:**
+
+```javascript
+// Automated verification script
+async function verifyMigration() {
+  const checks = [
+    { name: 'Database Connection', test: () => pool.query('SELECT 1') },
+    { name: 'Schema Validation', test: () => pool.query('DESCRIBE countries') },
+    { name: 'Data Integrity', test: () => pool.query('SELECT COUNT(*) FROM countries') },
+    { name: 'Performance Test', test: () => Promise.race([
+      pool.query('SELECT * FROM countries LIMIT 10'),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+    ]) }
+  ];
+
+  for (const check of checks) {
+    try {
+      await check.test();
+      console.log(`✅ ${check.name} - PASSED`);
+    } catch (error) {
+      console.error(`❌ ${check.name} - FAILED:`, error.message);
+      throw new Error(`Verification failed: ${check.name}`);
+    }
+  }
+}
+```
+
+**Long-term Optimization:**
+
+1. **Query Optimization:**
+   ```sql
+   -- Add appropriate indexes
+   CREATE INDEX idx_countries_name ON countries(name);
+   CREATE INDEX idx_countries_code ON countries(code);
+   
+   -- Analyze query performance
+   EXPLAIN SELECT * FROM countries WHERE name = 'United States';
+   ```
+
+2. **Connection Pool Tuning:**
+   ```javascript
+   const optimizedPool = mysql.createPool({
+     host: process.env.DB_HOST,
+     user: process.env.DB_USER,
+     password: process.env.DB_PASSWORD,
+     database: process.env.DB_NAME,
+     connectionLimit: 20, // Based on RDS instance capacity
+     acquireTimeout: 60000,
+     timeout: 60000,
+     reconnect: true,
+     charset: 'utf8mb4'
+   });
+   ```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

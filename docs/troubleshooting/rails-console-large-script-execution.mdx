@@ -1,0 +1,172 @@
+---
+sidebar_position: 15
+title: "Rails Console Large Script Execution Issue"
+description: "Solution for executing large scripts in Rails console through Lens"
+date: "2024-01-15"
+category: "workload"
+tags: ["rails", "console", "lens", "kubectl", "script-execution"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Rails Console Large Script Execution Issue
+
+**Date:** January 15, 2024  
+**Category:** Workload  
+**Tags:** Rails, Console, Lens, kubectl, Script Execution
+
+## Problem Description
+
+**Context:** User experiences issues when trying to paste or execute large scripts (approximately 300 lines) in Rails console through Lens interface.
+
+**Observed Symptoms:**
+
+- `IOError: ungetbyte failed` when pasting large scripts
+- Error occurs in `/usr/local/lib/ruby/3.1.0/reline/ansi.rb:259`
+- Console becomes unresponsive with large code blocks
+- Issue specifically affects Rails IRB console accessed through Lens
+
+**Relevant Configuration:**
+
+- Ruby version: 3.1.0
+- Rails console accessed through Lens
+- Script size: ~300 lines
+- Error location: Reline ANSI module
+
+**Error Conditions:**
+
+- Error occurs when pasting large amounts of code
+- Happens specifically in Rails console (IRB)
+- Problem appears when using Lens console interface
+- Issue does not occur with smaller code snippets
+
+## Detailed Solution
+
+<TroubleshootingItem id="kubectl-cp-solution" summary="Copy script files to pod using kubectl cp">
+
+The most reliable solution is to copy your script as a file to the pod and then execute it:
+
+```bash
+# Copy script from local machine to pod
+kubectl cp /home/user/local/path/script.rb namespace/pod_name:/tmp/script.rb
+
+# Then in Rails console, load and execute the script
+load '/tmp/script.rb'
+```
+
+**Step-by-step process:**
+
+1. Save your script to a local file (e.g., `my_script.rb`)
+2. Use `kubectl cp` to copy it to the pod
+3. Access Rails console through Lens
+4. Use `load` or `require` to execute the script
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="lens-terminal-alternative" summary="Use Lens terminal instead of Rails console">
+
+You can also execute Rails scripts directly from the terminal:
+
+```bash
+# Access pod terminal through Lens
+# Then run Rails runner with your script
+rails runner /tmp/script.rb
+
+# Or execute Ruby code directly
+ruby -e "$(cat /tmp/script.rb)"
+```
+
+This bypasses the IRB console limitations entirely.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="file-management-considerations" summary="Important considerations for pod file management">
+
+**Remember that pod filesystems are ephemeral:**
+
+- Files copied to pods will be lost when pods restart
+- Use `/tmp` directory for temporary scripts
+- For persistent scripts, consider using ConfigMaps or mounted volumes
+
+**Creating a ConfigMap for reusable scripts:**
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rails-scripts
+data:
+  my-script.rb: |
+    # Your Ruby script content here
+    puts "Hello from ConfigMap script"
+```
+
+Then mount it in your deployment and access at `/scripts/my-script.rb`.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-execution-methods" summary="Alternative methods for script execution">
+
+**Method 1: Split large scripts into smaller chunks**
+
+```ruby
+# In Rails console, paste smaller sections at a time
+# This avoids the buffer overflow issue
+```
+
+**Method 2: Use heredoc syntax**
+
+```ruby
+# In Rails console
+script_content = <<~RUBY
+  # Your script content here
+  # This can handle larger blocks better
+RUBY
+
+eval(script_content)
+```
+
+**Method 3: Execute from Rails application**
+
+```ruby
+# Create a rake task or Rails runner script
+# rails runner 'path/to/your/script.rb'
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-kubectl-cp" summary="Troubleshooting kubectl cp command">
+
+If `kubectl cp` doesn't work:
+
+**Check pod and namespace:**
+
+```bash
+# List pods in namespace
+kubectl get pods -n your-namespace
+
+# Verify pod is running
+kubectl describe pod pod-name -n your-namespace
+```
+
+**Correct syntax:**
+
+```bash
+# From local to pod
+kubectl cp ./local-file.rb namespace/pod-name:/tmp/remote-file.rb
+
+# From pod to local
+kubectl cp namespace/pod-name:/tmp/remote-file.rb ./local-file.rb
+```
+
+**Common issues:**
+
+- Ensure the target directory exists in the pod
+- Check file permissions
+- Verify kubectl context is correct
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

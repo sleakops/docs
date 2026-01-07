@@ -1,0 +1,181 @@
+---
+sidebar_position: 3
+title: "Configuración de la Fuente de Datos Prometheus en Grafana"
+description: "Cómo configurar la fuente de datos Prometheus en Grafana dentro de la plataforma SleakOps"
+date: "2024-12-11"
+category: "dependency"
+tags: ["grafana", "prometheus", "monitorización", "fuente de datos", "thanos"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Configuración de la Fuente de Datos Prometheus en Grafana
+
+**Fecha:** 11 de diciembre de 2024  
+**Categoría:** Dependencia  
+**Etiquetas:** Grafana, Prometheus, Monitorización, Fuente de Datos, Thanos
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios que intentan configurar Prometheus como fuente de datos en Grafana dentro de la plataforma SleakOps encuentran problemas de conexión y desconocen las fuentes de datos preconfiguradas.
+
+**Síntomas observados:**
+
+- Incapacidad para conectar con Prometheus desde la interfaz de Grafana
+- Intentos fallidos de configuración manual de Prometheus
+- Los usuarios crean fuentes de datos duplicadas innecesariamente
+- Tiempo de espera agotado al probar la fuente de datos Prometheus
+
+**Configuración relevante:**
+
+- Grafana es accesible vía conexión VPN
+- Prometheus está instalado dentro del clúster de Kubernetes
+- Las fuentes de datos por defecto están preconfiguradas por SleakOps
+- Thanos se utiliza como proxy para almacenamiento a largo plazo en S3
+
+**Condiciones de error:**
+
+- Fallo en la prueba de conexión de la fuente de datos
+- Punto de acceso Prometheus no accesible desde Grafana
+- Los usuarios intentan configuración manual en lugar de usar los valores por defecto
+
+## Solución Detallada
+
+<TroubleshootingItem id="default-datasource" summary="Usar la fuente de datos Prometheus preconfigurada">
+
+SleakOps configura automáticamente una fuente de datos Prometheus en Grafana. **No necesitas crear una nueva manualmente.**
+
+**Pasos para usar la fuente de datos por defecto:**
+
+1. Accede a Grafana a través de tu conexión VPN de SleakOps
+2. Ve a **Configuración** → **Fuentes de datos**
+3. Busca la fuente de datos existente llamada **"Prometheus"**
+4. Esta fuente de datos ya está configurada y lista para usar
+
+**Beneficios clave de la configuración por defecto:**
+
+- Preconfigurada con los endpoints correctos
+- Integrada con Thanos para almacenamiento de métricas a largo plazo
+- Funciona con todos los dashboards por defecto de SleakOps
+- No requiere configuración manual
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="thanos-integration" summary="Entendiendo la integración con Thanos">
+
+La fuente de datos Prometheus por defecto usa **Thanos** como destino en lugar de conectarse directamente a Prometheus:
+
+**¿Qué es Thanos?**
+
+- Una configuración altamente disponible de Prometheus con capacidades de almacenamiento a largo plazo
+- Almacena métricas en AWS S3 para retención extendida
+- Proporciona la misma interfaz de consulta que Prometheus
+- Permite análisis histórico de datos más allá de la retención local de Prometheus
+
+**Detalles de configuración:**
+
+```yaml
+# Configuración de la fuente de datos por defecto (gestionada por SleakOps)
+name: Prometheus
+type: prometheus
+url: http://thanos-query:9090
+access: proxy
+isDefault: true
+```
+
+**¿Por qué usar Thanos en lugar de Prometheus directo?**
+
+- Retención extendida de métricas (almacenadas en S3)
+- Mejor rendimiento para consultas históricas
+- Configuración de alta disponibilidad
+- Integración perfecta con el stack de monitorización de SleakOps
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-connection" summary="Solución de problemas de conexión">
+
+Si estás experimentando problemas de conexión con Grafana:
+
+**1. Verifica la conexión VPN:**
+
+```bash
+# Comprueba si puedes acceder a Grafana
+curl -I https://grafana.tu-proyecto.sleakops.com
+```
+
+**2. Revisa el estado de la fuente de datos:**
+
+- Ve a **Configuración** → **Fuentes de datos**
+- Haz clic en la fuente de datos **"Prometheus"**
+- Haz clic en **"Guardar y probar"** para verificar la conectividad
+
+**3. Problemas comunes de conexión:**
+
+- **VPN no conectada:** Asegúrate de estar conectado a la VPN de SleakOps
+- **Ingress no listo:** Espera unos minutos después de la creación del clúster
+- **Resolución DNS:** Limpia la caché del navegador y vuelve a intentar
+
+**4. Métodos alternativos de acceso:**
+
+```bash
+# Reenvío de puerto para acceder directamente a Grafana (si persisten problemas con la VPN)
+kubectl port-forward svc/grafana 3000:80 -n monitoring
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="custom-datasources" summary="Cuándo crear fuentes de datos personalizadas">
+
+**Solo deberías crear fuentes de datos personalizadas si:**
+
+1. **Instancias externas de Prometheus:** Conectar a Prometheus fuera de tu clúster
+2. **Políticas de retención diferentes:** Necesitas diferentes tiempos de espera o intervalos de consulta
+3. **Integraciones personalizadas:** Herramientas de monitorización específicas o servicios externos
+4. **Desarrollo/pruebas:** Fuentes de datos separadas para diferentes entornos
+
+**Si creas fuentes de datos personalizadas:**
+
+```yaml
+# Ejemplo de configuración personalizada de Prometheus
+name: prometheus-custom
+type: prometheus
+url: http://prometheus-server.monitoring.svc.cluster.local:80
+access: proxy
+timeout: 60s
+```
+
+**Buenas prácticas:**
+
+- Usa nombres descriptivos (p. ej., "prometheus-dev", "prometheus-external")
+- Prueba la conectividad antes de guardar
+- Documenta el propósito de las fuentes de datos personalizadas
+- Evita duplicar la configuración por defecto
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dashboard-compatibility" summary="Compatibilidad de dashboards con fuentes de datos">
+
+**Dashboards por defecto de SleakOps:**
+
+- Están configurados para usar la fuente de datos "Prometheus" por defecto
+- Funcionan automáticamente sin modificaciones
+- Incluyen métricas de clúster, métricas de aplicaciones y monitorización de infraestructura
+
+**Si usas fuentes de datos personalizadas:**
+
+- Puede que necesites modificar las consultas en los dashboards
+- Actualiza las referencias a la fuente de datos en el JSON del dashboard
+- Prueba todos los paneles para asegurar que los datos se muestran correctamente
+
+**Enfoque recomendado:**
+
+1. Comienza con la fuente de datos "Prometheus" por defecto
+2. Explora los dashboards y métricas disponibles
+3. Solo crea fuentes de datos personalizadas cuando sea estrictamente necesario
+4. Mantén la fuente de datos por defecto como tu principal fuente de monitorización
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 11 de diciembre de 2024 basada en una consulta real de usuario._

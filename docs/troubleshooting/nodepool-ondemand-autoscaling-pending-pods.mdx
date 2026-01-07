@@ -1,0 +1,218 @@
+---
+sidebar_position: 3
+title: "Nodepool OnDemand Configuration Causing Pod Scaling Issues"
+description: "Pods stuck in pending state after changing nodepool from default to OnDemand configuration"
+date: "2024-12-19"
+category: "cluster"
+tags: ["nodepool", "ondemand", "autoscaling", "pending", "scaling"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Nodepool OnDemand Configuration Causing Pod Scaling Issues
+
+**Date:** December 19, 2024  
+**Category:** Cluster  
+**Tags:** Nodepool, OnDemand, Autoscaling, Pending, Scaling
+
+## Problem Description
+
+**Context:** User changed nodepool configuration from default (no value) to OnDemand at SleakOps team's request. After this change, autoscaling functionality is not working properly.
+
+**Observed Symptoms:**
+
+- Pods created by autoscaling remain in pending state
+- Only minimum required pods are active
+- New pods fail to scale and show errors
+- Autoscaling was working before the nodepool configuration change
+
+**Relevant Configuration:**
+
+- Nodepool type: Changed from default (no value) to OnDemand
+- Autoscaling: Enabled but not functioning properly
+- Minimum pods: Working correctly
+- Scaling pods: Stuck in pending state
+
+**Error Conditions:**
+
+- Error occurs when autoscaler tries to create new pods
+- Pods remain in pending state indefinitely
+- Issue started after nodepool configuration change
+- Only affects scaled pods, not minimum required pods
+
+## Detailed Solution
+
+<TroubleshootingItem id="initial-diagnosis" summary="Understanding the OnDemand configuration impact">
+
+When changing from default nodepool configuration to OnDemand, several aspects can affect pod scheduling:
+
+1. **Instance provisioning**: OnDemand instances have different provisioning characteristics
+2. **Resource allocation**: OnDemand configuration may have different resource limits
+3. **Scheduling constraints**: New configuration might introduce scheduling restrictions
+4. **Capacity planning**: OnDemand instances may have different availability patterns
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="pending-pod-diagnosis" summary="Diagnosing pending pods">
+
+To identify why pods are stuck in pending state:
+
+```bash
+# Check pod status and events
+kubectl get pods -o wide
+kubectl describe pod <pending-pod-name>
+
+# Check node capacity and resources
+kubectl get nodes -o wide
+kubectl describe nodes
+
+# Check cluster autoscaler logs
+kubectl logs -n kube-system deployment/cluster-autoscaler
+```
+
+Common reasons for pending pods after nodepool changes:
+
+- Insufficient node capacity
+- Resource constraints (CPU/Memory)
+- Node selector mismatches
+- Taints and tolerations issues
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="nodepool-verification" summary="Verify nodepool configuration">
+
+Check your current nodepool configuration in SleakOps:
+
+1. **Navigate to Cluster Management**
+2. **Select your cluster**
+3. **Go to Nodepools section**
+4. **Verify OnDemand configuration**:
+   - Instance types are appropriate
+   - Min/Max scaling limits are correct
+   - Availability zones are properly configured
+   - Resource allocations match your workload needs
+
+```yaml
+# Example proper OnDemand nodepool configuration
+nodepool:
+  name: "ondemand-nodepool"
+  instance_type: ["t3.medium", "t3.large"]
+  capacity_type: "ON_DEMAND"
+  min_size: 2
+  max_size: 10
+  desired_size: 3
+  availability_zones: ["us-east-1a", "us-east-1b", "us-east-1c"]
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="autoscaler-configuration" summary="Check cluster autoscaler configuration">
+
+Verify that the cluster autoscaler is properly configured for OnDemand instances:
+
+```bash
+# Check autoscaler configuration
+kubectl get configmap cluster-autoscaler-status -n kube-system -o yaml
+
+# Check autoscaler deployment
+kubectl get deployment cluster-autoscaler -n kube-system -o yaml
+```
+
+Ensure the autoscaler has:
+
+- Proper permissions for OnDemand instance management
+- Correct nodepool discovery configuration
+- Appropriate scaling policies
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="resource-requirements" summary="Review pod resource requirements">
+
+Check if your pods have resource requests that match the OnDemand nodepool capacity:
+
+```yaml
+# Example pod with proper resource requests
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+    - name: app
+      image: nginx
+      resources:
+        requests:
+          memory: "256Mi"
+          cpu: "250m"
+        limits:
+          memory: "512Mi"
+          cpu: "500m"
+```
+
+Common issues:
+
+- Resource requests too high for available node capacity
+- Missing resource requests causing scheduling issues
+- Limits set too restrictively
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-solutions" summary="Immediate troubleshooting steps">
+
+1. **Scale down and up manually**:
+
+   ```bash
+   kubectl scale deployment <your-deployment> --replicas=1
+   kubectl scale deployment <your-deployment> --replicas=<desired-count>
+   ```
+
+2. **Force node scaling**:
+
+   - Temporarily increase nodepool desired capacity in SleakOps
+   - Wait for nodes to provision
+   - Check if pods can schedule on new nodes
+
+3. **Check for node taints**:
+
+   ```bash
+   kubectl get nodes -o custom-columns=NAME:.metadata.name,TAINTS:.spec.taints
+   ```
+
+4. **Verify pod tolerations** if nodes have taints
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="long-term-solution" summary="Long-term configuration optimization">
+
+For optimal OnDemand nodepool performance:
+
+1. **Mixed instance types**: Use multiple instance types for better availability
+2. **Proper resource planning**: Ensure pod requests align with node capacity
+3. **Gradual scaling**: Configure appropriate scaling policies
+4. **Monitoring**: Set up alerts for pending pods and scaling events
+
+```yaml
+# Recommended HPA configuration
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: app-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: your-app
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+```
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

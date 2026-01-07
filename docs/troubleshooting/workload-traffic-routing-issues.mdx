@@ -1,0 +1,244 @@
+---
+sidebar_position: 3
+title: "Traffic Routing Issues to Backend Pods"
+description: "Solution for traffic routing problems when accessing backend services through subdomains"
+date: "2024-01-15"
+category: "workload"
+tags: ["networking", "routing", "subdomain", "backend", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Traffic Routing Issues to Backend Pods
+
+**Date:** January 15, 2024  
+**Category:** Workload  
+**Tags:** Networking, Routing, Subdomain, Backend, Troubleshooting
+
+## Problem Description
+
+**Context:** User has a backend service deployed in SleakOps that can connect to the database successfully, but external traffic through subdomains is not reaching the backend pods.
+
+**Observed Symptoms:**
+
+- Direct port forwarding to pod works on localhost
+- External access through subdomain fails with routing errors
+- Backend can connect to database successfully
+- Database version 1 is running properly
+- HTTP requests never reach the backend service
+
+**Relevant Configuration:**
+
+- Backend service: Deployed and running
+- Database: Version 1, connected successfully
+- Networking: Subdomain configured but not routing traffic
+- Port forwarding: Works locally via kubectl
+
+**Error Conditions:**
+
+- Subdomain access fails with redirection errors
+- Traffic routing fails between ingress and backend pods
+- External requests do not reach the application
+- Local port forwarding works correctly
+
+## Detailed Solution
+
+<TroubleshootingItem id="initial-diagnosis" summary="Diagnose the traffic routing issue">
+
+This type of issue typically occurs due to one of these common problems:
+
+1. **Ingress configuration**: Missing or incorrect ingress rules
+2. **Service configuration**: Service not properly exposing the backend
+3. **DNS configuration**: Subdomain not properly configured
+4. **Network policies**: Blocking external traffic
+5. **Load balancer issues**: External load balancer not routing correctly
+
+First, verify that your service is properly configured and running:
+
+```bash
+kubectl get services
+kubectl get pods
+kubectl get ingress
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="service-verification" summary="Verify service configuration">
+
+Check if your backend service is properly configured:
+
+```bash
+# Check service details
+kubectl describe service your-backend-service
+
+# Verify service endpoints
+kubectl get endpoints your-backend-service
+```
+
+Ensure your service configuration includes:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+spec:
+  selector:
+    app: your-backend-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080 # Your backend port
+  type: ClusterIP
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="ingress-configuration" summary="Check ingress configuration">
+
+Verify your ingress is properly configured for the subdomain:
+
+```bash
+# Check ingress status
+kubectl get ingress
+kubectl describe ingress your-ingress-name
+```
+
+Ensure your ingress configuration is correct:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: backend-ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+    - host: your-subdomain.yourdomain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-service
+                port:
+                  number: 80
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="dns-verification" summary="Verify DNS and subdomain configuration">
+
+Check if your subdomain is properly configured:
+
+1. **Test DNS resolution**:
+
+```bash
+nslookup your-subdomain.yourdomain.com
+dig your-subdomain.yourdomain.com
+```
+
+2. **Check if subdomain points to correct IP**:
+
+   - The subdomain should point to your cluster's load balancer IP
+   - Get the load balancer IP: `kubectl get ingress`
+
+3. **Verify in SleakOps dashboard**:
+   - Go to your project settings
+   - Check the subdomain configuration
+   - Ensure it's properly linked to your backend service
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="connectivity-testing" summary="Test connectivity step by step">
+
+Test connectivity at different levels:
+
+1. **Test pod directly**:
+
+```bash
+kubectl port-forward pod/your-backend-pod 8080:8080
+curl http://localhost:8080/health
+```
+
+2. **Test service internally**:
+
+```bash
+kubectl run test-pod --image=curlimages/curl -it --rm -- sh
+# Inside the pod:
+curl http://backend-service/health
+```
+
+3. **Test ingress internally**:
+
+```bash
+curl -H "Host: your-subdomain.yourdomain.com" http://INGRESS_IP/health
+```
+
+4. **Test external access**:
+
+```bash
+curl https://your-subdomain.yourdomain.com/health
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-fixes" summary="Common fixes for routing issues">
+
+**If service is not working:**
+
+- Check that service selector matches pod labels
+- Verify port configuration matches container port
+
+**If ingress is not working:**
+
+- Ensure ingress controller is running: `kubectl get pods -n ingress-nginx`
+- Check ingress class annotation
+- Verify host configuration matches your subdomain
+
+**If DNS is not resolving:**
+
+- Check subdomain configuration in SleakOps dashboard
+- Verify DNS propagation (can take up to 24 hours)
+- Try using a different DNS server for testing
+
+**If SSL/TLS issues:**
+
+- Check certificate status: `kubectl describe certificate`
+- Verify cert-manager is working: `kubectl get pods -n cert-manager`
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="sleakops-specific" summary="SleakOps specific troubleshooting">
+
+In SleakOps platform:
+
+1. **Check service configuration**:
+
+   - Go to your project → Services
+   - Verify the backend service is properly configured
+   - Check port mappings and health checks
+
+2. **Verify subdomain settings**:
+
+   - Go to project settings → Domains
+   - Ensure subdomain is active and properly configured
+   - Check SSL certificate status
+
+3. **Review logs**:
+
+   - Check backend service logs in the SleakOps dashboard
+   - Look for any startup errors or connectivity issues
+   - Check ingress controller logs if available
+
+4. **Network policies**:
+   - Ensure no network policies are blocking traffic
+   - Check if any security groups or firewall rules are interfering
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on January 15, 2024 based on a real user query._

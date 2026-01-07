@@ -1,0 +1,166 @@
+---
+sidebar_position: 3
+title: "Entendiendo los Costos de AWS EKS en SleakOps"
+description: "Desglose de los costos del clúster AWS EKS incluyendo el plano de control y recursos de cómputo"
+date: "2025-01-15"
+category: "cluster"
+tags: ["eks", "aws", "costos", "facturación", "nodegroup"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Entendiendo los Costos de AWS EKS en SleakOps
+
+**Fecha:** 15 de enero de 2025  
+**Categoría:** Clúster  
+**Etiquetas:** EKS, AWS, Costos, Facturación, NodeGroup
+
+## Descripción del Problema
+
+**Contexto:** Los usuarios a menudo tienen preguntas sobre los costos del clúster AWS EKS al usar SleakOps, particularmente para entender las diferentes categorías de costos y qué genera cargos incluso durante las fases de desarrollo o prueba.
+
+**Síntomas observados:**
+
+- Cargos inesperados por clústeres EKS durante el desarrollo
+- Confusión sobre las diferentes categorías de costos de AWS
+- Preguntas sobre por qué ocurren costos incluso con uso mínimo
+- Dificultad para entender la relación entre los componentes del clúster y la facturación
+
+**Configuración relevante:**
+
+- Clúster AWS EKS con plano de control
+- NodeGroups para nodos trabajadores
+- Karpenter para autoescalado
+- Varios complementos y aplicaciones desplegadas
+
+**Condiciones de error:**
+
+- Usuarios ven cargos que no comprenden
+- Entornos de desarrollo generan costos inesperados
+- Dificultad para correlacionar uso con facturación
+
+## Solución Detallada
+
+<TroubleshootingItem id="eks-base-cost" summary="Entendiendo los Costos Base de EKS">
+
+El cargo por **Amazon Elastic Container Service para Kubernetes** es el costo base de operar un clúster EKS:
+
+- **Costo fijo**: $73 USD por mes por clúster
+- **Qué cubre**: El plano de control de EKS (nodos maestros)
+- **Siempre cobrado**: Este costo aplica independientemente del uso de cargas de trabajo
+- **Prorrateado**: Si tu clúster existe solo una parte del mes, pagas proporcionalmente
+
+**Ejemplo**: Si tu clúster funciona del 10 al 31 de diciembre (21 días), pagas aproximadamente $51 USD (21/31 × $73).
+
+Para información detallada de precios, visita la [página oficial de precios de AWS EKS](https://aws.amazon.com/eks/pricing/).
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="compute-costs" summary="Entendiendo los Costos de Cómputo (EC2)">
+
+Los cargos por **Elastic Compute Cloud (EC2)** cubren los nodos trabajadores que ejecutan tus aplicaciones:
+
+**NodeGroups**:
+
+- Instancias EC2 que forman los nodos trabajadores de tu clúster
+- Cobradas según tipo de instancia y tiempo de ejecución
+- Ejemplos: t3.medium, t3.large, m5.xlarge
+
+**Instancias gestionadas por Karpenter**:
+
+- Instancias aprovisionadas automáticamente según la demanda de cargas
+- Escala hacia arriba cuando las aplicaciones necesitan recursos
+- Escala hacia abajo cuando los recursos ya no son necesarios
+
+**Factores de costo**:
+
+- Tipo de instancia (CPU, memoria, rendimiento de red)
+- Número de instancias
+- Tiempo de ejecución
+- Transferencia de datos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="development-costs" summary="Gestionando los Costos de Entornos de Desarrollo">
+
+Incluso los entornos de desarrollo generan costos porque:
+
+1. **El plano de control siempre está activo**: Aplica el cargo de $73/mes de EKS
+2. **Nodos trabajadores mínimos**: Usualmente se necesitan al menos 1-2 nodos para funcionalidad básica
+3. **Los complementos consumen recursos**: Monitoreo, registro y otras herramientas requieren potencia de cómputo
+4. **Procesos en segundo plano**: Pods y servicios del sistema corren continuamente
+
+**Estrategias para optimizar costos**:
+
+```yaml
+# Configuración de desarrollo optimizada para costos
+nodegroup_config:
+  instance_types: ["t3.small", "t3.medium"]
+  min_size: 1
+  max_size: 3
+  desired_size: 1
+
+karpenter_config:
+  enabled: true
+  spot_instances: true # Usar instancias spot para ahorro
+
+scheduling:
+  auto_shutdown: "18:00" # Apagar cargas no esenciales
+  auto_startup: "09:00" # Iniciar cargas en horas laborales
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cost-monitoring" summary="Monitoreo y Control de Costos">
+
+**En la Consola AWS**:
+
+1. Ve a **Cost Explorer**
+2. Filtra por servicio: **Amazon Elastic Kubernetes Service**
+3. Agrupa por: **Servicio** y **Tipo de Uso**
+4. Configura **Alertas de Presupuesto** para aumentos inesperados de costos
+
+**En SleakOps**:
+
+- Monitorea el uso de recursos del clúster en el panel
+- Revisa las aplicaciones desplegadas y sus solicitudes de recursos
+- Usa la configuración de escalado del clúster para controlar recursos máximos
+
+**Buenas prácticas**:
+
+- Usar instancias spot para cargas de desarrollo
+- Implementar autoescalado del clúster
+- Revisar y limpiar recursos no usados regularmente
+- Considerar hibernación del clúster para entornos no productivos
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="cost-breakdown-example" summary="Ejemplo Típico de Desglose de Costos">
+
+Para un clúster pequeño de desarrollo funcionando un mes completo:
+
+**Costos fijos**:
+
+- Plano de Control EKS: $73.00
+
+**Costos variables**:
+
+- 2 × nodos t3.medium (24/7): ~ $60.00
+- Instancias adicionales Karpenter (ocasionales): ~ $15.00
+- Transferencia de datos y almacenamiento: ~ $5.00
+
+**Costo mensual total estimado**: ~ $153.00
+
+**Para uso parcial de mes** (como del 10 al 31 de diciembre):
+
+- Plano de Control EKS: $51.00 (prorrateado)
+- Recursos de cómputo: $34.00 (prorrateado)
+- **Total**: ~ $85.00
+
+Estos son costos típicos para un entorno de desarrollo con uso mínimo pero continuo.
+
+</TroubleshootingItem>
+
+---
+
+_Esta sección de preguntas frecuentes fue generada automáticamente el 15 de enero de 2025 basada en una consulta real de usuario._

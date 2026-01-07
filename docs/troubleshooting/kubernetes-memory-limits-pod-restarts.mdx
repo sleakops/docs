@@ -1,0 +1,204 @@
+---
+sidebar_position: 3
+title: "Kubernetes Pod Restarts Due to Memory Limits"
+description: "Solution for pods restarting due to insufficient memory configuration"
+date: "2024-12-19"
+category: "workload"
+tags: ["kubernetes", "memory", "pod-restarts", "resources", "troubleshooting"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Kubernetes Pod Restarts Due to Memory Limits
+
+**Date:** December 19, 2024  
+**Category:** Workload  
+**Tags:** Kubernetes, Memory, Pod Restarts, Resources, Troubleshooting
+
+## Problem Description
+
+**Context:** A service in Kubernetes suddenly stops working without any changes from the user side. The pod keeps restarting with a "Back-off restarting failed container" message, and the service restarts every time it's accessed.
+
+**Observed Symptoms:**
+
+- Pod shows "Back-off restarting failed container" message
+- Service restarts automatically when accessed
+- No changes were made to the application code
+- Issue appears suddenly without apparent cause
+
+**Relevant Configuration:**
+
+- MemoryMin and MemoryMax values appear to be set too low
+- Pod is being killed by Kubernetes when exceeding memory limits
+- Service is accessible but unstable due to constant restarts
+
+**Error Conditions:**
+
+- Error occurs when the pod exceeds defined memory limits
+- Kubernetes kills the pod assuming the excess memory usage is incorrect
+- Problem manifests during service access or high load
+
+## Detailed Solution
+
+<TroubleshootingItem id="memory-limit-diagnosis" summary="Understanding Kubernetes Memory Management">
+
+Kubernetes manages pod resources through requests and limits:
+
+- **Memory Request (MemoryMin)**: Guaranteed memory allocation
+- **Memory Limit (MemoryMax)**: Maximum memory the pod can use
+
+When a pod exceeds its memory limit, Kubernetes terminates it with an OOMKilled (Out of Memory Killed) status and restarts it automatically.
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="grafana-monitoring" summary="Monitor Memory Usage with Grafana">
+
+To analyze current memory usage:
+
+1. Access your Grafana dashboard
+2. Navigate to **'Kubernetes / Compute Resources / Namespace (Pods)'**
+3. Select your namespace and pod
+4. Review the memory usage patterns:
+   - Current memory consumption
+   - Memory spikes during operation
+   - Comparison with configured limits
+
+```yaml
+# Example of what to look for in metrics
+Memory Usage: 512Mi
+Memory Limit: 256Mi # This would cause OOMKilled
+Memory Request: 128Mi
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="increase-memory-limits" summary="How to Increase Memory Limits">
+
+To resolve the issue, increase the memory configuration:
+
+**In SleakOps Dashboard:**
+
+1. Go to your service configuration
+2. Navigate to **Resource Settings**
+3. Increase **Memory Limit** (MemoryMax)
+4. Optionally increase **Memory Request** (MemoryMin)
+5. Deploy the changes
+
+**Example Configuration:**
+
+```yaml
+resources:
+  requests:
+    memory: "512Mi" # MemoryMin
+    cpu: "250m"
+  limits:
+    memory: "1Gi" # MemoryMax
+    cpu: "500m"
+```
+
+**Recommended Starting Values:**
+
+- For small applications: 512Mi - 1Gi
+- For medium applications: 1Gi - 2Gi
+- For large applications: 2Gi - 4Gi
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="troubleshooting-steps" summary="Step-by-Step Troubleshooting">
+
+**Step 1: Check Current Pod Status**
+
+```bash
+kubectl get pods -n your-namespace
+kubectl describe pod your-pod-name -n your-namespace
+```
+
+**Step 2: Check Pod Events**
+
+```bash
+kubectl get events -n your-namespace --sort-by='.lastTimestamp'
+```
+
+**Step 3: Review Pod Logs**
+
+```bash
+kubectl logs your-pod-name -n your-namespace --previous
+```
+
+**Step 4: Monitor Resource Usage**
+
+```bash
+kubectl top pods -n your-namespace
+```
+
+**Step 5: Update Resource Limits**
+
+- Increase memory limits based on observed usage
+- Add 20-50% buffer above peak usage
+- Test with gradual increases
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-best-practices" summary="Best Practices for Memory Configuration">
+
+**Memory Sizing Guidelines:**
+
+1. **Start Conservative**: Begin with reasonable limits and monitor
+2. **Monitor Regularly**: Use Grafana dashboards to track usage patterns
+3. **Set Appropriate Ratios**:
+   - Memory Request: 70-80% of typical usage
+   - Memory Limit: 150-200% of typical usage
+
+**Configuration Example:**
+
+```yaml
+# For a Node.js application
+resources:
+  requests:
+    memory: "256Mi"   # Guaranteed allocation
+    cpu: "100m"
+  limits:
+    memory: "512Mi"   # Maximum allowed
+    cpu: "200m"
+
+# For a Java application
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "1Gi"
+    cpu: "500m"
+```
+
+**Monitoring Alerts:**
+
+- Set up alerts when memory usage exceeds 80% of limits
+- Monitor for frequent restarts
+- Track memory usage trends over time
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="when-to-contact-support" summary="When to Contact Support">
+
+Contact SleakOps support if:
+
+- Memory issues persist after increasing limits
+- You observe unusual memory consumption patterns
+- The application worked previously without configuration changes
+- You need help interpreting Grafana metrics
+- Resource increases don't resolve the restart issue
+
+Provide this information:
+
+- Service name and namespace
+- Current resource configuration
+- Grafana screenshots showing memory usage
+- Pod logs and events
+- Timeline of when the issue started
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 19, 2024 based on a real user query._

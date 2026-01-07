@@ -1,0 +1,227 @@
+---
+sidebar_position: 3
+title: "Migration Hooks Deployment Issues"
+description: "Troubleshooting deployment timeouts and migration hook failures in SleakOps"
+date: "2024-12-11"
+category: "project"
+tags: ["deployment", "migration", "hooks", "troubleshooting", "timeout"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Migration Hooks Deployment Issues
+
+**Date:** December 11, 2024  
+**Category:** Project  
+**Tags:** Deployment, Migration, Hooks, Troubleshooting, Timeout
+
+## Problem Description
+
+**Context:** Users experience deployment timeouts when migration hooks fail to complete successfully, causing deployments to remain in "STALLED" status indefinitely.
+
+**Observed Symptoms:**
+
+- Deployment shows timeout error after 30 minutes
+- Migration hook pod never reaches "Succeeded" status
+- Deployment remains in "STALLED" state
+- Migration errors are not visible in deployment logs
+- Manual migration execution in pod shows different results than hook execution
+
+**Relevant Configuration:**
+
+- Platform: SleakOps deployment system
+- Hook type: Database migration hooks
+- Deployment method: Kubernetes Jobs
+- Log visibility: Limited error reporting in deployment logs
+
+**Error Conditions:**
+
+- Migration hook fails but doesn't report explicit error
+- Database migration encounters constraint violations
+- Hook execution doesn't properly exit with status codes
+- Logs from migration hooks don't appear in stdout
+
+## Detailed Solution
+
+<TroubleshootingItem id="hook-status-diagnosis" summary="Diagnosing migration hook status">
+
+To check if your migration hook is the cause of deployment timeout:
+
+1. **Check hook pod status** in the cluster:
+
+   ```bash
+   kubectl get pods -l job-name=migration-hook
+   kubectl describe pod <migration-pod-name>
+   ```
+
+2. **Look for hook completion status**:
+
+   - Hook should show `Completed` status
+   - If stuck in `Running`, the migration never finished
+   - If showing `Failed`, check the pod logs
+
+3. **Verify hook logs**:
+   ```bash
+   kubectl logs <migration-pod-name>
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="manual-migration-debugging" summary="Manual migration execution for debugging">
+
+When hook logs don't show the actual error, run migrations manually:
+
+1. **Access the application pod**:
+
+   ```bash
+   kubectl exec -it <app-pod-name> -- /bin/bash
+   ```
+
+2. **Run migrations manually**:
+
+   ```bash
+   # For Rails applications
+   bundle exec rails db:migrate
+
+   # For Django applications
+   python manage.py migrate
+
+   # For Node.js applications
+   npm run migrate
+   ```
+
+3. **Check for specific errors**:
+   - Database constraint violations
+   - Missing columns or tables
+   - Data type conflicts
+   - Null constraint violations
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="common-migration-errors" summary="Common migration errors and solutions">
+
+**Null constraint violations:**
+
+```sql
+-- Error: Attempting to add NOT NULL column to table with existing data
+-- Solution: Add column as nullable first, then update values
+ALTER TABLE users ADD COLUMN email VARCHAR(255);
+UPDATE users SET email = 'default@example.com' WHERE email IS NULL;
+ALTER TABLE users ALTER COLUMN email SET NOT NULL;
+```
+
+**Data type conflicts:**
+
+```sql
+-- Error: Cannot change column type with existing data
+-- Solution: Create new column, migrate data, drop old column
+ALTER TABLE products ADD COLUMN price_new DECIMAL(10,2);
+UPDATE products SET price_new = CAST(price AS DECIMAL(10,2));
+ALTER TABLE products DROP COLUMN price;
+ALTER TABLE products RENAME COLUMN price_new TO price;
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="hook-exit-codes" summary="Ensuring proper hook exit codes">
+
+Make sure your migration scripts exit properly:
+
+**For shell scripts:**
+
+```bash
+#!/bin/bash
+set -e  # Exit on any error
+
+# Run your migrations
+echo "Running database migrations..."
+bundle exec rails db:migrate
+
+# Explicit success exit
+echo "Migrations completed successfully"
+exit 0
+```
+
+**For Python scripts:**
+
+```python
+import sys
+import subprocess
+
+try:
+    # Run migration command
+    result = subprocess.run(['python', 'manage.py', 'migrate'],
+                          check=True, capture_output=True, text=True)
+    print("Migrations completed successfully")
+    sys.exit(0)
+except subprocess.CalledProcessError as e:
+    print(f"Migration failed: {e.stderr}")
+    sys.exit(1)
+```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="improving-hook-logging" summary="Improving migration hook logging">
+
+To get better visibility into migration hook failures:
+
+1. **Add verbose logging to your migration scripts**:
+
+   ```bash
+   #!/bin/bash
+   echo "[$(date)] Starting database migrations"
+   echo "[$(date)] Current database status:"
+   # Add database status check here
+
+   echo "[$(date)] Running migrations..."
+   bundle exec rails db:migrate 2>&1 | tee /tmp/migration.log
+
+   if [ ${PIPESTATUS[0]} -eq 0 ]; then
+       echo "[$(date)] Migrations completed successfully"
+       exit 0
+   else
+       echo "[$(date)] Migrations failed"
+       cat /tmp/migration.log
+       exit 1
+   fi
+   ```
+
+2. **Ensure all output goes to stdout/stderr**:
+   - Redirect all command output to stdout
+   - Use `2>&1` to capture stderr
+   - Avoid writing logs only to files
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="recovery-steps" summary="Recovery steps for stuck deployments">
+
+When a deployment is stuck due to failed migration hooks:
+
+1. **Delete the failed migration pod**:
+
+   ```bash
+   kubectl delete pod <migration-pod-name>
+   ```
+
+2. **Fix the underlying migration issue**:
+
+   - Manually resolve database conflicts
+   - Update migration scripts if needed
+   - Test migrations in a staging environment
+
+3. **Retry the deployment**:
+
+   - The hook will be recreated automatically
+   - Monitor the new hook pod status
+   - Check logs for successful completion
+
+4. **If issues persist**:
+   - Consider temporarily disabling the migration hook
+   - Run migrations manually after deployment
+   - Update hook configuration to be more resilient
+
+</TroubleshootingItem>
+
+---
+
+_This FAQ was automatically generated on December 11, 2024 based on a real user query._

@@ -1,0 +1,210 @@
+---
+sidebar_position: 3
+title: "Problemas de Replicación en la Delegación NS de Dominio"
+description: "Solución de problemas de delegación y replicación de registros NS con proveedores de dominio"
+date: "2024-01-15"
+category: "general"
+tags: ["dominio", "dns", "registros-ns", "delegación", "solución-de-problemas"]
+---
+
+import TroubleshootingItem from "@site/src/components/HomepageFeatures/troubleshootingitem";
+
+# Problemas de Replicación en la Delegación NS de Dominio
+
+**Fecha:** 15 de enero de 2024  
+**Categoría:** General  
+**Etiquetas:** Dominio, DNS, Registros NS, Delegación, Solución de Problemas
+
+## Descripción del Problema
+
+**Contexto:** El usuario intenta configurar un dominio personalizado (ordenapp.com.ar) en SleakOps pero encuentra fallas en la replicación de la delegación NS (Name Server) con su proveedor de dominio (DonWeb).
+
+**Síntomas Observados:**
+
+- Configuración de delegación NS fallida a nivel del proveedor de dominio
+- Problemas de replicación con los servidores de nombres delegados
+- El dominio no resuelve correctamente hacia la infraestructura de SleakOps
+- El proveedor (DonWeb) reconoce el problema técnico
+
+**Configuración Relevante:**
+
+- Dominio: ordenapp.com.ar (dominio argentino)
+- Proveedor de Dominio: DonWeb
+- Plataforma Destino: SleakOps
+- Configuración DNS: configuración de delegación NS
+
+**Condiciones de Error:**
+
+- La replicación del registro NS falla a nivel del proveedor
+- La delegación del dominio no se propaga correctamente
+- El problema ocurre durante la configuración inicial del dominio
+- El proveedor confirma problema técnico en su lado
+
+## Solución Detallada
+
+<TroubleshootingItem id="understanding-ns-delegation" summary="Entendiendo el proceso de delegación NS">
+
+La delegación NS (Name Server) es el proceso mediante el cual tu proveedor de dominio apunta tu dominio a servidores de nombres externos (en este caso, los servidores DNS de SleakOps).
+
+El proceso implica:
+
+1. **SleakOps proporciona registros NS** (por ejemplo, ns1.sleakops.com, ns2.sleakops.com)
+2. **Tú configuras estos en tu proveedor de dominio** (DonWeb)
+3. **El proveedor replica los cambios** a los servidores DNS raíz
+4. **Ocurre la propagación DNS a nivel global** (24-48 horas)
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="immediate-troubleshooting" summary="Pasos inmediatos para solución de problemas">
+
+Mientras esperas la resolución por parte del proveedor:
+
+1. **Verifica los registros NS en SleakOps:**
+
+   - Ingresa a la configuración de tu proyecto
+   - Revisa la sección "Dominio Personalizado"
+   - Anota los registros NS proporcionados
+
+2. **Revisa el estado actual del DNS:**
+
+   ```bash
+   # Verificar registros NS actuales
+   dig NS ordenapp.com.ar
+
+   # Verificar si el dominio resuelve
+   nslookup ordenapp.com.ar
+   ```
+
+3. **Verifica la configuración en el proveedor:**
+   - Ingresa al panel de control de DonWeb
+   - Confirma que los registros NS estén correctamente ingresados
+   - Revisa si hay mensajes de error o advertencias
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="provider-communication" summary="Trabajando con el proveedor de dominio">
+
+Al tratar con problemas del proveedor:
+
+1. **Documenta el problema claramente:**
+
+   - Proporciona los registros NS exactos de SleakOps
+   - Incluye capturas de pantalla de la configuración
+   - Anota cualquier mensaje de error
+
+2. **Solicita detalles técnicos específicos:**
+
+   - Pide los logs de replicación
+   - Solicita un cronograma para la resolución
+   - Obtén confirmación de la aceptación de los registros NS
+
+3. **Escala si es necesario:**
+   - Solicita la escalación a soporte técnico especializado
+   - Pide hablar con especialistas en DNS/dominios
+   - Considera soluciones temporales
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="alternative-solutions" summary="Soluciones alternativas y soluciones provisionales">
+
+Si los problemas con el proveedor persisten:
+
+1. **Delegación de subdominio:**
+
+   ```
+   # En lugar de ordenapp.com.ar, usa:
+   app.ordenapp.com.ar
+   ```
+
+   Configura solo el subdominio con los registros NS de SleakOps.
+
+2. **Enfoque CNAME (si está soportado):**
+
+   ```
+   # Crea un registro CNAME apuntando a SleakOps
+   www.ordenapp.com.ar CNAME tu-app.sleakops.io
+   ```
+
+3. **Transferir dominio a otro proveedor:**
+
+   - Considera proveedores con mejor gestión DNS
+   - Opciones populares: Cloudflare, Route53, Namecheap
+
+4. **Usar subdominio de SleakOps temporalmente:**
+   ```
+   # Usa un subdominio provisto mientras se resuelve
+   tu-app.sleakops.io
+   ```
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="verification-after-resolution" summary="Pasos de verificación luego de que el proveedor solucione el problema">
+
+Una vez que el proveedor resuelva el problema de replicación:
+
+1. **Verifica la propagación DNS:**
+
+   ```bash
+   # Verifica registros NS globalmente
+   dig +trace NS ordenapp.com.ar
+
+   # Verifica desde diferentes ubicaciones
+   nslookup ordenapp.com.ar 8.8.8.8
+   nslookup ordenapp.com.ar 1.1.1.1
+   ```
+
+2. **Prueba la resolución del dominio:**
+
+   ```bash
+   # Prueba resolución HTTP
+   curl -I http://ordenapp.com.ar
+
+   # Prueba HTTPS si está configurado
+   curl -I https://ordenapp.com.ar
+   ```
+
+3. **Monitorea la propagación:**
+
+   - Usa herramientas en línea como whatsmydns.net
+   - Verifica desde múltiples ubicaciones globales
+   - Permite 24-48 horas para propagación completa
+
+4. **Actualiza configuración en SleakOps:**
+   - Confirma el estado del dominio en el panel de SleakOps
+   - Prueba la generación de certificado SSL
+   - Verifica accesibilidad de la aplicación
+
+</TroubleshootingItem>
+
+<TroubleshootingItem id="prevention-future-issues" summary="Previniendo futuros problemas DNS">
+
+Para evitar problemas similares:
+
+1. **Elige proveedores DNS confiables:**
+
+   - Investiga la fiabilidad del DNS del proveedor
+   - Revisa calidad de soporte y tiempos de respuesta
+   - Considera servicios DNS administrados
+
+2. **Documenta configuraciones DNS:**
+
+   - Guarda registros de todas las configuraciones NS
+   - Captura pantallas de configuraciones importantes
+   - Mantén información de contacto para soporte técnico
+
+3. **Prueba primero en entorno de pruebas:**
+
+   - Usa subdominios de prueba antes de producción
+   - Verifica cambios DNS en entornos no críticos
+   - Ten planes de reversión listos
+
+4. **Monitorea la salud del DNS:**
+   - Configura monitoreo para resolución de dominio
+   - Usa herramientas como UptimeRobot o Pingdom
+   - Configura alertas para fallas DNS
+
+</TroubleshootingItem>
+
+---
+
+_Esta FAQ fue generada automáticamente el 15 de enero de 2024 basada en una consulta real de usuario._
