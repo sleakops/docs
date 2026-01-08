@@ -26,6 +26,15 @@ Cada empresa puede tener solo una API_KEY activa a la vez. Si solicitas una nuev
 
 Una vez que tengas tu API_KEY, puedes usarla como argumento al ejecutar comandos de SleakOps o configurarla como una variable de entorno llamada SLEAKOPS_KEY.
 
+:::tip Configurando SLEAKOPS_KEY en Pipelines de CI/CD
+Para pipelines de CI/CD, se recomienda configurar SLEAKOPS_KEY como una variable de entorno secreta en tu proveedor de Git:
+- **GitHub**: Agrégala como un secreto de repositorio en Settings → Secrets and variables → Actions
+- **GitLab**: Agrégala como una variable de CI/CD en Settings → CI/CD → Variables
+- **Bitbucket**: Agrégala como una variable de repositorio en Repository settings → Pipelines → Repository variables
+
+Esto asegura el acceso seguro a los servicios de SleakOps sin exponer tu clave API en los archivos de configuración de tu pipeline.
+:::
+
 ### 2. Crear un Build
 
 Para crear una compilación de tu aplicación, usa el siguiente comando:
@@ -43,6 +52,15 @@ Como se mencionó anteriormente, la clave puede ser un entrada aquí o una varia
 
 También puedes indicar si quieres que el proceso **espere** a que la compilación termine o no.
 
+:::tip DockerArgs desde CLI
+También puedes definir DockerArgs cuando uses la CLI de SleakOps para builds. Usa el parámetro `--docker-args` para pasar argumentos de construcción directamente desde la línea de comandos:
+
+```bash
+sleakops build -p myproject -b main --docker-args "ARG1=value1,ARG2=value2"
+```
+
+Esto es particularmente útil para pipelines de CI/CD donde quieres pasar diferentes argumentos basados en el entorno o contexto de construcción.
+:::
 
 ### 3. Realizar un Despliegue
 Una vez que tu compilación esté lista, puedes desplegar tu aplicación fácilmente usando el siguiente comando:
@@ -109,22 +127,26 @@ stages:
   - deploy
 
 build:
-  stage: deploy
+  stage: build
   script:
-      - apt-get update -qy
-      - apt-get install -y python3-pip
-      - pip3 install sleakops
-      - sleakops build -p core -b main -w
+    - apt-get update -qy
+    - apt-get install -y python3-pip
+    - pip3 install sleakops
+    - sleakops build -p core -b main -w
+  rules:
+    - if: '$CI_COMMIT_BRANCH == main'
 
 deploy:
   stage: deploy
   needs:
     - build
   script:
-      - apt-get update -qy
-      - apt-get install -y python3-pip
-      - pip3 install sleakops
-      - sleakops deploy -p core -e main -w
+    - apt-get update -qy
+    - apt-get install -y python3-pip
+    - pip3 install sleakops
+    - sleakops deploy -p core -e prod -w
+  rules:
+    - if: '$CI_COMMIT_BRANCH == main'
 ```
 </code>
 </TabItem>
@@ -134,15 +156,16 @@ deploy:
 image: python:3.9
 
 pipelines:
-  default:
-    - step:
-      name: Deploy
-      script:
-      - apt-get update -qy
-      - apt-get install -y python3-pip
-      - pip3 install sleakops
-      - sleakops build -p core -b main -w
-      - sleakops deploy -p core -e main -w
+  branches:
+    main:
+      - step:
+          name: Deploy
+          script:
+            - apt-get update -qy
+            - apt-get install -y python3-pip
+            - pip3 install sleakops
+            - sleakops build -p core -b main -w
+            - sleakops deploy -p core -e main -w
 ```
 </code>
 </TabItem>

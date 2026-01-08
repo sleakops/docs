@@ -13,3 +13,52 @@ Puedes definir los volúmenes en el formulario del [Proyecto](/project):
 Cada vez que se necesite un volumen, Sleakops despliega un EFS CSI Driver dentro del [clúster](/cluster). Esto permite que cada Proyecto tenga su propio montaje único de volumen, almacenando carpetas basadas en las rutas que especifiques.
 
 Un caso práctico de uso para los volúmenes es cuando deseas que todos tus pods accedan a los mismos archivos, como una carpeta compartida cuyo contenido debe ser persistente.
+
+Para más detalles sobre cómo se usa EFS para volúmenes, consulta la [documentación de EFS](/cluster/addons/efs).
+
+## Crear Volúmenes
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/project/create-new-volume.png"
+    alt="new volume modal"
+/>
+</Zoom>
+
+Para crear un nuevo volumen para tu proyecto:
+
+1. **Haz clic en "Create Volumes"** en la configuración del Proyecto
+2. **Agrega la ruta de montaje** - Especifica la ruta del directorio donde se montará el volumen en tus contenedores
+3. **Establece la capacidad de almacenamiento** - Define la cantidad de espacio de almacenamiento asignado al volumen
+4. **Elige la política de retención** - Selecciona entre:
+   - **Delete**: El volumen será eliminado cuando se elimine de SleakOps
+   - **Retain**: El volumen persistirá en AWS incluso si se elimina de SleakOps
+
+:::tip Configuración de Volúmenes
+- Las rutas de montaje deben ser rutas absolutas (ej., `/app/data`, `/var/logs`)
+- La capacidad de almacenamiento se especifica en GB
+- La política de retención determina la persistencia de datos cuando se eliminan volúmenes
+:::
+
+## Eliminar Volúmenes
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/project/delete-volume.png"
+    alt="delete volume click"
+/>
+</Zoom>
+
+Para eliminar un volumen de tu proyecto:
+
+1. **Haz clic en el botón "X"** junto al volumen que quieres eliminar
+2. **Confirma la eliminación** cuando se te solicite
+
+:::warning Advertencia de Pérdida de Datos
+Eliminar un volumen eliminará permanentemente todos los datos almacenados en él. Asegúrate de hacer una copia de seguridad de cualquier dato importante antes de la eliminación.
+:::
+
+:::info Comportamiento de la Política de Retención
+- **Política Delete**: El volumen y todos los datos se eliminan permanentemente de AWS
+- **Política Retain**: El volumen permanece en AWS pero se desvincula del proyecto, preservando tus datos
+:::

@@ -31,12 +31,23 @@ Do not delete manually the following node pools: sleakops-build-arm64, sleakops-
 <summary>
 ### What are the different kind of node pools?
 </summary>
-- **On-Demand:**  are instances in a Kubernetes cluster that run with a fixed pricing model, providing reliable access to compute resources without the risk of interruption. Can be used:
+- **Reserved:** are instances that you commit to using for a specific term (1 or 3 years) in exchange for significant cost savings (up to 75% less than On-Demand pricing). They provide the best price with commitment and are ideal for:
+    - **Predictable Workloads:** Applications with steady, predictable usage patterns that can benefit from long-term commitment.
+    - **Production Environments:** Critical applications that require guaranteed capacity and cost optimization.
+    - **Cost Optimization:** Workloads where you can commit to usage for extended periods to maximize savings.
+
+- **Spot:** are instances that take advantage of spare capacity in a cloud provider's data center, offering up to 90% cost savings compared to On-Demand instances. While they can be terminated if the provider needs capacity back, **this is not a limitation but an opportunity** for well-architected applications. Ideal for:
+    - **Cloud-Native Applications:** Applications designed with stateless architecture that can handle pod interruptions and restart quickly.
+    - **Cost-Optimized Workloads:** Perfect for applications where significant cost savings (up to 90%) outweigh the need for guaranteed capacity.
+    - **Resilient Systems:** Applications with proper health checks, graceful shutdowns, and automatic restart capabilities.
+
+- **On-Demand:** are instances in a Kubernetes cluster that run with a fixed pricing model, providing reliable access to compute resources without the risk of interruption. Can be used:
     - **Critical Workloads:** Applications that require consistent uptime, such as databases, financial systems, or other critical services.
     - **Long-Running Tasks:** Tasks that cannot be interrupted without significant consequence.
-- **Spot:** are instances that take advantage of spare capacity in a cloud provider’s data center. They are available at a significant discount compared to On-Demand instances, but they come with the risk of being terminated if the provider needs the capacity back. Ideal for:
-    - **Stateless Applications:** Suitable for workloads that can tolerate interruptions, such as batch processing jobs, testing environments, and distributed computing.
-    - **Cost-Sensitive Workloads:** Ideal for tasks where cost savings are a priority over availability.
+
+**Priority Order:** When you select multiple node types, the system will automatically prioritize them in the following order to optimize costs: **Reserved** (best price with commitment) → **Spot** (best price without commitment) → **On-Demand** (highest price but most flexible).
+
+For detailed guidance on choosing the right instance types and evaluating application compatibility, see [Instance Types and Node Management](/cluster/nodepools/instance-types).
 </details>
 
 <details>
@@ -64,7 +75,7 @@ You can't directly convert a Spot node pool into an On-Demand node pool or vice 
 You can't change the architect type of a node pool, but you can achieve the desired outcome through a series of steps in SleakOps. Here’s how you can transition between node pools architectures:
 
 1. Create a Node Pool of the new desired architecture. 
-2. Updade your workloads and projects to run into the new Node Pool. 
+2. Update your workloads and projects to run into the new Node Pool. 
 3. Delete the old node pool if it is not longer needed.
 </details>
 

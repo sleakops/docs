@@ -1,0 +1,451 @@
+---
+id: n8n-worker
+title: n8n + Worker Mode
+sidebar_label: n8n + Worker Mode
+---
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Learn how to deploy your n8n project with distributed and scalable worker mode on Kubernetes using Sleakops.
+
+## Why Self-host n8n?
+
+Self-hosting n8n provides numerous advantages over cloud-hosted solutions:
+
+### 🔒 **Security and Privacy**
+- **Complete data control**: Your workflows, credentials, and sensitive data never leave your infrastructure
+- **Custom security policies**: Implement your organization's specific security requirements
+- **Network isolation**: Keep n8n within your private network, reducing external attack vectors
+- **Compliance**: Meet strict regulatory requirements (GDPR, HIPAA, SOC2) with on-premises deployment
+
+### 💰 **Cost Optimization**
+- **No execution limits**: Run unlimited workflows without usage-based pricing
+- **Predictable costs**: Fixed infrastructure costs regardless of usage volume
+- **Resource efficiency**: Scale resources based on actual needs, not vendor pricing tiers
+- **Long-term savings**: Significant cost reduction for high-volume automation scenarios
+
+### ⚡ **Performance and Scalability**
+- **Custom resource allocation**: Assign CPU and memory based on your specific workload requirements
+- **Low latency**: Direct access to internal systems without internet round trips
+- **High availability**: Design redundant systems with multiple replicas and failover mechanisms
+- **Custom integrations**: Connect to internal APIs and systems not accessible from cloud providers
+
+### 🎛️ **Total Control and Customization**
+- **Version control**: Choose when to update and test new versions in your environment
+- **Custom nodes**: Install and develop proprietary nodes for your specific use cases
+- **Environment variables**: Complete access to system-level configurations and secret management
+- **Backup strategies**: Implement your own backup and disaster recovery procedures
+
+## Benefits of Kubernetes Scaling
+
+Deploying n8n on a Kubernetes cluster with Sleakops provides enterprise-level scalability:
+
+### 🚀 **Horizontal Scaling**
+- **Worker pods**: Automatically scale worker instances based on queue depth and CPU usage
+- **Load distribution**: Distribute workflow execution across multiple worker nodes
+- **Auto-scaling**: Kubernetes HPA (Horizontal Pod Autoscaler) automatically adjusts worker count
+- **Resource optimization**: Scale different components independently (web UI vs workers)
+
+### 🏗️ **Infrastructure Resilience**
+- **High availability**: Multiple replicas ensure zero downtime during node failures
+- **Rolling updates**: Deploy new versions without service interruption
+- **Health checks**: Kubernetes automatically restarts failed pods and routes traffic to healthy instances
+- **Multi-zone deployment**: Distribute workload across availability zones for disaster recovery
+
+### 📊 **Monitoring and Observability**
+- **Real-time metrics**: Monitor workflow execution, queue depth, and resource usage
+- **Centralized logging**: Aggregate logs from all n8n components in one place
+- **Performance insights**: Track execution times, error rates, and throughput
+- **Alerts**: Proactive notifications for system issues and performance bottlenecks
+
+### 🔧 **DevOps Integration**
+- **GitOps workflows**: Version control your n8n infrastructure as code
+- **CI/CD pipelines**: Automated testing and deployment of n8n configurations
+- **Secret management**: Integrate with Kubernetes secrets and external secret managers
+- **Network policies**: Fine-grained network security controls
+
+## Prerequisites
+
+- Sleakops account
+- A Cluster in this account. If you don't have one, [here's the documentation on how to do it](/cluster).
+- A configured Environment. If you don't have one, [here's the documentation on how to do it](/environment)
+- n8n project configured with Docker. If you don't have it, you can fork or copy from [n8n-code](https://github.com/sleakops/n8n_sleakops). This project includes a docker-compose so you can deploy it locally as well, allowing you to have distributed environments as you want.
+
+# Let's Get Started
+
+For this example, we're going to deploy an n8n project in distributed mode with workers. This configuration includes the main n8n service (web interface) and worker processes to execute workflows. We'll also configure a PostgreSQL database and Redis for queue management required for this project.
+
+## Create Project
+
+Projects are our code repositories. The only thing Sleakops needs to execute commands is a Dockerfile.
+For more information, you can see our [project documentation](/project)
+
+To start, we'll create a new project:
+
+1. Click the "Projects" button in the left panel
+2. Then click "Create" in the top right corner
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/n8n/start-project.png"
+    alt="click-project-reference"
+  />
+</Zoom>
+
+Within the Projects panel, you'll be able to see all the projects you have and manage them from here. We want to create a new one, so let's click the "create" button in the top right:
+
+On the project creation screen, we have the following fields:
+| **Configuration** | **Description** |
+| --- | --- |
+| **Environment** | We need to select the previously created environment. |
+| Nodepool | We'll leave the default. |
+| **Repositories** | We'll select our repository containing the n8n project. |
+| Project Name | We can define a project name. For example "n8n-server". |
+| **Branch** | It must match what we have in our project. In our case it's "main". |
+| Dockerfile path | It's the relative path to the dockerfile in your project. |
+
+Once everything is configured, we create the project with the "Submit" button in the bottom right:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/n8n/project-form.png"
+    alt="create-project-reference"
+  />
+</Zoom>
+
+With that, the project begins to be created. Meanwhile, let's go to workloads with the "Workloads" button in the left panel:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/n8n/webservice-start.png"
+    alt="click-workloads-reference"
+  />
+</Zoom>
+
+## Create Workloads
+
+Workloads are the processes that run your project. For the case of n8n that we're going to run in queue mode, we'll create a webservice for the web interface and a worker.
+For more information, you can see our [workloads documentation](/project/workload)
+
+### Create the Web Service
+Here we're going to create the main n8n web service that will handle the user interface and API:
+
+On this page, we'll complete the first form with the following fields:
+| **Configuration** | **Description** |
+| --- | --- |
+| **Project** | We select the project we created previously, in our case "n8n-server". |
+| Name | We define a name for the web service, for example "n8n-main". |
+| **Command** | Default Dockerfile command (usually n8n start). |
+| Port | Port 5678 (n8n default port). |
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/n8n/webservice-form-1.png"
+    alt="click-create-web-service-reference"
+  />
+</Zoom>
+
+In the second step, we'll configure the webservice as **private**:
+
+**What does this mean?**
+- The n8n service will be within the VPC
+- It will only be accessible from services on the same network
+- Requires VPN for external access
+
+**Alternative for public webhooks:**
+If you need to connect public webhooks (Jira, Slack, Google Drive, etc.), you can:
+- Leave this service as public, OR
+- Create an additional public webservice with the `webhook` command
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/n8n/webservice-form-2.png"
+    alt="click-create-web-service-reference"
+  />
+</Zoom>
+
+Continue to step 3 "Service settings" and configure the healthcheck
+
+For this, we only need to properly define the healthcheck path that n8n provides `/healthz`, and continue until finishing the flow and creating the web service.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/n8n/webservice-form-3.png"
+    alt="click-create-web-service-reference"
+  />
+</Zoom>
+
+This healthcheck is important so Kubernetes knows when the service is ready to start receiving HTTP traffic. This is useful to avoid downtime between each deploy or node rotation.
+
+The last step of the form, where we define memory, CPU, and scaling conditions, we won't modify for now, we'll leave it as the platform offers it.
+
+### Create the n8n Worker
+Good, with this we can see our web service deploying. Now we're going to deploy the n8n worker for distributed execution. For this, we need to go to the workers section within the same workloads screen and click the "Create" button.
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/n8n/worker-start.png"
+    alt="click-worker-reference"
+  />
+</Zoom>
+
+On the worker creation screen, we'll need to complete the following fields:
+| **Configuration** | **Description** |
+| --- | --- |
+| **Project** | Select the previously created project. In our case "n8n-server". |
+| Name | We define the name we'll give to the worker. In our case "n8n-worker". |
+| **Command** | Here we establish the command to execute the n8n worker: ```worker```|
+
+With these fields completed, we'll click the "Next" button in the bottom right and then "Submit" since we don't need to edit anything else:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/n8n/worker-form-1.png"
+    alt="create-worker-reference"
+  />
+</Zoom>
+With this, we'll see our n8n worker deployed.
+
+## Create Dependencies (Redis and PostgreSQL)
+
+Dependencies are necessary resources for your application to function. In the case of n8n in queue mode, it needs a database and Redis.
+Sleakops leverages AWS services to offer you alternatives. You can see more information in [dependencies documentation](/project/dependency)
+
+Let's go to the dependencies section:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/n8n/dependency-start.png"
+    alt="click-hook-reference"
+  />
+</Zoom>
+
+### Create Redis Dependency
+
+First, we need to create Redis for the task queue. On the dependency creation screen, we select Redis and we'll have the following fields:
+
+| **Configuration** | **Description** |
+| --- | --- |
+| **Dependency Type** | Select "Redis" from available options. |
+| **Project** | Select the previously created project. In our case "n8n-server". |
+| **Name** | We define the name for Redis. In our case "n8n-redis". |
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/n8n/dependency-redis-form-2.png"
+    alt="click-hook-reference"
+  />
+</Zoom>
+
+With these fields completed, we'll click the "Next" button in the bottom right and in the last step, before doing "Submit", we'll change the environment variable names to what n8n expects.
+
+We need to configure the Redis connection variables to match what n8n expects:
+
+| **Variable** | **Value** |
+| --- | --- |
+| QUEUE_BULL_REDIS_HOST | (Redis dependency host) |
+| QUEUE_BULL_REDIS_PORT | 6379 |
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/n8n/dependency-redis-form-3.png"
+    alt="click-create-s3-dependencies-2-reference"
+  />
+</Zoom>
+
+With this, we tell Sleakops with what name we want it to publish the variables generated by the "Redis" dependency.
+
+Make sure the variable names match what your n8n configuration expects.
+
+### Create PostgreSQL Database
+
+Now we proceed to create the PostgreSQL database for n8n data storage:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/n8n/dependency-postgresql-form-1.png"
+    alt="click-create-collectstatic-hook-reference"
+  />
+</Zoom>
+
+You can vary between "production" and "non-production" - this gives you default configuration values in the next step for each environment. For example: for the production environment it leaves multi A-Z active, automatic backups, etc.
+As an example in this guide, we'll leave it on "non-production".
+
+Same as for Redis, we need to configure the environment variable names as n8n expects them. Let's go to the last step and before pressing submit, we change the names to the following:
+
+| **Before** | **After** |
+| --- | --- |
+| *_POSTGRESQL_NAME | DB_POSTGRESDB_DATABASE |
+| *_POSTGRESQL_USERNAME | DB_POSTGRESDB_USER |
+| *_POSTGRESQL_PASSWORD | DB_POSTGRESDB_PASSWORD |
+| *_POSTGRESQL_ADDRESS | DB_POSTGRESDB_HOST |
+| *_POSTGRESQL_PORT | DB_POSTGRESDB_PORT |
+
+It should look something like the image below. Then click the "Submit" button and your database should be created:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/n8n/dependency-postgresql-form-3.png"
+    alt="create-postgresql-3-reference"
+  />
+</Zoom>
+
+## Configure n8n Environment Variables
+
+Now we need to create the environment variables that were pending. We can see in the code repository the variables we have in .env.example.
+There are variables we've already been configuring in each dependency, but others remain to be defined. For this, we go to the "Variablegroups" section.
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/n8n/variable-group-start.png"
+    alt="click-create-rabbitmq-dependencies-reference"
+  />
+</Zoom>
+
+We're going to create a new variable group, put it in text mode to copy from .env.example the missing variables and adjust the values according to our case.
+
+In this form we have the following fields:
+- Project: we select the project we created previously.
+- Workload: We select "global" which refers to being used by all our workloads.
+- Name: We define a name for this variable group.
+- Type: Whether we want to load it by file or by variable.
+- Vars: Here we enable text mode and copy the following environment variables:
+
+| **Variable** | **Description** |
+| --- | --- |
+| **DB_TYPE** | Set to "postgresdb" |
+| **EXECUTIONS_MODE** | Set to "queue" for worker mode |
+| **N8N_ENCRYPTION_KEY** | Generate a secure encryption key |
+| **OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS** | Set to "true" |
+| **N8N_HOST** | define the host you configured in your webservice, for this example it would be `n8n.demo.sleakops.com` |
+| **N8N_WEBHOOK_URL** | This variable is not strictly necessary to define, in case of adding a separate webservice instance to handle webhooks with another URL you need to specify which is the URL that handles the webhooks.`https://n8n.demo.sleakops.com/` |
+| **N8N_EDITOR_BASE_URL** | `https://n8n.demo.sleakops.com` |
+
+If you want to see all the environment variables available to configure n8n you can go to the following [n8n documentation](https://docs.n8n.io/hosting/configuration/environment-variables/) page
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/n8n/variable-group-form.png"
+    alt="create-rabbitmq-2-reference"
+  />
+</Zoom>
+
+## Deployments
+
+As the last step, let's see our deployed project. For this, we go to the "Deployments" section in the left panel:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/n8n/deployments-list.png"
+    alt="click-deployments-reference"
+  />
+</Zoom>
+
+Here we'll see all the deployments we make. In our case, it's the first one and we can see it has been created correctly. If you see any error, if you click on "error" you can see a description of it.
+If we don't see any error, then it means the project is already deployed, we could start using it from the URL provided by the web service.
+
+This concludes our project deployment process. We leave you with an optional step which is configuring CI with GitHub.
+
+## CI/CD Configuration (Optional but Recommended)
+
+### Why configure CI/CD?
+Without CI/CD, each change in your code requires:
+1. Manual build from SleakOps
+2. Manual deploy
+3. Manual verification
+
+With CI/CD configured:
+- ✅ Push to `main` → Automatic deploy
+- ✅ Automatic rollback in case of error
+- ✅ Deploy status notifications
+
+### Steps to configure:
+1. Go to your project in SleakOps
+2. Click on the ⚙️ (settings)
+3. Select "Git pipelines"
+4. Copy the provided YAML
+5. Add `SLEAKOPS_KEY` to GitHub secrets
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/n8n/cicd-1.png"
+    alt="click-settings-project-reference"
+  />
+</Zoom>
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/n8n/cicd-2.png"
+    alt="click-git-pipelines-reference"
+  />
+</Zoom>
+
+This needs to have a SLEAKOPS_KEY environment variable. If you don't have it, you need to go to the link that appears there **Settings -> CLI**, get it and save it as an environment variable.
+
+With this configured and deployed, every time you push to your "main" branch, a new version of your application will be automatically launched.
+
+## 🎯 Next Steps
+
+Once the installation is complete:
+
+### Initial n8n configuration
+1. **First access**: Use your webservice URL
+2. **Create admin user**: n8n will ask you to create the first user
+3. **Configure webhooks**: If you need them, configure public URLs
+
+### Monitoring and optimization
+1. **Review metrics**: Use the integrated Grafana dashboard
+2. **Adjust resources**: Modify CPU/memory according to actual usage
+3. **Configure alerts**: Define performance thresholds
+
+### Backup and security
+1. **Automatic backups**: Configure PostgreSQL backups
+2. **Secrets management**: Review credential handling
+3. **Updates**: Plan regular updates
+
+## Update and Extend n8n
+
+We now have our own n8n installed and running on the cluster. We have the definition of our n8n in a Dockerfile.
+
+#### To update the version
+
+This process is very simple, we'll modify the Dockerfile and change the image tag. We can see the available images in the [official n8n dockerhub repository](https://hub.docker.com/r/n8nio/n8n/tags)
+
+To keep in mind, read the changelog in case there are any breaking changes or something that breaks between versions. Make database backups beforehand just in case.
+
+#### To add new dependencies within your nodes
+
+As we did to update the version, in this case we'll take advantage of having our Dockerfile and we can install whatever we want inside it, this will be available to use in our n8n nodes.
+
+You can see examples of this in the repository README.
+
+## Best Scaling Practices (Bonus)
+
+Once your n8n deployment is running, consider these scaling strategies:
+
+### 🎯 **Worker Optimization**
+- **Queue monitoring**: Monitor Redis queue depth to determine when to scale workers
+- **Resource allocation**: Assign sufficient CPU and memory based on workflow complexity
+- **Concurrency tuning**: Adjust worker concurrency based on workflow types (CPU vs I/O intensive)
+- **Dedicated workers**: Create specialized worker pools for different workflow categories
+
+### 📈 **Performance Monitoring**
+
+Adjust the memory and CPU of your workloads to what your processes actually need.
+This is useful to avoid over-dimensioned infrastructure and also to make decisions when scaling horizontally based on memory or CPU.
+
+#### How do we do it from Sleakops?
+
+Simple, we go to the detail of your worker or webservices that we created earlier and touch the "grafana" icon.
+This will open a dashboard within Grafana with the historical consumption of your process, make sure to look at a long time range to cover all your cases.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/n8n/grafana-monitoring.png"
+    alt="click-deployments-reference"
+  />
+</Zoom>
+
+### 🔧 **Database Optimization**
+- **Connection pooling**: Configure PostgreSQL connection pools for high concurrency.
+- **Read replicas**: Use read replicas for reporting and analytics queries. (You can do this from Sleakops from the [Postgres](/project/dependency/postgresql-aws) configuration)
+- **Indexing**: Optimize database indexes for workflow execution queries
+- **Backup strategies**: Implement automated backups with point-in-time recovery. (You can do this from Sleakops from the [Postgres](/project/dependency/postgresql-aws) configuration)
+
+### 🚀 **Advanced Configurations**
+- **Node affinity**: Schedule workers on appropriate node types (CPU vs memory optimized). (You can do this from Sleakops using [Nodepools](/cluster/nodepools))
+- **Pod disruption budgets**: Ensure minimum availability during cluster maintenance. (This is already covered by Sleakops)
+- **Resource quotas**: Set appropriate limits to prevent resource exhaustion. (You can do this from Sleakops by defining limits in your Workloads and in your Nodepools)
+- **Network policies**: Ensure inter-pod communication. (This is already done by Sleakops)

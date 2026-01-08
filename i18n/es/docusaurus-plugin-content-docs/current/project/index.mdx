@@ -89,13 +89,20 @@ SleakOps automatiza la construcción inicial de la imagen como parte del proceso
 SleakOps te permite ver todos los gastos de tu projecto en un solo lugar, clasificados por cuenta, recursos y fechas. 
 
 Accede a *Projects*, selecciona uno y haz clic en el botón: 
+<img
+    src="/img/project/cost-button.png"
+    alt="cost-button"
+/>
 </details> 
 
 <details>
 <summary>
 ### ¿Cómo monitoreo mi projecto?
 </summary>
-Puedes monitorear tu projecto accediendo a *Projects*, seleccionando uno **y haciendo clic en el botón: (imagen del botón)**
+Puedes monitorear tu projecto accediendo a *Projects*, seleccionando uno **y haciendo clic en el botón:  <img
+    src="/img/project/monitoring-button.png"
+    alt="monitoring-button"
+/>**
 </details> 
 
 <details>
@@ -151,3 +158,56 @@ Aquí están los parámetros que SleakOps te permite personalizar durante la cre
 | **Ruta del Dockerfile** | El Dockerfile es un componente crítico utilizado para construir tu projecto en un contenedor. El campo de Ruta del Dockerfile requiere la ruta relativa al Dockerfile dentro del repositorio (por ejemplo, /Dockerfile, /src/Dockerfile o /app/Dockerfile). Este archivo contiene las instrucciones necesarias para crear la imagen del contenedor, que SleakOps construirá y utilizará posteriormente para los despliegues.  |
 
 Una vez que hayas completado el formulario, haz clic en *Enviar* para iniciar la validación del Dockerfile y luego la construcción.
+
+## ProjectAccess
+
+ProjectAccess te permite configurar políticas y roles IAM personalizados para tu proyecto, proporcionando control granular sobre los permisos de recursos de AWS. Esta característica te permite definir patrones de acceso específicos que se alinean con tus requisitos de seguridad y necesidades operativas.
+
+### Políticas Personalizadas
+
+Las políticas personalizadas te permiten crear políticas IAM adaptadas que otorgan permisos específicos a las cargas de trabajo de tu proyecto. Estas políticas deben crearse en la misma cuenta de AWS donde se despliega tu proyecto.
+
+#### Crear Políticas Personalizadas
+
+1. **Navega a la Consola IAM de AWS** en la cuenta de AWS de tu proyecto
+2. **Crea una nueva política** con los permisos específicos que requiere tu aplicación
+3. **Referencia la política** en SleakOps usando el ARN de la política
+
+:::tip Mejores Prácticas de Políticas
+- Sigue el principio de menor privilegio - otorga solo los permisos mínimos necesarios
+- Usa ARNs específicos de recursos cuando sea posible para limitar el alcance del acceso
+- Revisa y audita regularmente los permisos de las políticas
+:::
+
+#### Referenciar Políticas Personalizadas en SleakOps
+
+Al configurar ProjectAccess, puedes referenciar tus políticas personalizadas proporcionando el ARN de la política:
+
+```
+arn:aws:iam::ACCOUNT_ID:policy/YourCustomPolicyName
+```
+
+### Políticas Gestionadas por AWS
+
+SleakOps también admite políticas gestionadas por AWS, que son políticas preconfiguradas mantenidas por AWS. Estas políticas proporcionan conjuntos de permisos comunes para varios servicios de AWS.
+
+#### Políticas Gestionadas por AWS Comunes
+
+- **AmazonS3ReadOnlyAccess**: Acceso de solo lectura a buckets de S3
+- **AmazonRDSReadOnlyAccess**: Acceso de solo lectura a instancias de RDS
+- **CloudWatchReadOnlyAccess**: Acceso de solo lectura a métricas y logs de CloudWatch
+- **AmazonEC2ReadOnlyAccess**: Acceso de solo lectura a recursos de EC2
+
+:::info Asociación de Políticas
+Al asociar roles o políticas con tu proyecto, se recomienda usar el número mínimo de políticas necesario. Este enfoque:
+- Reduce la complejidad en la gestión de permisos
+- Mejora la seguridad limitando los vectores de ataque potenciales
+- Facilita la resolución de problemas cuando surgen problemas de permisos
+:::
+
+### Mejores Prácticas para la Gestión de Políticas
+
+1. **Minimizar el Número de Políticas**: Asocia el menor número de políticas posible mientras cumples tus requisitos
+2. **Auditorías Regulares**: Revisa y audita periódicamente las políticas asociadas con tus proyectos
+3. **Políticas Específicas del Entorno**: Considera usar diferentes políticas para diferentes entornos (dev, staging, prod)
+4. **Documentación**: Mantén documentación clara de por qué se requieren políticas específicas para cada proyecto

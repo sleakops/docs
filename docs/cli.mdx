@@ -24,7 +24,16 @@ pip install sleakops
 To authenticate with the SleakOps CLI, you need an API_KEY. You can obtain this key from the [console <FiExternalLink/>](https://console.sleakops.com/settings/apikey) by clicking on Generate API-Key. 
 Each company is allowed to have only one active API_KEY at a time. If you request a new API_KEY, the old one will be automatically revoked. The page shows the company keys and who generated them.
 
-Once you have your API_KEY, you can use it as an argument when running SleakOps commands or set it as an environment variable named SLEAKOPS_KEY. 
+Once you have your API_KEY, you can use it as an argument when running SleakOps commands or set it as an environment variable named SLEAKOPS_KEY.
+
+:::tip Setting up SLEAKOPS_KEY in CI/CD Pipelines
+For CI/CD pipelines, it's recommended to set SLEAKOPS_KEY as a secret environment variable in your Git provider:
+- **GitHub**: Add it as a repository secret in Settings → Secrets and variables → Actions
+- **GitLab**: Add it as a CI/CD variable in Settings → CI/CD → Variables
+- **Bitbucket**: Add it as a repository variable in Repository settings → Pipelines → Repository variables
+
+This ensures secure access to SleakOps services without exposing your API key in your pipeline configuration files.
+::: 
 
 
 ### 2. Create a Build
@@ -110,22 +119,26 @@ stages:
   - deploy
 
 build:
-  stage: deploy
+  stage: build
   script:
-      - apt-get update -qy
-      - apt-get install -y python3-pip
-      - pip3 install sleakops
-      - sleakops build -p core -b main -w
+    - apt-get update -qy
+    - apt-get install -y python3-pip
+    - pip3 install sleakops
+    - sleakops build -p core -b main -w
+  rules:
+    - if: '$CI_COMMIT_BRANCH == main'
 
 deploy:
   stage: deploy
   needs:
     - build
   script:
-      - apt-get update -qy
-      - apt-get install -y python3-pip
-      - pip3 install sleakops
-      - sleakops deploy -p core -e main -w
+    - apt-get update -qy
+    - apt-get install -y python3-pip
+    - pip3 install sleakops
+    - sleakops deploy -p core -e prod -w
+  rules:
+    - if: '$CI_COMMIT_BRANCH == main'
 ```
 </code>
 </TabItem>
@@ -135,15 +148,16 @@ deploy:
 image: python:3.9
 
 pipelines:
-  default:
-    - step:
-      name: Deploy
-      script:
-      - apt-get update -qy
-      - apt-get install -y python3-pip
-      - pip3 install sleakops
-      - sleakops build -p core -b main -w
-      - sleakops deploy -p core -e main -w
+  branches:
+    main:
+      - step:
+          name: Deploy
+          script:
+            - apt-get update -qy
+            - apt-get install -y python3-pip
+            - pip3 install sleakops
+            - sleakops build -p core -b main -w
+            - sleakops deploy -p core -e main -w
 ```
 </code>
 </TabItem>

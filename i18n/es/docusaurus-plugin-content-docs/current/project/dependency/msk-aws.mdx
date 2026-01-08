@@ -1,0 +1,147 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# AWS MSK (Managed Streaming for Apache Kafka)
+
+SleakOps proporciona una integración perfecta con Amazon MSK (Managed Streaming for Apache Kafka), un servicio completamente administrado que facilita la construcción y ejecución de aplicaciones que usan Apache Kafka para procesar datos de streaming. Amazon MSK elimina la sobrecarga operacional de gestionar la infraestructura de Kafka, permitiéndote enfocarte en construir tus aplicaciones. Al aprovechar SleakOps para esta integración, puedes gestionar eficientemente clústeres MSK dentro de tu entorno EKS, asegurando alto rendimiento, escalabilidad y confiabilidad para tus aplicaciones de datos de streaming.
+
+## Preguntas Frecuentes
+
+<details>
+<summary>
+### ¿Cómo gestiona SleakOps las credenciales de MSK?
+</summary>
+Cuando creas una dependencia MSK en SleakOps, se genera automáticamente un Vargroup para tu clúster Kafka. Este Grupo de Variables almacena de forma segura las credenciales de MSK y otros detalles importantes de configuración, como los endpoints del clúster y la información de autenticación. Podrás gestionarlos desde la sección de [Vargroups](/project/vargroup/index.mdx).
+</details>
+
+<details>
+<summary>
+### ¿Puedo cambiar la versión de Kafka después de desplegar el clúster?
+</summary>
+Sí, Amazon MSK soporta actualizaciones de versión de Kafka. Puedes actualizar entre las versiones soportadas. Sin embargo, el proceso de actualización requiere planificación cuidadosa y puede involucrar tiempo de inactividad. Se recomienda probar el proceso de actualización en un entorno no productivo primero.
+</details>
+
+<details>
+<summary>
+### ¿Qué pasa si necesito más almacenamiento para mi clúster MSK?
+</summary>
+**Para modo Provisioned**: Configuras el tamaño de almacenamiento por nodo broker (1-16384 GB) durante la creación del clúster. Este almacenamiento se provisiona y gestiona automáticamente por AWS. Si necesitas más almacenamiento, tendrás que modificar la configuración del clúster, lo que puede requerir tiempo de inactividad.
+
+**Para modo Serverless**: El almacenamiento se gestiona y escala automáticamente por AWS basado en tus patrones de uso. No necesitas configurar el tamaño de almacenamiento ya que se escala automáticamente.
+</details>
+
+<details>
+<summary>
+### ¿Cómo me conecto a mi clúster MSK?
+</summary>
+Para conectarte a tu clúster MSK:
+1. **Obtén los Bootstrap Servers**: Usa los endpoints de bootstrap server proporcionados por SleakOps en el vargroup.
+2. **Configura la Autenticación**: MSK soporta varios métodos de autenticación incluyendo SASL/SCRAM, IAM, y TLS.
+3. **Usa Clientes Kafka**: Conéctate usando clientes y librerías estándar de Kafka.
+4. **Conexión VPN**: Asegúrate de estar conectado a la VPN de la cuenta AWS donde se encuentra el clúster MSK.
+
+**Nota**: Tanto el modo Provisioned como Serverless usan los mismos métodos de conexión, pero el modo Serverless puede tener diferentes características de rendimiento y comportamiento de escalado.
+</details>
+
+<details>
+<summary>
+### ¿Cómo creo topics en mi clúster MSK?
+</summary>
+Para crear topics en tu clúster MSK:
+1. **Usando Herramientas Kafka**: 
+```
+kafka-topics.sh --create --topic my-topic --bootstrap-server MSK_BOOTSTRAP_SERVERS --partitions 3 --replication-factor 3
+```
+2. **Usando Kafka Admin Client**: Usa el Kafka Admin Client en el código de tu aplicación.
+3. **Reemplaza Variables**: Reemplaza `MSK_BOOTSTRAP_SERVERS` con los endpoints reales de bootstrap server de tu vargroup.
+
+**Nota**: Para modo Provisioned, establece el factor de replicación para que coincida con tu número de nodos broker (mínimo 3 para producción). Para modo Serverless, AWS gestiona la replicación automáticamente.
+</details>
+
+<details>
+<summary>
+### ¿Cómo produzco y consumo mensajes?
+</summary>
+Para producir y consumir mensajes:
+1. **Ejemplo de Productor**:
+```
+kafka-console-producer.sh --topic my-topic --bootstrap-server MSK_BOOTSTRAP_SERVERS
+```
+2. **Ejemplo de Consumidor**:
+```
+kafka-console-consumer.sh --topic my-topic --bootstrap-server MSK_BOOTSTRAP_SERVERS --from-beginning
+```
+3. **Integración de Aplicación**: Usa clientes Kafka en el código de tu aplicación para uso en producción.
+</details>
+
+<details>
+<summary>
+### ¿Qué debo hacer si encuentro problemas de conexión con mi clúster MSK?
+</summary>
+Verifica lo siguiente:
+- Asegúrate de que los endpoints de bootstrap server, nombre de usuario y contraseña sean correctos.
+- Verifica que tus grupos de seguridad y reglas de firewall permitan el acceso.
+- Asegúrate de que el clúster esté ejecutándose y tenga suficientes recursos.
+- Verifica si el clúster está en estado disponible.
+- Verifica tu configuración de autenticación (SASL/SCRAM, IAM, o TLS).
+De lo contrario, contáctanos.
+</details>
+
+<details>
+<summary>
+### ¿Cuáles son los beneficios de Amazon MSK sobre Kafka auto-gestionado?
+</summary>
+Amazon MSK ofrece varias ventajas:
+- **Operaciones Administradas**: No necesitas gestionar la infraestructura de Kafka
+- **Alta Disponibilidad**: Capacidades de replicación y conmutación por error integradas
+- **Seguridad**: Integrado con servicios de seguridad de AWS
+- **Monitoreo**: Integración con CloudWatch para monitoreo y alertas
+- **Escalabilidad**: Escalado fácil de instancias broker y almacenamiento
+- **Compatibilidad**: Completamente compatible con Apache Kafka
+</details>
+
+:::info
+Documentación de AWS: [Documentación de Amazon MSK](https://docs.aws.amazon.com/msk/latest/developerguide/what-is-msk.html)
+:::
+
+## Configura tu MSK
+### 1. Agrega MSK como Dependencia
+Para integrar MSK con SleakOps:
+1. En la consola de SleakOps, ve a la sección "Dependencies"
+2. Elige "MSK" de la lista de tipos de dependencias disponibles. 
+Para más detalles, consulta [Dependencies: Integrating Databases, Caching, and Messaging Services](/project/dependency/index.mdx).
+
+### 2. Configura tu MSK.
+Accederás al siguiente formulario:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/msk/msk-create-p1.png"
+    alt="Formulario de creación de MSK"
+/>
+</Zoom>
+
+Aquí están los parámetros que SleakOps te permite personalizar durante la creación:
+
+| **Atributo** | **Descripción** |
+| --- | --- |
+| **Modo de Despliegue** | Elige entre **Provisioned** (capacidad fija, control completo sobre la configuración) o **Serverless** (auto-escalado, pago por uso para cargas de trabajo variables). El modo Provisioned es ideal para cargas de trabajo consistentes con requisitos de rendimiento específicos, mientras que Serverless es perfecto para desarrollo y patrones de tráfico variables. |
+| **Versión de Kafka** | *(Requerido para modo Provisioned)* Selecciona la versión específica de Apache Kafka para tu clúster MSK. Elige entre las versiones 2.8.1, 3.2.0, 3.3.2, 3.4.0, o 3.5.1. Cada versión incluye características específicas de Kafka, mejoras de rendimiento y actualizaciones de seguridad. |
+| **Tipo de Instancia** | *(Requerido para modo Provisioned)* Define el tipo de instancia que especifica la configuración de hardware para tus brokers Kafka. Elige entre tipos de instancia t3 (rendimiento burstable) o m5 (propósito general). Esto controla el rendimiento de CPU, memoria y red para tus cargas de trabajo de streaming. |
+| **Nodos Broker** | *(Requerido para modo Provisioned)* Número de nodos broker en tu clúster MSK (2-15 nodos). Usa 2 nodos para entornos de desarrollo. Para producción, usa 3 o más nodos (debe ser múltiplo de 3) para asegurar alta disponibilidad y tolerancia a fallos. Más nodos proporcionan mejor rendimiento y disponibilidad. |
+| **Tamaño de Almacenamiento (GB)** | *(Requerido para modo Provisioned)* Tamaño de almacenamiento en GB por nodo broker (1-16384 GB). Esto determina cuántos datos puede almacenar localmente cada broker. Considera tus requisitos de retención de datos y necesidades de throughput al establecer este valor. |
+
+### 3. Personaliza el nombre de tus variables para tu clúster MSK.
+
+Como se explicó, cuando se crea una dependencia, SleakOps genera un vargroup para contener todos los atributos necesarios. 
+En este paso puedes cambiar el nombre de los atributos en caso de que sea necesario. 
+SleakOps completa los valores automáticamente. 
+Después de este paso, tu dependencia es creada.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/msk/msk-create-outputs.png"
+    alt="Salidas de creación de MSK"
+/>
+</Zoom>

@@ -5,6 +5,7 @@ sidebar_position: 5
 
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
 
 
 # Configura tu Dockerfile
@@ -28,6 +29,16 @@ Al configurar tu Dockerfile en SleakOps, necesitas:
 ### ¿Cómo agrego los argumentos del Dockerfile?
 </summary>
 Una vez que especifiques la ruta del Dockerfile, SleakOps lo analizará para identificar cualquier argumento de construcción necesario. Si es necesario, SleakOps te pedirá que proporciones los valores para estos argumentos. Puedes actualizar estos argumentos en cualquier momento a través de la interfaz de SleakOps.
+
+:::tip DockerArgs desde CLI
+También puedes definir DockerArgs cuando uses la CLI de SleakOps para builds. Usa el parámetro `--docker-args` para pasar argumentos de construcción directamente desde la línea de comandos:
+
+```bash
+sleakops build -p myproject -b main --docker-args "ARG1=value1,ARG2=value2"
+```
+
+Esto es particularmente útil para pipelines de CI/CD donde quieres pasar diferentes argumentos basados en el entorno o contexto de construcción.
+:::
 </details>
 
 <details>

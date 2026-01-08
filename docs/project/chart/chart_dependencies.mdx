@@ -1,0 +1,74 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Chart Dependencies
+
+Chart Dependencies allow you to add external charts to your project, following the same pattern as [Helm Chart Dependencies <FiExternalLink/>](https://helm.sh/docs/helm/helm_dependency/). This feature enables you to integrate third-party services and components seamlessly into your SleakOps deployment.
+
+:::warning NodePool Configuration Required
+Since SleakOps uses NodePools to determine resource placement, you must configure the `tolerations` parameter to target an existing NodePool for all dependency resources.
+:::
+
+## Supported Chart Repositories
+
+Currently, SleakOps supports **Bitnami Charts** exclusively. You can browse available charts on [ArtifactHub <FiExternalLink/>](https://artifacthub.io/) to find suitable dependencies for your project.
+
+## Adding Chart Dependencies
+
+To add a new Chart Dependency, click the **Create** button in the Chart Configuration section:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/project/chart/chart-dependencies-create.png"
+    alt="Chart dependencies create button"
+/>
+</Zoom>
+
+### Configuration Steps
+
+1. **Search and Select**: Use the first two fields to search for the chart name and select your desired version
+2. **Configure Values**: Modify the values section below to customize the deployment
+3. **Set Tolerations**: **Critical** - Update all `tolerations` fields in the chart values to target your NodePool
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/project/chart/chart-dependencies-form.png"
+    alt="Chart dependencies configuration form"
+/>
+</Zoom>
+
+:::tip Important
+Ensure every `tolerations` field in the chart values is properly configured to use a NodePool. Without this configuration, Kubernetes cannot determine where to schedule the pods, leading to deployment failures.
+:::
+
+
+## Frequently Asked Questions
+
+<details>
+<summary>
+### My deployment succeeded but pods aren't working. What's wrong?
+</summary>
+The most common cause is incorrect NodePool configuration. Verify that:
+- All `tolerations` fields are properly set to target existing NodePools
+- The NodePool has sufficient resources
+- The NodePool is in a healthy state
+</details>
+
+<details>
+<summary>
+### I can't find the chart I need. What are my options?
+</summary>
+Currently, only Bitnami repository charts are supported. If you need a chart not available in Bitnami's repository, please contact our support team to discuss alternatives or request additional repository support.
+</details>
+
+<details>
+<summary>
+### How do I troubleshoot dependency deployment issues?
+</summary>
+Common troubleshooting steps:
+1. Verify NodePool tolerations are correctly configured
+2. Check that the chart version is compatible
+3. Ensure required values are properly set
+4. Review pod logs for specific error messages
+</details>
