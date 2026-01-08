@@ -540,25 +540,19 @@ collections:
     extension: mdx
     format: frontmatter
     slug: "{{slug}}"
-    meta:
-      path:
-        widget: string
-        label: Path
-        index_file: index
     fields:
       - { name: title, label: Title, widget: string }
-      - {
-          name: sidebar_label,
-          label: Sidebar Label,
-          widget: string,
-          required: false,
-        }
-      - {
-          name: sidebar_position,
-          label: Sidebar Position,
-          widget: number,
-          required: false,
-        }
+      - name: sidebar_label
+        label: Sidebar Label
+        widget: string
+        required: false
+        default: ""
+      - name: sidebar_position
+        label: Sidebar Position
+        widget: number
+        required: false
+        value_type: int
+        min: 0
       - { name: description, label: Description, widget: text, required: true }
       - name: tags
         label: Tags
@@ -571,7 +565,11 @@ collections:
           - { label: "PHP", value: "php" }
           - { label: "Database", value: "database" }
         required: false
-      - { name: image, label: Preview Image, widget: image, required: false }
+      - name: image
+        label: Preview Image
+        widget: image
+        required: false
+        allow_multiple: false
       - { name: body, label: Body, widget: markdown }
 
   - name: changelog
