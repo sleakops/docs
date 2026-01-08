@@ -1,7 +1,6 @@
 import React from 'react';
-// import clsx from 'clsx';
 import Link from '@docusaurus/Link';
-import styles from '../../pages/index.module.css';
+import styles from './HomepageHeader.module.css';
 
 export default function HomepageHeader() {
   return (
@@ -9,24 +8,21 @@ export default function HomepageHeader() {
       <div className='container'>
         <div className={styles.heroContent}>
           <div className={styles.heroText}>
-            <h1 className='hero__title'>
+            <h1 className={styles.heroTitle}>
               Lift your ideas to the Cloud
               <br />
               Leave the Journey to Us
             </h1>
-            <p className='hero__subtitle'>
+            <p className={styles.heroSubtitle}>
               Empowering your business with scalable, secure, and efficient
               infrastructure solutions.
             </p>
           </div>
           <div className={styles.buttons}>
-            <Link className='button button--secondary button--lg' to='/docs'>
+            <Link className={styles.primaryButton} to='/docs'>
               Documentation
             </Link>
-            <Link
-              className='button button--outline button--secondary button--lg'
-              to='/docs/changelog'
-            >
+            <Link className={styles.secondaryButton} to='/changelog'>
               Changelog
             </Link>
           </div>

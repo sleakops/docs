@@ -1,16 +1,8 @@
 import React from 'react';
-import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
-import {
-  // Navbar,
-  HomepageHeader,
-  RecentTutorials,
-} from '../components/Homepage';
-
-import styles from './index.module.css';
+import { HomepageHeader, RecentTutorials } from '../components/Homepage';
 
 export default function Home() {
-  const { siteConfig } = useDocusaurusContext();
   return (
     <Layout>
       <HomepageHeader />

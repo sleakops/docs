@@ -115,7 +115,7 @@ const config = {
         },
         {
           label: 'Changelog',
-          to: '/docs/changelog',
+          to: '/changelog',
           position: 'left',
         },
 
@@ -136,18 +136,13 @@ const config = {
       ],
     },
     footer: {
-      // style: 'dark',
-      // logo: {
-      //   alt: 'SleakOps2',
-      //   src: 'img/logo2.svg',
-      // },
       links: [
         {
           title: 'Docs',
           items: [
             {
               label: 'Tutorial',
-              to: '/',
+              to: '/tutorials',
             },
             {
               label: 'About us',
