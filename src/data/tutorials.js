@@ -81,6 +81,13 @@ export const tutorialsList = [
     tags: ["featured", "database"],
     image: "/img/tutorials/database-backup.png",
   },
+  {
+    id: "nuevo-tutorial",
+    title: "Nuevo tutorial",
+    description: "dsadasdasdasdasdasdasdasdasd",
+    tags: ["node"],
+    image: null,
+  },
 ];
 
 // Helper function to get the tutorial link
