@@ -129,10 +129,8 @@ export default function TutorialsPage() {
     [filteredTutorials]
   );
 
-  const regularTutorials = useMemo(
-    () => filteredTutorials.filter((t) => !t.tags?.includes("featured")),
-    [filteredTutorials]
-  );
+  // All tutorials (including featured) for the "Todos" section
+  const allTutorials = filteredTutorials;
 
   const isFiltered = selectedTags.length > 0 || searchQuery !== "";
 
@@ -170,13 +168,13 @@ export default function TutorialsPage() {
                 </ul>
               </div>
             )}
-            {regularTutorials.length > 0 && (
+            {allTutorials.length > 0 && (
               <div>
                 <h2 className={styles.sectionHeading}>
                   📖 Todos los tutoriales
                 </h2>
                 <ul className={styles.cardList}>
-                  {regularTutorials.map((tutorial) => (
+                  {allTutorials.map((tutorial) => (
                     <TutorialCard key={tutorial.id} tutorial={tutorial} />
                   ))}
                 </ul>
