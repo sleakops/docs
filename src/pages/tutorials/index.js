@@ -1,8 +1,12 @@
 import React, { useState, useMemo } from "react";
 import Layout from "@theme/Layout";
 import Link from "@docusaurus/Link";
-import { usePluginData } from "@docusaurus/useGlobalData";
-import { TagList, Tags } from "@site/src/data/tutorials";
+import {
+  TagList,
+  Tags,
+  tutorialsList,
+  getTutorialLink,
+} from "@site/src/data/tutorials";
 import TutorialFilters from "./_components/TutorialFilters";
 import TutorialSearchBar from "./_components/TutorialSearchBar";
 import styles from "./styles.module.css";
@@ -20,30 +24,34 @@ function ShowcaseHeader() {
 }
 
 function TutorialCard({ tutorial }) {
-  // Get tags from frontmatter, handle both array and undefined
-  const tutorialTags = tutorial.frontMatter?.tags || [];
+  const tutorialTags = tutorial.tags || [];
+  const tutorialLink = getTutorialLink(tutorial.id);
 
   return (
     <li className={styles.cardItem}>
       <div className={styles.card}>
-        {tutorial.frontMatter?.image ? (
+        {tutorial.image ? (
           <img
-            src={tutorial.frontMatter.image}
+            src={tutorial.image}
             alt={tutorial.title}
             className={styles.cardImage}
             loading="lazy"
             onError={(e) => {
               e.target.style.display = "none";
+              e.target.nextSibling &&
+                (e.target.nextSibling.style.display = "flex");
             }}
           />
-        ) : (
-          <div className={styles.cardImagePlaceholder}>📚</div>
-        )}
+        ) : null}
+        <div
+          className={styles.cardImagePlaceholder}
+          style={{ display: tutorial.image ? "none" : "flex" }}
+        >
+          📚
+        </div>
         <div className={styles.cardContent}>
           <h3 className={styles.cardTitle}>{tutorial.title}</h3>
-          <p className={styles.cardDescription}>
-            {tutorial.frontMatter?.description || tutorial.description || ""}
-          </p>
+          <p className={styles.cardDescription}>{tutorial.description}</p>
           <div className={styles.cardTags}>
             {tutorialTags
               .filter((tag) => tag !== "featured" && Tags[tag])
@@ -57,7 +65,7 @@ function TutorialCard({ tutorial }) {
                 </span>
               ))}
           </div>
-          <Link to={tutorial.permalink} className={styles.cardLink}>
+          <Link to={tutorialLink} className={styles.cardLink}>
             Ver tutorial →
           </Link>
         </div>
@@ -81,23 +89,6 @@ export default function TutorialsPage() {
   const [selectedTags, setSelectedTags] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Get tutorials from the docs plugin
-  let allDocs = [];
-  try {
-    const pluginData = usePluginData(
-      "docusaurus-plugin-content-docs",
-      "tutorials"
-    );
-    allDocs = pluginData?.versions?.[0]?.docs || [];
-  } catch (e) {
-    console.warn("Could not load tutorials data:", e);
-  }
-
-  // Filter out the index page and get actual tutorials
-  const tutorials = useMemo(() => {
-    return allDocs.filter((doc) => doc.id !== "index");
-  }, [allDocs]);
-
   // Handle tag toggle
   const handleTagToggle = (tag) => {
     setSelectedTags((prev) =>
@@ -113,8 +104,8 @@ export default function TutorialsPage() {
 
   // Filter tutorials based on selected tags and search query
   const filteredTutorials = useMemo(() => {
-    return tutorials.filter((tutorial) => {
-      const tutorialTags = tutorial.frontMatter?.tags || [];
+    return tutorialsList.filter((tutorial) => {
+      const tutorialTags = tutorial.tags || [];
 
       // Filter by tags (if any selected)
       const matchesTags =
@@ -122,31 +113,24 @@ export default function TutorialsPage() {
         selectedTags.some((tag) => tutorialTags.includes(tag));
 
       // Filter by search query
+      const searchLower = searchQuery.toLowerCase();
       const matchesSearch =
         searchQuery === "" ||
-        tutorial.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        tutorial.frontMatter?.description
-          ?.toLowerCase()
-          .includes(searchQuery.toLowerCase());
+        tutorial.title.toLowerCase().includes(searchLower) ||
+        tutorial.description.toLowerCase().includes(searchLower);
 
       return matchesTags && matchesSearch;
     });
-  }, [tutorials, selectedTags, searchQuery]);
+  }, [selectedTags, searchQuery]);
 
   // Separate featured and regular tutorials
   const featuredTutorials = useMemo(
-    () =>
-      filteredTutorials.filter((t) =>
-        t.frontMatter?.tags?.includes("featured")
-      ),
+    () => filteredTutorials.filter((t) => t.tags?.includes("featured")),
     [filteredTutorials]
   );
 
   const regularTutorials = useMemo(
-    () =>
-      filteredTutorials.filter(
-        (t) => !t.frontMatter?.tags?.includes("featured")
-      ),
+    () => filteredTutorials.filter((t) => !t.tags?.includes("featured")),
     [filteredTutorials]
   );
 
