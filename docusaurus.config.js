@@ -1,73 +1,73 @@
 // @ts-check
 // Note: type annotations allow type checking and IDEs autocompletion
 
-const lightCodeTheme = require("prism-react-renderer/themes/github");
-const darkCodeTheme = require("prism-react-renderer/themes/dracula");
+const lightCodeTheme = require('prism-react-renderer/themes/github');
+const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: "SleakOps Documentation",
-  tagline: "SleakOps Documentation",
-  url: "https://docs.sleakops.com",
-  baseUrl: "/",
-  onBrokenLinks: "throw",
-  onBrokenMarkdownLinks: "warn",
-  favicon: "img/favicon.ico",
+  title: 'SleakOps Documentation',
+  tagline: 'SleakOps Documentation',
+  url: 'https://docs.sleakops.com',
+  baseUrl: '/',
+  onBrokenLinks: 'throw',
+  onBrokenMarkdownLinks: 'warn',
+  favicon: 'img/favicon.ico',
 
   markdown: {
     mermaid: true,
   },
 
-  organizationName: "Craftech",
-  projectName: "Sleakops",
-  deploymentBranch: "gh-pages",
+  organizationName: 'Craftech',
+  projectName: 'Sleakops',
+  deploymentBranch: 'gh-pages',
   trailingSlash: false,
 
   i18n: {
-    defaultLocale: "en",
-    locales: ["en", "es"],
-    path: "i18n",
+    defaultLocale: 'en',
+    locales: ['en', 'es'],
+    path: 'i18n',
     localeConfigs: {
       en: {
-        htmlLang: "en",
-        label: "English",
+        htmlLang: 'en',
+        label: 'English',
       },
       es: {
-        htmlLang: "es",
-        label: "Español",
+        htmlLang: 'es',
+        label: 'Español',
       },
     },
   },
 
   // Eliminamos el tema easyops-cn/docusaurus-search-local
-  themes: ["@docusaurus/theme-mermaid"],
+  themes: ['@docusaurus/theme-mermaid'],
 
   presets: [
     [
-      "classic",
+      'classic',
       {
         debug: false,
         theme: {
-          customCss: [require.resolve("./src/css/custom.css")],
+          customCss: [require.resolve('./src/css/custom.css')],
         },
         docs: {
-          sidebarPath: require.resolve("./sidebars.js"),
-          routeBasePath: "/",
+          sidebarPath: require.resolve('./sidebars.js'),
+          routeBasePath: '/docs',
           sidebarCollapsible: true,
           sidebarCollapsed: true,
         },
         blog: {},
         pages: {
-          routeBasePath: "/pages",
+          routeBasePath: '/',
         },
         sitemap: {
-          changefreq: "weekly",
+          changefreq: 'weekly',
           priority: 0.5,
-          ignorePatterns: ["/tags/**"],
-          filename: "sitemap.xml",
+          ignorePatterns: ['/tags/**'],
+          filename: 'sitemap.xml',
         },
         googleAnalytics: {
-          trackingID: "UA-128497858-1",
+          trackingID: 'UA-128497858-1',
           anonymizeIP: true,
         },
       },
@@ -77,9 +77,9 @@ const config = {
   // Configuración del plugin docusaurus-lunr-search
   plugins: [
     [
-      require.resolve("docusaurus-lunr-search"),
+      require.resolve('docusaurus-lunr-search'),
       {
-        languages: ["en", "es"],
+        languages: ['en', 'es'],
         indexBaseUrl: true,
       },
     ],
@@ -87,58 +87,83 @@ const config = {
 
   themeConfig: {
     colorMode: {
-      defaultMode: "dark",
+      defaultMode: 'dark',
       disableSwitch: false,
       respectPrefersColorScheme: false,
     },
     navbar: {
-      title: "SleakOps",
+      title: 'SleakOps',
       logo: {
-        alt: "SleakOps",
-        src: "img/logo.svg",
+        alt: 'SleakOps2',
+        src: 'img/logo2.svg',
       },
       items: [
         {
-          type: "localeDropdown",
-          position: "left",
+          label: 'Home',
+          to: '/',
+          position: 'left',
         },
         {
-          href: "https://console.sleakops.com",
-          label: "Console",
-          position: "right",
+          label: 'Docs',
+          to: '/docs',
+          position: 'left',
+        },
+        {
+          label: 'Tutorials',
+          to: '/tutorials',
+          position: 'left',
+        },
+        {
+          label: 'Changelog',
+          to: '/changelog',
+          position: 'left',
+        },
+
+        {
+          href: 'https://console.sleakops.com',
+          label: 'Console',
+          position: 'right',
+        },
+        {
+          href: 'https://sleakops.com/blog/',
+          label: 'Blog',
+          position: 'right',
+        },
+        {
+          type: 'localeDropdown',
+          position: 'right',
         },
       ],
     },
     footer: {
-      style: "dark",
       links: [
         {
-          title: "Docs",
+          title: 'Docs',
           items: [
             {
-              label: "Tutorial",
-              to: "/",
+              label: 'Tutorial',
+              to: '/tutorials',
             },
             {
-              label: "About us",
-              href: "https://sleakops.com/",
+              label: 'About us',
+              href: 'https://sleakops.com/',
             },
             {
-              label: "Contact us",
-              href: "https://sleakops.com/contact",
+              label: 'Contact us',
+              href: 'https://sleakops.com/contact',
             },
           ],
         },
         {
-          title: "More",
+          title: 'More',
           items: [
             {
-              label: "Terms & Conditions",
-              href: "https://craftech.notion.site/Terms-Conditions-efb8d9a980654625af456732ed44b197",
+              label: 'Terms & Conditions',
+              href: 'https://craftech.notion.site/Terms-Conditions-efb8d9a980654625af456732ed44b197',
             },
             {
-              label: "Privacy Policy",
-              href: "https://craftech.notion.site/Privacy-Policy-of-SleakOps-55b977da50d84871809879d065b16b3b",
+              label: 'Privacy Policy',
+              href: 'https://craftech.notion.site/Privacy-Policy-of-SleakOps-55b977da50d84871809879d065b16b3b',
             },
           ],
         },
