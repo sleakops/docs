@@ -36,6 +36,9 @@ serve: ## Serve production build locally (Search & Multilanguage work here)
 collections: ## Regenerate Sveltia CMS config.yml from folder structure
 	python3 generate_cms_config.py
 
+tutorials: ## Regenerate tutorials-generated.json from MDX files
+	python3 generate_tutorials.py
+
 # ==========================================
 # Utility Commands
 # ==========================================
@@ -53,5 +56,5 @@ translations: ## Generate translation files
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: install run run-es build build-en build-es serve collections clear translations help
+.PHONY: install run run-es build build-en build-es serve collections tutorials clear translations help
 .DEFAULT_GOAL := help
