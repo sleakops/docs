@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import Layout from "@theme/Layout";
-import Link from "@docusaurus/Link";
+import TutorialCard from "@site/src/components/TutorialCard";
 import {
   TagList,
   Tags,
@@ -23,57 +23,6 @@ function ShowcaseHeader() {
   );
 }
 
-function TutorialCard({ tutorial }) {
-  const tutorialTags = tutorial.tags || [];
-  const tutorialLink = getTutorialLink(tutorial.id);
-
-  return (
-    <li className={styles.cardItem}>
-      <div className={styles.card}>
-        {tutorial.image ? (
-          <img
-            src={tutorial.image}
-            alt={tutorial.title}
-            className={styles.cardImage}
-            loading="lazy"
-            onError={(e) => {
-              e.target.style.display = "none";
-              e.target.nextSibling &&
-                (e.target.nextSibling.style.display = "flex");
-            }}
-          />
-        ) : null}
-        <div
-          className={styles.cardImagePlaceholder}
-          style={{ display: tutorial.image ? "none" : "flex" }}
-        >
-          📚
-        </div>
-        <div className={styles.cardContent}>
-          <h3 className={styles.cardTitle}>{tutorial.title}</h3>
-          <p className={styles.cardDescription}>{tutorial.description}</p>
-          <div className={styles.cardTags}>
-            {tutorialTags
-              .filter((tag) => tag !== "featured" && Tags[tag])
-              .map((tag) => (
-                <span key={tag} className={styles.cardTag}>
-                  <span
-                    className={styles.cardTagDot}
-                    style={{ backgroundColor: Tags[tag]?.color }}
-                  />
-                  {Tags[tag]?.label}
-                </span>
-              ))}
-          </div>
-          <Link to={tutorialLink} className={styles.cardLink}>
-            Ver tutorial →
-          </Link>
-        </div>
-      </div>
-    </li>
-  );
-}
-
 function NoResults() {
   return (
     <div className={styles.noResults}>
@@ -88,6 +37,14 @@ function NoResults() {
 export default function TutorialsPage() {
   const [selectedTags, setSelectedTags] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Transform tutorials to include link
+  const tutorials = useMemo(() => {
+    return tutorialsList.map((t) => ({
+      ...t,
+      link: getTutorialLink(t.id),
+    }));
+  }, []);
 
   // Handle tag toggle
   const handleTagToggle = (tag) => {
@@ -104,7 +61,7 @@ export default function TutorialsPage() {
 
   // Filter tutorials based on selected tags and search query
   const filteredTutorials = useMemo(() => {
-    return tutorialsList.filter((tutorial) => {
+    return tutorials.filter((tutorial) => {
       const tutorialTags = tutorial.tags || [];
 
       // Filter by tags (if any selected)
@@ -121,7 +78,7 @@ export default function TutorialsPage() {
 
       return matchesTags && matchesSearch;
     });
-  }, [selectedTags, searchQuery]);
+  }, [tutorials, selectedTags, searchQuery]);
 
   // Separate featured and regular tutorials
   const featuredTutorials = useMemo(
@@ -129,7 +86,7 @@ export default function TutorialsPage() {
     [filteredTutorials]
   );
 
-  // All tutorials (including featured) for the "Todos" section
+  // All tutorials for the "Todos" section
   const allTutorials = filteredTutorials;
 
   const isFiltered = selectedTags.length > 0 || searchQuery !== "";
@@ -151,21 +108,29 @@ export default function TutorialsPage() {
         {filteredTutorials.length === 0 ? (
           <NoResults />
         ) : isFiltered ? (
-          <ul className={styles.cardList}>
-            {filteredTutorials.map((tutorial) => (
-              <TutorialCard key={tutorial.id} tutorial={tutorial} />
+          <div className={styles.cardGrid}>
+            {filteredTutorials.map((tutorial, idx) => (
+              <TutorialCard
+                key={tutorial.id}
+                tutorial={tutorial}
+                animationDelay={idx * 0.05}
+              />
             ))}
-          </ul>
+          </div>
         ) : (
           <>
             {featuredTutorials.length > 0 && (
               <div className={styles.featuredSection}>
                 <h2 className={styles.sectionHeading}>⭐ Destacados</h2>
-                <ul className={styles.cardList}>
-                  {featuredTutorials.map((tutorial) => (
-                    <TutorialCard key={tutorial.id} tutorial={tutorial} />
+                <div className={styles.cardGrid}>
+                  {featuredTutorials.map((tutorial, idx) => (
+                    <TutorialCard
+                      key={tutorial.id}
+                      tutorial={tutorial}
+                      animationDelay={idx * 0.1}
+                    />
                   ))}
-                </ul>
+                </div>
               </div>
             )}
             {allTutorials.length > 0 && (
@@ -173,11 +138,15 @@ export default function TutorialsPage() {
                 <h2 className={styles.sectionHeading}>
                   📖 Todos los tutoriales
                 </h2>
-                <ul className={styles.cardList}>
-                  {allTutorials.map((tutorial) => (
-                    <TutorialCard key={tutorial.id} tutorial={tutorial} />
+                <div className={styles.cardGrid}>
+                  {allTutorials.map((tutorial, idx) => (
+                    <TutorialCard
+                      key={tutorial.id}
+                      tutorial={tutorial}
+                      animationDelay={idx * 0.05}
+                    />
                   ))}
-                </ul>
+                </div>
               </div>
             )}
           </>

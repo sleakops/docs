@@ -1,53 +1,42 @@
-import React from 'react';
-import Link from '@docusaurus/Link';
-import styles from './RecentTutorials.module.css';
-
-const recentTutorials = [
-  {
-    title: 'Esto es un Tutorial',
-    description: 'Esta es la descripcion muy larga de un tutorial muy largo',
-    image: '/img/tutorial-img.png',
-    link: '/docs',
-  },
-  {
-    title: 'Esto es un Tutorial',
-    description: 'Esta es la descripcion muy larga de un tutorial muy largo',
-    image: '/img/tutorial-img.png',
-    link: '/docs',
-  },
-  {
-    title: 'Esto es un Tutorial',
-    description: 'Esta es la descripcion muy larga de un tutorial muy largo',
-    image: '/img/tutorial-img.png',
-    link: '/docs',
-  },
-];
+import React from "react";
+import Link from "@docusaurus/Link";
+import TutorialCard from "@site/src/components/TutorialCard";
+import { tutorialsList, getTutorialLink } from "@site/src/data/tutorials";
+import styles from "./RecentTutorials.module.css";
 
 export default function RecentTutorials() {
+  // Get featured tutorials first, then others, limit to 3
+  const featuredFirst = [...tutorialsList].sort((a, b) => {
+    const aFeatured = a.tags?.includes("featured") ? 0 : 1;
+    const bFeatured = b.tags?.includes("featured") ? 0 : 1;
+    return aFeatured - bFeatured;
+  });
+
+  const recentTutorials = featuredFirst.slice(0, 3).map((t) => ({
+    ...t,
+    link: getTutorialLink(t.id),
+  }));
+
+  if (recentTutorials.length === 0) {
+    return null;
+  }
+
   return (
     <section className={styles.recentTutorials}>
-      <div className='container'>
+      <div className="container">
         <div className={styles.tutorialsHeader}>
           <h2 className={styles.tutorialsTitle}>Recent Tutorials</h2>
-          <Link to='/tutorials' className={styles.viewMoreLink}>
+          <Link to="/tutorials" className={styles.viewMoreLink}>
             View more tutorials
           </Link>
         </div>
         <div className={styles.tutorialsGrid}>
           {recentTutorials.map((tutorial, idx) => (
-            <Link key={idx} to={tutorial.link} className={styles.tutorialCard}>
-              <div className={styles.tutorialImage}>
-                <img src={tutorial.image} alt={tutorial.title} />
-              </div>
-              <div className={styles.tutorialContent}>
-                <h3 className={styles.tutorialTitle}>{tutorial.title}</h3>
-                <p className={styles.tutorialDescription}>
-                  {tutorial.description}
-                </p>
-                <button className={styles.tutorialButton}>View Tutorial</button>
-              </div>
-              <div className={styles.tutorialProgressBar}></div>
-            </Link>
+            <TutorialCard
+              key={tutorial.id}
+              tutorial={tutorial}
+              animationDelay={(idx + 1) * 0.1}
+            />
           ))}
         </div>
       </div>
