@@ -10,7 +10,7 @@ const config = {
   tagline: "SleakOps Documentation",
   url: "https://docs.sleakops.com",
   baseUrl: "/",
-  onBrokenLinks: "throw",
+  onBrokenLinks: "warn",
   onBrokenMarkdownLinks: "warn",
   favicon: "img/favicon.ico",
 

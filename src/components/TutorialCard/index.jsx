@@ -12,8 +12,13 @@ import styles from "./TutorialCard.module.css";
  * @param {string} tutorial.image - Image URL (optional)
  * @param {string} tutorial.link - Link to the tutorial
  * @param {number} animationDelay - Delay for entrance animation (optional)
+ * @param {string} buttonLabel - Label for the button (optional, for i18n)
  */
-export default function TutorialCard({ tutorial, animationDelay = 0 }) {
+export default function TutorialCard({
+  tutorial,
+  animationDelay = 0,
+  buttonLabel = "View Tutorial",
+}) {
   const cardStyle = animationDelay
     ? { animationDelay: `${animationDelay}s` }
     : {};
@@ -36,7 +41,7 @@ export default function TutorialCard({ tutorial, animationDelay = 0 }) {
       <div className={styles.tutorialContent}>
         <h3 className={styles.tutorialTitle}>{tutorial.title}</h3>
         <p className={styles.tutorialDescription}>{tutorial.description}</p>
-        <span className={styles.tutorialButton}>View Tutorial</span>
+        <span className={styles.tutorialButton}>{buttonLabel}</span>
       </div>
       <div className={styles.tutorialProgressBar}></div>
     </Link>

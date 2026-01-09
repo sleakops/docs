@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import Layout from "@theme/Layout";
+import Translate, { translate } from "@docusaurus/Translate";
 import TutorialCard from "@site/src/components/TutorialCard";
 import {
   TagList,
@@ -14,10 +15,14 @@ import styles from "./styles.module.css";
 function ShowcaseHeader() {
   return (
     <div className={styles.showcaseHeader}>
-      <h1 className={styles.showcaseTitle}>📚 Tutoriales</h1>
+      <h1 className={styles.showcaseTitle}>
+        <Translate id="tutorials.title">📚 Tutorials</Translate>
+      </h1>
       <p className={styles.showcaseDescription}>
-        Explora nuestros tutoriales para aprender a desplegar y manejar tus
-        aplicaciones con SleakOps
+        <Translate id="tutorials.description">
+          Explore our tutorials to learn how to deploy and manage your
+          applications with SleakOps
+        </Translate>
       </p>
     </div>
   );
@@ -28,7 +33,9 @@ function NoResults() {
     <div className={styles.noResults}>
       <div className={styles.noResultsIcon}>🔍</div>
       <p className={styles.noResultsText}>
-        No se encontraron tutoriales con los filtros seleccionados.
+        <Translate id="tutorials.noResults">
+          No tutorials found with the selected filters.
+        </Translate>
       </p>
     </div>
   );
@@ -37,6 +44,27 @@ function NoResults() {
 export default function TutorialsPage() {
   const [selectedTags, setSelectedTags] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Translated labels
+  const searchPlaceholder = translate({
+    id: "tutorials.searchPlaceholder",
+    message: "🔍 Search tutorials...",
+  });
+
+  const featuredTitle = translate({
+    id: "tutorials.featured",
+    message: "⭐ Featured",
+  });
+
+  const allTutorialsTitle = translate({
+    id: "tutorials.allTutorials",
+    message: "📖 All Tutorials",
+  });
+
+  const viewTutorialLabel = translate({
+    id: "tutorials.viewTutorial",
+    message: "View Tutorial",
+  });
 
   // Transform tutorials to include link
   const tutorials = useMemo(() => {
@@ -86,19 +114,26 @@ export default function TutorialsPage() {
     [filteredTutorials]
   );
 
-  // All tutorials for the "Todos" section
+  // All tutorials for the "All" section
   const allTutorials = filteredTutorials;
 
   const isFiltered = selectedTags.length > 0 || searchQuery !== "";
 
   return (
     <Layout
-      title="Tutoriales"
-      description="Tutoriales de SleakOps para aprender a desplegar tus aplicaciones"
+      title={translate({ id: "tutorials.pageTitle", message: "Tutorials" })}
+      description={translate({
+        id: "tutorials.pageDescription",
+        message: "SleakOps tutorials to learn how to deploy your applications",
+      })}
     >
       <main className="container margin-vert--lg">
         <ShowcaseHeader />
-        <TutorialSearchBar value={searchQuery} onChange={setSearchQuery} />
+        <TutorialSearchBar
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder={searchPlaceholder}
+        />
         <TutorialFilters
           selectedTags={selectedTags}
           onTagToggle={handleTagToggle}
@@ -114,6 +149,7 @@ export default function TutorialsPage() {
                 key={tutorial.id}
                 tutorial={tutorial}
                 animationDelay={idx * 0.05}
+                buttonLabel={viewTutorialLabel}
               />
             ))}
           </div>
@@ -121,13 +157,14 @@ export default function TutorialsPage() {
           <>
             {featuredTutorials.length > 0 && (
               <div className={styles.featuredSection}>
-                <h2 className={styles.sectionHeading}>⭐ Destacados</h2>
+                <h2 className={styles.sectionHeading}>{featuredTitle}</h2>
                 <div className={styles.cardGrid}>
                   {featuredTutorials.map((tutorial, idx) => (
                     <TutorialCard
                       key={tutorial.id}
                       tutorial={tutorial}
                       animationDelay={idx * 0.1}
+                      buttonLabel={viewTutorialLabel}
                     />
                   ))}
                 </div>
@@ -135,15 +172,14 @@ export default function TutorialsPage() {
             )}
             {allTutorials.length > 0 && (
               <div>
-                <h2 className={styles.sectionHeading}>
-                  📖 Todos los tutoriales
-                </h2>
+                <h2 className={styles.sectionHeading}>{allTutorialsTitle}</h2>
                 <div className={styles.cardGrid}>
                   {allTutorials.map((tutorial, idx) => (
                     <TutorialCard
                       key={tutorial.id}
                       tutorial={tutorial}
                       animationDelay={idx * 0.05}
+                      buttonLabel={viewTutorialLabel}
                     />
                   ))}
                 </div>

@@ -1,23 +1,27 @@
 /* Tutorials Showcase Styles */
+/* Using theme variables from custom.css */
 
 .showcaseHeader {
   padding: 2rem 0;
   text-align: center;
   background: linear-gradient(
     180deg,
-    var(--ifm-hero-background-color) 0%,
+    var(--custom-bg-header) 0%,
     transparent 100%
   );
+  border-radius: 1rem;
+  margin-bottom: 1rem;
 }
 
 .showcaseTitle {
   font-size: 3rem;
   margin-bottom: 0.5rem;
+  color: var(--ifm-font-color-base);
 }
 
 .showcaseDescription {
   font-size: 1.25rem;
-  color: var(--ifm-color-emphasis-700);
+  color: var(--custom-text-secondary);
   max-width: 600px;
   margin: 0 auto;
 }
@@ -29,7 +33,7 @@
   gap: 0.75rem;
   justify-content: center;
   padding: 1.5rem 0;
-  border-bottom: 1px solid var(--ifm-color-emphasis-300);
+  border-bottom: 1px solid var(--docusaurus-highlighted-code-line-bg);
   margin-bottom: 2rem;
 }
 
@@ -53,10 +57,18 @@
   background: var(--ifm-color-primary-lightest);
 }
 
+[data-theme="dark"] .filterTag:hover {
+  background: var(--ifm-color-primary-darkest);
+}
+
 .filterTagSelected {
   border-color: var(--ifm-color-primary);
   background: var(--ifm-color-primary);
   color: white;
+}
+
+[data-theme="light"] .filterTagSelected {
+  color: #000;
 }
 
 .filterTagSelected:hover {
@@ -85,7 +97,7 @@
   font-size: 1rem;
   border: 2px solid var(--ifm-color-emphasis-300);
   border-radius: 0.5rem;
-  background: var(--ifm-background-color);
+  background: var(--ifm-navbar-background-color);
   color: var(--ifm-font-color-base);
   transition: border-color 0.2s ease;
 }
@@ -96,7 +108,7 @@
 }
 
 .searchInput::placeholder {
-  color: var(--ifm-color-emphasis-500);
+  color: var(--custom-text-secondary);
 }
 
 /* Cards Grid */
@@ -119,23 +131,28 @@
   display: flex;
 }
 
-/* Card Component */
+/* Card Component (fallback if TutorialCard not used) */
 .card {
   display: flex;
   flex-direction: column;
   width: 100%;
-  border-radius: 0.75rem;
+  border-radius: 8px;
   overflow: hidden;
-  border: 1px solid var(--ifm-color-emphasis-200);
-  background: var(--ifm-card-background-color);
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #00000060;
+  background: var(--ifm-navbar-background-color);
+  transition: all 0.3s ease, background-color 0.5s ease;
+  box-shadow: 0 2px 8px var(--custom-shadow-color);
 }
 
 .card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 12px 24px var(--custom-shadow-color);
   border-color: var(--ifm-color-primary);
+  background-color: #ffffff10;
+}
+
+[data-theme="light"] .card:hover {
+  background-color: var(--ifm-color-primary-lightest);
 }
 
 .cardImage {
@@ -153,10 +170,10 @@
   justify-content: center;
   background: linear-gradient(
     135deg,
-    var(--ifm-color-primary-lightest),
-    var(--ifm-color-primary-light)
+    var(--ifm-color-primary-darkest),
+    var(--ifm-color-primary-dark)
   );
-  color: var(--ifm-color-primary-darkest);
+  color: var(--ifm-color-primary-lightest);
   font-size: 3rem;
 }
 
@@ -176,7 +193,7 @@
 
 .cardDescription {
   font-size: 0.875rem;
-  color: var(--ifm-color-emphasis-700);
+  color: var(--custom-text-secondary);
   margin: 0 0 1rem;
   flex-grow: 1;
   line-height: 1.5;
@@ -197,7 +214,7 @@
   font-size: 0.75rem;
   border-radius: 1rem;
   background: var(--ifm-color-emphasis-100);
-  color: var(--ifm-color-emphasis-800);
+  color: var(--ifm-font-color-base);
 }
 
 .cardTagDot {
@@ -220,15 +237,19 @@
 }
 
 .cardLink:hover {
-  background: var(--ifm-color-primary-lightest);
+  background: var(--ifm-color-primary-darkest);
   text-decoration: none;
+}
+
+[data-theme="light"] .cardLink:hover {
+  background: var(--ifm-color-primary-lightest);
 }
 
 /* Featured Section */
 .featuredSection {
   background: linear-gradient(
     135deg,
-    var(--ifm-color-primary-lightest) 0%,
+    var(--custom-bg-header) 0%,
     transparent 100%
   );
   padding: 2rem;
@@ -242,13 +263,14 @@
   gap: 0.5rem;
   font-size: 1.5rem;
   margin-bottom: 1.5rem;
+  color: var(--ifm-font-color-base);
 }
 
 /* No Results */
 .noResults {
   text-align: center;
   padding: 4rem 2rem;
-  color: var(--ifm-color-emphasis-600);
+  color: var(--custom-text-secondary);
 }
 
 .noResultsIcon {
@@ -268,13 +290,14 @@
   background: transparent;
   cursor: pointer;
   font-size: 0.875rem;
-  color: var(--ifm-color-emphasis-700);
+  color: var(--custom-text-secondary);
   transition: all 0.2s ease;
 }
 
 .clearButton:hover {
   background: var(--ifm-color-emphasis-100);
-  border-color: var(--ifm-color-emphasis-400);
+  border-color: var(--ifm-color-primary);
+  color: var(--ifm-font-color-base);
 }
 
 /* Responsive */
@@ -287,7 +310,8 @@
     font-size: 1rem;
   }
 
-  .cardList {
+  .cardList,
+  .cardGrid {
     grid-template-columns: 1fr;
   }
 

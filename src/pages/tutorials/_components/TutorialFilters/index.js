@@ -1,4 +1,5 @@
 import React from "react";
+import { translate } from "@docusaurus/Translate";
 import { TagList, Tags } from "@site/src/data/tutorials";
 import styles from "../../styles.module.css";
 
@@ -33,6 +34,11 @@ export default function TutorialFilters({
 }) {
   const hasFilters = selectedTags.length > 0;
 
+  const clearFiltersLabel = translate({
+    id: "tutorials.clearFilters",
+    message: "✕ Clear filters",
+  });
+
   return (
     <div className={styles.filtersSection}>
       {TagList.map((tag) => (
@@ -45,7 +51,7 @@ export default function TutorialFilters({
       ))}
       {hasFilters && (
         <button className={styles.clearButton} onClick={onClearFilters}>
-          ✕ Limpiar filtros
+          {clearFiltersLabel}
         </button>
       )}
     </div>
