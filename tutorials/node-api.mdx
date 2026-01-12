@@ -1,0 +1,47 @@
+---
+sidebar_label: "Node.js API con Express"
+sidebar_position: 2
+title: "Node.js API with Express"
+description: "Build and deploy a RESTful API using Node.js and Express framework."
+tags:
+  - node
+image: /img/tutorials/node-api.png
+---
+
+# Node.js API with Express
+
+Aprende a construir y desplegar una API RESTful usando Node.js y Express.
+
+## Prerequisitos
+
+- Node.js 18+ instalado localmente
+- Una cuenta en SleakOps
+
+## Paso 1: Crear la API
+
+```javascript
+const express = require("express");
+const app = express();
+
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
+app.listen(process.env.PORT || 3000);
+```
+
+## Paso 2: Crear el Dockerfile
+
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+EXPOSE 3000
+CMD ["node", "index.js"]
+```
+
+## Paso 3: Desplegar en SleakOps
+
+Conecta tu repositorio y configura el workload como "Web Service".

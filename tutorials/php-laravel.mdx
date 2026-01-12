@@ -1,0 +1,60 @@
+---
+sidebar_label: "PHP Laravel Deployment"
+sidebar_position: 3
+title: "PHP Laravel Deployment"
+description: "Complete guide for deploying Laravel applications with database migrations."
+tags:
+  - php
+  - database
+image: /img/tutorials/php-laravel.png
+---
+
+# PHP Laravel Deployment
+
+Guía completa para desplegar aplicaciones Laravel con migraciones de base de datos.
+
+## Prerequisitos
+
+- Una aplicación Laravel
+- Una cuenta en SleakOps con un cluster configurado
+
+## Paso 1: Configurar el Dockerfile
+
+```dockerfile
+FROM php:8.2-fpm-alpine
+
+RUN apk add --no-cache \
+    nginx \
+    supervisor \
+    && docker-php-ext-install pdo pdo_mysql
+
+COPY . /var/www/html
+WORKDIR /var/www/html
+
+RUN composer install --no-dev --optimize-autoloader
+
+EXPOSE 80
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
+```
+
+## Paso 2: Agregar dependencia de base de datos
+
+En SleakOps, agrega una dependencia de MySQL o PostgreSQL a tu proyecto.
+
+## Paso 3: Configurar migraciones
+
+Usa un Hook de pre-deploy para ejecutar las migraciones:
+
+```yaml
+hooks:
+  pre-deploy:
+    command: php artisan migrate --force
+```
+
+## Paso 4: Variables de entorno
+
+Configura las variables de entorno necesarias:
+
+- `APP_KEY`
+- `DB_CONNECTION`
+- `DB_HOST` (automático con dependencias)

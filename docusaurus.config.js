@@ -52,13 +52,13 @@ const config = {
         },
         docs: {
           sidebarPath: require.resolve("./sidebars.js"),
-          routeBasePath: "/",
+          routeBasePath: "/docs",
           sidebarCollapsible: true,
           sidebarCollapsed: true,
         },
         blog: {},
         pages: {
-          routeBasePath: "/pages",
+          routeBasePath: "/",
         },
         sitemap: {
           changefreq: "weekly",
@@ -83,6 +83,31 @@ const config = {
         indexBaseUrl: true,
       },
     ],
+    [
+      "@docusaurus/plugin-content-blog",
+      {
+        id: "changelog",
+        routeBasePath: "changelog",
+        path: "./changelog",
+        blogTitle: "Changelog",
+        blogDescription: "SleakOps Changelog - Latest updates and releases",
+        blogSidebarTitle: "Recent Updates",
+        blogSidebarCount: "ALL",
+        showReadingTime: false,
+        postsPerPage: 10,
+        sortPosts: "descending",
+      },
+    ],
+    [
+      "@docusaurus/plugin-content-docs",
+      {
+        id: "tutorials",
+        path: "tutorials",
+        routeBasePath: "tutorial",
+        sidebarPath: require.resolve("./sidebars-tutorials.js"),
+        editUrl: undefined,
+      },
+    ],
   ],
 
   themeConfig: {
@@ -94,30 +119,56 @@ const config = {
     navbar: {
       title: "SleakOps",
       logo: {
-        alt: "SleakOps",
-        src: "img/logo.svg",
+        alt: "SleakOps2",
+        src: "img/logo2.svg",
       },
       items: [
         {
-          type: "localeDropdown",
+          label: "Home",
+          to: "/",
+          position: "left",
+          activeBaseRegex: "^/$",
+        },
+        {
+          label: "Docs",
+          to: "/docs",
           position: "left",
         },
+        {
+          label: "Tutorials",
+          to: "/tutorials",
+          position: "left",
+        },
+        {
+          label: "Changelog",
+          to: "/changelog",
+          position: "left",
+        },
+
         {
           href: "https://console.sleakops.com",
           label: "Console",
           position: "right",
         },
+        {
+          href: "https://sleakops.com/blog/",
+          label: "Blog",
+          position: "right",
+        },
+        {
+          type: "localeDropdown",
+          position: "right",
+        },
       ],
     },
     footer: {
-      style: "dark",
       links: [
         {
           title: "Docs",
           items: [
             {
               label: "Tutorial",
-              to: "/",
+              to: "/tutorials",
             },
             {
               label: "About us",
