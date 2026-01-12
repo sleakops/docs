@@ -12,7 +12,7 @@ Since SleakOps uses NodePools to determine resource placement, you must configur
 
 ## Supported Chart Repositories
 
-Currently, SleakOps supports **Bitnami Charts** exclusively. You can browse available charts on [ArtifactHub <FiExternalLink/>](https://artifacthub.io/) to find suitable dependencies for your project.
+Currently, SleakOps supports **Bitnami Charts** exclusively. You can browse available charts on [ArtifactHub <FiExternalLink/>](https://artifacthub.io/packages/search?org=bitnami) to find suitable dependencies for your project.
 
 ## Adding Chart Dependencies
 
@@ -71,4 +71,50 @@ Common troubleshooting steps:
 2. Check that the chart version is compatible
 3. Ensure required values are properly set
 4. Review pod logs for specific error messages
+</details>
+
+
+<details>
+<summary>
+### My resources won't mount EBS volumes correctly. What should I check?
+</summary>
+1. Ensure that the EBS CSI Driver is installed and functioning in your cluster. You can refer to the [Addon documentation](/cluster/addons/ebs) for guidance on setting up EBS.
+2. Ensure you completed the values with the appropriate storageClass that is created with the EBS addon. For example a persistence value for a chart could look like this:
+```yaml
+persistence:
+  enabled: true
+  storageClass: "ebs-csi-default-sc"
+  accessModes:
+    - ReadWriteOnce
+  size: 5Gi
+```
+3. In case you need another storageClass, you can define it as an [extra template](/project/chart/extra_templates) and use it. Remember to set the provisioner to `ebs.csi.aws.com`.
+4. In case the pods are not starting, check the logs of the EBS CSI Controller for errors
+</details>
+
+<details>
+<summary>
+### My resources won't mount EFS volumes correctly. What should I check?
+</summary>
+1. Ensure that the EFS CSI Driver is installed and functioning in your cluster. Sleakops installs this addon when you create a [volume](/project/volumes) for a project. You can create and then delete a volume to complete the installation.
+2. Ensure you completed the values with the appropriate storageClass that you prefer for this data. Sleakops creates two StorageClasses when installing the EFS addon: `efs-sc-retain` and `efs-sc-delete`. For example a persistence value for a chart could look like this:
+```yaml
+persistence:
+  enabled: true
+  storageClass: "efs-sc-retain"
+  accessModes:
+    - ReadWriteMany
+  size: 5Gi
+```
+3. In case you need another storageClass, you can define it as an [extra template](/project/chart/extra_templates) and use it. Remember to set the provisioner to `efs.csi.aws.com`.
+4. In case the pods are not starting, check the logs of the EFS CSI Controller for errors
+</details>
+
+<details>
+<summary>
+### Pods won't start due to image pull errors. What should I check?
+</summary>
+1. Verify that the image name and tag specified in the chart values are correct.
+2. Verify that the repository is bitnamilegacy instead of bitnami.
+3. Verify if there is a value `allowInsecureImages: false` and change it to `allowInsecureImages: true`.
 </details>
