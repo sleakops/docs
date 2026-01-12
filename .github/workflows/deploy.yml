@@ -5,8 +5,8 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
+      - main
       - develop
-      - dev
 
 jobs:
   deploy:
@@ -30,12 +30,12 @@ jobs:
       - name: Build
         run: yarn build
         env:
-          # Set base URL for dev branch to /docs/dev/
-          BASE_URL: ${{ github.ref == 'refs/heads/dev' && '/docs/dev/' || '/docs/' }}
+          # Set base URL for dev branch to /docs/preview-docs/
+          BASE_URL: ${{ github.ref == 'refs/heads/develop' && '/docs/preview-docs/' || '/docs/' }}
 
       # Deploy develop branch to root
-      - name: Deploy (Production - develop)
-        if: github.ref == 'refs/heads/develop'
+      - name: Deploy (Production - main)
+        if: github.ref == 'refs/heads/main'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -44,11 +44,11 @@ jobs:
           keep_files: true # Keep /dev directory
 
       # Deploy dev branch to /dev subdirectory
-      - name: Deploy (Preview - dev)
-        if: github.ref == 'refs/heads/dev'
+      - name: Deploy (Preview - develop)
+        if: github.ref == 'refs/heads/develop'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./build
-          destination_dir: dev
+          destination_dir: preview-docs
           keep_files: true # Keep root files
