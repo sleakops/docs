@@ -1,0 +1,88 @@
+---
+sidebar_label: Loki's Dashboard is not responding
+sidebar_position: 5
+title: "Loki's Dashboard is not responding"
+description: "Loki's Dashboard is not responding"
+tags:
+  - addons
+  - loki
+  - troubleshooting
+  - monitoring
+  - grafana
+  - logs
+image: /img/tutorial-img.png
+---
+
+import Zoom from "react-medium-image-zoom";
+
+# Loki's Dashboard is not responding
+
+:::success QUICK SOLUTION
+Remove the 'loki-read' pod. After 60 seconds, it will start working again, along with the Loki DataSource and its related dashboards.
+:::
+
+:::info
+This error is more common in clusters with low availability because they generate more node and pod turnover. You can reduce the frequency of this error by increasing the number of loki-read pods in the Loki add-on settings.
+:::
+
+Loki may be running, as in the following image:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img src="/img/tutorials/dashboard-loki-not-responding/loki.png" alt="loki" />
+</Zoom>
+
+- If, due to some Kubernetes rotation, the loki-backend pod is reset WITHOUT the loki-read pod being reset, it starts to fail, such as when I force it by restarting the loki-backend StatefulSet, which leads to the following situation:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/tutorials/dashboard-loki-not-responding/loki-2.png"
+    alt="loki-2"
+  />
+</Zoom>
+
+It can be seen that the '_Age_' of loki-backend is less than the '_Age_' of loki-read. In these cases, this error occurs, causing the Loki DataSource to malfunction and, consequently, the dashboards that use it to stop working. The error arises because the 'loki-read' pods do not attempt to reconnect to 'loki-backend' and remain in this state where they do not respond to requests from 'loki-backend'.
+
+- It can be seen that the error was successfully forced, and now the dashboard is unresponsive:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/tutorials/dashboard-loki-not-responding/loki-3.png"
+    alt="loki-3"
+  />
+</Zoom>
+
+- The way to fix it is by restarting the 'loki-read' Deployment or by removing the running Pod.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/tutorials/dashboard-loki-not-responding/loki-4.png"
+    alt="loki-4"
+  />
+</Zoom>
+
+- Once that is done, we return to the desired situation, which is as follows:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/tutorials/dashboard-loki-not-responding/loki-5.png"
+    alt="loki-5"
+  />
+</Zoom>
+
+As you can see, the _Age_ of loki-read is now less than the _Age_ of loki-backend, which confirms that loki-read is connected and the Dashboard is working correctly again, as shown in the following image:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/tutorials/dashboard-loki-not-responding/loki-6.png"
+    alt="loki-6"
+  />
+</Zoom>
+
+The frequency of this error can be reduced by increasing the number of active 'loki-read' pods. This can be done in the Loki Addon settings.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/tutorials/dashboard-loki-not-responding/loki-7.png"
+    alt="loki-7"
+  />
+</Zoom>

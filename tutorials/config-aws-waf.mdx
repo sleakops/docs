@@ -1,0 +1,105 @@
+---
+sidebar_label: "Configure AWS WAF"
+sidebar_position: 3
+title: "Configure AWS WAF"
+description: "Learn how to configure AWS WAF to protect your Application Load Balancer from unwanted requests"
+tags:
+  - aws
+  - waf
+  - security
+  - alb
+  - firewall
+  - web-protection
+  - load-balancer
+image: /img/tutorial-img.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+
+Learn how to configure AWS WAF (Web Application Firewall) to protect your Application Load Balancer (ALB) from unwanted requests, such as those from bots or malicious attacks. AWS WAF allows you to create custom rules to filter HTTP(S) traffic and only allow legitimate requests.
+
+## Prerequisites
+
+- An AWS account with access to WAF and Application Load Balancer
+- An Application Load Balancer already configured in your AWS account
+- Basic understanding of AWS console navigation
+
+## Estimated Cost
+
+The cost of AWS WAF depends on:
+
+1. The number of active rules
+2. The number of requests processed by WAF
+
+### Cost Breakdown:
+
+| **Component**        | **Cost**                       |
+| -------------------- | ------------------------------ |
+| **Cost per rule**    | $1 USD/month per rule          |
+| **Cost per WebACL**  | $5 USD/month per WebACL        |
+| **Cost per request** | $0.60 USD per million requests |
+
+### Example Cost Calculation:
+
+If you have 5 active rules and process 10 million requests per month, the cost would be:
+
+- WebACL: $5 USD
+- Rules: $5 USD (5 rules × $1 USD)
+- Requests: $6 USD (10 million × $0.60 USD)
+
+**Approximate total cost**: $16 USD/month
+
+---
+
+## Step 1: Create a Web ACL
+
+1. Go to the AWS console and search for **WAF**
+2. Click on **Create web ACL**
+3. Enter the name of your Web ACL (for example, `waf-alb-prod`)
+4. Choose the region where your ALB is located
+5. Select **Regional** if your ALB is in a specific region (usually the case), or **CloudFront** if you're using a CloudFront distribution
+6. In the **Associated AWS resources (optional)** section, select your **Application Load Balancer** so all traffic passes through WAF
+7. Click **Next**
+
+## Step 2: Configure Basic Rules
+
+1. Click **Add rules and rule groups**
+2. Select **AWS Managed Rules** and choose some of the following rules as examples:
+
+| **Rule**                                  | **Description**                                                                            |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------ |
+| **AWSManagedRulesCommonRuleSet**          | For basic protection against common web vulnerabilities                                    |
+| **AWSManagedRulesBotControl**             | To block known bots and automated traffic                                                  |
+| **AWSManagedRulesAnonymousIPList**        | To block IP addresses associated with services that hide user identity (VPN, proxies, Tor) |
+| **AWSManagedRulesAmazonIpReputationList** | To block traffic from IPs known for malicious behavior                                     |
+| **AWSManagedRulesSQLiRuleSet**            | To protect against SQL injection attacks                                                   |
+
+These are just examples, as there are many other options depending on the nature of your application and the threats you want to mitigate. We recommend exploring all available options and selecting the rules that best fit your needs.
+
+---
+
+## Verification
+
+1. Go back to the **WAF** service and select your Web ACL
+2. Review the metrics and statistics to verify that the rules are blocking unwanted traffic
+3. You can create custom rules if you notice suspicious traffic
+
+---
+
+## Updating Rules
+
+If you need to add or modify rules:
+
+1. Go to the AWS WAF console
+2. Select your Web ACL
+3. Click **Rules** and **Add rule** or **Edit rule**
+4. Save the changes and verify the traffic again
+
+---
+
+## Conclusion
+
+AWS WAF is a powerful tool to protect your application against malicious or unwanted traffic. With this basic configuration, you can block common bots and ensure that only legitimate traffic reaches your ALB.
+
+If you have more questions or need additional support, don't hesitate to ask for help!

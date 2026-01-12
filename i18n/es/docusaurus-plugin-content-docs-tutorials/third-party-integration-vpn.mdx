@@ -1,0 +1,158 @@
+---
+sidebar_label: "Integración VPN de Terceros"
+sidebar_position: 8
+title: "Integración VPN de Terceros"
+description: "Comparación de alternativas VPN en AWS"
+tags:
+  - VPN
+  - AWS
+  - third-party
+  - networking
+  - connectivity
+  - cost-analysis
+  - transit-gateway
+image: /img/tutorial-img.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+La elección entre estas tres alternativas se basa en el equilibrio entre **costos**, **escalabilidad** y **complejidad de gestión**:
+
+### Transit Gateway (~197 USD/mes en el escenario descrito)
+
+- Mayor costo fijo por attachment.
+- Excelente opción para topologías más grandes, múltiples VPCs y escalabilidad con mínima complejidad de routing.
+
+### Site-to-Site VPN + EC2 (~80 USD/mes estimados)
+
+- Facilidad de configuración (solución nativa de AWS).
+- Adecuada para un número moderado de túneles, aunque menos flexible que TGW para grandes topologías.
+
+### VPN on EC2 (StrongSwan + Nginx) (~20–21 USD/mes con 1 instancia, o ~40–42 USD/mes para HA)
+
+- Coste significativamente más bajo.
+- Mayor complejidad de administración y mantenimiento (gestión de instancia, parches, failover manual).
+- Adecuada si el tráfico total es bajo y si se cuenta con personal para operar/monitorizar la instancia.
+
+## Transit Gateway
+
+Actúa como un enrutador centralizado que permite la interconexión entre múltiples VPCs, redes on-premises y redes de terceros.
+
+Las conexiones VPN se establecen a través de túneles IPsec, que pueden configurarse para ofrecer alta disponibilidad y redundancia (generalmente se configuran dos túneles por conexión VPN para lograr failover automático).
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img src="/img/tutorials/third-party-integration-vpn/vpn.png" alt="vpn" />
+</Zoom>
+
+### Análisis de costos
+
+**Hipótesis:**
+
+- **3 attachments** en el Transit Gateway, que corresponden por ejemplo a:
+  1. VPC (Dev)
+  2. VPN (Prod)
+  3. VPN (Contingency)
+- **730 horas** de uso mensuales (24/7).
+- **2 GB de transferencia mensual** por cada attachment, totalizando **6 GB mensuales**.
+- Tarifas de AWS (en la mayoría de las regiones):
+  - **0.09 USD/hora/attachment**.
+  - **0.002 USD/GB** de transferencia de datos.
+
+**Costos:**
+
+- **Costo attachments**: ~197.10 USD/mes
+- **Costo data transfer**: ~0.01 USD/mes
+
+**Suma total**: ~197.11 USD/mes (se redondea a ~197.22 USD/mes en el ejemplo original).
+
+## VPN Site-to-Site
+
+Una conexión de Site-to-Site VPN ofrece dos túneles de VPN entre una virtual **private gateway** o una **transit gateway** del lado de AWS y una **customer gateway** en el lado remoto (on-premise).
+
+Dos túneles para automatic failover o mantenimientos que suele hacer AWS que podrían deshabilitar brevemente uno de los túneles —> <FiExternalLink /> [Site-to-Site VPN tunnel endpoint replacement](https://docs.aws.amazon.com/vpn/latest/s2svpn/endpoint-replacements.html)
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img src="/img/tutorials/third-party-integration-vpn/vpn-2.png" alt="vpn-2" />
+</Zoom>
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img src="/img/tutorials/third-party-integration-vpn/vpn-3.png" alt="vpn-3" />
+</Zoom>
+
+### Análisis de costos
+
+**Hipótesis:**
+
+- **3 conexiones (VPN)** (equivalentes a los 3 "attachments" que mencionaste: Dev, Main, Contingencia).
+- Cada VPN es un túnel Site-to-Site gestionado por AWS.
+- **Costo de Site-to-Site VPN**: 0.05 USD por hora por VPN
+- **730 horas** mensuales (24/7).
+- **2 GB de transferencia mensual** por cada VPN.
+
+**Costos:**
+
+- **VPN** (3 conexiones): ~109.50 USD
+- **Transferencia de datos** (6 GB total): ~0.54 USD
+- **Network Load Balancer**: ~20–25 USD
+
+**Suma total**: ~130–135 USD mensuales.
+
+## VPN on EC2
+
+En esta solución, se levanta una instancia EC2 sobre la que se instala **StrongSwan** para establecer túneles IPsec y **Nginx** como proxy (normalmente para enrutar tráfico en la capa de aplicación hacia un Application Load Balancer u otros recursos de la VPC).
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img src="/img/tutorials/third-party-integration-vpn/vpn-4.png" alt="vpn-4" />
+</Zoom>
+
+### Análisis de costos
+
+**Hipótesis:**
+
+- **3 túneles (VPN)** configurados en la misma instancia (o en dos instancias para redundancia).
+- **Instancia EC2** de tamaño pequeño, por ejemplo, **t3.small** (con costo aprox. 0.02–0.023 USD/h).
+
+**Costos:**
+
+- **EC2 + EBS**: ~18–20 USD/mes (1 instancia)
+- **Transferencia de datos**: ~0.54 USD/mes
+
+**Suma total**: ~20–21 USD/mes (En caso de 2 instancias para HA => ~40–42 USD/mes.)
+
+Configuración de nginx y ipsec para lograr armar la conexión.
+
+**nginx.conf**
+
+```nginx
+load_module /usr/lib/nginx/modules/ngx_stream_module.so;
+worker_processes  1;
+error_log  /var/log/nginx/error.log warn;
+pid        /var/run/nginx.pid;
+
+events {
+    worker_connections  1024;
+}
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for"';
+    access_log  /var/log/nginx/access.log  main;
+    sendfile        on;
+    keepalive_timeout  65;
+    server_tokens off;
+}
+
+stream {
+    server {
+        listen 8180;
+        proxy_pass **<URL-ALB>**;
+    }
+}
+```
+
+**iptables.conf**
