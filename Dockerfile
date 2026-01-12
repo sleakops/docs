@@ -4,7 +4,6 @@ RUN corepack enable
 
 WORKDIR /app
 
-COPY package.json yarn.lock ./
 RUN yarn --frozen-lockfile && yarn cache clean
 
 EXPOSE 4000

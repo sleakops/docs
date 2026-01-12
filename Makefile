@@ -1,14 +1,13 @@
 SHELL := /bin/bash
 
-# ==========================================
-# Development Commands
-# ==========================================
+run:  ## Run Docusaurus
+	docker compose up -d
 
 install: ## Install dependencies
 	docker compose run --rm doc yarn
 
-run: ## Run Docusaurus in development mode (English)
-	docker compose up
+logs: ## View Docusaurus logs
+	docker compose logs -f doc
 
 run-es: ## Run Docusaurus in development mode (Spanish)
 	docker compose run --rm -p 4000:4000 doc yarn run startes
