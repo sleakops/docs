@@ -1,0 +1,290 @@
+---
+sidebar_label: "n8n + Worker Mode"
+sidebar_position: 2
+title: "n8n + Worker Mode"
+description: "Aprende cómo desplegar tu proyecto n8n con modo worker distribuido y escalable en Kubernetes usando Sleakops"
+tags:
+  - n8n
+  - kubernetes
+  - worker
+  - scaling
+  - automation
+  - background-jobs
+  - deployment
+image: /img/tutorial-img.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Aprende cómo desplegar tu proyecto n8n con modo worker distribuido y escalable en Kubernetes usando Sleakops.
+
+## Prerrequisitos
+
+- Cuenta en Sleakops
+- Un Clúster en esta cuenta. Si no lo tienes, [aquí está la documentación sobre cómo hacerlo](/cluster).
+- Un Ambiente configurado. Si no lo tienes, [aquí está la documentación sobre cómo hacerlo](/environment)
+- Proyecto n8n configurado con Docker.
+
+## Empecemos
+
+Para este ejemplo, vamos a desplegar un proyecto n8n en modo distribuido con procesos worker. Esta configuración incluye el servicio principal de n8n (interfaz web) y procesos worker para ejecutar workflows. También vamos a configurar una base de datos PostgreSQL y Redis para la gestión de colas, que son necesarios para este proyecto.
+
+### Crear un proyecto
+
+Los proyectos son nuestros repositorios de código. Todo lo que Sleakops necesita para ejecutar comandos es un Dockerfile.
+
+Para más información, consulta nuestra documentación de proyectos.
+
+Para comenzar, vamos a crear un nuevo proyecto:
+
+En la pantalla de creación de proyecto tenemos los siguientes campos:
+
+| Configuración   | Descripción                                                                |
+| --------------- | -------------------------------------------------------------------------- |
+| Environment     | Necesitamos seleccionar el ambiente creado previamente.                    |
+| Nodepool        | Dejaremos el predeterminado.                                               |
+| Repositories    | Seleccionaremos nuestro repositorio que contiene el proyecto n8n.          |
+| Project Name    | Podemos definir un nombre de proyecto. Por ejemplo, "n8n-server".          |
+| Branch          | Debe coincidir con la rama en nuestro proyecto. En nuestro caso es "main". |
+| Dockerfile path | Esta es la ruta relativa al Dockerfile en tu proyecto.                     |
+
+Una vez configurado todo eso, creamos el proyecto con el botón "Submit" en la parte inferior derecha.
+
+### Crear un Servicio Web
+
+En esta página vamos a completar el primer formulario con los siguientes campos:
+
+| Configuración | Descripción                                                                      |
+| ------------- | -------------------------------------------------------------------------------- |
+| Project       | Seleccionamos el proyecto que creamos previamente, en nuestro caso "n8n-server". |
+| Name          | Definimos un nombre para el servicio web, por ejemplo "n8n-main".                |
+| Command       | Comando por defecto del Dockerfile (usualmente n8n start).                       |
+| Port          | Puerto 5678 (puerto por defecto de n8n).                                         |
+
+En el segundo paso, configuraremos el servicio web como **privado**.
+
+### Crear un Worker
+
+En la pantalla de creación de workers tendremos que completar los siguientes campos:
+
+| Configuración | Descripción                                                                     |
+| ------------- | ------------------------------------------------------------------------------- |
+| Project       | Seleccionar el proyecto creado previamente. En nuestro caso "n8n-server".       |
+| Name          | Definimos el nombre que le vamos a dar al worker. En nuestro caso "n8n-worker". |
+| Command       | Aquí establecemos el comando para ejecutar el worker de n8n: `worker`           |
+
+Con estos campos completados haremos clic en el botón "Next" en la parte inferior derecha y luego "Submit" ya que no necesitamos editar nada más.
+
+## Configurar Dependencias
+
+Primero, necesitamos crear una dependencia de Redis para la cola de tareas. En la pantalla de creación de dependencias, selecciona Redis y verás los siguientes campos:
+
+| Configuración   | Descripción                                                               |
+| --------------- | ------------------------------------------------------------------------- |
+| Dependency Type | Seleccionar "Redis" de las opciones disponibles.                          |
+| Project         | Seleccionar el proyecto creado previamente. En nuestro caso "n8n-server". |
+| Name            | Definir el nombre para Redis. En nuestro caso "n8n-redis".                |
+
+Con estos campos completados, haremos clic en el botón "Next" en la parte inferior derecha. En el último paso, antes de hacer clic en "Submit", cambiaremos los nombres de las variables de entorno para que coincidan con lo que n8n espera.
+
+Necesitamos configurar las variables de conexión de Redis para que coincidan con lo que n8n espera:
+
+| Variable              | Valor                          |
+| --------------------- | ------------------------------ |
+| QUEUE_BULL_REDIS_HOST | (Host de la dependencia Redis) |
+| QUEUE_BULL_REDIS_PORT | 6379                           |
+
+Al igual que con Redis, necesitamos configurar los nombres de las variables de entorno según lo que n8n espera. Ve al último paso y antes de hacer clic en submit, cambia los nombres a los siguientes:
+
+| Antes                   | Después                |
+| ----------------------- | ---------------------- |
+| \*\_POSTGRESQL_NAME     | DB_POSTGRESDB_DATABASE |
+| \*\_POSTGRESQL_USERNAME | DB_POSTGRESDB_USER     |
+| \*\_POSTGRESQL_PASSWORD | DB_POSTGRESDB_PASSWORD |
+| \*\_POSTGRESQL_ADDRESS  | DB_POSTGRESDB_HOST     |
+| \*\_POSTGRESQL_PORT     | DB_POSTGRESDB_PORT     |
+
+Debería verse similar a la imagen de abajo. Luego haz clic en el botón "Submit" y se creará tu base de datos.
+
+## Despliegues
+
+Como último paso vamos a ver nuestro proyecto desplegado. Para esto vamos a la sección "Deployments" del panel izquierdo.
+
+Aquí vamos a ver todos los despliegues que hacemos. En nuestro caso es el primero y podemos ver que se ha creado correctamente. En caso de que veas algún error si haces clic en "error" puedes ver una descripción del mismo.
+Si no vemos ningún error entonces significa que el proyecto ya está desplegado.
+
+Esto concluye nuestro proceso de despliegue de proyecto n8n con modo worker.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-create-s3-dependencies.png"
+    alt="click-create-s3-dependencies-reference"
+  />
+</Zoom>
+
+Y seleccionamos S3 Bucket:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-create-s3-dependencies-2.png"
+    alt="click-create-s3-dependencies-2-reference"
+  />
+</Zoom>
+
+En el primer formulario tenemos que seleccionar nuestro proyecto creado previamente y definir un nombre para el bucket, tenemos que tomar en cuenta que el nombre del bucket es global así que tiene que ser único. Ahora hacemos clic en el botón "Next" y vamos al paso 3:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/create-s3-dependencies.png"
+    alt="create-s3-dependencies-reference"
+  />
+</Zoom>
+
+Aquí vamos a ver algunas variables de entorno definidas para el bucket. Vamos a editar la que dice **COLLECTSTATICEXAMPLEDJANGOCELERY_BUCKET_NAME** y la vamos a llamar **DJANGO_AWS_STORAGE_BUCKET_NAME**. Con este simple cambio hacemos clic en el botón "Submit" en la parte inferior derecha para terminar de crear el bucket:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/create-s3-dependencies-3.png"
+    alt="create-s3-dependencies-3-reference"
+  />
+</Zoom>
+
+### Crear Rabbitmq
+
+Ahora necesitamos una dependencia más. Nuestro Rabbitmq para encolar las tareas de celery, así que vamos a ello:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-create-rabbitmq-dependencies.png"
+    alt="click-create-rabbitmq-dependencies-reference"
+  />
+</Zoom>
+
+Y seleccionamos Rabbitmq:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-select-rabbitmq.png"
+    alt="click-select-rabbitmq-reference"
+  />
+</Zoom>
+
+En el primer formulario tendremos que seleccionar nuestro proyecto y definir un nombre para él. Luego hacemos clic en el botón "Next" en la parte inferior derecha:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/create-rabbitmq.png"
+    alt="create-rabbitmq-reference"
+  />
+</Zoom>
+
+En el siguiente formulario tenemos varios campos pero los únicos que nos importan para este ejemplo son el username y password, podemos definir lo que queramos. Para este ejemplo elegí admin como username y para la contraseña la generé aleatoriamente con el botón de dado. Luego hacemos clic en el botón "Next" para ir al siguiente formulario:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/create-rabbitmq-2.png"
+    alt="create-rabbitmq-2-reference"
+  />
+</Zoom>
+
+En este último formulario tenemos que cambiar el nombre de la variable que termina en \*\_BROKER_AUTH_URL a CELERY_BROKER_URL (como se muestra en la imagen). Luego hacemos clic en el botón "Submit" en la parte inferior derecha para terminar de crear rabbitmq:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/create-rabbitmq-3.png"
+    alt="create-rabbitmq-3-reference"
+  />
+</Zoom>
+
+## Configurar Variables de Entorno
+
+Ahora necesitamos crear las variables de entorno restantes. Podemos ver las variables que tenemos en .env.example en el repositorio de código.
+Algunas variables ya han sido configuradas en cada dependencia, pero otras aún necesitan ser definidas. Para hacer esto, vamos a la sección "Variablegroups".
+
+Aquí verás todas tus variables de entorno agrupadas, por ejemplo deberías haber creado una con los datos de la base de datos. Ahora vamos a crear otra para nuestras variables de entorno de n8n.
+
+- Type: Elegir si cargarlo por archivo o por variable.
+- Vars: Aquí habilitamos el modo texto y copiamos las siguientes variables de entorno:
+
+| Variable                             | Descripción                                                                                                                                                                                                                   |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DB_TYPE                              | Establecer en "postgresdb"                                                                                                                                                                                                    |
+| EXECUTIONS_MODE                      | Establecer en "queue" para modo worker                                                                                                                                                                                        |
+| N8N_ENCRYPTION_KEY                   | Generar una clave de encriptación segura                                                                                                                                                                                      |
+| OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS | Establecer en "true"                                                                                                                                                                                                          |
+| N8N_HOST                             | Definir el host que configuraste en tu servicio web; para este ejemplo sería `n8n.demo.sleakops.com`                                                                                                                          |
+| N8N_WEBHOOK_URL                      | Esta variable no es estrictamente necesaria; si agregas una instancia de servicio web separada para manejar webhooks con una URL diferente, debes especificar qué URL manejará los webhooks. `https://n8n.demo.sleakops.com/` |
+| N8N_EDITOR_BASE_URL                  | `https://n8n.demo.sleakops.com`                                                                                                                                                                                               |
+
+Si quieres ver todas las variables de entorno disponibles para configurar n8n, puedes ir a la siguiente página de [documentación de n8n](https://docs.n8n.io/hosting/configuration/environment-variables/)
+
+### Despliegues
+
+Como último paso vamos a ver nuestro proyecto desplegado, para esto vamos a la sección "Deployments" del panel izquierdo:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-deployments.png"
+    alt="click-deployments-reference"
+  />
+</Zoom>
+
+Aquí vamos a ver todos los despliegues que hacemos. En nuestro caso es el primero y podemos ver que se ha creado correctamente, en caso de que veas algún error si haces clic en "error" puedes ver una descripción del mismo.
+Si no vemos ningún error entonces significa que el proyecto ya está desplegado, podríamos comenzar a usarlo desde la url que nos proporcionó el servicio web.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/deployments.png"
+    alt="deployments-reference"
+  />
+</Zoom>
+
+Esto concluye nuestro proceso de despliegue de proyecto. Te dejamos un paso opcional que es configurar el ci con github.
+
+## Opcional
+
+### CI con Github
+
+Cada vez que hagas un cambio en tu código y quieras desplegarlo tendrás que hacer un build y un deploy, esto eventualmente se vuelve tedioso. Por eso para evitar esto tenemos que implementar ci en github.
+
+Para esto vamos a ir a "Projects" en el panel izquierdo:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-project-2.png"
+    alt="click-project-2-reference"
+  />
+</Zoom>
+
+Ubiquemos nuestro proyecto y hagamos clic en el engranaje para acceder a la configuración del proyecto:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-settings-project.png"
+    alt="click-settings-project-reference"
+  />
+</Zoom>
+
+En la configuración del proyecto ubicamos el que dice "Git pipelines" y hacemos clic en él:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-git-pipelines.png"
+    alt="click-git-pipelines-reference"
+  />
+</Zoom>
+
+Aquí vamos a encontrar lo que necesitamos para hacer esto. Básicamente necesitamos configurar un archivo en la raíz de nuestro proyecto .github/workflows/ llamado ci_sleakops_demo.yml y en ese archivo vamos a pegar el contenido que aparece en esta página.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/git-pipelines.png"
+    alt="git-pipelines-reference"
+  />
+</Zoom>
+
+Esto necesita tener una variable de entorno SLEAKOPS_KEY, si no la tienes tienes que ir al enlace que aparece ahí **Settings -> CLI**, obtenerla y guardarla como una variable de entorno.
+
+Con esto configurado y desplegado cada vez que hagas un push a tu rama "main" se lanzará automáticamente una nueva versión de tu aplicación.

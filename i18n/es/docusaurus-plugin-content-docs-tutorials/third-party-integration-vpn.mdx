@@ -156,3 +156,35 @@ stream {
 ```
 
 **iptables.conf**
+
+```bash
+*mangle
+:PREROUTING ACCEPT [8165:7991805]
+:INPUT ACCEPT [7883:7958068]
+:FORWARD ACCEPT [282:33737]
+:OUTPUT ACCEPT [5933:572312]
+:POSTROUTING ACCEPT [6215:606049]
+COMMIT
+
+*nat
+:PREROUTING ACCEPT [159:9540]
+:INPUT ACCEPT [159:9540]
+:OUTPUT ACCEPT [168:10720]
+:POSTROUTING ACCEPT [168:10720]
+-A PREROUTING -i eth0 -p tcp -m tcp --dport 2222 -j DNAT --to-destination <IP-BIND>:22
+-A PREROUTING -i eth0 -p tcp -m tcp --dport 443 -j DNAT --to-destination <IP-BIND>:443
+-A POSTROUTING -p tcp -m tcp --dport 22 -j SNAT --to-source <IP-TUNNEL-BIND>
+-A POSTROUTING -p tcp -m tcp --dport 443 -j SNAT --to-source <IP-TUNNEL-BIND>
+COMMIT
+
+*filter
+:INPUT ACCEPT [6016:538920]
+:FORWARD ACCEPT [123:22565]
+:OUTPUT ACCEPT [4614:432344]
+-A FORWARD -d <IP-BIND>/32 -p tcp -m tcp --dport 443 -m state --state NEW,RELATED,ESTABLISHED -j ACCEPT
+-A FORWARD -d <IP-BIND>/32 -p tcp -m tcp --dport 22 -m state --state NEW,RELATED,ESTABLISHED -j ACCEPT
+-A FORWARD -d <IP-BIND>/32 -p tcp -m tcp --dport 44301 -m state --state NEW,RELATED,ESTABLISHED -j ACCEPT
+-A FORWARD -d <IP-BIND>/32 -p tcp -m tcp --dport 22 -m state --state NEW,RELATED,ESTABLISHED -j ACCEPT
+-A FORWARD -d <IP-BIND>/32 -p tcp -m tcp --dport 8180 -m state --state NEW,RELATED,ESTABLISHED -j ACCEPT
+COMMIT
+```
