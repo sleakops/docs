@@ -1,0 +1,29 @@
+import { FiExternalLink } from "react-icons/fi";
+
+
+# Build
+
+We have repeteadly talked about Build in both [Project documentation ](/docs/project) and [Initial Build documentation](/docs/project). A build is basically a template of an OS, libraries and other dependencies of the project you deploy.
+
+### Build creation
+
+To create a Build you only need four parameters, only the Project field is required as the other three are, if not set, wait until this access is automatically enabled are chosen by default:
+- Project: Refers to what we call ProjectEnv, here you choose which ProjectEnv you want to build.
+- Branch: Lets you choose any branch of the repository that you've chosen as Project. Defaults to Environment name.
+- Commit hash: You can also choose the commit has to build a specific commit and not the last one as we do by default. Defaults to last commit.
+- Tag: Just a tag to differentiate builds. Defaults to 'latest'.
+
+## Why do we need to Build a Docker image?
+
+As we use [Helm charts <FiExternalLink/>](https://helm.sh/docs/) we need the image because is what they use to deploy a Kubernetes Release.
+
+:::info
+
+Remember that you need a Build to update the code that the Deployment runs inside the Kubernetes Cluster. 
+
+:::
+:::tip CI/CD integration with SleakOps
+
+SleakOps has its own CLI Tool that you can use to automate Builds and Deployments in your CI/CD. More info [here](/docs/cli).
+
+::: 
