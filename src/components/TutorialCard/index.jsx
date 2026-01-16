@@ -23,20 +23,18 @@ export default function TutorialCard({
     ? { animationDelay: `${animationDelay}s` }
     : {};
 
+  const FALLBACK_IMAGE = "/img/tutorial-img.png";
+
   return (
     <Link to={tutorial.link} className={styles.tutorialCard} style={cardStyle}>
       <div className={styles.tutorialImage}>
-        {tutorial.image ? (
-          <img
-            src={tutorial.image}
-            alt={tutorial.title}
-            onError={(e) => {
-              e.target.style.display = "none";
-            }}
-          />
-        ) : (
-          <div className={styles.imagePlaceholder}>📚</div>
-        )}
+        <img
+          src={tutorial.image || FALLBACK_IMAGE}
+          alt={tutorial.title}
+          onError={(e) => {
+            e.target.src = FALLBACK_IMAGE;
+          }}
+        />
       </div>
       <div className={styles.tutorialContent}>
         <h3 className={styles.tutorialTitle}>{tutorial.title}</h3>
