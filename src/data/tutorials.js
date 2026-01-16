@@ -21,7 +21,19 @@ try {
 }
 
 // Available tags - Add new tags here
-export const TagList = ["featured", "nextjs", "node", "php", "database"];
+export const TagList = [
+  "featured",
+  "database",
+  "aws",
+  "kubernetes",
+  "security",
+  "monitoring",
+  "networking",
+  "storage",
+  "scaling",
+  "troubleshooting",
+  "getting-started",
+];
 
 // Tag configurations with labels, descriptions, and colors
 export const Tags = {
@@ -30,26 +42,56 @@ export const Tags = {
     description: "Our recommended tutorials for getting started",
     color: "#f59e0b",
   },
-  nextjs: {
-    label: "Next.js",
-    description: "Tutorials related to Next.js framework",
-    color: "#000000",
-  },
-  node: {
-    label: "Node.js",
-    description: "Tutorials related to Node.js runtime",
-    color: "#339933",
-  },
-  php: {
-    label: "PHP",
-    description: "Tutorials related to PHP development",
-    color: "#777BB4",
-  },
   database: {
     label: "Database",
     description:
       "Tutorials related to databases (MySQL, PostgreSQL, MongoDB, etc.)",
     color: "#336791",
+  },
+  aws: {
+    label: "AWS",
+    description: "Tutorials related to Amazon Web Services",
+    color: "#FF9900",
+  },
+  kubernetes: {
+    label: "Kubernetes",
+    description: "Tutorials related to Kubernetes container orchestration",
+    color: "#326CE5",
+  },
+  security: {
+    label: "Security",
+    description: "Tutorials focused on security practices and tools",
+    color: "#DC2626",
+  },
+  monitoring: {
+    label: "Monitoring",
+    description: "Tutorials related to monitoring and observability",
+    color: "#059669",
+  },
+  networking: {
+    label: "Networking",
+    description: "Tutorials related to network configuration and connectivity",
+    color: "#7C3AED",
+  },
+  storage: {
+    label: "Storage",
+    description: "Tutorials related to data storage and management",
+    color: "#2563EB",
+  },
+  scaling: {
+    label: "Scaling",
+    description: "Tutorials about application scaling and performance",
+    color: "#EA580C",
+  },
+  troubleshooting: {
+    label: "Troubleshooting",
+    description: "Tutorials focused on diagnosing and fixing issues",
+    color: "#DC2626",
+  },
+  "getting-started": {
+    label: "Getting Started",
+    description: "Essential tutorials for beginners and onboarding",
+    color: "#059669",
   },
 };
 

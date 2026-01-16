@@ -1,0 +1,165 @@
+---
+sidebar_label: "Replicación S3"
+sidebar_position: 9
+title: "Replicación S3"
+description: "Configuración de replicación S3 entre cuentas"
+tags:
+  - S3
+  - replication
+  - AWS
+  - cross-account
+  - data-sync
+  - backup
+  - storage
+image: /img/tutorial-img.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Pasos para configurar el servicio de S3 replication para replicar archivos de un bucket a otro en diferentes cuentas.
+
+Como requisito es necesario tener en ambos buckets el versionado activo.
+
+## 1. Crear IAM Role en la cuenta donde está el bucket de origen
+
+### Trust Policy
+
+Necesitas una política de confianza que permita al servicio S3 asumir el rol:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "s3.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+```
+
+### Permissions Policy
+
+Una política de permisos que permita:
+
+- Leer objetos y metadatos del bucket de origen (Cuenta A).
+- Poner (put) objetos en el bucket de destino (Cuenta B).
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadSourceBucket",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:GetObjectAcl",
+        "s3:GetObjectVersion",
+        "s3:GetObjectVersionAcl"
+      ],
+      "Resource": "arn:aws:s3:::<NOMBRE_BUCKET_ORIGEN>/*"
+    },
+    {
+      "Sid": "WriteDestBucket",
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:PutObjectAcl",
+        "s3:ReplicateObject",
+        "s3:ReplicateDelete",
+        "s3:ReplicateTags",
+        "s3:GetObjectVersionTagging",
+        "s3:PutObjectVersionTagging"
+      ],
+      "Resource": "arn:aws:s3:::<NOMBRE_BUCKET_DESTINO>/*"
+    }
+  ]
+}
+```
+
+## 2. Agregar política al bucket de destino
+
+Dentro del detalle del bucket de destino, ir a la pestaña de permisos y agregar la siguiente política:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowReplicationFromAccountA",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::<ID_CUENTA_A>:role/<NOMBRE_DE_LA_ROLE>"
+      },
+      "Action": [
+        "s3:PutObject",
+        "s3:PutObjectAcl",
+        "s3:ReplicateObject",
+        "s3:ReplicateDelete",
+        "s3:ReplicateTags"
+      ],
+      "Resource": ["arn:aws:s3:::<NOMBRE_BUCKET_DESTINO>/*"]
+    }
+  ]
+}
+```
+
+## 3. Configurar la regla de replicación en el bucket de origen
+
+- En el detalle del bucket de origen, ir a la pestaña "Management" (o "Properties" según versión de la consola) y buscar la sección de **Replication**.
+- Crear una nueva regla de replicación y definir:
+  - **Rule name**: Un nombre descriptivo.
+  - **Status**: Enabled (habilitada).
+  - **Source bucket**: El bucket actual (ya está seleccionado).
+  - **Prefix/Filter**: Puedes elegir replicar todo el bucket o solo un prefijo en particular.
+  - **Destination**:
+    - **Bucket**: especificar el **ARN** del bucket de destino en la Cuenta B.
+  - **IAM role**: elegir el rol que creaste en el primer paso, que permite la replicación.
+
+## Opcionales
+
+- Si se activa la opción de "Transfer to destination bucket owner" debe agregarse, tanto en AllowReplicationFromAccountA (política del bucket destino) como en WriteDestBucket (IAM role), la action:
+  `"s3:ObjectOwnerOverrideToBucketOwner"`
+
+## Formas de copiar archivos ya existentes
+
+Existen 3 maneras diferentes de copiar los archivos ya existentes del bucket:
+
+### 1. Hacerlo junto con la replicación
+
+Al activar la replicación, te da una opción para copiar todos los archivos existentes.
+
+### 2. Usar la opción de migración S3 que brinda Sleakops
+
+En el detalle de la dependencia de tipo S3, se puede encontrar esta función donde te guía paso a paso lo que se tiene que hacer.
+
+### 3. Usar el servicio de Batch Operation
+
+Una vez creada la regla de replicación, siguiendo estas guías:
+
+- <FiExternalLink /> [Batch Operations IAM role
+  policies](https://docs.aws.amazon.com/AmazonS3/latest/userguide/batch-ops-iam-role-policies.html)
+- <FiExternalLink /> [Replication metrics and
+  events](https://docs.aws.amazon.com/AmazonS3/latest/userguide/replication-metrics-events.html)
+
+Agregar a la política S3ReplicationRolePolicy las siguientes acciones:
+
+- `"s3:PutObjectTagging"` al `"Sid": "WriteDestBucket"`
+- `"s3:GetObjectTagging"` y `"s3:ListBucket"` al `"Sid": "ReadSourceBucket"`
+
+```json
+{
+  "Sid": "ReadReportBucket",
+  "Effect": "Allow",
+  "Action": ["s3:GetObject", "s3:GetObjectVersion"],
+  "Resource": ["arn:aws:s3:::bucket-reports/*"]
+}
+```
+
+Y agregar tanto a WriteDestBucket como SourceBucket el permiso `"s3:InitiateReplication"`.

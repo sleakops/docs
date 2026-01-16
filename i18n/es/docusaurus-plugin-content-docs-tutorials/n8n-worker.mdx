@@ -1,0 +1,241 @@
+---
+sidebar_label: "n8n + Worker Mode"
+sidebar_position: 2
+title: "n8n + Worker Mode"
+description: "Aprende cómo desplegar tu proyecto n8n con modo worker distribuido y escalable en Kubernetes usando Sleakops"
+tags:
+  - n8n
+  - kubernetes
+  - worker
+  - scaling
+  - automation
+  - background-jobs
+  - deployment
+image: /img/tutorial-img.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Aprende cómo desplegar tu proyecto n8n con modo worker distribuido y escalable en Kubernetes usando Sleakops.
+
+## Prerrequisitos
+
+- Cuenta en Sleakops
+- Un Clúster en esta cuenta. Si no lo tienes, [aquí está la documentación sobre cómo hacerlo](/cluster).
+- Un Ambiente configurado. Si no lo tienes, [aquí está la documentación sobre cómo hacerlo](/environment).
+- Proyecto n8n configurado con Docker.
+
+## Empecemos
+
+Para este ejemplo, vamos a desplegar un proyecto n8n en modo distribuido con procesos worker. Esta configuración incluye el servicio principal de n8n (interfaz web) y procesos worker para ejecutar workflows. También vamos a configurar una base de datos PostgreSQL y Redis para la gestión de colas, que son necesarios para este proyecto.
+
+### Crear un proyecto
+
+Los proyectos son nuestros repositorios de código. Todo lo que Sleakops necesita para ejecutar comandos es un Dockerfile.
+
+Para más información, consulta nuestra documentación de proyectos.
+
+Para comenzar, vamos a crear un nuevo proyecto:
+
+En la pantalla de creación de proyecto tenemos los siguientes campos:
+
+| Configuración   | Descripción                                                                |
+| --------------- | -------------------------------------------------------------------------- |
+| Environment     | Necesitamos seleccionar el ambiente creado previamente.                    |
+| Nodepool        | Dejaremos el predeterminado.                                               |
+| Repositories    | Seleccionaremos nuestro repositorio que contiene el proyecto n8n.          |
+| Project Name    | Podemos definir un nombre de proyecto. Por ejemplo, "n8n-server".          |
+| Branch          | Debe coincidir con la rama en nuestro proyecto. En nuestro caso es "main". |
+| Dockerfile path | Esta es la ruta relativa al Dockerfile en tu proyecto.                     |
+
+Una vez configurado todo eso, creamos el proyecto con el botón "Submit" en la parte inferior derecha.
+
+### Crear un Servicio Web
+
+En esta página vamos a completar el primer formulario con los siguientes campos:
+
+| Configuración | Descripción                                                                      |
+| ------------- | -------------------------------------------------------------------------------- |
+| Project       | Seleccionamos el proyecto que creamos previamente, en nuestro caso "n8n-server". |
+| Name          | Definimos un nombre para el servicio web, por ejemplo "n8n-main".                |
+| Command       | Comando por defecto del Dockerfile (usualmente n8n start).                       |
+| Port          | Puerto 5678 (puerto por defecto de n8n).                                         |
+
+En el segundo paso, configuraremos el servicio web como **privado**.
+
+### Crear un Worker
+
+En la pantalla de creación de workers tendremos que completar los siguientes campos:
+
+| Configuración | Descripción                                                                     |
+| ------------- | ------------------------------------------------------------------------------- |
+| Project       | Seleccionar el proyecto creado previamente. En nuestro caso "n8n-server".       |
+| Name          | Definimos el nombre que le vamos a dar al worker. En nuestro caso "n8n-worker". |
+| Command       | Aquí establecemos el comando para ejecutar el worker de n8n: `worker`           |
+
+Con estos campos completados haremos clic en el botón "Next" en la parte inferior derecha y luego "Submit" ya que no necesitamos editar nada más.
+
+## Configurar Dependencias
+
+Primero, necesitamos crear una dependencia de Redis para la cola de tareas. En la pantalla de creación de dependencias, selecciona Redis y verás los siguientes campos:
+
+| Configuración   | Descripción                                                               |
+| --------------- | ------------------------------------------------------------------------- |
+| Dependency Type | Seleccionar "Redis" de las opciones disponibles.                          |
+| Project         | Seleccionar el proyecto creado previamente. En nuestro caso "n8n-server". |
+| Name            | Definir el nombre para Redis. En nuestro caso "n8n-redis".                |
+
+Con estos campos completados, haremos clic en el botón "Next" en la parte inferior derecha. En el último paso, antes de hacer clic en "Submit", cambiaremos los nombres de las variables de entorno para que coincidan con lo que n8n espera.
+
+Necesitamos configurar las variables de conexión de Redis para que coincidan con lo que n8n espera:
+
+| Variable              | Valor                          |
+| --------------------- | ------------------------------ |
+| QUEUE_BULL_REDIS_HOST | (Host de la dependencia Redis) |
+| QUEUE_BULL_REDIS_PORT | 6379                           |
+
+Al igual que con Redis, necesitamos configurar los nombres de las variables de entorno según lo que n8n espera. Ve al último paso y antes de hacer clic en submit, cambia los nombres a los siguientes:
+
+| Antes                   | Después                |
+| ----------------------- | ---------------------- |
+| \*\_POSTGRESQL_NAME     | DB_POSTGRESDB_DATABASE |
+| \*\_POSTGRESQL_USERNAME | DB_POSTGRESDB_USER     |
+| \*\_POSTGRESQL_PASSWORD | DB_POSTGRESDB_PASSWORD |
+| \*\_POSTGRESQL_ADDRESS  | DB_POSTGRESDB_HOST     |
+| \*\_POSTGRESQL_PORT     | DB_POSTGRESDB_PORT     |
+
+Debería verse similar a la imagen de abajo. Luego haz clic en el botón "Submit" y se creará tu base de datos.
+
+## Despliegues
+
+Como último paso vamos a ver nuestro proyecto desplegado. Para esto vamos a la sección "Deployments" del panel izquierdo.
+
+Aquí vamos a ver todos los despliegues que hacemos. En nuestro caso es el primero y podemos ver que se ha creado correctamente. En caso de que veas algún error si haces clic en "error" puedes ver una descripción del mismo.
+Si no vemos ningún error entonces significa que el proyecto ya está desplegado.
+
+Esto concluye nuestro proceso de despliegue de proyecto n8n con modo worker.
+
+## Configuración CI/CD (Opcional pero Recomendado)
+
+### ¿Por qué configurar CI/CD?
+
+Sin CI/CD, cada cambio en tu código requiere:
+
+1. Build manual desde SleakOps
+2. Despliegue manual
+3. Verificación manual
+
+Con CI/CD configurado:
+
+- ✅ Push a `main` → Despliegue automático
+- ✅ Rollback automático en caso de error
+- ✅ Notificaciones de estado de despliegue
+
+### Pasos de configuración:
+
+1. Ve a tu proyecto en SleakOps
+2. Haz clic en ⚙️ (configuración)
+3. Selecciona "Git pipelines"
+4. Copia el archivo YAML proporcionado
+5. Agrega `SLEAKOPS_KEY` a tus secrets de GitHub
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/n8n/cicd-1.png"
+    alt="click-settings-project-reference"
+  />
+</Zoom>
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/n8n/cicd-2.png"
+    alt="click-git-pipelines-reference"
+  />
+</Zoom>
+
+Esto requiere una variable de entorno llamada SLEAKOPS_KEY. Si no la tienes, ve al enlace proporcionado en **Settings -> CLI**, obténla y guárdala como una variable de entorno.
+
+Con esto configurado y desplegado, cada vez que hagas push a tu rama "main", se lanzará automáticamente una nueva versión de tu aplicación.
+
+## 🎯 Próximos Pasos
+
+Una vez completada la instalación:
+
+### Configuración Inicial de n8n
+
+1. **Primer Acceso**: Usa la URL de tu servicio web
+2. **Crear Usuario Administrador**: n8n te pedirá crear el primer usuario
+3. **Configurar Webhooks**: Si es necesario, configura las URLs públicas
+
+### Monitoreo y Optimización
+
+1. **Revisar Métricas**: Usa el dashboard integrado de Grafana
+2. **Ajustar Recursos**: Modifica CPU/memoria basado en el uso real
+3. **Configurar Alertas**: Define umbrales de rendimiento
+
+### Backup y Seguridad
+
+1. **Backups Automáticos**: Configura backups de PostgreSQL
+2. **Gestión de Secretos**: Revisa la gestión de credenciales
+3. **Actualizaciones**: Programa actualizaciones regulares
+
+## Actualizar y Extender n8n
+
+Ahora tenemos nuestro propio n8n instalado y ejecutándose en el clúster. Tenemos nuestra definición de n8n en un Dockerfile.
+
+#### Para actualizar la versión
+
+Este proceso es muy simple. Modificaremos el Dockerfile y cambiaremos el tag de la imagen. Puedes ver las imágenes disponibles en el repositorio oficial de n8n en Docker Hub.
+
+Nota: Lee el changelog por si hay cambios disruptivos o algo que pueda romperse entre versiones. Haz backups de la base de datos antes, por si acaso.
+
+#### Para agregar nuevas dependencias a tus nodos
+
+Como hicimos para actualizar la versión, en este caso aprovecharemos tener nuestro Dockerfile e instalaremos lo que queramos dentro de él. Esto estará disponible para usar en nuestros nodos de n8n.
+
+Puedes ver ejemplos de esto en el README del repositorio.
+
+## Mejores Prácticas de Escalado (Bonus)
+
+Una vez que tu despliegue de n8n esté funcionando, considera estas estrategias de escalado:
+
+### 🎯 **Optimización de Workers**
+
+- **Monitoreo de Cola**: Monitoriza la profundidad de la cola de Redis para determinar cuándo escalar workers.
+- **Asignación de Recursos**: Asigna suficiente CPU y memoria basado en la complejidad del workflow.
+- **Ajuste de Concurrencia**: Ajusta la concurrencia de workers basado en tipos de workflow (intensivo en CPU vs. I/O).
+- **Workers Dedicados**: Crea pools de workers especializados para diferentes categorías de workflow.
+
+### 📈 **Monitoreo de Rendimiento**
+
+Ajusta la memoria y CPU de tus workloads a lo que tus procesos realmente necesitan.
+
+Esto es útil para evitar infraestructura sobredimensionada y también para tomar decisiones al escalar horizontalmente basado en memoria o CPU.
+
+#### ¿Cómo lo hacemos desde Sleakops?
+
+Simple, ve a los detalles de tu worker o servicio web que creamos anteriormente y haz clic en el ícono "Grafana". Esto abrirá un dashboard dentro de Grafana mostrando el consumo histórico de tu proceso. Asegúrate de ver un rango de tiempo largo para cubrir todos tus escenarios.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/n8n/grafana-monitoring.png"
+    alt="click-deployments-reference"
+  />
+</Zoom>
+
+### 🔧 **Optimización de Base de Datos**
+
+- **Connection Pooling**: Configura pools de conexiones PostgreSQL para alta concurrencia.
+
+- **Read Replicas**: Usa read replicas para consultas de reporting y analytics. (Esto se puede hacer desde Sleakops en la configuración de [Postgres](/project/dependency/postgresql-aws).)
+- **Indexing**: Optimiza índices de base de datos para consultas de ejecución de workflow.
+- **Backup Strategies**: Implementa backups automatizados con recuperación en un punto específico del tiempo. (Esto se puede hacer desde Sleakops en la configuración de [Postgres](/project/dependency/postgresql-aws).)
+
+### 🚀 **Configuraciones Avanzadas**
+
+- **Node Affinity**: Programa workers en tipos de nodos apropiados (optimizados para CPU vs. memoria). (Puedes hacer esto desde Sleakops usando [Nodepools](/cluster/nodepools))
+- **Pod Disruption Budgets**: Garantiza disponibilidad mínima durante mantenimiento del clúster. (Sleakops ya maneja esto)
+- **Resource Quotas**: Establece límites apropiados para prevenir agotamiento de recursos. (Puedes hacer esto desde Sleakops definiendo límites en tus Workloads y Nodepools)
+- **Network Policies**: Garantiza comunicación entre pods. (Sleakops ya maneja esto)

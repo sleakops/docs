@@ -1,0 +1,152 @@
+---
+sidebar_label: "Make RDS Database Public"
+sidebar_position: 4
+title: "Make RDS Database Public"
+description: "Learn how to make an RDS database publicly accessible using a workaround method"
+tags:
+  - rds
+  - database
+  - aws
+  - security
+  - networking
+  - vpc
+  - postgresql
+image: /img/tutorial-img.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+
+:::warning
+**Try to avoid this method as it exposes your data source.**
+:::
+
+## Introduction and Current Case
+
+Currently, all databases deployed with SleakOps have the same access configuration:
+
+- Publicly Accessible ❌
+- Allocated in a SubnetGroup composed of "Persistence" subnets created in the SleakOps VPC.
+
+Under this configuration, there is no direct way to make the database publicly accessible, so a small workaround must be performed.
+
+**Why can't a database be made public directly?**
+
+- A SubnetGroup of RDS cannot be edited.
+- AWS does not allow editing the SubnetGroup associated with an RDS without a VPC change. Therefore, it forces us to do it using an external VPC.
+
+---
+
+## Solution with Workaround
+
+### Prerequisites:
+
+1. Approximately 30 minutes.
+2. Have the default VPC created with Subnets where the DB will be located. If you don't have it, you'll need to create a new one from scratch on your own, as well as subnets within it that will be used for this change. Let's call it "transitory".
+3. Create the SubnetGroup that uses Subnets from the transitory VPC. It doesn't matter which subnets it uses. It is used to migrate to the other VPC.
+
+   In my case, I created the following. Note that both the VPC and the Subnets are from the Default VPC.
+
+   <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+     <img
+       src="/img/tutorials/make-rds-public/RDS-1.png"
+       alt="rds-db-public-1"
+     />
+   </Zoom>
+
+4. Create the SubnetGroup that uses the Public Subnets from the VPC deployed by SleakOps. This is the one the DB will use at the end of the flow.
+
+   <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+     <img
+       src="/img/tutorials/make-rds-public/RDS-2.png"
+       alt="rds-db-public-2"
+     />
+   </Zoom>
+
+5. Create a SecurityGroup that allows public access, or edit the existing one. In both cases, it must belong to the VPC where the Database is located.
+
+   In my case, I created the following.
+
+   <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+     <img
+       src="/img/tutorials/make-rds-public/RDS-3.png"
+       alt="rds-db-public-3"
+     />
+   </Zoom>
+
+### Step by Step:
+
+With the prerequisites completed, only perform the modifications to the configurations.
+
+1. Change the SubnetGroup to the one corresponding to the Transitory VPC and remove the current SG.
+
+   <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+     <img
+       src="/img/tutorials/make-rds-public/RDS-4.png"
+       alt="rds-db-public-4"
+     />
+   </Zoom>
+
+2. Click next and review the changes. Make sure to select **'Apply Immediately'**.
+
+   <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+     <img
+       src="/img/tutorials/make-rds-public/RDS-5.png"
+       alt="rds-db-public-5"
+     />
+   </Zoom>
+
+   Once this is done, you must wait for the change to be applied before continuing with the following steps where we return to the initial VPC, which is the one created by SleakOps.
+
+3. After the VPC change is completed. Change the SubnetGroup to the public one that was created, which is composed of the Public Subnets from the SleakOps VPC. Again, remove the default SG that is automatically linked.
+
+   <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+     <img
+       src="/img/tutorials/make-rds-public/RDS-6.png"
+       alt="rds-db-public-6"
+     />
+   </Zoom>
+
+4. Make the DB **`Publicly Accessible`**.
+
+   <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+     <img
+       src="/img/tutorials/make-rds-public/RDS-7.png"
+       alt="rds-db-public-7"
+     />
+   </Zoom>
+
+5. Review the changes. They should be as follows. Click next and **Apply Immediately**.
+
+   <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+     <img
+       src="/img/tutorials/make-rds-public/RDS-8.png"
+       alt="rds-db-public-8"
+     />
+   </Zoom>
+
+   Wait again for the change to complete for the last step:
+
+6. Add the SecurityGroup created in the prerequisites.
+
+   <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+     <img
+       src="/img/tutorials/make-rds-public/RDS-9.png"
+       alt="rds-db-public-9"
+     />
+   </Zoom>
+
+7. Review the change. Click next and **Apply Immediately** again.
+
+   <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+     <img
+       src="/img/tutorials/make-rds-public/RDS-10.png"
+       alt="rds-db-public-10"
+     />
+   </Zoom>
+
+---
+
+## Conclusion
+
+With this, our DB is completely public for all requests on the port used by the DB. For PostgreSQL, this is port **5432**.

@@ -1,0 +1,105 @@
+---
+sidebar_label: "Configurar AWS WAF"
+sidebar_position: 3
+title: "Configurar AWS WAF"
+description: "Aprende cómo configurar AWS WAF para proteger tu Application Load Balancer de solicitudes no deseadas"
+tags:
+  - aws
+  - waf
+  - security
+  - alb
+  - firewall
+  - web-protection
+  - load-balancer
+image: /img/tutorial-img.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+
+Aprende cómo configurar AWS WAF (Web Application Firewall) para proteger tu Application Load Balancer (ALB) de solicitudes no deseadas, como las que provienen de bots o ataques maliciosos. AWS WAF te permite crear reglas personalizadas para filtrar tráfico HTTP(S) y solo permitir solicitudes legítimas.
+
+## Prerrequisitos
+
+- Una cuenta de AWS con acceso a WAF y Application Load Balancer
+- Un Application Load Balancer ya configurado en tu cuenta de AWS
+- Comprensión básica de la navegación en la consola de AWS
+
+## Costo estimado
+
+El costo de AWS WAF depende de:
+
+1. El número de reglas activas
+2. El número de solicitudes procesadas por el WAF
+
+### Desglose de costos:
+
+| **Componente**          | **Costo**                           |
+| ----------------------- | ----------------------------------- |
+| **Costo por regla**     | $1 USD/mes por cada regla           |
+| **Costo por WebACL**    | $5 USD/mes por cada WebACL          |
+| **Costo por solicitud** | $0.60 USD por millón de solicitudes |
+
+### Ejemplo de cálculo de costo:
+
+Si tienes 5 reglas activas y procesas 10 millones de solicitudes al mes, el costo sería:
+
+- WebACL: $5 USD
+- Reglas: $5 USD (5 reglas × $1 USD)
+- Solicitudes: $6 USD (10 millones × $0.60 USD)
+
+**Costo total aproximado**: $16 USD/mes
+
+---
+
+## Paso 1: Crear un Web ACL
+
+1. Ve a la consola de AWS y busca **WAF**
+2. Haz clic en **Create web ACL**
+3. Ingresa el nombre de tu Web ACL (por ejemplo, `waf-alb-prod`)
+4. Elige la región donde está tu ALB
+5. Selecciona **Regional** si tu ALB está en una región específica (usualmente es así), o **CloudFront** si estás usando una distribución de CloudFront
+6. En la sección **Associated AWS resources (opcional)**, selecciona tu **Application Load Balancer** para que todo el tráfico pase por el WAF
+7. Haz clic en **Next**
+
+## Paso 2: Configurar reglas básicas
+
+1. Haz clic en **Add rules and rule groups**
+2. Selecciona **AWS Managed Rules** y elige algunas de las siguientes reglas como ejemplo:
+
+| **Regla**                                 | **Descripción**                                                                                               |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| **AWSManagedRulesCommonRuleSet**          | Para protección básica contra vulnerabilidades web comunes                                                    |
+| **AWSManagedRulesBotControl**             | Para bloquear bots conocidos y tráfico automatizado                                                           |
+| **AWSManagedRulesAnonymousIPList**        | Para bloquear direcciones IP asociadas con servicios que ocultan la identidad del usuario (VPN, proxies, Tor) |
+| **AWSManagedRulesAmazonIpReputationList** | Para bloquear tráfico desde IPs conocidas por comportamiento malicioso                                        |
+| **AWSManagedRulesSQLiRuleSet**            | Para proteger contra ataques de inyección SQL                                                                 |
+
+Estos son solo ejemplos, ya que existen muchas otras opciones según la naturaleza de tu aplicación y las amenazas que deseas mitigar. Te recomendamos explorar todas las opciones disponibles y seleccionar las reglas que mejor se adapten a tus necesidades.
+
+---
+
+## Verificación
+
+1. Vuelve al servicio **WAF** y selecciona tu Web ACL
+2. Revisa las métricas y estadísticas para verificar que las reglas están bloqueando tráfico no deseado
+3. Puedes crear reglas personalizadas si notas tráfico sospechoso
+
+---
+
+## Actualización de reglas
+
+Si necesitas agregar o modificar reglas:
+
+1. Ve a la consola de AWS WAF
+2. Selecciona tu Web ACL
+3. Haz clic en **Rules** y **Add rule** o **Edit rule**
+4. Guarda los cambios y verifica el tráfico nuevamente
+
+---
+
+## Conclusión
+
+AWS WAF es una herramienta poderosa para proteger tu aplicación contra tráfico malicioso o no deseado. Con esta configuración básica, puedes bloquear bots comunes y asegurarte de que solo el tráfico legítimo llegue a tu ALB.
+
+Si tienes más preguntas o necesitas soporte adicional, ¡no dudes en pedir ayuda!

@@ -1,0 +1,189 @@
+---
+sidebar_label: "Third Party VPN Integration"
+sidebar_position: 8
+title: "Third Party VPN Integration"
+description: "Comparison of VPN alternatives in AWS"
+tags:
+  - VPN
+  - AWS
+  - third-party
+  - networking
+  - connectivity
+  - cost-analysis
+  - transit-gateway
+image: /img/tutorial-img.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+The choice between these three alternatives is based on the balance between **costs**, **scalability** and **management complexity**:
+
+### Transit Gateway (~$197/month in the described scenario)
+
+- Higher fixed cost per attachment.
+- Excellent option for larger topologies, multiple VPCs and scalability with minimal routing complexity.
+
+### Site-to-Site VPN + EC2 (~$80/month estimated)
+
+- Easy configuration (native AWS solution).
+- Suitable for a moderate number of tunnels, although less flexible than TGW for large topologies.
+
+### VPN on EC2 (StrongSwan + Nginx) (~$20–21/month with 1 instance, or ~$40–42/month for HA)
+
+- Significantly lower cost.
+- Higher administration and maintenance complexity (instance management, patches, manual failover).
+- Suitable if total traffic is low and if you have staff to operate/monitor the instance.
+
+## Transit Gateway
+
+Acts as a centralized router that allows interconnection between multiple VPCs, on-premises networks and third-party networks.
+
+VPN connections are established through IPsec tunnels, which can be configured to provide high availability and redundancy (two tunnels per VPN connection are generally configured to achieve automatic failover).
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img src="/img/tutorials/third-party-integration-vpn/vpn.png" alt="vpn" />
+</Zoom>
+
+### Cost Analysis
+
+**Hypothesis:**
+
+- **3 attachments** in the Transit Gateway, corresponding for example to:
+  1. VPC (Dev)
+  2. VPN (Prod)
+  3. VPN (Contingency)
+- **730 hours** of monthly usage (24/7).
+- **2 GB monthly transfer** per attachment, totaling **6 GB monthly**.
+- AWS rates (in most regions):
+  - **$0.09/hour/attachment**.
+  - **$0.002/GB** of data transfer.
+
+**Costs:**
+
+- **Attachment costs**: ~$197.10/month
+- **Data transfer cost**: ~$0.01/month
+
+**Total sum**: ~$197.11/month (rounded to ~$197.22/month in the original example).
+
+## Site-to-Site VPN
+
+A Site-to-Site VPN connection offers two VPN tunnels between a virtual **private gateway** or **transit gateway** on the AWS side and a **customer gateway** on the remote side (on-premise).
+
+Two tunnels for automatic failover or maintenance that AWS usually does that could briefly disable one of the tunnels —> <FiExternalLink /> [Site-to-Site VPN tunnel endpoint replacement](https://docs.aws.amazon.com/vpn/latest/s2svpn/endpoint-replacements.html)
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img src="/img/tutorials/third-party-integration-vpn/vpn-2.png" alt="vpn-2" />
+</Zoom>
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img src="/img/tutorials/third-party-integration-vpn/vpn-3.png" alt="vpn-3" />
+</Zoom>
+
+### Cost Analysis
+
+**Hypothesis:**
+
+- **3 connections (VPN)** (equivalent to the 3 "attachments" you mentioned: Dev, Main, Contingency).
+- Each VPN is an AWS-managed Site-to-Site tunnel.
+- **Site-to-Site VPN cost**: $0.05 per hour per VPN
+- **730 hours** monthly (24/7).
+- **2 GB monthly transfer** per VPN.
+
+**Costs:**
+
+- **VPN** (3 connections): ~$109.50
+- **Data transfer** (6 GB total): ~$0.54
+- **Network Load Balancer**: ~$20–25
+
+**Total sum**: ~$130–135 monthly.
+
+## VPN on EC2
+
+In this solution, an EC2 instance is launched on which **StrongSwan** is installed to establish IPsec tunnels and **Nginx** as a proxy (normally to route traffic at the application layer towards an Application Load Balancer or other VPC resources).
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img src="/img/tutorials/third-party-integration-vpn/vpn-4.png" alt="vpn-4" />
+</Zoom>
+
+### Cost Analysis
+
+**Hypothesis:**
+
+- **3 tunnels (VPN)** configured on the same instance (or on two instances for redundancy).
+- **EC2 instance** of small size, for example, **t3.small** (with approx. cost $0.02–0.023/h).
+
+**Costs:**
+
+- **EC2 + EBS**: ~$18–20/month (1 instance)
+- **Data transfer**: ~$0.54/month
+
+**Total sum**: ~$20–21/month (In case of 2 instances for HA => ~$40–42/month.)
+
+Configuration of nginx and ipsec to achieve the connection setup.
+
+**nginx.conf**
+
+```nginx
+load_module /usr/lib/nginx/modules/ngx_stream_module.so;
+worker_processes  1;
+error_log  /var/log/nginx/error.log warn;
+pid        /var/run/nginx.pid;
+
+events {
+    worker_connections  1024;
+}
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for"';
+    access_log  /var/log/nginx/access.log  main;
+    sendfile        on;
+    keepalive_timeout  65;
+    server_tokens off;
+}
+
+stream {
+    server {
+        listen 8180;
+        proxy_pass **<URL-ALB>**;
+    }
+}
+```
+
+**iptables.conf**
+
+```bash
+*mangle
+:PREROUTING ACCEPT [8165:7991805]
+:INPUT ACCEPT [7883:7958068]
+:FORWARD ACCEPT [282:33737]
+:OUTPUT ACCEPT [5933:572312]
+:POSTROUTING ACCEPT [6215:606049]
+COMMIT
+
+*nat
+:PREROUTING ACCEPT [159:9540]
+:INPUT ACCEPT [159:9540]
+:OUTPUT ACCEPT [168:10720]
+:POSTROUTING ACCEPT [168:10720]
+-A PREROUTING -i eth0 -p tcp -m tcp --dport 2222 -j DNAT --to-destination <IP-BIND>:22
+-A PREROUTING -i eth0 -p tcp -m tcp --dport 443 -j DNAT --to-destination <IP-BIND>:443
+-A POSTROUTING -p tcp -m tcp --dport 22 -j SNAT --to-source <IP-TUNNEL-BIND>
+-A POSTROUTING -p tcp -m tcp --dport 443 -j SNAT --to-source <IP-TUNNEL-BIND>
+COMMIT
+
+*filter
+:INPUT ACCEPT [6016:538920]
+:FORWARD ACCEPT [123:22565]
+:OUTPUT ACCEPT [4614:432344]
+-A FORWARD -d <IP-BIND>/32 -p tcp -m tcp --dport 443 -m state --state NEW,RELATED,ESTABLISHED -j ACCEPT
+-A FORWARD -d <IP-BIND>/32 -p tcp -m tcp --dport 22 -m state --state NEW,RELATED,ESTABLISHED -j ACCEPT
+-A FORWARD -d <IP-BIND>/32 -p tcp -m tcp --dport 44301 -m state --state NEW,RELATED,ESTABLISHED -j ACCEPT
+-A FORWARD -d <IP-BIND>/32 -p tcp -m tcp --dport 22 -m state --state NEW,RELATED,ESTABLISHED -j ACCEPT
+-A FORWARD -d <IP-BIND>/32 -p tcp -m tcp --dport 8180 -m state --state NEW,RELATED,ESTABLISHED -j ACCEPT
+COMMIT
+```
