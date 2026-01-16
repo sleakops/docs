@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 /**
- * Cleans up frontmatter in MDX files to remove empty values that would cause
+ * Cleans up frontmatter in MDX/MD files to remove empty values that would cause
  * Docusaurus validation errors.
  *
  * This script:
  * - Removes `image: ''` (empty image fields)
  * - Removes `sidebar_label: ''` (empty sidebar labels)
  * - Removes `sidebar_position: null` (null positions)
+ * - Removes `title: ''` inside author objects
+ * - Removes `tags: []` (empty tags arrays)
  *
  * Usage: node clean_frontmatter.js
  */
@@ -15,7 +17,11 @@ const fs = require("fs");
 const path = require("path");
 
 // Directories to process
-const DIRS_TO_CLEAN = [path.join(__dirname, "tutorials")];
+const DIRS_TO_CLEAN = [
+  path.join(__dirname, "tutorials"),
+  path.join(__dirname, "changelog"),
+  path.join(__dirname, "i18n/es/docusaurus-plugin-content-blog-changelog"),
+];
 
 /**
  * Clean frontmatter by removing invalid empty fields
@@ -37,13 +43,19 @@ function cleanFrontmatter(content) {
 
   // Remove problematic empty fields
   // Remove `image: ''` or `image: ""`
-  frontmatter = frontmatter.replace(/^image:\s*['"]['"]?\s*$/gm, "");
+  frontmatter = frontmatter.replace(/^image:\s*['"]?['"]?\s*$/gm, "");
 
   // Remove `sidebar_label: ''` or `sidebar_label: ""`
-  frontmatter = frontmatter.replace(/^sidebar_label:\s*['"]['"]?\s*$/gm, "");
+  frontmatter = frontmatter.replace(/^sidebar_label:\s*['"]?['"]?\s*$/gm, "");
 
   // Remove `sidebar_position: null`
   frontmatter = frontmatter.replace(/^sidebar_position:\s*null\s*$/gm, "");
+
+  // Remove `title: ''` lines (inside author objects) - careful with indentation
+  frontmatter = frontmatter.replace(/^\s+title:\s*['"]?['"]?\s*$/gm, "");
+
+  // Remove `tags: []` (empty tags array)
+  frontmatter = frontmatter.replace(/^tags:\s*\[\]\s*$/gm, "");
 
   // Remove any resulting empty lines in the frontmatter
   frontmatter = frontmatter
@@ -85,7 +97,7 @@ function processDirectory(dir) {
 }
 
 function main() {
-  console.log("🧹 Cleaning frontmatter in MDX files...");
+  console.log("🧹 Cleaning frontmatter in MDX/MD files...");
 
   for (const dir of DIRS_TO_CLEAN) {
     console.log(`\nProcessing: ${dir}`);
