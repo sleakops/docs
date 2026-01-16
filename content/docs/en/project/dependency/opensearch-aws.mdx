@@ -1,0 +1,76 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# AWS OpenSearch
+
+SleakOps integrates with Amazon OpenSearch (formerly known as Amazon Elasticsearch Service), a powerful search and analytics engine designed to help you search, analyze, and visualize data in real time. By leveraging OpenSearch in SleakOps, you can quickly deploy, manage, and scale your search infrastructure, gaining valuable insights from your data.
+
+:::info
+For more information on OpenSearch and its capabilities, you can refer to the [Amazon OpenSearch Service Documentation <FiExternalLink/>](https://docs.aws.amazon.com/opensearch-service/).
+:::
+
+## FAQs 
+
+<details>
+<summary>
+### What are the use cases for OpenSearch?
+</summary>
+OpenSearch is commonly used for full-text search, real-time analytics, monitoring and observability, and log analysis. It is also ideal for powering search functionalities on websites and applications.
+</details>
+
+<details>
+<summary>
+### What does "Dedicated Master Enabled" mean?
+</summary>
+When enabled, SleakOps sets up dedicated master nodes that help with managing the OpenSearch domain. They provide enhanced stability by separating management tasks from data nodes. This is highly recommended for production workloads.
+</details>
+
+<details>
+<summary>
+### What is the recommended configuration for master nodes in production?
+</summary>
+For production environments, SleakOps recommends using 3 dedicated master nodes to improve the stability and performance of your OpenSearch cluster.
+</details>
+
+## Set up your OpenSearch
+### 1. Add AWS OpenSearch as a Dependency
+To integrate OpenSearch with SleakOps:
+1. In the SleakOps console, go to the "Dependencies" section
+2. Choose "SQS" from the list of available dependency types. 
+For more detail see [Dependencies: Integrating Databases, Caching, and Messaging Services](/project/dependency/index.mdx).
+
+### 2. Set up your OpenSearch.
+When adding OpenSearch as a dependency in SleakOps, you need to configure several key attributes:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/opensearch/opensearch-create-p1.png"
+    alt="opensearch-create-p1"
+/>
+</Zoom>
+
+| **Attribute** | **Description** |
+| --- | --- | 
+| **FIFO Queue** | Specifies the type of SQS queue. Where `Standard Queue` (for most use cases) or `FIFO Queue` (if message ordering is required)` |
+| **FIFO Deduplication** | Only for FIFO Queues, in order to avoid duplicates. |
+| **Message Retention Period** | Specifies the amount of time a message will be retained in the queue if it hasn't been consumed. | 1 minute to 14 days (Default: 4 days) |
+| **Maximum Message Size** | The maximum size of a message that can be sent to the SQS queue. | Up to 256 KB (Default: 256 KB) |
+| **Delivery Delay in Seconds** | The delay between the message being sent to SQS and it being visible in the queue. No delay by default. | 0 to 15 minutes (Default: 0 seconds) |
+| **Receive Message Wait Time** | Determines how long a `ReceiveMessage` call waits if no messages are available in the queue. | 0 to 20 seconds (Default: 0 seconds) |
+| **Visibility Timeout** | The duration that a message remains invisible after a receiving component reads it from the queue. | From 0 to 12 hours (Default: 30 seconds) |
+| **Dead-Letter Queue (DLQ)** | Add a queue where messages that fail to be processed multiple times are sent for additional analysis. | Configure DLQ with max receive count |
+
+### 3. Customize your variable names for your SQS.
+
+As explained, when a dependency is created, SleakOps generates a vargroup to hold all the needed attributes. 
+In this step you can change the name of the attributes in case it is needed. 
+SleakOps completes the values automatically. 
+After this step, your dependency is created.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/sqs/sqs-create-outputs.png"
+    alt="sqs-create-outputs"
+/>
+</Zoom>

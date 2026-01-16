@@ -1,0 +1,193 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# AWS PosgreSQL
+
+SleakOps ofrece una integración fluida con Amazon RDS para PostgreSQL, un servicio de base de datos relacional completamente administrado. PostgreSQL es conocido por sus características avanzadas, escalabilidad y rendimiento robusto, lo que lo convierte en una opción preferida para aplicaciones complejas y operaciones intensivas en datos. Al integrar PostgreSQL a través de SleakOps, puedes gestionar eficientemente tus implementaciones de bases de datos y aprovechar el poder del servicio administrado de AWS.
+
+## Preguntas Frecuentes
+
+<details>
+<summary>
+### ¿Cómo gestiona SleakOps las credenciales de PostgreSQL?
+</summary>
+Cuando creas una dependencia de PostgreSQL en SleakOps, este genera automáticamente un Vargroup para tu base de datos. Este Grupo de Variables almacena de forma segura las credenciales de MySQL y otros detalles importantes de configuración, como el endpoint de la base de datos y la información de acceso de usuarios. Podrás gestionarlos desde la sección [Vargroups](/project/vargroup/index.mdx).
+</details>
+
+<details>
+<summary>
+### ¿Qué es una implementación Multi-AZ y debería habilitarla?
+</summary>
+La implementación Multi-AZ (Zona de Disponibilidad) garantiza alta disponibilidad y soporte de conmutación por error al replicar tu base de datos en otra zona de disponibilidad. Se recomienda para entornos de producción para evitar tiempos de inactividad. Ten en cuenta que incrementa los costos.
+</details>
+
+<details>
+<summary>
+### ¿Puedo cambiar la versión de PostgreSQL después de que la base de datos esté implementada?
+</summary>
+No, la versión del motor de base de datos no puede cambiarse después de la implementación. Necesitarías crear una nueva instancia de PostgreSQL con la versión deseada y migrar tus datos. O bien cambiarla manualmente en la consola de AWS.
+</details>
+
+<details>
+<summary>
+### ¿Qué sucede si necesito más almacenamiento para mi base de datos PostgreSQL?
+</summary>
+Puedes ajustar el tamaño de almacenamiento al configurar tu base de datos. Si necesitas más almacenamiento después de la implementación, SleakOps te permite escalar el tamaño de almacenamiento sin tiempos de inactividad.
+</details>
+
+<details>
+<summary>
+### ¿Cómo puedo crear un backup (dump) de mi base de datos PostgreSQL?
+</summary>
+Para crear un backup de tu base de datos PostgreSQL:
+  1. **Ejecuta el comando `pg_dump`**:  
+```
+sh
+pg_dump -h POSTGRESQL_ADDRESS -U POSTGRESQL_USERNAME -W > dump.sql
+```
+Reemplaza `POSTGRESQL_ADDRESS`, `POSTGRESQL_USERNAME` y `dump.sql` con los valores correspondientes.
+  2. Consulta la documentación: Para más información, consulta la [documentación oficial de PostgreSQL](https://www.postgresql.org/docs/current/app-pgdump.html).
+</details>
+
+<details>
+<summary>
+### ¿Cómo importo un backup existente usando Docker?
+</summary>
+Para importar un dump de base de datos en tu instancia de PostgreSQL RDS:  
+  1. **Conéctate a la VPN**: Asegúrate de estar conectado a la VPN de la cuenta AWS donde está ubicada la instancia RDS.
+  2. **Ejecuta un contenedor Docker** (Recomendado): 
+    - Instala Docker en tu máquina local si aún no lo tienes.  
+    - Ejecuta un contenedor Docker de PostgreSQL con el siguiente comando:
+    ```
+    sh
+    docker run -it --name postgresql-container -v ./initial_data/:/tmp/data/ -e POSTGRESQL_ROOT_PASSWORD=POSTGRESQL_PASSWORD -d postgres bash
+    ```
+    - Conéctate al terminal del contenedor:
+    ```
+    sh
+    docker exec -t -i postgresql-container bash
+    ```
+    - Importa el archivo de backup:
+    ```
+    pg_dump -h POSTGRESQL_ADDRESS -U POSTGRESQL_USERNAME -W < /tmp/data/dump.sql
+    ```
+    Reemplaza `POSTGRESQL_ADDRESS`, `POSTGRESQL_USERNAME` y `dump.sql` con tus detalles específicos.
+</details>
+
+<details>
+<summary>
+### ¿Cómo importo un dump existente a mi máquina local?
+</summary>
+Alternativamente, puedes usar un cliente de PostgreSQL instalado en tu máquina local para importar el dump.
+```
+sh
+psql -h POSTGRESQL_ADDRESS -U POSTGRESQL_USERNAME -W -f /tmp/data/dump.sql
+```  
+</details>
+
+<details>
+<summary>
+### ¿Qué debo hacer si encuentro problemas de conexión con mi base de datos PostgreSQL?
+</summary>
+Verifica lo siguiente:
+- Asegúrate de que el endpoint de la base de datos, el nombre de usuario y la contraseña sean correctos.
+- Verifica que las reglas de tu firewall permitan el acceso.
+- Asegúrate de que la base de datos esté funcionando y tenga suficientes recursos (CPU, memoria).
+De lo contrario, contáctanos. 
+</details>
+
+<details>
+<summary>
+### ¿Qué es una réplica de lectura de RDS?
+</summary>
+Una réplica de lectura de RDS es una copia de solo lectura de tu instancia principal de base de datos en Amazon RDS. Ayuda a distribuir las cargas de trabajo de lectura intensivas y mejora el rendimiento y la escalabilidad de tu base de datos al descargar las operaciones de lectura de la base de datos principal.  
+Las réplicas de lectura de RDS son ideales cuando necesitas:  
+- Descargar operaciones de lectura intensivas de tu instancia principal.
+- Escalar las operaciones de lectura a medida que tu aplicación crece.
+- Distribuir las lecturas de la base de datos en múltiples ubicaciones geográficas.
+- Tener una solución de respaldo que pueda ser promovida rápidamente a una instancia principal en caso de falla.
+:::info
+Ten en cuenta que las réplicas de lectura tienen un retraso al realizar actualizaciones.
+:::
+</details>
+
+<details>
+<summary>
+### ¿Cómo configuro una réplica de lectura en SleakOps?
+</summary>
+En SleakOps, cuando creas una réplica de lectura para tu base de datos RDS, necesitarás proporcionar la siguiente información:
+- **Nombre** de la réplica
+- **Clase de Instancia de la réplica**, que determina el tipo de instancia para la réplica.
+- **Accesibilidad Pública de la réplica**, para decidir si la réplica debe tener una IP pública o ser accesible solo dentro de tu red privada.
+</details>
+
+<details>
+<summary>
+### ¿Puedo eliminar una réplica?
+</summary>
+Por el momento, la única forma es eliminar la dependencia. 
+</details>
+
+:::info
+Documentación de AWS: [Documentación de Amazon RDS PostgreSQL](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_PostgreSQL.html)
+:::
+
+## Configura tu PostgreSQL
+### 1. Agregar PostgreSQL como una dependencia
+Para integrar PostgreSQL con SleakOps:
+1. En la consola de SleakOps, ve a la sección "Dependencies".
+2. Elige "PostgreSQL" de la lista de tipos de dependencia disponibles.  
+Para más detalles, consulta [Dependencies: Integración de Bases de Datos, Caching y Servicios de Mensajería](/project/dependency/index.mdx).
+
+### 2. Configura tu base de datos PostgreSQL.
+Accederás al siguiente formulario:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/postgres/postgres-create-p1.png"
+    alt="postgres-create-p1"
+/>
+</Zoom>
+
+Estos son los parámetros que SleakOps te permite personalizar durante la creación:
+
+| **Atributo** | **Descripción** |
+| --- | --- |
+| **Versión del Motor de Base de Datos** | Selecciona la versión específica del motor de base de datos PostgreSQL que deseas usar. Esto asegura la compatibilidad con los requisitos de tu aplicación. Ejemplo: `PostgreSQL 14.9`, `PostgreSQL 16.5`. |
+| **Clase de Instancia de Base de Datos** | Define la clase de instancia que especifica la configuración de hardware para tu base de datos PostgreSQL. Esto controla el rendimiento de CPU, memoria y red. Ejemplo: `db.m6g.large`, `db.t3.medium`. Consulta [detalles de AWS](https://aws.amazon.com/es/rds/instance-types/). |
+| **Almacenamiento de Base de Datos** | Especifica la cantidad de almacenamiento asignado para la base de datos. Ejemplo: 100 GB, 500 GB. |
+| **Nombre de Usuario** | Proporciona el nombre de usuario principal para la base de datos PostgreSQL. Este es el usuario principal con privilegios administrativos. Ejemplo: admin, root. |
+| **Contraseña** | Contraseña para el usuario principal para acceder a la base de datos. |
+| **Zona de Disponibilidad Múltiple (Multi-AZ)** | Habilita o deshabilita la implementación Multi-AZ. Esto asegura alta disponibilidad y soporte de conmutación por error al replicar la base de datos en múltiples zonas de disponibilidad. Se recomienda para entornos de producción. |
+| **Respaldo Automático** | Configura respaldos automáticos para la base de datos PostgreSQL. Esto asegura la protección de datos al habilitar instantáneas diarias y respaldos de registros de transacciones. Configura el _Periodo de Retención de Respaldo_ y la _Ventana de Respaldo_. Se recomienda para entornos de producción. |
+| **Periodo de Retención de Respaldo** | Establece el número de días para retener los respaldos automáticos. |
+| **Ventana de Respaldo** | Período de tiempo durante el cual se realizarán los respaldos. |
+
+:::warning
+SleakOps permite la creación de réplicas solo durante la creación de la dependencia.
+:::
+
+Después de estos datos básicos, necesitarás decidir si se creará una réplica. Para hacerlo:
+1. En el formulario, busca la sección **Definición de Réplicas de Lectura de RDS** y haz clic en + _Añadir Elemento_.
+2. Completa los siguientes datos: 
+
+| **Configuración** | **Descripción** |
+| --- | --- |
+| **Nombre** | Un nombre para la réplica |
+| **Clase de Instancia de la réplica** | Define la clase de instancia que especifica la configuración de hardware para la réplica. Esto controla el rendimiento de CPU, memoria y red. Ejemplo: `db.m6g.large`, `db.t3.medium`. |
+| **Accesibilidad Pública de la réplica** | Decide si la réplica debe tener una IP pública o ser accesible solo dentro de tu red privada. |
+
+### 3. Personaliza el nombre de tus variables para tu base de datos PostgreSQL.
+
+Como se explicó, cuando se crea una dependencia, SleakOps genera un vargroup para almacenar todos los atributos necesarios.  
+En este paso, puedes cambiar el nombre de los atributos si es necesario.  
+SleakOps completa los valores automáticamente.  
+Después de este paso, tu dependencia se crea.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/postgres/postgres-create-outputs.png"
+    alt="postgres-create-outputs"
+/>
+</Zoom>

@@ -1,0 +1,40 @@
+---
+sidebar_label: Prometheus
+pagination_back: cluster/addons
+pagination_next: cluster/addons/grafana
+---
+
+import Zoom from "react-medium-image-zoom";
+import { FiExternalLink } from "react-icons/fi";
+
+# Prometheus: Monitoring System
+
+[Prometheus <FiExternalLink/>](https://prometheus.io/) is a monitoring system used to collect metrics of all Kubernetes compute workloads, it is focused on resource utilization and application performance metrics.
+Prometheus functions as an intermediary Addon since its components are widely used by other Addons such as Grafana, Kubecost, OpenTelemetry, and more.
+
+Uses EBS CSI Driver to manage an EBS volume in order to avoid the loss of metrics when the cluster reorders its workloads, this addon is a dependency of Prometheus and it is automatically installed together with Prometheus.
+
+## FAQs 
+
+<details>
+<summary>
+### Does Prometheus store metrics?
+</summary>
+Prometheus is not directly in charge of pushing metrics to S3, this is done by a related entity called Thanos.
+</details>
+
+<details>
+<summary>
+### How does SleakOps store Prometheus metrics?
+</summary>
+Prometheus has two related storage units:
+- It depends on the [EBS CSI Driver <FiExternalLink/>](/cluster/addons/ebs) Addon for short-term storage.
+- Uses S3 for long-term storage, this S3 is created in your Account in parallel with Prometheus.
+</details>
+
+<details>
+<summary>
+### Can I use Prometheus alone?
+</summary>
+It's main purpose is to collect metrics but it also includes a frontend that can be consumed portforwarding its Pod to make some specific queries to its data or to watch some metrics, but it is far easier and comfortable to watch them with Grafana. 
+</details>

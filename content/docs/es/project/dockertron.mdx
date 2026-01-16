@@ -1,0 +1,266 @@
+---
+sidebar_label: Dockertron
+sidebar_position: 4
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+
+# Dockertron - Generación de Dockerfiles y Docker Compose
+
+## Resumen
+
+**Dockertron** es un sistema automatizado de dockerización que analiza su código fuente y genera automáticamente la infraestructura necesaria para ejecutar su aplicación en contenedores Docker. El sistema utiliza inteligencia artificial para comprender la estructura de su proyecto y crear los archivos de configuración apropiados.
+
+Podes encontrarlo en Sleakops en la sección de **Proyectos>Configuración>Docketron.**
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img src="/img/project/dockertron_location.png" alt="dockertron_location" />
+</Zoom>
+
+---
+
+<summary>## ¿Qué hace Dockertron?</summary>
+
+Dockertron automatiza el proceso de containerización de su aplicación siguiendo estos pasos:
+
+1. **Análisis del Repositorio**: Examina la estructura de su código fuente
+2. **Identificación de Servicios**: Detecta qué componentes de su aplicación necesitan ejecutarse
+3. **Generación de Dockerfiles**: Crea archivos Dockerfile optimizados para cada servicio
+4. **Creación de Docker Compose**: Genera un archivo docker-compose.yml que orquesta todos los servicios
+5. **Configuración de Infraestructura**: Prepara la configuración para despliegue en SleakOps
+
+---
+
+## Flujo del Proceso de Dockerización
+
+<details open>
+<summary>
+### 1. Enviar el Proyecto
+</summary>
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img src="/img/project/dockertron_input.png" alt="docketron_input" />
+</Zoom>
+
+Para iniciar el proceso de dockerización, debe completar el formulario de Dockertron en tres pasos:
+
+#### Paso 1: Información del Lenguaje
+
+Especifique el lenguaje de programación principal de su proyecto:
+
+- **Language Name**: Nombre del lenguaje (ej: Python, Node.js, Java, Go)
+- **Language Version**: Versión específica del lenguaje (ej: 3.12, 18.0, 11)
+
+#### Paso 2: Frameworks de la Aplicación
+
+Configure los frameworks que utiliza su aplicación. Puede agregar múltiples frameworks:
+
+- **Framework Name**: Nombre del framework (ej: Django, Express, Spring Boot)
+- **Command**: Comando para ejecutar el framework (ej: `python manage.py runserver 0.0.0.0`)
+- **Framework Version**: Versión del framework (ej: 5.2, 4.18.2)
+
+Puede agregar más frameworks haciendo clic en "+ Add Item".
+
+</details>
+
+<details>
+<summary>
+### 2. Análisis Inteligente
+</summary>
+
+El sistema realiza un análisis profundo de su proyecto:
+
+#### Fase 1: Auditoría del Repositorio
+
+- Confirma el lenguaje de programación principal
+- Confirma frameworks y librerías utilizadas
+- Analiza la estructura de carpetas
+- Identifica archivos de configuración (package.json, requirements.txt, etc.)
+
+#### Fase 2: Identificación de Servicios
+
+El sistema detecta automáticamente:
+
+- **Aplicaciones web** (frontend, backend)
+- **APIs y microservicios**
+- **Workers y procesos en segundo plano**
+- **Bases de datos** necesarias
+- **Servicios de caché** (Redis, Memcached)
+- **Colas de mensajes** (RabbitMQ, SQS)
+
+</details>
+
+<details>
+<summary>
+### 3. Generación de Archivos
+</summary>
+
+#### Dockerfiles
+
+Para cada servicio que requiere construcción, se genera un Dockerfile que incluye:
+
+- Imagen base apropiada
+- Instalación de dependencias
+- Configuración del entorno
+- Comandos de inicio
+- Healthchecks
+- Optimizaciones de rendimiento
+
+#### Docker Compose
+
+Se genera un archivo `docker-compose.yml` que:
+
+- Define todos los servicios
+- Configura redes entre servicios
+- Establece volúmenes para persistencia de datos
+- Define variables de entorno
+- Configura puertos y exposición de servicios
+- Establece dependencias entre servicios
+
+#### README
+
+Se genera documentación con:
+
+- Instrucciones para ejecutar el proyecto
+- Comandos necesarios
+- Configuraciones requeridas
+- Troubleshooting básico
+
+</details>
+
+<details>
+<summary>
+### 4. Preparación para SleakOps
+</summary>
+
+El sistema genera la configuración de infraestructura para SleakOps, identificando:
+
+- Workloads (Cargas de Trabajo)
+- Dependencies (Dependencias)
+- Environment Variables (Variables de Entorno)
+
+</details>
+
+<details>
+<summary>
+### 5. Generación de Pull Request
+</summary>
+
+Una vez completado el análisis y la generación de archivos, **Dockertron crea automáticamente una Pull Request en su repositorio** con todos los archivos de configuración generados:
+
+- Dockerfiles
+- docker-compose.yml
+- README.md con instrucciones
+- Archivos de configuración adicionales
+
+Esto le permite:
+
+- **Revisar** todos los cambios propuestos antes de integrarlos
+- **Comentar** y solicitar ajustes si es necesario
+- **Aprobar y fusionar** cuando esté satisfecho con la configuración
+- **Mantener un historial** claro de los cambios en su repositorio
+
+</details>
+
+<details>
+<summary>
+## Integración con su Repositorio
+</summary>
+
+Al finalizar el proceso, Dockertron:
+
+1. **Genera una Pull Request** en su repositorio con todos los archivos de configuración Docker
+2. **Envía la información a SleakOps** para que pueda desplegar fácilmente desde la consola con las configuraciones recomendadas por el agente de IA
+
+De esta manera, usted mantiene el control total sobre los cambios en su código mientras aprovecha la automatización de SleakOps.
+
+</details>
+
+<details>
+<summary>
+## Ejemplo Completo
+</summary>
+
+### Proyecto de Entrada
+
+```
+mi-app/
+├── backend/
+    ├── package.json
+    ├── server.js
+    └── ...
+```
+
+### Salida Generada
+
+**Servicios Detectados**:
+
+1. Backend (Node.js API)
+2. Frontend (React App)
+3. Worker (Python)
+
+**Dependencias Identificadas**:
+
+- PostgreSQL (para el backend)
+- Redis (para cache y colas)
+
+**Archivos Generados**:
+
+- `backend/Dockerfile`
+- `docker-compose.yml`
+- `README.md`
+
+</details>
+
+---
+
+## Preguntas Frecuentes
+
+<details>
+<summary>
+### ¿Cuánto tiempo toma el proceso?
+</summary>
+
+Típicamente entre 5-30 minutos, dependiendo del tamaño y complejidad del proyecto.
+
+</details>
+
+<details>
+<summary>
+### ¿Qué pasa si mi proyecto tiene configuraciones especiales?
+</summary>
+
+Puede proporcionar contexto adicional en el campo `contexts` al enviar la solicitud, indicando frameworks específicos, versiones, o configuraciones especiales.
+
+</details>
+
+<details>
+<summary>
+### ¿Puedo revisar los archivos antes del despliegue?
+</summary>
+
+Sí, todos los archivos generados se envían de vuelta y pueden ser revisados antes de proceder con el despliegue.
+
+</details>
+
+<details>
+<summary>
+### ¿Qué pasa si el proceso falla?
+</summary>
+
+El sistema envía un mensaje de error detallado indicando qué salió mal, permitiendo ajustes, reintentos y modificaciones en la informacion enviada para que el agente de IA pueda generar la configuracion correcta.
+
+</details>
+
+<details>
+<summary>
+### ¿Se pueden modificar los archivos generados?
+</summary>
+
+Sí, los archivos generados son completamente editables y pueden ser ajustados según sus necesidades específicas.
+
+</details>
+
+**Versión del documento**: 1.0
+**Última actualización**: Noviembre 2025

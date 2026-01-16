@@ -1,0 +1,105 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# AWS Memcached
+
+SleakOps integra Amazon ElastiCache con Memcached, un servicio de caché en memoria completamente gestionado. Esta integración permite cachear datos frecuentemente accedidos, mejorando el rendimiento de las aplicaciones al reducir la carga en tus bases de datos. Con SleakOps, gestionar y desplegar clusters de Memcached se vuelve sencillo, proporcionando escalabilidad sin interrupciones y un rendimiento optimizado para tus aplicaciones.
+
+**Características clave de Memcached:**
+- **Simplicidad**: Opera como un almacén de clave-valor sin soporte para estructuras de datos avanzadas.
+- **Caché en memoria**: Todos los datos se almacenan en memoria para un acceso ultrarrápido.
+- **Sin persistencia de datos**: Los datos son volátiles y se perderán si el nodo falla o se reinicia.
+- **Escalabilidad horizontal**: Escala fácilmente agregando más nodos a tu cluster de Memcached.
+- **Rentable frente a Redis**: Más asequible que Redis debido a la falta de funciones como la persistencia y la replicación.
+- **Rendimiento**: Excelente para caché distribuido y de alta velocidad en aplicaciones con muchas lecturas.
+
+:::info
+Para más información sobre Memcached y sus capacidades, puedes consultar la [documentación oficial de AWS Redis. <FiExternalLink/>](https://aws.amazon.com/elasticache/memcached/).
+:::
+
+## Preguntas Frecuentes
+
+<details>
+<summary>
+### ¿Cuáles son los casos de uso clave para Memcached?
+</summary>
+Memcached es ideal para cachear consultas de bases de datos frecuentemente accedidas, almacenar datos temporales de sesiones de usuario y cachear respuestas de API para reducir la carga en la base de datos.
+</details>
+
+<details>
+<summary>
+### ¿Cuándo debería usar Memcached?
+</summary>
+Memcached es ideal para:
+- **Necesidades de caché simples**: Si necesitas un caché básico y de alta velocidad para datos frecuentemente accedidos.
+- **Datos no persistentes**: Cuando no necesitas que los datos sean persistentes y puedes tolerar la pérdida de datos en caso de fallo o reinicio del nodo.
+- **Escalabilidad horizontal**: Para aplicaciones que se beneficien de agregar múltiples nodos de caché para distribuir la carga de manera eficiente.
+- **Aplicaciones sensibles al costo**: Memcached es más rentable que Redis porque carece de funciones avanzadas como persistencia y replicación.
+</details>
+
+<details>
+<summary>
+### ¿Por qué debería elegir Memcached sobre Redis?
+</summary>
+Memcached es una solución de caché más simple y rentable si no necesitas persistencia de datos, replicación o tipos de datos avanzados. Es adecuado para aplicaciones que priorizan el caché distribuido rápido.
+</details>
+
+<details>
+<summary>
+### ¿Cómo escala Memcached en SleakOps?
+</summary>
+Memcached escala horizontalmente agregando más nodos a tu cluster, lo que permite distribuir la carga de caché entre múltiples nodos.
+</details>
+
+<details>
+<summary>
+### ¿Memcached ofrece persistencia de datos?
+</summary>
+No, Memcached no soporta persistencia de datos. Todos los datos cacheados se almacenan en memoria y se perderán si el nodo se reinicia o falla.
+</details>
+
+<details>
+<summary>
+### ¿Qué sucede con los datos cacheados si un nodo falla?
+</summary>
+Los datos cacheados en Memcached son volátiles, lo que significa que se perderán si un nodo falla o se reinicia. Para aplicaciones críticas, Redis (que soporta persistencia de datos) podría ser una mejor opción.
+</details>
+
+## Configura tu AWS Memcached
+### 1. Agrega AWS Memcached como una dependencia
+Para integrar Memcached con SleakOps:
+1. En la consola de SleakOps, ve a la sección "Dependencies".
+2. Elige "AWS Redis" de la lista de tipos de dependencias disponibles.  
+Para más detalles, consulta [Dependencies: Integrating Databases, Caching, and Messaging Services](/project/dependency/index.mdx).
+
+### 2. Configura tu base de datos Memcached
+
+Al agregar Memcached como una dependencia en SleakOps, necesitas configurar varios atributos clave:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/memcached/memcached-create-p1.png"
+    alt="memcached-create-p1"
+/>
+</Zoom>
+
+| **Atributo** | **Descripción** |
+| --- | --- | 
+| **Node Type** | Clase de instancia que determina el rendimiento y la capacidad de memoria de la instancia de Redis. Ejemplos: `cache.t3.micro`, `cache.m5.large`, `cache.r6g.large`.  |
+| **Nodes Quantity** | Define la cantidad de nodos Memcached para la escalabilidad horizontal. Agregar más nodos aumenta la escalabilidad. Ejemplo: 1 o más.  |
+| **Port** | El puerto de comunicación utilizado por Redis para interactuar con tu aplicación. Predeterminado: `11121` (puede personalizarse). |
+
+### 3. Personaliza los nombres de tus variables para Memcached
+
+Como se explicó, cuando se crea una dependencia, SleakOps genera un vargroup para contener todos los atributos necesarios.  
+En este paso, puedes cambiar el nombre de los atributos si es necesario.  
+SleakOps completa los valores automáticamente.  
+Después de este paso, tu dependencia estará creada.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/memcached/memcached-create-outputs.png"
+    alt="memcached-create-outputs"
+/>
+</Zoom>

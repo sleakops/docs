@@ -1,0 +1,61 @@
+import Zoom from 'react-medium-image-zoom';
+import 'react-medium-image-zoom/dist/styles.css';
+
+# Volumes
+
+In the context of Sleakops, volumes refer to AWS/Kubernetes storage resources attached to a cluster. They serve as general storage for specified containers. Pods can only interact with these volumes if they are explicitly attached to them.
+You can define the volumes in the [Project](/project) form:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img src="/img/project/PROJECT-volumes-form.png" alt="PROJECT-volumes-form" style={{ height: '250px', width: 'auto' }}/>
+</Zoom>
+Whenever a volume is needed, Sleakops deploys an EFS CSI Driver within the [cluster](/cluster). This allows every Project to have its own unique volume mount, storing folders based on the paths you specify.
+A practical use-case for Volumes is when you want all your pods to access the same files, such as a shared folder that requires its content to be persistent.
+
+For more details on how EFS is used for volumes, refer to the [EFS documentation](/cluster/addons/efs).
+
+## Creating Volumes
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/project/create-new-volume.png"
+    alt="new volume modal"
+/>
+</Zoom>
+
+To create a new volume for your project:
+
+1. **Click on "Create Volumes"** in the Project settings
+2. **Add the mount path** - Specify the directory path where the volume will be mounted in your containers
+3. **Set storage capacity** - Define the amount of storage space allocated to the volume
+4. **Choose retention policy** - Select between:
+   - **Delete**: Volume will be removed when deleted from SleakOps
+   - **Retain**: Volume will persist in AWS even if removed from SleakOps
+
+:::tip Volume Configuration
+- Mount paths should be absolute paths (e.g., `/app/data`, `/var/logs`)
+- Storage capacity is specified in GB
+- The retain policy determines data persistence when volumes are removed
+:::
+
+## Deleting Volumes
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/project/delete-volume.png"
+    alt="delete volume click"
+/>
+</Zoom>
+
+To remove a volume from your project:
+
+1. **Click the "X" button** next to the volume you want to delete
+2. **Confirm the deletion** when prompted
+
+:::warning Data Loss Warning
+Deleting a volume will permanently remove all data stored in it. Make sure to backup any important data before deletion.
+:::
+
+:::info Retain Policy Behavior
+- **Delete Policy**: Volume and all data are permanently removed from AWS
+- **Retain Policy**: Volume remains in AWS but is detached from the project, preserving your data
+:::

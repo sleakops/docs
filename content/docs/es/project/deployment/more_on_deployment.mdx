@@ -1,0 +1,35 @@
+# Un poco mas sobre los Deployments:
+
+:::info
+
+Esta sección sirve como una extensión de la documentación principal de [Deployment](/project/deployment). Se recomienda leerla primero para obtener una comprensión básica.
+
+:::
+
+## Cómo maneja SleakOps los Deployments
+
+Para ejecutar un deployment, SleakOps utiliza las imágenes de [Build](/project/build) almacenadas en el repositorio de imágenes de tu proyecto (AWS ECR), las cuales se crean ya sea con la entidad [ProjectEnv](/project) durante la [Build Inicial](/project/build/index.mdx) o con la creación de una entidad Build que se sube a ECR. Cada vez que se inicia un Deployment, obtenemos la imagen correspondiente al Build designado.
+
+La siguiente fase implica construir y desplegar el Helm chart. Esto se logra usando plantillas diseñadas generalmente para ese propósito. Una vez construido, subimos el Helm chart al mismo ECR utilizado para las imágenes Build y procedemos a desplegar un Helm Release en el clúster de Kubernetes, específicamente dentro del namespace de ProjectEnv.
+
+:::info
+
+Todos estos recursos residen en tus propias cuentas de AWS. SleakOps no almacena datos de manera exclusiva.
+
+:::
+
+### Forced Deployments
+
+:::caution Forced Deployment
+
+Ten en cuenta que bajo ciertas circunstancias, SleakOps obliga un Deploy.
+
+:::
+
+Si bien se destacaron múltiples métodos para generar un Deployment en la documentación principal de [Deployment](/project/deployment), es crucial entender que SleakOps a veces impone Deployments. La razón detrás de esto es optimizar el tiempo de actividad, salvaguardar el estado actual de la infraestructura desplegada y mitigar posibles tiempos de inactividad del servicio en el Cluster. Este imperativo surge porque las plantillas de Helm siempre deben sincronizarse con los Kubernetes Secrets presentes en el namespace para evitar fallos en el deployment.
+
+Como ya sabes, si no es un deployment 'forzado', se te presentará una opción (conmutador) para decidir si deseas desplegar tus modificaciones. Los Deployments se fuerzan en los siguientes escenarios:
+
+- Cambios en la configuración del [Workload](/project/workload/index.mdx) Alias: Un Deployment es forzado si se realizan modificaciones en la configuración del 'alias'.
+- [Dependency](/project/dependency): Siempre fuerza un Deployment para sincronizar el estado de su VariableGroup asociado con las plantillas del Helm Chart, asegurando que el funcionamiento de los Workloads no se vea afectado.
+- Eliminación de [VariableGroup](/project/vargroup): Igual que la eliminación de Dependency.

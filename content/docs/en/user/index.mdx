@@ -1,0 +1,85 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# User
+
+User management in SleakOps allows you to control access to your infrastructure and platform features. 
+
+## User Creation
+
+Sleakops has three fundamental fields of user permissions:
+
+#### Viewer (Read Only)
+- **Objective**: Provide read-only access to monitor and review infrastructure without making changes
+- **Scope**: 
+  - View all projects, clusters, and environments
+  - Access monitoring dashboards and logs
+  - Review deployment history and configurations
+  - Cannot create, modify, or delete any resources
+- **AWS IAM Policy**: [ReadOnlyAccess <FiExternalLink/>](https://docs.aws.amazon.com/aws-managed-policy/latest/reference/ReadOnlyAccess.html)
+- **Examples**: 
+  - DevOps engineers who need to monitor production environments
+  - Security auditors reviewing infrastructure compliance
+  - Team leads who need visibility into project status
+
+#### Editor (Power User)
+- **Objective**: Enable infrastructure management and deployment capabilities while maintaining security boundaries
+- **Scope**:
+  - Create and manage projects, clusters, and environments
+  - Deploy applications and manage infrastructure resources
+  - Configure environments, dependencies, and networking
+  - Cannot manage other users and billing
+- **AWS IAM Policy**: [PowerUserAccess <FiExternalLink/>](https://docs.aws.amazon.com/aws-managed-policy/latest/reference/PowerUserAccess.html)
+- **Examples**:
+  - Senior developers deploying applications
+  - DevOps engineers managing infrastructure
+  - Team members responsible for specific project deployments
+
+#### Admin (Administrator)
+- **Objective**: Provide complete platform control including user management and billing
+- **Scope**:
+  - All Editor capabilities plus user management and billing section
+  - Create, modify, and delete user accounts
+  - Assign roles and permissions to other users
+  - Access to all AWS accounts without restrictions
+  - Platform configuration and settings management
+- **AWS IAM Policy**: [AdministratorAccess <FiExternalLink/>](https://docs.aws.amazon.com/aws-managed-policy/latest/reference/AdministratorAccess.html)
+- **Examples**:
+  - Platform administrators
+  - Team leads managing multiple projects
+  - DevOps managers with cross-team responsibilities
+
+### Access Configuration
+
+**AWS Account Access**: This field shows you every account, here you select to which accounts the user (Editor or Read-only) will have access.
+
+**VPN Account Access**: It's similar to the AWS account accesses field but here you set if a user it's also created on the VPN Server of the account you give. More information can be checked on [VPN documentation](/user/vpn.mdx)
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img src="/img/users/USER-creation-form.png" alt="USER-creation-form" />
+</Zoom>
+
+For access into the AWS accounts SleakOps initially sets a random password and sends it to the email of the created user. The user can login with that password but it will be obligated to change its password on the first login. For SleakOps platform access we use the password that was set on the User form.
+
+After this user creation an AWS User will be created on the 'security' Account, this account is where we control acesses to all the SleakOps AWS accounts. We will also create, depending on the configuration, users on the VPN servers, read how to use them on the corresponding [documentation ](/user/vpn.mdx) and on the SleakOps user.
+
+
+## Users Without SleakOps Access
+
+Some users in your organization may not have direct access to the SleakOps platform but still interact with the infrastructure:
+
+### External Collaborators
+- **Scenario**: Third-party contractors or consultants who need temporary access to specific AWS resources
+- **Access Method**: Direct AWS console access with limited IAM permissions
+- **Management**: Handled through AWS IAM directly, not through SleakOps user management
+
+### Read-Only Observers
+- **Scenario**: Stakeholders who need visibility into infrastructure costs and usage without operational access
+- **Access Method**: AWS Cost Explorer, CloudWatch dashboards, or custom reporting tools
+- **Management**: AWS billing and monitoring permissions only
+
+### VPN-Only Consumers
+- **Scenario**: Users who need to consume workloads and applications within the VPN but don't require infrastructure administration or monitoring capabilities
+- **Access Method**: VPN access only, with limited permissions to access specific applications and services
+- **Management**: VPN user accounts with restricted access to designated workloads and environments

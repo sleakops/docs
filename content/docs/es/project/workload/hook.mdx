@@ -1,0 +1,82 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Hooks
+
+**Hooks** son tareas que se activan ante eventos específicos durante un despliegue. Por ejemplo, puedes usar Hooks para ejecutar automáticamente una migración de base de datos o recopilar estadísticas cada vez que se despliega una nueva versión de tu aplicación. Estas tareas también se ejecutan en pods, lo que facilita la solución de problemas al revisar los registros (logs).
+
+Si deseas obtener más información sobre Hooks, [click here](https://helm.sh/docs/topics/charts_hooks/).
+
+
+## FAQs 
+
+<details>
+<summary>
+### ¿Cómo puedo configurar la memoria y los ajustes de CPU para mi Hook?
+</summary>
+Puedes configurar los valores *CPU Request* y *CPU Limit* para establecer los recursos mínimos y máximos de CPU que cada instancia en tu clúster puede usar. De manera similar, puedes establecer **Memory Request** y **Memory Limit** para la asignación de memoria por instancia.
+</details>
+
+
+## Añadir un Hook para tu Proyecto
+### 1. Navegar a la sección de crear un Hook
+En el _Panel izquierdo_, accede a _Workloads_. Luego selecciona la pestaña _Hook_ y, en la esquina superior derecha, haz clic en el botón _Crear_.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/workloads/hook/list.png"
+    alt="hook-list"
+/>
+</Zoom>
+
+### 2. Selecciona un Proyecto y un Nombre para el Hook
+Comienza con la información básica, completa estos atributos y haz clic en Siguiente para continuar.
+
+| **Atributo** | **Descripción** |
+| --- | --- |
+| **Nombre** | Identifica tu Hook. |
+| **Proyecto** | Selecciona entre los proyectos existentes. |
+| **Comando** | El comando que ejecuta el servicio. |
+
+Una vez completados estos atributos, haz clic en el botón _Siguiente_ para continuar.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/workloads/hook/create-1.png"
+    alt="hook-create-1"
+/>
+</Zoom>
+
+### 3. Define el evento de despliegue
+Selecciona cuándo se ejecutará tu hook y haz clic en _Siguiente_. 
+
+| **Atributo** | **Descripción** |
+| --- | --- |
+| **Event** | Define cuándo ejecutar el hook. [Ver eventos disponibles](https://helm.sh/docs/topics/charts_hooks/#the-available-hooks)  |
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/workloads/hook/create-2.png"
+    alt="hook-create-2"
+/>
+</Zoom>
+
+### 5. Finalizar la configuración
+Este paso describe los atributos clave para configurar los recursos de un Hook en SleakOps, permitiendo una gestión flexible de CPU, memoria y comportamientos de escalado.
+
+| **Atributo** | **Descripción** |
+| --- | --- |
+| **CPU Request** | La cantidad mínima de recursos de CPU asignados para cada instancia en el clúster. Esto garantiza que cada instancia siempre tenga esta cantidad de CPU disponible. |
+| **CPU Limit** | La cantidad máxima de recursos de CPU que cada instancia en el clúster puede utilizar. Este límite ayuda a prevenir que una instancia consuma demasiada CPU. |
+| **Memory Request** | La cantidad mínima de memoria asignada para cada instancia en el clúster. Esto garantiza que la instancia tenga suficiente memoria para operar eficientemente. |
+| **Memory Limit** | La cantidad máxima de memoria que cada instancia en el clúster puede utilizar. Limita el uso de memoria para evitar que una sola instancia consuma recursos en exceso. |
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/workloads/hook/create-3.png"
+    alt="hook-create-3"
+/>
+</Zoom>
+
+Submit to create and Deploy your hook.

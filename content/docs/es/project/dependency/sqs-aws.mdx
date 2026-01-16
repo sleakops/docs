@@ -1,0 +1,95 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# AWS SQS
+
+SleakOps integra Amazon Simple Queue Service (SQS) en la arquitectura de tu aplicación. Amazon SQS es un servicio de colas de mensajes totalmente gestionado que te permite desacoplar los componentes de tu aplicación, asegurando un procesamiento eficiente y fluido de los mensajes. Al aprovechar SQS, puedes mejorar la escalabilidad y confiabilidad de tus aplicaciones, manejando grandes volúmenes de mensajes de manera asincrónica.  
+Esta sección proporciona una visión general de cómo configurar SQS dentro de SleakOps y los atributos necesarios para una integración exitosa.
+
+:::info
+Para más detalles sobre SQS y sus beneficios, puedes consultar la [Guía para desarrolladores de Amazon SQS <FiExternalLink/>](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/welcome.html).
+:::
+
+## Preguntas Frecuentes
+
+<details>
+<summary>
+### ¿Cuál es la diferencia entre una Cola Estándar y una Cola FIFO?
+</summary>
+1. Una **Cola Estándar** soporta un alto rendimiento con entrega de mensajes al menos una vez. El orden de los mensajes no está garantizado, pero es ideal para escenarios en los que el orden de los mensajes no es crítico.
+2. Una **Cola FIFO** asegura el orden de los mensajes y entrega exacta una vez. Es adecuada para aplicaciones donde el orden de los mensajes es crucial.
+</details>
+
+<details>
+<summary>
+### ¿Qué es la implementación Multi-AZ y debo habilitarla?
+</summary>
+La implementación Multi-AZ (Zona de Disponibilidad) asegura alta disponibilidad y soporte de conmutación por error replicando tu base de datos en otra zona de disponibilidad. Se recomienda para entornos de producción para evitar el tiempo de inactividad. Ten en cuenta que aumenta los costos.
+</details>
+
+<details>
+<summary>
+### ¿Qué es una Cola de Muertos (DLQ) y cuándo debo usarla?
+</summary>
+Una **DLQ** es una cola secundaria donde los mensajes que no se pueden procesar exitosamente después de varios intentos se envían. Debes configurar una DLQ para ayudar con el manejo de errores y prevenir la pérdida de mensajes. Consulta [AWS SQS DLQ <FiExternalLink/>](https://aws.amazon.com/es/what-is/dead-letter-queue/).
+</details>
+
+<details>
+<summary>
+### ¿Qué es la Deduplificación en una Cola FIFO?
+</summary>
+En una Cola FIFO de SQS, la deduplificación asegura que los mensajes duplicados se eliminen automáticamente, manteniendo el estricto orden de los mensajes.
+</details>
+
+## Configura tu SQS
+### 1. Agregar SQS como Dependencia
+Para integrar SQS con SleakOps:
+1. En la consola de SleakOps, ve a la sección "Dependencias".
+2. Elige "SQS" de la lista de tipos de dependencias disponibles. 
+Para más detalles consulta [Dependencias: Integrando Bases de Datos, Caching y Servicios de Mensajería](/project/dependency/index.mdx).
+
+### 2. Configura tu base de datos SQS.
+Accederás al siguiente formulario:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/sqs/sqs-create-p1.png"
+    alt="sqs-create-p1"
+/>
+</Zoom>
+
+Aquí están los parámetros que SleakOps te permite personalizar durante la creación:
+
+| **Atributo** | **Descripción** |
+| --- | --- | 
+| **Fifo Queue** | Selecciona si la cola es estándar o FIFO. Lee más en las preguntas frecuentes. |
+| **Fifo Deduplication** | Selecciona si la deduplicación está activada. Lee más en las preguntas frecuentes. |
+| **Message Delay Seconds** | Segundos de retraso en la entrega de mensajes en la cola. |
+| **Message Max Size** | Límite máximo de bytes por mensaje. |
+| **Message Retention Seconds** | Segundos que un mensaje es retenido por SQS. |
+| **Receive WaitTime Seconds** | El tiempo que una llamada a ReceiveMessage esperará a que llegue un mensaje (long polling) antes de regresar. |
+| **Visibility Timeout Seconds** | Segundos que un mensaje es retenido por SQS. |
+| **Dead Letter Queue** | Selecciona si la cola de mensajes muertos está habilitada. Lee más en las preguntas frecuentes. |
+
+
+Al activar la opción **Master Dedicado Habilitado**, también debes completar lo siguiente:
+
+| **Atributo** | **Descripción** |
+| --- | --- | 
+| **Tipo de Master Dedicado** | Especifica el tipo de instancia para los nodos maestros, usados para gestionar el clúster. Ejemplo: r6g.large.search |
+| **Cantidad de Masters Dedicados** | Número de nodos maestros dedicados. Se recomienda tener 3 para producción. |
+
+### 3. Personaliza los nombres de tus variables para SQS.
+
+Como se explicó, cuando se crea una dependencia, SleakOps genera un grupo de variables para almacenar todos los atributos necesarios. 
+En este paso, puedes cambiar el nombre de los atributos si es necesario. 
+SleakOps completa los valores automáticamente. 
+Después de este paso, tu dependencia estará creada.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/sqs/sqs-create-outputs.png"
+    alt="sqs-create-outputs"
+/>
+</Zoom>

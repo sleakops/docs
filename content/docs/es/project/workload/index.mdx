@@ -1,0 +1,48 @@
+import { FiExternalLink, FiCornerRightDown } from "react-icons/fi";
+
+# Workloads
+
+En SleakOps, una Ejecución es simplemente un trabajo definido por el usuario que se ejecuta dentro del clúster. Dependiendo de cómo y cuándo necesites ejecutar tu carga de trabajo, puedes elegir entre cinco tipos diferentes:
+
+
+| Name | Description |
+| ------ | ----------- |
+| [Web Service](/project/workload/webservice) | Un servicio siempre activo que maneja solicitudes HTTP (por ejemplo, alojamiento de sitios web o APIs). |
+| [Worker](/project/workload/worker) |	Un proceso en segundo plano para tareas internas (por ejemplo, colas de mensajes, procesamiento de datos). |
+| [Cronjob](/project/workload/cronjob) |	Una tarea programada que se ejecuta periódicamente (por ejemplo, todos los días a las 3 a.m.). |
+| [Job](/project/workload/job) |	Una tarea de una sola ejecución, ideal para operaciones puntuales o de mantenimiento. |
+| [Hook](/project/workload/hook) | Una tarea que se activa cuando se produce un evento de despliegue (por ejemplo, para ejecutar migraciones de base de datos o recopilar estadísticas). |
+
+
+## Cual workload deberia crear para mi aplicacion?
+
+```mermaid
+flowchart TB
+    A("¿Tu carga de trabajo<br>necesita manejar solicitudes HTTP<br>(tráfico de usuarios o API)?")
+    B["Crea un<br><b>Web Service</b>"]
+    C("¿Necesitas un proceso<br>que se ejecute continuamente en segundo plano<br>esperando tareas/eventos?")
+    D["Crea un<br><b>Worker</b>"]
+    E("¿Necesitas que la tarea<br>se ejecute en un horario definido?")
+    F["Crea un<br><b>CronJob</b>"]
+    G("¿Necesitas que la tarea<br>se ejecute una sola vez?")
+    H["Crea un<br><b>Job</b>"]
+    I("¿Necesitas que la tarea<br>se ejecute en cada despliegue?")
+    J["Crea un<br><b>Hook</b>"]
+
+    A -- "Sí" --> B
+    A -- "No" --> C
+    C -- "Sí" --> D
+    C -- "No" --> E
+    E -- "Sí" --> F
+    E -- "No" --> I
+    I -- "Sí" --> J
+    I -- "No" --> G
+    G -- "Sí" --> H
+```
+
+
+- **Web Service:** Elige esta opción si necesitas que tu aplicación o servicio esté disponible 24/7 para responder solicitudes HTTP.
+- **Worker:** Úsalo para tareas de procesamiento en segundo plano, como colas de mensajes o procesos de datos, sin interacción HTTP directa.
+- **CronJob:** Ideal para tareas de mantenimiento o generación de reportes que deban ejecutarse periódicamente en momentos específicos.
+- **Job:** Adecuado para tareas puntuales o ejecutadas bajo demanda (por ejemplo, migraciones manuales de base de datos).
+- **Hook:** Perfecto si quieres automatizar ciertas acciones (como migraciones de base de datos o análisis) en cada despliegue.

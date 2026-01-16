@@ -9,7 +9,7 @@ const fs = require("fs");
 const path = require("path");
 
 // Configuration
-const TUTORIALS_DIR = path.join(__dirname, "tutorials");
+const TUTORIALS_DIR = path.join(__dirname, "content", "tutorials", "en");
 const OUTPUT_FILE = path.join(
   __dirname,
   "src",
