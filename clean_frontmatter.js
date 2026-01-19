@@ -9,6 +9,8 @@
  * - Removes `sidebar_position: null` (null positions)
  * - Removes `title: ''` inside author objects
  * - Removes `tags: []` (empty tags arrays)
+ * - Removes `pagination_prev: ''` (empty pagination)
+ * - Removes `pagination_next: ''` (empty pagination)
  *
  * Usage: node clean_frontmatter.js
  */
@@ -59,6 +61,12 @@ function cleanFrontmatter(content) {
 
   // Remove `tags: []` (empty tags array)
   frontmatter = frontmatter.replace(/^tags:\s*\[\]\s*$/gm, "");
+
+  // Remove `pagination_prev: ''` or `pagination_prev: ""`
+  frontmatter = frontmatter.replace(/^pagination_prev:\s*['"]?['"]?\s*$/gm, "");
+
+  // Remove `pagination_next: ''` or `pagination_next: ""`
+  frontmatter = frontmatter.replace(/^pagination_next:\s*['"]?['"]?\s*$/gm, "");
 
   // Remove any resulting empty lines in the frontmatter
   frontmatter = frontmatter
