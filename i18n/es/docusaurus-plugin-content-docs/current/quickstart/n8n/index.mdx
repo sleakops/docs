@@ -68,8 +68,8 @@ Desplegar n8n en un clúster de Kubernetes con Sleakops proporciona escalabilida
 ## Prerrequisitos
 
 - Cuenta en Sleakops
-- Un Clúster en esta cuenta. Si no lo tienes, [aquí está la documentación sobre cómo hacerlo](/cluster).
-- Un Entorno configurado. Si no lo tienes, [aquí está la documentación sobre cómo hacerlo](/environment)
+- Un Clúster en esta cuenta. Si no lo tienes, [aquí está la documentación sobre cómo hacerlo](/docs/cluster).
+- Un Entorno configurado. Si no lo tienes, [aquí está la documentación sobre cómo hacerlo](/docs/environment)
 - Proyecto n8n configurado con Docker. Sino lo tienes puedes hacer un fork o copia a [n8n-code](https://github.com/sleakops/n8n_sleakops). Este proyecto incluye un docker-compose para que puedas desplegarlo en local tambien asi puedes tener entornos distribuidos como quieras.
 
 
@@ -80,7 +80,7 @@ Para este ejemplo, vamos a desplegar un proyecto n8n en modo distribuido con wor
 ## Crear Proyecto
 
 Los proyectos son nuestros repositorios de codigo. Lo unico que necesita Sleakops para poder ejecutar comandos es un Dockerfile. 
-Para mas informacion puedes ver nuestra [documentación de proyectos](/project)
+Para mas informacion puedes ver nuestra [documentación de proyectos](/docs/project)
 
 Para empezar, crearemos un nuevo proyecto:
 
@@ -125,7 +125,7 @@ Con eso, el proyecto comienza a crearse. Mientras tanto vamos a las cargas de tr
 ## Crear Workloads
 
 Los workloads son los procesos que corre tu proyecto. Para el caso de n8n que vamos a correrlo en modo queue vamos a crear un webservice para la interfaz web y un worker
-Para mas informacion puedes ver nuestra [documentación de workloads](/project/workload)
+Para mas informacion puedes ver nuestra [documentación de workloads](/docs/project/workload)
 
 ### Crear el Servicio Web 
 Aquí vamos a crear el servicio web principal n8n que manejará la interfaz de usuario y API:
@@ -215,7 +215,7 @@ Con esto veremos nuestro worker n8n desplegado.
 
 
 Las dependencias son recursos necesarios para que tu aplicacion funcione, en el caso de n8n en modo queue, necesita una base de datos y un redis.
-Sleakops se nutre de los servicios que ofrece AWS para ofrecerte alternativas. Puedes ver mas informacion en [documentación de dependencias](/project/dependency)
+Sleakops se nutre de los servicios que ofrece AWS para ofrecerte alternativas. Puedes ver mas informacion en [documentación de dependencias](/docs/project/dependency)
 
 Vamos a la sección de dependencias:
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
@@ -464,12 +464,12 @@ Esto nos abrira un dashboard dentro de grafana con el consumo historico de tu pr
 
 ### 🔧 **Optimización de Base de Datos**
 - **Pooling de conexiones**: Configura pools de conexión PostgreSQL para alta concurrencia. 
-- **Réplicas de lectura**: Usa réplicas de lectura para consultas de reportes y análisis. (Esto podes hacerlo desde sleakops desde la configuracion de [Postgres](/project/dependency/postgresql-aws))
+- **Réplicas de lectura**: Usa réplicas de lectura para consultas de reportes y análisis. (Esto podes hacerlo desde sleakops desde la configuracion de [Postgres](/docs/project/dependency/postgresql-aws))
 - **Indexación**: Optimiza índices de base de datos para consultas de ejecución de flujos de trabajo
-- **Estrategias de respaldo**: Implementa respaldos automatizados con recuperación point-in-time. (Esto podes hacerlo desde sleakops desde la configuracion de [Postgres](/project/dependency/postgresql-aws))
+- **Estrategias de respaldo**: Implementa respaldos automatizados con recuperación point-in-time. (Esto podes hacerlo desde sleakops desde la configuracion de [Postgres](/docs/project/dependency/postgresql-aws))
 
 ### 🚀 **Configuraciones Avanzadas**
-- **Afinidad de nodos**: Programa workers en tipos de nodos apropiados (CPU vs optimizados para memoria). (Esto podes hacerlo desde sleakops usando [Nodepools](/cluster/nodepools))
+- **Afinidad de nodos**: Programa workers en tipos de nodos apropiados (CPU vs optimizados para memoria). (Esto podes hacerlo desde sleakops usando [Nodepools](/docs/cluster/nodepools))
 - **Presupuestos de disrupción de pods**: Asegura disponibilidad mínima durante mantenimiento del clúster. (Esto ya lo cubre sleakops)
 - **Cuotas de recursos**: Establece límites apropiados para prevenir agotamiento de recursos. (Esto podes hacerlo desde sleakops definiendo limites en tus Workloads y en tus Nodepools)
 - **Políticas de red**: Asegura comunicación inter-pod. (Esto ya lo hace sleakops)
