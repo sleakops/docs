@@ -1,0 +1,193 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# MySQL en AWS
+
+SleakOps facilita la integración de bases de datos MySQL a través de Amazon RDS (Relational Database Service). Amazon RDS para MySQL es un servicio completamente administrado que simplifica la configuración, operación y escalado de bases de datos. Al usar SleakOps para esta integración, puedes gestionar eficientemente bases de datos MySQL dentro de tu entorno EKS (Elastic Kubernetes Service), asegurando soluciones de almacenamiento de datos robustas, escalables y confiables para tus aplicaciones.
+
+## Preguntas Frecuentes
+
+<details>
+<summary>
+### ¿Cómo gestiona SleakOps las credenciales de MySQL?
+</summary>
+Cuando creas una dependencia MySQL en SleakOps, se genera automáticamente un Vargroup para tu base de datos. Este Grupo de Variables almacena de forma segura las credenciales de MySQL y otros detalles importantes de configuración, como el endpoint de la base de datos y la información de acceso del usuario. Podrás gestionarlos desde la sección de [Vargroups](/docs/project/vargroup).
+</details>
+
+<details>
+<summary>
+### ¿Qué es el despliegue Multi-AZ y debería habilitarlo?
+</summary>
+El despliegue Multi-AZ (Zona de Disponibilidad) garantiza alta disponibilidad y soporte para conmutación por error al replicar tu base de datos en otra zona de disponibilidad. Se recomienda para entornos de producción para evitar tiempos de inactividad. Ten en cuenta que aumenta los costos.
+</details>
+
+<details>
+<summary>
+### ¿Puedo cambiar la versión de MySQL después de desplegar la base de datos?
+</summary>
+No, la versión del motor de la base de datos no puede cambiarse después del despliegue. Necesitarías crear una nueva instancia de MySQL con la versión deseada y migrar tus datos. O cambiarlo manualmente en la Consola de AWS.
+</details>
+
+<details>
+<summary>
+### ¿Qué hago si necesito más almacenamiento para mi base de datos MySQL?
+</summary>
+Puedes ajustar el tamaño de almacenamiento al configurar tu base de datos. Si necesitas más almacenamiento después del despliegue, puedes escalar modificando la configuración en AWS, ya que por el momento SleakOps no lo permite.
+</details>
+
+<details>
+<summary>
+### ¿Cómo creo un dump de mi base de datos MySQL?
+</summary>
+Para crear un dump de tu base de datos MySQL, usa el siguiente comando:
+```
+sh
+mysqldump -h MYSQL_ADDRESS -u MYSQL_USERNAME -p MYSQL_PASSWORD > dump.sql
+```
+Reemplaza `MYSQL_ADDRESS`, `MYSQL_USERNAME` y `MYSQL_PASSWORD` con los valores apropiados.  
+Para información adicional sobre cómo crear un dump en MySQL, consulta la [documentación oficial de MySQL](https://dev.mysql.com/doc/refman/8.0/en/mysqldump.html).  
+Otra opción es crearlo directamente desde la Consola de AWS y luego importarlo. Consulta [Restaurar en una instancia de base de datos](https://docs.aws.amazon.com/es_es/AmazonRDS/latest/UserGuide/USER_RestoreFromSnapshot.html).
+</details>
+
+<details>
+<summary>
+**¿Cómo importo un dump existente usando Docker?**
+</summary>
+Para más detalles: [Documentación de dump MySQL](https://docs.aws.amazon.com/es_es/AmazonRDS/latest/UserGuide/USER_RestoreFromSnapshot.html)  
+Para importar un dump de base de datos a tu instancia MySQL en RDS:  
+  1. **Conéctate a la VPN**: Asegúrate de estar conectado a la VPN de la cuenta AWS donde está ubicada la instancia RDS.
+  2. **Ejecuta un contenedor Docker** (Recomendado): 
+    - Instala Docker en tu máquina local si aún no lo tienes instalado.  
+    - Ejecuta un contenedor MySQL con el siguiente comando:
+    ```
+    sh
+    docker run -it --name mysql-container -v ./initial_data/:/tmp/data/ -e MYSQL_ROOT_PASSWORD=MYSQL_PASSWORD -d mysql bash
+    ```
+    - Conéctate a la terminal del contenedor:
+    ```
+    sh
+    docker exec -t -i mysql-container bash
+    ```
+    - Importa el archivo dump:
+    ```
+    sh
+    mysql -h MYSQL_ADDRESS -u MYSQL_USERNAME -p < /tmp/data/dump.sql
+    ```
+    Reemplaza `MYSQL_ADDRESS`, `MYSQL_USERNAME` y `MYSQL_PASSWORD` con los detalles de tu instancia RDS.
+</details>
+
+<details>
+<summary>
+**Cómo importo un dump existente a mi máquina local?**
+</summary>
+Alternativamente, puedes usar un cliente de MySQL instalado en tu máquina local para importar el dump.
+```
+mysql -h MYSQL_ADDRESS -u MYSQL_USERNAME -p MYSQL_PASSWORD < /tmp/data/dump.sql
+```  
+</details>
+
+<details>
+<summary>
+**¿Qué debo hacer si tengo problemas de conexión con mi base de datos MySQL?**
+</summary>
+- Verifica que el endpoint de la base de datos, el nombre de usuario y la contraseña sean correctos.
+- Asegúrate de que los grupos de seguridad y las reglas del firewall permitan el acceso.
+- Verifica que la base de datos esté en funcionamiento y tenga suficientes recursos (CPU, memoria).  
+Si el problema persiste, contáctanos.
+</details>
+
+<details>  
+<summary>  
+**¿Qué es una réplica de lectura en RDS?**  
+</summary>  
+Una réplica de lectura de RDS es una copia de solo lectura de tu instancia de base de datos principal en Amazon RDS. Ayuda a distribuir cargas pesadas de lectura y mejora el rendimiento y la escalabilidad de tu base de datos al descargar las operaciones de lectura desde la base de datos principal.  
+Las réplicas de lectura de RDS son ideales cuando necesitas:
+- Descargar operaciones intensivas de lectura de tu instancia principal.
+- Escalar tus operaciones de lectura a medida que tu aplicación crece.
+- Distribuir las lecturas de la base de datos entre múltiples ubicaciones geográficas.
+- Tener una solución de respaldo que pueda promoverse rápidamente como instancia principal en caso de falla.
+:::info
+Ten en cuenta que las réplicas de lectura tienen un retraso al realizar actualizaciones.
+:::
+</details>  
+
+<details>  
+<summary>  
+**¿Cómo configuro una réplica de lectura en SleakOps?**  
+</summary>  
+En SleakOps, al crear una réplica de lectura para tu base de datos RDS, necesitas proporcionar la siguiente información:  
+- **Nombre** de la réplica  
+- **Clase de instancia de la réplica**, que determina el tipo de instancia para la réplica.  
+- **Accesibilidad pública de la réplica**, para decidir si la réplica debe tener una IP pública o ser accesible solo dentro de tu red privada.  
+</details>  
+
+<details>  
+<summary>  
+**¿Puedo eliminar una réplica?**  
+</summary>  
+Actualmente, la única forma de hacerlo es eliminando la dependencia.  
+</details> 
+
+:::info
+Documentación de AWS: [Documentación de Amazon RDS MySql](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_MySQL.html)
+:::
+
+## Configura tu MySQL
+### 1. Agregar MySQL como una Dependencia
+Para integrar MySQL con SleakOps:
+1. En la consola de SleakOps, ve a la sección "Dependencias".
+2. Elige "MySQL" de la lista de tipos de dependencias disponibles.
+Para más detalles, consulta [Dependencias: Integrando Bases de Datos, Caché y Servicios de Mensajería](/docs/project/dependency).
+
+### 2. Configura tu MySQL.
+Accederás al siguiente formulario:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/mysql/mysql-create-p1.png"
+    alt="mysql-create-p1"
+/>
+</Zoom>
+
+Aquí están los parámetros que SleakOps te permite personalizar durante la creación:
+
+| **Atributo** | **Descripción** |
+| --- | --- |
+| **Versión del Motor de Base de Datos** | Selecciona la versión específica del motor de base de datos MySQL que deseas usar. Esto asegura compatibilidad con los requerimientos de tu aplicación. Ejemplo: `MySQL 8.0.2`, `MySQL 5.7.1`. |
+| **Clase de Instancia de Base de Datos** | Define la clase de instancia que especifica la configuración de hardware para tu base de datos MySQL. Esto controla el rendimiento de CPU, memoria y red. Ejemplo: `db.m6g.large`, `db.t3.medium`. Consulta más detalles en [AWS](https://aws.amazon.com/es/rds/instance-types/). |
+| **Almacenamiento de Base de Datos** | Especifica la cantidad de almacenamiento asignado para la base de datos. Ejemplo: 100 GB, 500 GB. |
+| **Nombre de Usuario** | Proporciona el nombre de usuario maestro para la base de datos MySQL. Este es el usuario principal con privilegios administrativos. Ejemplo: admin, root. |
+| **Contraseña** | Contraseña para que el usuario maestro acceda a la base de datos. |
+| **Zona de Disponibilidad Múltiple** | Activa o desactiva la implementación Multi-AZ. Esto asegura alta disponibilidad y soporte de conmutación por error replicando la base de datos en múltiples zonas de disponibilidad. Recomendado para entornos de producción. |
+| **Copia de Seguridad Automática** | Configura copias de seguridad automáticas para la base de datos MySQL. Esto asegura la protección de los datos activando instantáneas diarias y copias de seguridad del registro de transacciones. Configura el _Periodo de Retención de Copias de Seguridad_ y la _Ventana de Copias de Seguridad_. Recomendado para entornos de producción. |
+| **Periodo de Retención de Copias de Seguridad** | Define el número de días para retener copias de seguridad automáticas. |
+| **Ventana de Copias de Seguridad** | Periodo de tiempo en el que se realizarán las copias de seguridad. |
+
+:::warning
+SleakOps solo permite la creación de réplicas durante la creación de la dependencia.
+:::
+
+Después de ingresar los datos básicos, necesitas decidir si se creará una réplica. Para hacerlo:  
+1. En el formulario, busca la sección **Definición de Réplicas de Lectura RDS** y haz clic en + _Añadir Elemento_.  
+2. Completa los siguientes datos:
+
+| **Configuración** | **Descripción** |
+| --- | --- |
+| **Nombre** | Un nombre para la réplica. |
+| **Clase de Instancia de Réplica** | Define la clase de instancia que especifica la configuración de hardware para tu base de datos MySQL. Esto controla el rendimiento de CPU, memoria y red. Ejemplo: `db.m6g.large`, `db.t3.medium`. |
+| **Réplica Accesible Públicamente** | Decide si la réplica debería tener una IP pública o ser accesible solo dentro de tu red privada. |
+
+### 3. Personaliza el nombre de las variables para tu base de datos MySQL.
+
+Como se explicó, cuando se crea una dependencia, SleakOps genera un grupo de variables (vargroup) para contener todos los atributos necesarios.  
+En este paso, puedes cambiar el nombre de los atributos si es necesario.  
+SleakOps completa automáticamente los valores.  
+Después de este paso, tu dependencia está creada.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/mysql/mysql-create-outputs.png"
+    alt="mysql-create-outputs"
+/>
+</Zoom>

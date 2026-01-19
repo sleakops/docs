@@ -1,0 +1,71 @@
+---
+sidebar_label: Kubecost
+pagination_back: cluster/addons/grafana
+pagination_next: environment/index
+---
+
+import Zoom from "react-medium-image-zoom";
+import { FiExternalLink } from "react-icons/fi";
+
+# Kubecost: Monitoreo de Costos del Clúster
+
+Introducción [Kubecost <FiExternalLink/>](https://docs.kubecost.com/) es una herramienta esencial de gestión de costos integrada en SleakOps que proporciona visibilidad detallada de los costos de tu clúster de Kubernetes. Te ayuda a comprender los gastos de tu clúster desglosándolos por namespaces, despliegues y workloads individuales.  
+
+La mejor manera de leer la información que proporciona Kubecost es a través de su interfaz web, a la cual puedes acceder desde el detalle del clúster.  
+
+El panel principal de Kubecost muestra los costos distribuidos por Tiempo y Namespace.  
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/cluster/addons/kubecost/kubecost-main-dashboard.png"
+    alt="kubecost-main-dashboard"
+  />
+</Zoom>
+
+## Preguntas Frecuentes
+
+<details>
+<summary>
+### ¿Qué significa la métrica __idle__?
+</summary>
+El valor '__idle__' que se muestra en todas las métricas de Kubecost indica cuánto de la capacidad de todas las opciones filtradas no se está utilizando. Este valor debe ser analizado cuidadosamente, ya que gran parte de esta capacidad "idle" puede corresponder a un nodo que aún no está completamente asignado o que debería estar disponible para tus workloads.
+</details>
+
+<details>
+<summary>
+### ¿Debería preocuparme si el valor __idle__ es muy alto?
+</summary>
+No necesariamente. Podrías optimizar este valor reduciendo las solicitudes de CPU y Memoria de las [Workloads](/docs/project/workload) desplegadas en tu Proyecto. Sin embargo, ten en cuenta que gran parte de esta capacidad está asignada como un límite máximo para la utilización de recursos, incluso si no se está usando. Esto proporciona espacio para el escalado interno de cada workload en caso de ser necesario. Por otro lado, muchas de estas workloads son críticas para el clúster, por lo que tendrán una capacidad "idle" para permitirles escalar libremente.
+</details>
+
+<details>
+<summary>
+### ¿Puedo revisar un Namespace de manera más detallada?
+</summary>
+Kubecost permite un análisis granular de los costos. Por ejemplo, además de los costos por Namespace, puedes profundizar haciendo clic en el Namespace y analizar los costos de los pods, despliegues y otros elementos asignados a él.
+</details>
+
+<details>
+<summary>
+### ¿Puedo analizar algo más aparte de los Namespaces?
+</summary>
+Sí. Desde el panel principal puedes analizar específicamente los costos de un Nodo como entidad individual. También permite revisar los costos de almacenamiento que se están utilizando. Por ejemplo, para un nodo específico podrías ver esto:  
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/cluster/addons/kubecost/kubecost-node-costs.png"
+    alt="kubecost-node-costs"
+  />
+</Zoom>
+</details>
+
+<details>
+<summary>
+### ¿Kubecost tiene alguna función para analizar costos de red?
+</summary>
+En este momento, SleakOps ofrece la capacidad de habilitar 'NetworkCosts', una función de Kubecost que estima el costo del tráfico de red de cada workload. Esta función es una excelente opción si deseas analizar más profundamente el tráfico de red del clúster. Puede habilitarse en el formulario de instalación de Kubecost:  
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/cluster/addons/kubecost/kubecost-installation-form.png"
+    alt="kubecost-installation-form"
+  />
+</Zoom>
+</details>

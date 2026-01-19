@@ -1,0 +1,82 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# AWS Redis
+
+SleakOps facilita la integración de Amazon ElastiCache con Redis, un sistema de almacenamiento de datos en memoria completamente gestionado. Este servicio te permite almacenar en caché los datos a los que se accede con frecuencia, mejorando el rendimiento de la aplicación y reduciendo la carga en tus bases de datos principales. Al usar Redis a través de SleakOps, tus aplicaciones pueden experimentar tiempos de respuesta más rápidos, mejor escalabilidad y menor latencia.
+
+:::info
+Para más información sobre Redis y sus capacidades, puedes consultar la [documentación oficial de AWS Redis. <FiExternalLink/>](https://aws.amazon.com/elasticache/redis/).
+:::
+
+## Preguntas Frecuentes
+
+<details>
+<summary>
+### ¿Qué características hacen de Redis una buena opción para mi aplicación?
+</summary>
+Redis ofrece varias características avanzadas que lo hacen adecuado para una amplia gama de aplicaciones:
+- **Persistencia de Datos**: Redis puede guardar los datos en disco, asegurando que la información no se pierda en caso de un reinicio.
+- **Estructuras de Datos Avanzadas**: Redis soporta estructuras de datos más complejas que los almacenes clave-valor simples, como listas, conjuntos, hashes, conjuntos ordenados y más.
+- **Alta Disponibilidad**: A través de replicación y conmutación por error automática, Redis asegura que tu aplicación siga funcionando incluso si un nodo falla.
+- **Escalabilidad**: Redis se puede escalar tanto verticalmente (con instancias más grandes) como horizontalmente (mediante particionamiento y clústeres).
+- **Mensajería Pub/Sub**: Redis ofrece soporte nativo para patrones de mensajería de publicación/suscripción, útiles para construir aplicaciones en tiempo real.
+</details>
+
+<details>
+<summary>
+### ¿Cuáles son los casos de uso comunes de Redis?
+</summary>
+Redis es versátil y puede utilizarse en una variedad de escenarios, incluidos:
+- **Gestión de Sesiones**: Redis se usa comúnmente para almacenar datos de sesiones de usuario debido a su acceso a datos de baja latencia y características de persistencia.
+- **Caché**: Redis es ideal para almacenar en caché los datos a los que se accede con frecuencia, reduciendo la carga sobre las bases de datos principales y mejorando los tiempos de respuesta.
+- **Análisis en Tiempo Real**: Las capacidades de procesamiento rápido en memoria de Redis lo hacen perfecto para análisis en tiempo real, clasificaciones y contadores.
+- **Colas de Mensajes**: Con la funcionalidad pub/sub de Redis, puedes utilizarlo para sistemas de mensajería y transmisión de eventos.
+- **Colas de Trabajo**: Redis se usa para gestionar colas de trabajo en segundo plano en aplicaciones a gran escala.
+</details>
+
+<details>
+<summary>
+### ¿Cómo se diferencia Redis de Memcached?
+</summary>
+Redis es más completo que Memcached. Redis soporta una variedad de estructuras de datos como listas, conjuntos y hashes, mientras que Memcached se limita a pares clave-valor simples. Redis también soporta persistencia de datos y replicación, lo que lo hace adecuado para aplicaciones donde la durabilidad y la alta disponibilidad son críticas. Sin embargo, Memcached es típicamente más ligero y rápido para escenarios básicos de almacenamiento en caché.
+</details>
+
+## Configura tu Redis en AWS
+### 1. Agregar AWS Redis como Dependencia
+Para integrar Redis con SleakOps:
+1. En la consola de SleakOps, ve a la sección "Dependencias".
+2. Elige "AWS Redis" de la lista de tipos de dependencias disponibles.  
+Para más detalles, consulta [Dependencias: Integración de Bases de Datos, Caching y Servicios de Mensajería](/docs/project/dependency).
+
+### 2. Configura tu base de datos Redis.
+Accederás al siguiente formulario:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/redis/redis-create-p1.png"
+    alt="redis-create-p1"
+/>
+</Zoom>
+
+Aquí están los parámetros que SleakOps te permite personalizar durante la creación:
+
+| **Atributo** | **Descripción** |
+| --- | --- | 
+| **Tipo de Nodo** | Clase de instancia que determina el rendimiento y la capacidad de memoria de la instancia Redis. Ejemplos: `cache.t3.micro`, `cache.m5.large`, `cache.r6g.large` |
+| **Puerto** | El puerto de comunicación utilizado por Redis para interactuar con tu aplicación. Por defecto: `6379` (puede ser personalizado) |
+
+### 3. Personaliza los nombres de tus variables para Redis.
+
+Como se explicó, cuando se crea una dependencia, SleakOps genera un vargroup para contener todos los atributos necesarios.\
+En este paso, puedes cambiar el nombre de los atributos si es necesario. 
+SleakOps completará los valores automáticamente.
+Después de este paso, tu dependencia estará creada. 
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/redis/redis-create-outputs.png"
+    alt="redis-create-outputs"
+/>
+</Zoom>

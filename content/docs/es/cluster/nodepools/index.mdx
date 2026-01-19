@@ -1,0 +1,92 @@
+import Zoom from "react-medium-image-zoom";
+
+# Node Pools 
+
+Un Node Pool es esencialmente una colección de nodos dentro de un clúster de Kubernetes que tienen configuraciones similares, como el mismo tipo de máquina, sistema operativo y tamaño de instancia.
+
+Todos los nodos en un Node Pool están configurados de manera idéntica, lo que facilita la gestión y el mantenimiento de la consistencia en todo tu clúster. Esto es especialmente útil al escalar el clúster, ya que los nodos adicionales añadidos al pool tendrán las mismas especificaciones.
+
+Cuando se crea un clúster en SleakOps, se genera un conjunto de Node Pools basado en el tipo de arquitectura que seleccionaste durante la configuración del clúster.
+
+- **sleakops-build-arm64 & sleakops-build-amd64:** Node Pools predeterminados para ejecutar correctamente tus builds. No se pueden editar ni eliminar.
+- **sleakops-core:** Garantiza la escalabilidad de los componentes críticos y los complementos del clúster.
+- **ondemand-arm/amd:** Listos para que los uses.
+- **spot-arm/amd:** Listos para que los uses.
+
+:::warning
+No elimines manualmente los siguientes Node Pools: sleakops-build-arm64, sleakops-build-amd64, sleakops-core.
+:::
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/cluster/nodepool-example-schema.png"
+    alt="esquema-ejemplo-nodepool"
+  />
+</Zoom>
+
+## Preguntas Frecuentes
+
+<details>
+<summary>
+### ¿Cuáles son los diferentes tipos de Node Pools?
+</summary>
+- **Reserved:** Son instancias a las que te comprometes a usar por un período específico (1 o 3 años) a cambio de ahorros significativos en costos (hasta 75% menos que el precio On-Demand). Proporcionan el mejor precio con compromiso y son ideales para:
+    - **Cargas de Trabajo Predecibles:** Aplicaciones con patrones de uso estables y predecibles que pueden beneficiarse de un compromiso a largo plazo.
+    - **Entornos de Producción:** Aplicaciones críticas que requieren capacidad garantizada y optimización de costos.
+    - **Optimización de Costos:** Cargas de trabajo donde puedes comprometerte al uso por períodos extendidos para maximizar los ahorros.
+
+- **Spot:** Son instancias que aprovechan la capacidad sobrante en los centros de datos del proveedor de la nube. Están disponibles con un descuento significativo en comparación con las instancias On-Demand, pero conllevan el riesgo de ser terminadas si el proveedor necesita la capacidad de nuevo. Son ideales para:
+    - **Aplicaciones Sin Estado:** Adecuadas para cargas de trabajo que pueden tolerar interrupciones, como trabajos de procesamiento por lotes, entornos de prueba y computación distribuida.
+    - **Cargas de Trabajo Sensibles al Costo:** Ideales para tareas donde los ahorros en costos son más importantes que la disponibilidad.
+
+- **On-Demand:** Son instancias en un clúster de Kubernetes que operan con un modelo de precios fijo, proporcionando acceso confiable a recursos de cómputo sin riesgo de interrupciones. Se pueden usar para:
+    - **Tareas Críticas:** Aplicaciones que requieren tiempo de actividad constante, como bases de datos, sistemas financieros u otros servicios críticos.
+    - **Tareas de Larga Duración:** Tareas que no pueden interrumpirse sin consecuencias significativas.
+
+**Orden de Prioridad:** Cuando seleccionas múltiples tipos de nodos, el sistema los priorizará automáticamente en el siguiente orden para optimizar costos: **Reserved** (mejor precio con compromiso) → **Spot** (mejor precio sin compromiso) → **On-Demand** (precio más alto pero más flexible).
+
+Para obtener orientación detallada sobre cómo elegir los tipos de instancias correctos y evaluar la compatibilidad de aplicaciones, consulta [Tipos de Instancias y Manejo de Nodos](/docs/cluster/nodepools/instance-types).
+</details>
+
+<details>
+<summary>
+### ¿Cuántos Node Pools puedo tener?
+</summary>
+El plan base de SleakOps te permite tener tres Node Pools adicionales, además de los Node Pools de build. Si necesitas más, contáctanos.
+</details>
+
+<details>
+<summary>
+### ¿Puedo convertir un Node Pool Spot en uno On-Demand y viceversa?
+</summary>
+No puedes convertir directamente un Node Pool Spot en uno On-Demand o viceversa, pero puedes lograr el resultado deseado siguiendo una serie de pasos en SleakOps. Así es como puedes hacer la transición entre tipos de Node Pools:
+
+1. Crea un Node Pool del nuevo tipo deseado. 
+2. Actualiza tus Workloads y proyectos para que se ejecuten en el nuevo Node Pool. 
+3. Elimina el Node Pool anterior si ya no es necesario.
+</details>
+
+<details>
+<summary>
+### ¿Puedo convertir un Node Pool ARM en uno X86 y viceversa?
+</summary>
+No puedes cambiar el tipo de arquitectura de un Node Pool, pero puedes lograr el resultado deseado siguiendo una serie de pasos en SleakOps. Así es como puedes hacer la transición entre arquitecturas de Node Pools:
+
+1. Crea un Node Pool de la nueva arquitectura deseada. 
+2. Actualiza tus Workloads y proyectos para que se ejecuten en el nuevo Node Pool. 
+3. Elimina el Node Pool anterior si ya no es necesario.
+</details>
+
+<details>
+<summary>
+### ¿Cómo creo un Node Pool?
+</summary>
+Sigue la guía [Creando un Node Pool](/docs/cluster/nodepools/creating-nodepool).
+</details>
+
+<details>
+<summary>
+### ¿Cómo gestiono un Node Pool?
+</summary>
+Sigue la guía [Gestionando un Node Pool](/docs/cluster/nodepools/managing-nodepool).
+</details>

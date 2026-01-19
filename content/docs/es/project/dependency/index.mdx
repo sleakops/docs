@@ -1,0 +1,173 @@
+---
+sidebar_label: Dependencias
+sidebar_position: 7
+pagination_next: project/workload/webservice
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Dependencias: Integración de Bases de Datos, Caché y Servicios de Mensajería
+
+Una dependencia en el contexto de SleakOps se refiere a cualquier infraestructura o servicio externo del cual tu aplicación depende para funcionar de manera efectiva. Estas dependencias incluyen una variedad de servicios y recursos de AWS que tu aplicación integra para mejorar sus capacidades y rendimiento.
+
+## Preguntas Frecuentes
+
+<details>
+<summary>
+### ¿Qué tipos de dependencias están incluidas en SleakOps?
+</summary>
+Aquí está la lista actualizada de dependencias incluidas en SleakOps:
+  1. **Bases de Datos**
+    - **Amazon RDS**: Bases de datos relacionales gestionadas como MySQL, PostgreSQL, y otras.
+  2. **Servicios de Caché**
+    - **Amazon ElastiCache para Redis**: Almacén de datos en memoria para cachear datos frecuentemente accedidos.
+    - **Amazon ElastiCache para Memcached**: Servicio de caché en memoria para mejorar el rendimiento y reducir la carga de la base de datos.
+  3. **Almacenamiento de Objetos**
+    - **Amazon S3**: Almacenamiento de objetos escalable y seguro para almacenar y recuperar cualquier cantidad de datos.
+  4. **Búsqueda y Análisis**
+    - **Amazon OpenSearch**: Un potente motor de búsqueda y análisis para explorar y visualizar datos, permitiendo insights y decisiones en tiempo real.
+  5. **Colas de Mensajes**
+    - **Amazon SQS**: Servicio de colas de mensajes completamente gestionado que permite desacoplar componentes y mejorar la escalabilidad y confiabilidad de las aplicaciones.
+    - **RabbitMQ**: Un broker de mensajes de código abierto ampliamente utilizado que facilita la mensajería confiable y la integración entre componentes de aplicaciones.
+
+Estas dependencias se integran perfectamente con SleakOps, proporcionando un conjunto completo de servicios de AWS y de código abierto para mejorar la funcionalidad, el rendimiento y la escalabilidad de tu aplicación.
+</details>
+
+<details>
+<summary>
+### ¿Puedo modificar la configuración de una dependencia después de la configuración inicial?
+</summary>
+Sí, puedes actualizar la configuración de las dependencias en cualquier momento. Asegúrate de guardar los cambios en la interfaz de SleakOps para aplicarlos.
+</details>
+
+<details>
+<summary>
+### ¿Puede utilizarse la misma dependencia en varios proyectos?
+</summary>
+Por el momento, esto no es posible; necesitas una dependencia para cada proyecto.
+</details>
+
+<details>
+<summary>
+### ¿Cómo elimino una dependencia?
+</summary>
+Accede a la sección *Dependency Listing* y haz clic en la opción de eliminar.
+</details>
+
+<details>
+<summary>
+### ¿Qué sucede cuando elimino una dependencia?
+</summary>
+Al eliminar una dependencia, SleakOps eliminará toda la información relacionada con ella, y todo lo que dependa de esta dejará de funcionar. Para resolver esto, SleakOps crea un Deployment con el estado PENDING_APPROVAL, que debe ejecutarse manualmente lo antes posible para evitar tiempos de inactividad.  
+En caso de eliminar una base de datos, SleakOps generará una instantánea final antes de su eliminación.
+</details>
+
+## Agregar una dependencia a tu proyecto
+### 1. Navega a la sección Crear Dependencia
+En el _Panel Izquierdo_, accede a la opción _Dependencies_ y luego, en la esquina superior derecha, haz clic en el botón _Crear_.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/dependency-list.png"
+    alt="dependency-list"
+/>
+</Zoom>
+
+### 2. Selecciona el tipo de dependencia que deseas crear
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/dependency-type-list.png"
+    alt="dependency-type-list"
+/>
+</Zoom>
+
+### 3. Completa los atributos iniciales
+En SleakOps, todas las dependencias comienzan con los mismos pasos. Completa los siguientes atributos y haz clic en _Next_ para continuar.
+
+| **Configuración** | **Descripción** |
+| --- | --- |
+| **Nombre** | Identifica tu proyecto. |
+| **Proyecto** | Selecciona entre los proyectos existentes. |
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/dependency-create.png"
+    alt="dependency-create"
+/>
+</Zoom>
+
+### 4. Sigue las guías específicas de cada dependencia
+Para continuar, elige entre las siguientes guías:
+
+[S3 Bucket](/docs/project/dependency/s3bucket-aws).  
+[MySQL](/docs/project/dependency/mysql-aws).  
+[PostgreSQL](/docs/project/dependency/postgresql-aws).  
+[Redis](/docs/project/dependency/redis-aws).  
+[Memcached](/docs/project/dependency/memcached-aws).  
+[OpenSearch](/docs/project/dependency/opensearch-aws).  
+[SQS](/docs/project/dependency/sqs-aws).
+
+## Acceso a Dependencias
+
+El acceso a dependencias se refiere a los mecanismos de seguridad y conectividad que permiten que las cargas de trabajo de tu aplicación interactúen de forma segura con dependencias externas. SleakOps gestiona automáticamente estos patrones de acceso para asegurar una comunicación segura entre tus servicios y sus dependencias.
+
+### Gestión de Acceso
+
+#### Configuración Automática de Service Account
+Cuando creas una dependencia, SleakOps automáticamente:
+- **Crea roles IAM** con permisos apropiados para el tipo específico de dependencia
+- **Configura service accounts** en tu namespace de Kubernetes
+- **Establece conexiones seguras** entre tus cargas de trabajo y la dependencia
+- **Gestiona credenciales** a través de secrets de Kubernetes y roles IAM
+
+#### Seguridad de Red
+- **Integración VPC**: Las dependencias se crean dentro de la VPC de tu proyecto para acceso seguro de red
+- **Security Groups**: Configurados automáticamente para permitir el tráfico necesario entre servicios
+- **Endpoints Privados**: Las dependencias usan endpoints privados cuando están disponibles para minimizar la exposición
+
+### Patrones de Acceso
+
+#### Acceso a Base de Datos
+Para dependencias de base de datos (MySQL, PostgreSQL, etc.):
+- **Cadenas de Conexión**: Generadas automáticamente y almacenadas como secrets de Kubernetes
+- **Autenticación**: Gestionada a través de roles IAM y credenciales específicas de la base de datos
+- **SSL/TLS**: Las conexiones encriptadas se configuran por defecto
+- **Connection Pooling**: Gestión optimizada de conexiones para mejor rendimiento
+
+#### Acceso a Cache
+Para servicios de caché (Redis, Memcached):
+- **Configuración de Endpoint**: Configurada automáticamente en el entorno de tu aplicación
+- **Autenticación**: Acceso seguro a través de roles IAM y credenciales específicas del servicio
+- **Políticas de Red**: Acceso restringido solo a cargas de trabajo autorizadas
+
+#### Acceso a Almacenamiento
+Para servicios de almacenamiento (S3, etc.):
+- **Políticas de Bucket**: Configuradas automáticamente con acceso de menor privilegio
+- **Permisos IAM**: Las service accounts reciben solo los permisos necesarios
+- **Access Keys**: Gestionadas a través de roles IAM de AWS para mayor seguridad
+
+### Mejores Prácticas de Seguridad
+
+#### Principio de Menor Privilegio
+- **Permisos Mínimos**: Las dependencias reciben solo los permisos mínimos requeridos
+- **Acceso Específico de Recursos**: El acceso se limita a recursos específicos cuando es posible
+- **Auditorías Regulares**: SleakOps proporciona herramientas para revisar y auditar el acceso a dependencias
+
+#### Gestión de Credenciales
+- **Rotación Automática**: Las credenciales se rotan automáticamente cuando es posible
+- **Almacenamiento Seguro**: Todas las credenciales se almacenan como secrets de Kubernetes
+- **Sin Secrets Hardcodeados**: Las aplicaciones acceden a dependencias a través de variables de entorno
+
+:::info Monitoreo de Acceso
+SleakOps proporciona capacidades de monitoreo y logging para rastrear patrones de acceso a dependencias, ayudándote a identificar posibles problemas de seguridad y optimizar el rendimiento.
+:::
+
+:::tip Resolución de Problemas de Acceso
+Si encuentras problemas de acceso con dependencias:
+1. Verifica el estado de la dependencia en la consola de SleakOps
+2. Confirma que tu carga de trabajo tiene la service account correcta
+3. Revisa los permisos del rol IAM para la dependencia
+4. Verifica la conectividad de red y configuraciones de security groups
+:::

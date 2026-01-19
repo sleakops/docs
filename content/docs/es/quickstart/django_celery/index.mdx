@@ -1,0 +1,414 @@
+---
+id: django-celery
+title: Django + Celery
+sidebar_label: Django + Celery
+---
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Aprende cómo desplegar tu proyecto Django + Celery usando Sleakops.
+
+## Prerrequisitos
+
+- Cuenta en Sleakops
+- Un Clúster en esta cuenta. Si no lo tienes, [aquí está la documentación sobre cómo hacerlo](/docs/cluster).
+- Un Ambiente configurado. Si no lo tienes, [aquí está la documentación sobre cómo hacerlo](/docs/environment)
+- Proyecto Django configurado con celery (Este proyecto necesita tener docker).
+
+## Empecemos
+
+Para este ejemplo, vamos a usar [este proyecto <FiExternalLink/>](https://github.com/sleakops/example-django-celery). Es un proyecto Django con Celery que ya tiene Docker configurado para funcionar. También vamos a configurar una base de datos Postgresql, bucket S3 y Rabbitmq necesarios para este proyecto.
+
+### Crear un proyecto
+Para empezar, vamos a crear un nuevo proyecto. Para hacer esto, hacemos clic en el botón "Projects" en el panel izquierdo:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-project.png"
+    alt="click-project-reference"
+  />
+</Zoom>
+
+Dentro del panel de Proyectos podrás ver todos los proyectos que tienes y gestionarlos desde aquí. Queremos crear uno nuevo así que hagamos clic en el botón "create" en la parte superior derecha:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-create-project.png"
+    alt="click-create-project-reference"
+  />
+</Zoom>
+
+En la pantalla de creación de proyecto tenemos los siguientes campos:
+| **Configuración** | **Descripción** |
+| --- | --- |
+| **Environment** | Tenemos que seleccionar el ambiente creado previamente. |
+| Nodepool| Dejaremos el predeterminado. |
+| **Repositories** | Seleccionaremos nuestro repositorio que queremos desplegar. En nuestro caso example-django-celery. |
+| Project Name | Podemos definir un nombre de proyecto. Para el ejemplo dejaremos el predeterminado. |
+| **Branch** | Tiene que coincidir con el que tenemos en nuestro proyecto. En nuestro caso es "Main". |
+| Dockerfile path | Es la ruta relativa al dockerfile en tu proyecto. |
+
+Una vez configurado todo eso, creamos el proyecto con el botón "Submit" en la parte inferior derecha:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/create-project.png"
+    alt="create-project-reference"
+  />
+</Zoom>
+
+Con eso, el proyecto comienza a crearse. Mientras tanto vamos a las cargas de trabajo con el botón "Workloads" en el panel izquierdo:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-workloads.png"
+    alt="click-workloads-reference"
+  />
+</Zoom>
+
+### Crear un Servicio Web
+Aquí lo que vamos a hacer es crear un servicio web, así que vamos a la sección de servicio web y creamos uno:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-create-web-service.png"
+    alt="click-create-web-service-reference"
+  />
+</Zoom>
+
+En esta página vamos a completar el primer formulario con los siguientes campos:
+| **Configuración** | **Descripción** |
+| --- | --- |
+| **Project** | Seleccionamos el proyecto que creamos previamente, en nuestro caso "example-django-celery". |
+| Name | Definimos un nombre para el servicio web. |
+| **Command** | Por defecto esto tomará el valor que está en el dockerfile, en nuestro caso esto está bien. |
+| Port | Lo mismo que el command. |
+
+Luego continuamos haciendo clic en el botón "Next" hasta el paso 3:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/create-web-service.png"
+    alt="create-web-service-reference"
+  />
+</Zoom>
+
+En el paso 3 tenemos que editar el campo path y poner el endpoint de healthcheck que en nuestro caso es "/healthcheck/". Luego hacemos clic en el botón "Next" hasta que se cree el servicio web:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/create-web-service-2.png"
+    alt="create-web-service-2-reference"
+  />
+</Zoom>
+
+### Desplegar celery worker
+Bueno, con esto podemos ver nuestro servicio web desplegándose. Ahora vamos a desplegar el celery. Para esto tenemos que ir a la sección workers dentro de la misma pantalla de workloads:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-worker.png"
+    alt="click-worker-reference"
+  />
+</Zoom>
+
+Y hacemos clic en el botón "Create" para crear uno nuevo:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-create-worker.png"
+    alt="click-create-worker-reference"
+  />
+</Zoom>
+
+En la pantalla de creación de workers tendremos que completar los siguientes campos:
+| **Configuración** | **Descripción** |
+| --- | --- |
+| **Project** | Seleccionar el proyecto creado previamente. En nuestro caso "example-django-celery". |
+| Name | Definimos el nombre que le vamos a dar al worker. En nuestro caso "celery". |
+| **Command** | Aquí establecemos el comando para ejecutar celery, en nuestro caso es: ```bash celery -A core.celery_app worker -l INFO --concurrency 1 --max-tasks-per-child 1 --prefetch-multiplier 1 -n celery@%h --queues default,build,deployment,cluster,canvas,billing```|
+
+Con estos campos completados haremos clic en el botón "Next" en la parte inferior derecha y luego "Submit" ya que no necesitamos editar nada más:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/create-worker.png"
+    alt="create-worker-reference"
+  />
+</Zoom>
+
+Con esto veremos nuestro celery publicado. Ahora tenemos que configurar los hooks. Para esto vamos a la sección hooks:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-hook.png"
+    alt="click-hook-reference"
+  />
+</Zoom>
+
+### Crear un hook de migración
+En la pantalla de creación de hook tendremos los siguientes campos:
+| **Configuración** | **Descripción** |
+| --- | --- |
+| **Project** | Seleccionar el proyecto creado previamente. En nuestro caso "example-django-celery". |
+| **Name** | Definimos el nombre que le vamos a dar al worker. En nuestro caso "migrations". |
+| **Command** | Aquí establecemos el comando para ejecutar celery, en nuestro caso es: ```bash python manage.py migrate --no-input ``` |
+
+Con estos campos completados haremos clic en el botón "Next" en la parte inferior derecha y luego "Submit" ya que no necesitamos editar nada más:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/create-hook.png"
+    alt="create-hook-reference"
+  />
+</Zoom>
+
+### Crear un hook de collect static
+Ahora procedemos a crear otro hook que necesitamos para los estáticos:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-create-collectstatic-hook.png"
+    alt="click-create-collectstatic-hook-reference"
+  />
+</Zoom>
+
+En este formulario vamos a hacer lo mismo que el anterior pero modificando el comando. Hacemos clic en next hasta crear el hook (sin modificar nada más):
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/create-collectstatic-hook.png"
+    alt="create-collectstatic-hook-reference"
+  />
+</Zoom>
+
+El comando que usamos es el siguiente:
+```bash
+python manage.py collectstatic --no-input
+```
+
+### Crear una Base de Datos Postgresql
+Una vez que hemos creado los hooks tenemos que ir a crear nuestra base de datos. Para hacer esto vamos a la sección "Dependencies":
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-dependencies.png"
+    alt="click-dependencies-reference"
+  />
+</Zoom>
+
+Dentro de esta sección hacemos clic en el botón "Create" en la parte superior derecha y luego seleccionamos "Postgresql":
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-create-dependencies.png"
+    alt="click-create-dependencies-reference"
+  />
+</Zoom>
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-postgresql.png"
+    alt="click-postgresql-reference"
+  />
+</Zoom>
+
+En el 1er formulario de creación de postgresql tendremos que seleccionar nuestro proyecto creado previamente y definir un nombre para él, luego hacemos clic en el botón "Next" en la parte inferior derecha:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/create-postgresql.png"
+    alt="create-postgresql-reference"
+  />
+</Zoom>
+
+En el 2do formulario vamos a tener muchos campos, los únicos que nos importan son los siguientes:
+| **Configuración** | **Descripción** |
+| --- | --- |
+| **Database Master Username** | Aquí asignamos un nombre de usuario root a nuestra base de datos. |
+| **Database Master Password** | Una contraseña para este usuario root. |
+
+Una vez rellenados estos campos, estamos listos para continuar. Haga clic en el botón «Siguiente» situado en la parte inferior derecha para pasar al tercer formulario:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/create-postgresql-2.png"
+    alt="create-postgresql-2-reference"
+  />
+</Zoom>
+
+En este último formulario, vamos a ajustar las variables de entorno que tenemos en nuestro proyecto con respecto a la base de datos. Para ello, debemos cambiar las siguientes variables por las nuestras propias:
+| **Antes** | **Despues** |
+| --- | --- |
+| *_POSTGRESQL_NAME | DB_NAME |
+| *_POSTGRESQL_USERNAME | DB_USER |
+| *_POSTGRESQL_PASSWORD | DB_PASSWORD |
+| *_POSTGRESQL_ADDRESS | DB_HOST |
+| *_POSTGRESQL_PORT | DB_PORT |
+
+Debería verse similar a la imagen de abajo. A continuación, haga clic en el botón «Enviar» y se creará su base de datos:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/create-postgresql-3.png"
+    alt="create-postgresql-3-reference"
+  />
+</Zoom>
+
+### Crear Bucket S3
+En la misma página de dependencias tenemos que crear nuestro bucket s3, para ello vamos a ir al botón "Create" nuevamente:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-create-s3-dependencies.png"
+    alt="click-create-s3-dependencies-reference"
+  />
+</Zoom>
+
+Y seleccionamos S3 Bucket:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-create-s3-dependencies-2.png"
+    alt="click-create-s3-dependencies-2-reference"
+  />
+</Zoom>
+
+En el primer formulario tenemos que seleccionar nuestro proyecto creado previamente y definir un nombre para el bucket, tenemos que tomar en cuenta que el nombre del bucket es global así que tiene que ser único. Ahora hacemos clic en el botón "Next" y vamos al paso 3:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/create-s3-dependencies.png"
+    alt="create-s3-dependencies-reference"
+  />
+</Zoom>
+
+Aquí vamos a ver algunas variables de entorno definidas para el bucket. Vamos a editar la que dice **COLLECTSTATICEXAMPLEDJANGOCELERY_BUCKET_NAME** y la vamos a llamar **DJANGO_AWS_STORAGE_BUCKET_NAME**. Con este simple cambio hacemos clic en el botón "Submit" en la parte inferior derecha para terminar de crear el bucket:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/create-s3-dependencies-3.png"
+    alt="create-s3-dependencies-3-reference"
+  />
+</Zoom>
+
+### Crear Rabbitmq
+Ahora necesitamos una dependencia más. Nuestro Rabbitmq para encolar las tareas de celery, así que vamos a ello:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-create-rabbitmq-dependencies.png"
+    alt="click-create-rabbitmq-dependencies-reference"
+  />
+</Zoom>
+
+Y seleccionamos Rabbitmq:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-select-rabbitmq.png"
+    alt="click-select-rabbitmq-reference"
+  />
+</Zoom>
+
+En el primer formulario tendremos que seleccionar nuestro proyecto y definir un nombre para él. Luego hacemos clic en el botón "Next" en la parte inferior derecha:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/create-rabbitmq.png"
+    alt="create-rabbitmq-reference"
+  />
+</Zoom>
+
+En el siguiente formulario tenemos varios campos pero los únicos que nos importan para este ejemplo son el username y password, podemos definir lo que queramos. Para este ejemplo elegí admin como username y para la contraseña la generé aleatoriamente con el botón de dado. Luego hacemos clic en el botón "Next" para ir al siguiente formulario:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/create-rabbitmq-2.png"
+    alt="create-rabbitmq-2-reference"
+  />
+</Zoom>
+
+En este último formulario tenemos que cambiar el nombre de la variable que termina en *_BROKER_AUTH_URL a CELERY_BROKER_URL (como se muestra en la imagen). Luego hacemos clic en el botón "Submit" en la parte inferior derecha para terminar de crear rabbitmq:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/create-rabbitmq-3.png"
+    alt="create-rabbitmq-3-reference"
+  />
+</Zoom>
+
+### Crear tus variables de entorno
+Una vez que las dependencias están desplegadas tenemos que configurar nuestras variables de entorno. Vamos a ir a la sección **Vargroups**:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-vargroups.png"
+    alt="click-vargroups-reference"
+  />
+</Zoom>
+
+Aquí verás todas tus variables de entorno que creaste agrupadas en grupos, por ejemplo deberías haber creado una con los datos para la base de datos (que es la que ves en la imagen). Ahora vamos a crear otra para nuestras variables de entorno de django, para esto hacemos clic en el botón "Create" en la parte superior derecha:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-create-vargroups.png"
+    alt="click-create-vargroups-reference"
+  />
+</Zoom>
+
+En este formulario tenemos los siguientes campos:
+- Project: seleccionamos el proyecto que creamos previamente.
+- Workload: Seleccionamos "global" que hace referencia a ser usado por todos nuestros workloads.
+- Name: Definimos un nombre para este grupo de variables.
+- Type: Si queremos cargarlo por archivo o por variable.
+- Vars: Aquí habilitamos el textmode y copiamos las siguientes variables de entorno:
+```bash
+CELERY_RESULT_BACKEND=django-db
+DJANGO_ADMIN_URL=admin/
+DJANGO_DEBUG=False
+DJANGO_SECRET_KEY=secret_key
+DJANGO_SETTINGS_MODULE=core.settings.production
+DJANGO_STATIC_STORAGE=storages.backends.s3boto3.S3StaticStorage
+DB_ENGINE=django.db.backends.postgresql_psycopg2
+ENVIRONMENT=production
+LOGS_LEVEL=INFO
+PYTHONPATH=.
+```
+Estas variables de entorno son requeridas para nuestro proyecto de ejemplo. Finalmente hacemos clic en el botón "Submit" en la parte inferior derecha para crear el grupo de variables.
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/create-vargroup.png"
+    alt="create-vargroup-reference"
+  />
+</Zoom>
+
+### Despliegues
+Como último paso vamos a ver nuestro proyecto desplegado, para esto vamos a la sección "Deployments" del panel izquierdo:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-deployments.png"
+    alt="click-deployments-reference"
+  />
+</Zoom>
+
+Aquí vamos a ver todos los despliegues que hacemos. En nuestro caso es el primero y podemos ver que se ha creado correctamente, en caso de que veas algún error si haces clic en "error" puedes ver una descripción del mismo.
+Si no vemos ningún error entonces significa que el proyecto ya está desplegado, podríamos comenzar a usarlo desde la url que nos proporcionó el servicio web.
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/deployments.png"
+    alt="deployments-reference"
+  />
+</Zoom>
+
+Esto concluye nuestro proceso de despliegue de proyecto. Te dejamos un paso opcional que es configurar el ci con github.
+
+## Opcional
+### CI con Github
+Cada vez que hagas un cambio en tu código y quieras desplegarlo tendrás que hacer un build y un deploy, esto eventualmente se vuelve tedioso. Por eso para evitar esto tenemos que implementar ci en github.
+
+Para esto vamos a ir a "Projects" en el panel izquierdo:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-project-2.png"
+    alt="click-project-2-reference"
+  />
+</Zoom>
+
+Ubiquemos nuestro proyecto y hagamos clic en el engranaje para acceder a la configuración del proyecto:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-settings-project.png"
+    alt="click-settings-project-reference"
+  />
+</Zoom>
+
+En la configuración del proyecto ubicamos el que dice "Git pipelines" y hacemos clic en él:
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/click-git-pipelines.png"
+    alt="click-git-pipelines-reference"
+  />
+</Zoom>
+
+Aquí vamos a encontrar lo que necesitamos para hacer esto. Básicamente necesitamos configurar un archivo en la raíz de nuestro proyecto .github/workflows/ llamado ci_sleakops_demo.yml y en ese archivo vamos a pegar el contenido que aparece en esta página.
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/quickstart/django_celery/git-pipelines.png"
+    alt="git-pipelines-reference"
+  />
+</Zoom>
+
+Esto necesita tener una variable de entorno SLEAKOPS_KEY, si no la tienes tienes que ir al enlace que aparece ahí **Settings -> CLI**, obtenerla y guardarla como una variable de entorno.
+
+Con esto configurado y desplegado cada vez que hagas un push a tu rama "main" se lanzará automáticamente una nueva versión de tu aplicación.

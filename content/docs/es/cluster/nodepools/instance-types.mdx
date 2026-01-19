@@ -1,0 +1,84 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Tipos de Instancias y Manejo de Nodos
+
+En SleakOps, el manejo eficiente de tipos de instancias es crucial para optimizar costos y rendimiento de tus clusters. Esta guía te ayudará a entender los diferentes tipos de instancias disponibles y cómo tomar decisiones informadas sobre su uso.
+
+## Tipos de Instancias Disponibles
+
+### 1. Instancias Spot
+
+Las instancias Spot aprovechan la capacidad no utilizada en los centros de datos de AWS, ofreciendo descuentos significativos (hasta 90% menos que On-Demand) pero con el riesgo de interrupción.
+
+**Características:**
+- **Costo:** Hasta 90% de descuento vs On-Demand
+- **Disponibilidad:** Variable, puede ser interrumpida con 2 minutos de aviso
+- **Uso ideal:** Aplicaciones tolerantes a fallos, procesamiento por lotes, entornos de desarrollo
+
+### 2. Instancias On-Demand
+
+Las instancias On-Demand proporcionan acceso inmediato y confiable a recursos de computación con precios fijos por hora o segundo.
+
+**Características:**
+- **Costo:** Precio fijo, más alto que Spot
+- **Disponibilidad:** Garantizada, sin riesgo de interrupción
+- **Uso ideal:** Aplicaciones críticas, bases de datos, servicios de producción
+
+### 3. Instancias Reserved
+
+Las instancias Reserved ofrecen descuentos significativos (hasta 75%) a cambio de un compromiso de uso por 1 o 3 años.
+
+**Características:**
+- **Costo:** Hasta 75% de descuento con compromiso
+- **Disponibilidad:** Garantizada para el período comprometido
+- **Uso ideal:** Cargas de trabajo predecibles, entornos de producción estables
+
+## FAQs
+
+<details>
+<summary>
+### ¿Cómo evaluar si mi aplicación funciona en instancias Spot?
+</summary>
+
+Para determinar si tu aplicación es compatible con instancias Spot, evalúa los siguientes aspectos:
+
+**✅ Aplicaciones IDEALES para Spot:**
+- **Stateless:** No mantienen estado local crítico
+- **Fault-tolerant:** Pueden recuperarse de interrupciones
+- **Batch processing:** Tareas que se pueden reiniciar
+- **Development/Testing:** Entornos no críticos
+- **Microservicios:** Con circuit breakers y retry logic
+- **Tested with FIS:** Aplicaciones validadas con [AWS Fault Injection Simulator](https://aws.amazon.com/fis) para probar interrupciones de nodos
+
+**❌ Aplicaciones NO recomendadas para Spot:**
+- **Aplicaciones de tiempo real:** Que requieren latencia constante
+- **Procesos largos:** Que no pueden reiniciarse fácilmente
+- **Sistemas de pago:** Que requieren alta disponibilidad
+</details>
+
+<details>
+<summary>
+### ¿Cuándo debo usar instancias On-Demand?
+</summary>
+
+Usa instancias On-Demand en los siguientes escenarios:
+
+**Aplicaciones Críticas:**
+- Sistemas de pago y transacciones financieras
+- APIs de alta disponibilidad (99.9%+ SLA)
+- Servicios de autenticación y autorización
+
+**Cargas de Trabajo Específicas:**
+- Procesos que no pueden interrumpirse
+- Aplicaciones con requisitos de latencia estrictos
+- Sistemas legacy que no son fault-tolerant
+- Entornos de producción sin redundancia
+
+**Consideraciones de Costo:**
+- Cuando el costo de downtime supera el ahorro de Spot
+- Para workloads con patrones de uso impredecibles
+- En casos donde la capacidad garantizada es crítica
+
+</details>

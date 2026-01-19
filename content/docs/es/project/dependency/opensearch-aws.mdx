@@ -1,0 +1,76 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# AWS OpenSearch
+
+SleakOps se integra con Amazon OpenSearch (anteriormente conocido como Amazon Elasticsearch Service), un potente motor de búsqueda y análisis diseñado para ayudarte a buscar, analizar y visualizar datos en tiempo real. Al utilizar OpenSearch en SleakOps, puedes implementar, gestionar y escalar rápidamente tu infraestructura de búsqueda, obteniendo valiosos conocimientos de tus datos.
+
+:::info
+Para más información sobre OpenSearch y sus capacidades, puedes consultar la [Documentación de Amazon OpenSearch Service <FiExternalLink/>](https://docs.aws.amazon.com/opensearch-service/).
+:::
+
+## Preguntas Frecuentes
+
+<details>
+<summary>
+### ¿Cuáles son los casos de uso de OpenSearch?
+</summary>
+OpenSearch se utiliza comúnmente para búsquedas de texto completo, análisis en tiempo real, monitoreo y observabilidad, y análisis de registros. También es ideal para potenciar funcionalidades de búsqueda en sitios web y aplicaciones.
+</details>
+
+<details>
+<summary>
+### ¿Qué significa "Dedicated Master Enabled"?
+</summary>
+Cuando está habilitado, SleakOps configura nodos maestros dedicados que ayudan a gestionar el dominio de OpenSearch. Proporcionan mayor estabilidad al separar las tareas de gestión de los nodos de datos. Esto es altamente recomendado para cargas de trabajo en producción.
+</details>
+
+<details>
+<summary>
+### ¿Cuál es la configuración recomendada para nodos maestros en producción?
+</summary>
+Para entornos de producción, SleakOps recomienda usar 3 nodos maestros dedicados para mejorar la estabilidad y el rendimiento de tu clúster de OpenSearch.
+</details>
+
+## Configura tu OpenSearch
+### 1. Agrega AWS OpenSearch como una Dependencia
+Para integrar OpenSearch con SleakOps:
+1. En la consola de SleakOps, ve a la sección "Dependencias".
+2. Elige "SQS" de la lista de tipos de dependencias disponibles.
+Para más detalles, consulta [Dependencias: Integrando Bases de Datos, Caché y Servicios de Mensajería](/docs/project/dependency).
+
+### 2. Configura tu OpenSearch.
+Al agregar OpenSearch como una dependencia en SleakOps, necesitas configurar varios atributos clave:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/opensearch/opensearch-create-p1.png"
+    alt="opensearch-create-p1"
+/>
+</Zoom>
+
+| **Atributo** | **Descripción** |
+| --- | --- | 
+| **Cola FIFO** | Especifica el tipo de cola SQS: `Standard Queue` (para la mayoría de los casos) o `FIFO Queue` (si se requiere orden de mensajes). |
+| **Desduplicación FIFO** | Solo para Colas FIFO, para evitar duplicados. |
+| **Periodo de Retención de Mensajes** | Especifica la cantidad de tiempo que un mensaje será retenido en la cola si no ha sido consumido. | De 1 minuto a 14 días (Por defecto: 4 días). |
+| **Tamaño Máximo de Mensaje** | El tamaño máximo de un mensaje que puede ser enviado a la cola SQS. | Hasta 256 KB (Por defecto: 256 KB). |
+| **Retraso en la Entrega en Segundos** | El retraso entre el envío de un mensaje a SQS y su visibilidad en la cola. Sin retraso por defecto. | De 0 a 15 minutos (Por defecto: 0 segundos). |
+| **Tiempo de Espera para Recibir Mensajes** | Determina cuánto tiempo esperará una llamada `ReceiveMessage` si no hay mensajes disponibles en la cola. | De 0 a 20 segundos (Por defecto: 0 segundos). |
+| **Timeout de Visibilidad** | La duración durante la cual un mensaje permanece invisible después de que un componente lo lea desde la cola. | De 0 a 12 horas (Por defecto: 30 segundos). |
+| **Cola de Mensajes Fallidos (DLQ)** | Agrega una cola donde los mensajes que fallan en ser procesados múltiples veces son enviados para análisis adicional. | Configura DLQ con un conteo máximo de intentos. |
+
+### 3. Personaliza los nombres de tus variables para tu SQS.
+
+Como se explicó, cuando se crea una dependencia, SleakOps genera un grupo de variables (vargroup) para contener todos los atributos necesarios.  
+En este paso, puedes cambiar el nombre de los atributos si es necesario.  
+SleakOps completa automáticamente los valores.  
+Después de este paso, tu dependencia está creada.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/sqs/sqs-create-outputs.png"
+    alt="sqs-create-outputs"
+/>
+</Zoom>

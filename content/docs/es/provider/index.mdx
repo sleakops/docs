@@ -1,0 +1,91 @@
+---
+pagination_next: provider/schemas
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Providers
+
+En SleakOps, un Provider representa la conexión con tu nube de AWS, las credenciales otorgadas a SleakOps para acceder a ella y el conjunto de cuentas creadas para gestionar adecuadamente la infraestructura.
+
+En AWS, SleakOps creará una Organización con el nombre que seleccionaste e incluirá un conjunto de cuentas en ella.
+
+Para proporcionarte una vista clara de tus costos y recursos en AWS, SleakOps activa [Etiquetas de AWS <FiExternalLink/>](https://docs.aws.amazon.com/tag-editor/latest/userguide/tagging.html) en tu cuenta. En especial, SleakOps utiliza [Etiquetas de Asignación de Costos <FiExternalLink/>](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/cost-alloc-tags.html).
+
+## Vamos a crear tu provider en SleakOps
+
+### 1. Navega a la sección de providers
+
+En el *Panel Izquierdo*, accede a la opción *Configuración* y luego *Providers*. En la esquina superior derecha, haz clic en el botón *Crear*.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/provider/providerstep1.png"
+    alt="seccion-provider"
+  />
+</Zoom>
+
+### 2. Configura la Información Básica
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/provider/providerstep2.png"
+    alt="informacion-basica-provider"
+  />
+</Zoom>
+
+Estos son los ajustes que debes definir:
+
+| Configuración | Descripción |
+| --- | --- |
+| Nombre | Selecciona un nombre para la Unidad Organizativa en AWS bajo la cual se crearán las cuentas necesarias. |
+| Región | Región de AWS a utilizar. Si deseas saber más sobre ellas, puedes visitar esta documentación [aquí <FiExternalLink/>](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html). |
+| Dominio | Aquí debes proporcionar el dominio que posees en el cual se desplegarán los diferentes entornos. Debe delegarse manualmente al Route53 principal de SleakOps. Sigue los pasos descritos en esta [guía <FiExternalLink/>](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/MigratingDNS.html). |
+| Email | Por defecto, SleakOps usa el correo electrónico de la cuenta root proporcionada. Si deseas utilizar otro correo para registrar tus cuentas de SleakOps en AWS, completa este campo. |
+
+Una vez completado el formulario, haz clic en *Siguiente* para continuar.
+
+### 3. Conéctate a tu Cuenta Root de AWS
+
+:::warning
+Debes estar conectado a tu Cuenta Root de AWS.
+:::
+
+Para comenzar la instalación de tu aplicación, necesitamos conectarnos a tu Cuenta Root de AWS. Así es como hacerlo:
+
+- Al hacer clic en el botón *Siguiente*, serás redirigido a AWS para crear un rol de IAM en tu cuenta principal llamado "SleakopsIntegrationRole".
+<ol>
+    <li>Este rol nos permite acceder a los recursos necesarios, haciendo que la instalación sea rápida y fluida.</li>
+    <li>Después de la instalación, eliminaremos este rol para mantener la seguridad de tu cuenta.</li>
+</ol>
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/provider/providerstep3.png"
+    alt="acceso-cuenta-root-provider"
+  />
+</Zoom>
+
+### 4. Proceso de creación de la Unidad Organizativa en curso
+
+:::note
+Crear una Unidad Organizativa no genera ningún costo en tu cuenta de AWS 😃
+:::
+
+Una vez establecida la conexión y creado el rol, SleakOps iniciará automáticamente la creación de la Unidad Organizativa.
+
+Este proceso tomará unos minutos.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/provider/providerstep4.png"
+    alt="proceso-iniciado-provider"
+  />
+</Zoom>
+
+### 5. Conoce la arquitectura de infraestructura creada por SleakOps para ti.
+
+Para entender lo que se creó en tu cuenta de AWS, consulta [Cuentas](/docs/provider/accounts).
+

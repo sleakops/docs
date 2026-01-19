@@ -1,0 +1,66 @@
+---
+sidebar_label: Cuentas
+sidebar_position: 1
+---
+
+import Zoom from "react-medium-image-zoom";
+
+# Cuentas
+
+## Cuentas del Provider
+
+SleakOps implementa una infraestructura bien estructurada, diseñada para optimizar la excelencia operativa y garantizar un entorno seguro y escalable para los usuarios. Esta infraestructura se compone de cuatro cuentas, cada una con propósitos específicos y aisladas entre sí.
+
+Cada cuenta tiene una instancia de VPN generada al crear el primer clúster.
+
+Una vez que las Cuentas están activas, asignamos a cada una lo que llamamos [Módulo de Red](/docs/network), que contiene una variedad de servicios de AWS utilizados para realizar conexiones de red dentro de las cuentas.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/provider/aws/craftech-reference-architecture.png"
+    alt="arquitectura-de-referencia"
+  />
+</Zoom>
+
+### Cuenta de Seguridad
+
+La Cuenta de Seguridad centraliza la administración de usuarios de IAM y sus permisos de acceso al sistema. Aprende cómo cambiar entre cuentas en [Autenticación de Consola de AWS](../user/aws_console_authentication).
+
+### **Cuenta de Management**
+
+Diseñada para mantener servicios internos utilizados para el mantenimiento de aplicaciones, independientemente de si se comparten entre cuentas. Ejemplo: Sentry.
+
+- Contiene un clúster de EKS con CI/CD integrado (GitHub y HashiCorp Vault).
+- Vault gestiona credenciales para CloudWatch, mejorando las capacidades de monitoreo.
+- VPC Peering permite conexiones privadas a otras cuentas.
+
+### **Cuenta de Desarrollo**
+
+Para las diferentes etapas de tu aplicación antes de que pase a producción.
+
+- Contiene tres entornos: dev, QA y Staging.
+- Réplicas del entorno de producción para escribir código, realizar pruebas y pre-lanzamientos.
+- Asegura pruebas aisladas para evitar problemas a los usuarios externos.
+- Arquitectura similar a prod pero sin RDS Slave para reducir los requisitos de alta disponibilidad.
+
+### Cuenta de Producción
+
+Esta cuenta está destinada a que tu aplicación se instale en un entorno productivo, aislado del resto de las etapas de tu aplicación.
+
+- Soporta usuarios externos y requiere una base de datos completamente funcional (RDS Master).
+- Utiliza Subnet de BD Privada para RDS Master, RDS Slave y ElastiCache, cada uno en diferentes Zonas de Disponibilidad (AZs) para alta disponibilidad.
+- Despliegue de Backend con réplicas distribuidas en diferentes AZs.
+- Despliegue de Frontend con LoadBalancer para una distribución uniforme de la carga de red.
+- Route53 actúa como DNS y realiza comprobaciones de salud para la aplicación.
+- AWS CloudFront sirve contenido frontend estático desde un bucket de S3.
+- RDS Slave actúa como réplica de RDS Master para escenarios de conmutación por error, maximizando el tiempo de actividad.
+
+### Selección de una Cuenta en SleakOps
+
+<div style={{ display: 'flex', alignItems: 'flex-start' }}>
+  <img src="/img/provider/provideraccountselect.png" alt="arquitectura-de-referencia" style={{ marginRight: '20px', maxWidth: '200px' }} />
+  <div>
+    <p>Para seleccionar una cuenta y poder trabajar en ella, selecciónala desde el panel izquierdo.</p>
+    <p>El icono de la izquierda se refiere al Provider que agrupa las cuentas.</p>
+  </div>
+</div>

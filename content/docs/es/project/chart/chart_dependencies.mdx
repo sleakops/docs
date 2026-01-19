@@ -1,0 +1,118 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Dependencias de Chart
+
+Las Dependencias de Chart te permiten agregar charts externos a tu proyecto, siguiendo el mismo patrón que las [Dependencias de Helm Chart <FiExternalLink/>](https://helm.sh/docs/helm/helm_dependency/). Esta funcionalidad te permite integrar servicios y componentes de terceros de manera fluida en tu despliegue de SleakOps.
+
+:::warning Configuración de NodePool Requerida
+Dado que SleakOps utiliza NodePools para determinar la ubicación de recursos, debes configurar el parámetro `tolerations` para apuntar a un NodePool existente para todos los recursos de dependencias.
+:::
+
+## Repositorios de Chart Soportados
+
+Actualmente, SleakOps soporta **Charts de Bitnami** exclusivamente. Puedes explorar los charts disponibles en [ArtifactHub <FiExternalLink/>](https://artifacthub.io/packages/search?org=bitnami) para encontrar dependencias adecuadas para tu proyecto.
+
+## Agregando Dependencias de Chart
+
+Para agregar una nueva Dependencia de Chart, haz clic en el botón **Crear** en la sección de Configuración de Chart:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/project/chart/chart-dependencies-create.png"
+    alt="Botón de crear dependencias de chart"
+/>
+</Zoom>
+
+### Pasos de Configuración
+
+1. **Buscar y Seleccionar**: Usa los primeros dos campos para buscar el nombre del chart y seleccionar la versión deseada
+2. **Configurar Valores**: Modifica la sección de valores abajo para personalizar el despliegue
+3. **Establecer Tolerations**: **Crítico** - Actualiza todos los campos `tolerations` en los valores del chart para apuntar a tu NodePool
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/project/chart/chart-dependencies-form.png"
+    alt="Formulario de configuración de dependencias de chart"
+/>
+</Zoom>
+
+:::tip Importante
+Asegúrate de que cada campo `tolerations` en los valores del chart esté configurado correctamente para usar un NodePool. Sin esta configuración, Kubernetes no puede determinar dónde programar los pods, lo que lleva a fallas en el despliegue.
+:::
+
+## Preguntas Frecuentes
+
+<details>
+<summary>
+### Mi despliegue fue exitoso pero los pods no funcionan. ¿Qué está mal?
+</summary>
+La causa más común es una configuración incorrecta de NodePool. Verifica que:
+- Todos los campos `tolerations` estén configurados correctamente para apuntar a NodePools existentes
+- El NodePool tenga recursos suficientes
+- El NodePool esté en un estado saludable
+</details>
+
+<details>
+<summary>
+### No puedo encontrar el chart que necesito. ¿Cuáles son mis opciones?
+</summary>
+Actualmente, solo se soportan charts del repositorio de Bitnami. Si necesitas un chart que no esté disponible en el repositorio de Bitnami, por favor contacta a nuestro equipo de soporte para discutir alternativas o solicitar soporte adicional de repositorios.
+</details>
+
+<details>
+<summary>
+### ¿Cómo soluciono problemas de despliegue de dependencias?
+</summary>
+Pasos comunes de solución de problemas:
+1. Verifica que las tolerations de NodePool estén configuradas correctamente
+2. Comprueba que la versión del chart sea compatible
+3. Asegúrate de que los valores requeridos estén configurados correctamente
+4. Revisa los logs de pods para mensajes de error específicos
+</details>
+
+<details>
+<summary>
+### Mis recursos no montan los volúmenes EBS correctamente. ¿Qué debería verificar?
+</summary>
+1. Asegúrate de que el EBS CSI Driver esté instalado y funcionando en tu clúster. Puedes consultar la [documentación de Addon](/docs/cluster/addons/ebs) para obtener orientación sobre cómo configurar EBS.
+2. Asegúrate de haber completado los valores con el storageClass apropiado que se crea con el addon de EBS. Por ejemplo, un valor de persistencia para un chart podría verse así:
+```yaml
+persistence:
+  enabled: true
+  storageClass: "ebs-csi-default-sc"
+  accessModes:
+    - ReadWriteOnce
+  size: 5Gi
+```
+3. En caso de que necesites otro storageClass, puedes definirlo como un [extra template](/docs/project/chart/extra_templates) y usarlo. Recuerda configurar el provisioner como `ebs.csi.aws.com`.
+4. En caso de que los pods no estén iniciando, revisa los logs del EBS CSI Controller para verificar errores
+</details>
+
+<details>
+<summary>
+### Mis recursos no montan los volúmenes EFS correctamente. ¿Qué debería verificar?
+</summary>
+1. Asegúrate de que el EFS CSI Driver esté instalado y funcionando en tu clúster. Sleakops instala este addon cuando creas un [volumen](/docs/project/volumes) para un proyecto. Puedes crear y luego eliminar un volumen para completar la instalación.
+2. Asegúrate de haber completado los valores con el storageClass apropiado que prefieras para estos datos. Sleakops crea dos StorageClasses al instalar el addon de EFS: `efs-sc-retain` y `efs-sc-delete`. Por ejemplo, un valor de persistencia para un chart podría verse así:
+```yaml
+persistence:
+  enabled: true
+  storageClass: "efs-sc-retain"
+  accessModes:
+    - ReadWriteMany
+  size: 5Gi
+```
+3. En caso de que necesites otro storageClass, puedes definirlo como un [extra template](/docs/project/chart/extra_templates) y usarlo. Recuerda configurar el provisioner como `efs.csi.aws.com`.
+4. En caso de que los pods no estén iniciando, revisa los logs del EFS CSI Controller para verificar errores
+</details>
+
+<details>
+<summary>
+### Los Pods no inician debido a errores de image pull. ¿Qué debería verificar?
+</summary>
+1. Verifica que el nombre de la imagen y el tag especificados en los valores del chart sean correctos.
+2. Verifica que el repositorio sea bitnamilegacy en lugar de bitnami.
+3. Verifica si existe un valor `allowInsecureImages: false` y cámbialo a `allowInsecureImages: true`.
+</details>

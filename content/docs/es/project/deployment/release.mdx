@@ -1,0 +1,37 @@
+import { FiExternalLink } from "react-icons/fi";
+
+# Release
+
+## ¿Qué es un Release?
+
+En Sleakops, un release representa un estado desplegable de todos los servicios (servicios web, workers, cron jobs y jobs) de un [proyecto](/docs/project) en un [entorno](/docs/environment).
+
+## Creación de Releases
+
+Sleakops administra los releases por ti. Cada vez que modificas, eliminas o agregas un servicio, worker, hook o cron job, Sleakops te da la opción de publicar los cambios. Cada vez que publicas esos cambios, Sleakops crea un nuevo release con versiones auto-incrementadas.
+
+### Recursos del Helm Chart
+
+#### Web Service:
+
+- Un deployment de Kubernetes
+- Un servicio de Kubernetes
+- Un HPA de Kubernetes (Horizontal Pod Autoscaler)
+- Un ingress de Kubernetes
+
+El ingress genera sus hosts usando `<service_name>.<environment_name>.<organization_name>.<yourdomain.com>`
+
+#### Worker:
+
+- Un deployment de Kubernetes
+- Un HPA de Kubernetes
+
+#### Hook:
+
+- Un job de Kubernetes
+
+Este job usa hooks de Kubernetes para iniciarse.
+
+#### Cron Job:
+
+- Un cron job de Kubernetes

@@ -1,0 +1,45 @@
+import Zoom from "react-medium-image-zoom";
+
+# Creando un Node Pool
+
+### 1. Accede a la configuración de tu clúster para acceder a la sección de Node Pools
+
+Desde la lista de clústeres, selecciona uno y accede a la opción de Configuración. Luego, haz clic en la caja de Node Pools.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/cluster/cluster-settings-section.png"
+    alt="seccion-configuracion-cluster"
+  />
+</Zoom>
+
+### 2. Haz clic en Crear
+
+En la sección de Node Pools, si tienes permisos, encontrarás la opción *Crear* en la esquina superior derecha. Haz clic en ella.
+
+Ten en cuenta que la cantidad de Node Pools por clúster puede estar limitada según tu plan.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/cluster/cluster-nodepool-section.png"
+    alt="seccion-nodepool-cluster"
+  />
+</Zoom>
+
+### 3. Configura tu Node Pool
+
+En el modal de creación de Node Pool, completa los siguientes campos:
+
+| **Configuración** | **Descripción** |
+| --- | --- |
+| **Nombre** | Ingresa el nombre de tu elección para tu Node Pool. No puede repetirse dentro de un clúster. |
+| **Tipo de Instancia** | Selecciona uno o más tipos de instancias (ej. t3.medium, m5.large, c5.xlarge) basado en tus requisitos de cómputo. Puedes elegir múltiples tipos de instancias para proporcionar flexibilidad al autoscaler para provisionar la instancia disponible más rentable. |
+| **Tipo de Nodo** | Selecciona uno o más modelos de facturación para tus instancias. Puedes elegir múltiples opciones, y el sistema las priorizará en el siguiente orden: **Reserved** (mejor precio con compromiso) → **Spot** (mejor precio sin compromiso) → **On Demand** (precio más alto pero más flexible). Consulta [**¿Cuáles son los diferentes tipos de Node Pools?**](/docs/cluster/nodepools). |
+| **Tipo de Arquitectura** | Selecciona el tipo de arquitectura a utilizar durante la creación de tus instancias: (64-Bit) ARM o (64-Bit) X86, según tus necesidades de rendimiento y compatibilidad. Luego podrás crear nuevas instancias usando una arquitectura diferente. |
+| **Límite de Memoria** | Esto establece la memoria máxima que el clúster puede usar a medida que los servicios escalan. El autoscaler provisiona instancias basado en la demanda, pero esto no significa que el clúster siempre use la memoria máxima; simplemente define el límite superior para el autoscaler. |
+| **Límite de CPU** | Esto establece la CPU máxima que el clúster puede usar a medida que los servicios escalan. El autoscaler provisiona instancias basado en la demanda, pero esto no significa que el clúster siempre use la CPU máxima; simplemente define el límite superior para el autoscaler. |
+| **Almacenamiento** | Configurado por defecto en 20GB, puedes modificarlo según tus necesidades. |
+| **(Por Nodo) Memoria Mínima** | Define la cantidad mínima de memoria que debe estar disponible en cada nodo antes de que el autoscaler considere el nodo como "utilizado". Esta configuración ayuda a prevenir el sobre-aprovisionamiento asegurando que los nodos mantengan un buffer mínimo de memoria para procesos del sistema y picos inesperados de carga de trabajo. |
+| **(Por Nodo) CPU Mínima** | Define la cantidad mínima de CPU que debe estar disponible en cada nodo antes de que el autoscaler considere el nodo como "utilizado". Esta configuración ayuda a prevenir el sobre-aprovisionamiento asegurando que los nodos mantengan un buffer mínimo de CPU para procesos del sistema y picos inesperados de carga de trabajo. |
+
+Una vez que hayas completado el formulario, haz clic en *Crear* para iniciar la creación del Node Pool en el clúster seleccionado.

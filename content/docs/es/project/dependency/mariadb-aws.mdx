@@ -1,0 +1,152 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# AWS MariaDB
+
+SleakOps facilita la integración de bases de datos MariaDB a través de Amazon RDS (Relational Database Service). Amazon RDS para MariaDB es un servicio completamente administrado que simplifica la configuración, operación y escalado de bases de datos. MariaDB es un fork desarrollado por la comunidad y soportado comercialmente del sistema de gestión de bases de datos relacionales MySQL, que ofrece características mejoradas y mejoras de rendimiento. Al aprovechar SleakOps para esta integración, puedes gestionar eficientemente bases de datos MariaDB dentro de tu entorno EKS, asegurando soluciones de almacenamiento de datos robustas, escalables y confiables para tus aplicaciones.
+
+## Preguntas Frecuentes
+
+<details>
+<summary>
+### ¿Cómo gestiona SleakOps las credenciales de MariaDB?
+</summary>
+Cuando creas una dependencia MariaDB en SleakOps, se genera automáticamente un Vargroup para tu base de datos. Este Grupo de Variables almacena de forma segura las credenciales de MariaDB y otros detalles importantes de configuración, como el endpoint de la base de datos y la información de acceso del usuario. Podrás gestionarlos desde la sección de [Vargroups](/docs/project/vargroup).
+</details>
+
+<details>
+<summary>
+### ¿Qué es el despliegue Multi-AZ y debería habilitarlo?
+</summary>
+El despliegue Multi-AZ (Zona de Disponibilidad) garantiza alta disponibilidad y soporte para conmutación por error al replicar tu base de datos en otra zona de disponibilidad. Se recomienda para entornos de producción para evitar tiempos de inactividad. Ten en cuenta que aumenta los costos.
+</details>
+
+<details>
+<summary>
+### ¿Puedo cambiar la versión de MariaDB después de desplegar la base de datos?
+</summary>
+Sí, MariaDB soporta actualizaciones de versión del motor. Sin embargo, el proceso de actualización requiere planificación cuidadosa y puede involucrar tiempo de inactividad. Se recomienda probar el proceso de actualización en un entorno no productivo primero.
+</details>
+
+<details>
+<summary>
+### ¿Qué pasa si necesito más almacenamiento para mi base de datos MariaDB?
+</summary>
+Puedes ajustar el tamaño de almacenamiento al configurar tu base de datos. Si necesitas más almacenamiento después del despliegue, SleakOps te permite escalar el tamaño de almacenamiento sin tiempo de inactividad.
+</details>
+
+<details>
+<summary>
+### ¿Cómo creo un dump de mi base de datos MariaDB?
+</summary>
+Para crear un dump de tu base de datos MariaDB:
+1. **Ejecuta el comando `mysqldump`**:  
+```
+mysqldump -h MARIADB_ADDRESS -u MARIADB_USERNAME -p --all-databases > dump.sql
+```
+Reemplaza `MARIADB_ADDRESS`, `MARIADB_USERNAME`, y `dump.sql` con los valores apropiados.
+
+2. **Consulta la Documentación**: Para más información sobre cómo crear un dump, consulta la [documentación oficial de MariaDB <FiExternalLink/>](https://mariadb.com/kb/en/mysqldump/).
+</details>
+
+<details>
+<summary>
+### ¿Cómo importo un dump existente usando docker?
+</summary>
+Para importar un dump de base de datos a tu instancia MariaDB RDS:  
+1. **Conecta a la VPN**: Asegúrate de estar conectado a la VPN de la cuenta AWS donde se encuentra la instancia RDS.
+2. **Ejecuta Contenedor Docker** (Recomendado): 
+   - Instala Docker en tu máquina local si no está instalado.  
+   - Ejecuta un contenedor MariaDB Docker con el siguiente comando:
+   ```
+   docker run -it --name mariadb-container -v ./initial_data/:/tmp/data/ -e MARIADB_ROOT_PASSWORD=MARIADB_PASSWORD -d mariadb bash
+   ```
+   - Conecta a la terminal del contenedor:
+   ```
+   docker exec -t -i mariadb-container bash
+   ```
+   - Importa el archivo dump:
+   ```
+   mysql -h MARIADB_ADDRESS -u MARIADB_USERNAME -p < /tmp/data/dump.sql
+   ```
+   Reemplaza `MARIADB_ADDRESS`, `MARIADB_USERNAME`, y `dump.sql` con tus detalles específicos.
+</details>
+
+<details>
+<summary>
+### ¿Cómo importo un dump existente a mi máquina local?
+</summary>
+Alternativamente, puedes usar un cliente MariaDB instalado en tu máquina local para importar el dump:
+```
+mysql -h MARIADB_ADDRESS -u MARIADB_USERNAME -p < dump.sql
+```
+</details>
+
+<details>
+<summary>
+### ¿Qué debo hacer si encuentro problemas de conexión con mi base de datos MariaDB?
+</summary>
+Verifica lo siguiente:
+- Asegúrate de que el endpoint de la base de datos, nombre de usuario y contraseña sean correctos.
+- Verifica que tus grupos de seguridad y reglas de firewall permitan el acceso.
+- Asegúrate de que la base de datos esté ejecutándose y tenga suficientes recursos (CPU, memoria).
+De lo contrario, contáctanos.
+</details>
+
+:::info
+Documentación de AWS: [Documentación de Amazon RDS MariaDB](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_MariaDB.html)
+:::
+
+## Configura tu MariaDB
+### 1. Agrega MariaDB como Dependencia
+Para integrar MariaDB con SleakOps:
+1. En la consola de SleakOps, ve a la sección "Dependencies"
+2. Elige "MariaDB" de la lista de tipos de dependencias disponibles. 
+Para más detalles, consulta [Dependencies: Integrating Databases, Caching, and Messaging Services](/docs/project/dependency).
+
+### 2. Configura tu MariaDB.
+Accederás al siguiente formulario:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/mariadb/mariadb-create-p1.png"
+    alt="Formulario de creación de MariaDB"
+/>
+</Zoom>
+
+Aquí están los parámetros que SleakOps te permite personalizar durante la creación:
+
+| **Atributo** | **Descripción** |
+| --- | --- |
+| **Nombre de la Base de Datos** | Nombre para la base de datos MariaDB. Debe seguir el patrón: letras minúsculas y números, no puede ser "db" o "database". Esto identifica tu base de datos específica dentro de la instancia MariaDB. |
+| **Versión del Motor de la Base de Datos** | Selecciona la versión específica del motor de la base de datos MariaDB. Elige entre las versiones soportadas. Cada versión incluye características específicas de MariaDB, mejoras de rendimiento y actualizaciones de seguridad. |
+| **Nombre de Usuario Maestro de la Base de Datos** | Nombre de usuario maestro para la instancia de base de datos MariaDB. Este es el usuario principal con privilegios administrativos. No puede ser "admin", "user", "database", o "name". Debe comenzar con una letra y contener solo caracteres alfanuméricos. |
+| **Auto-generar Contraseña** | Si está habilitado, el backend generará una contraseña segura automáticamente para mayor seguridad. Esto se recomienda para entornos de producción para asegurar la complejidad de la contraseña. |
+| **Contraseña Maestra de la Base de Datos** | Contraseña para el usuario maestro. Requerida si auto-generar está deshabilitado. Debe tener al menos 8 caracteres y no puede contener caracteres @, ', ", o /. |
+| **Crear un RDS desde un snapshot** | Marca esto si restauras desde un snapshot de base de datos. Cuando está habilitado, necesitarás proporcionar el identificador del snapshot y algunos campos se vuelven de solo lectura. |
+| **Identificador del Snapshot** | *(Requerido si restauras desde snapshot)* Identificador del snapshot RDS desde el cual restaurar. Esto te permite restaurar tu base de datos desde un punto de respaldo anterior. |
+| **Clase de Instancia de la Base de Datos** | Define la clase de instancia que especifica la configuración de hardware para tu base de datos MariaDB. Elige entre tipos de instancia t4g/t3 (rendimiento burstable) o m7i/m8g (optimizado para memoria). Esto controla el rendimiento de CPU, memoria y red. |
+| **Almacenamiento de la Base de Datos** | Especifica la cantidad de almacenamiento asignado para la base de datos en GiB (20-6144 GB). MariaDB usa almacenamiento SSD de propósito general por defecto. Esta es la asignación de almacenamiento inicial para tu base de datos. |
+| **Auto-escalado de Almacenamiento Habilitado** | Habilita el escalado automático de almacenamiento para la instancia RDS. Cuando está habilitado, AWS aumentará automáticamente el almacenamiento cuando sea necesario, hasta el límite máximo de almacenamiento asignado. |
+| **Almacenamiento Máximo Asignado** | *(Requerido si el auto-escalado de almacenamiento está habilitado)* Tamaño máximo de almacenamiento en GiB (20-65536 GB) cuando el auto-escalado de almacenamiento está habilitado. Esto previene costos inesperados estableciendo un límite superior para el escalado automático. |
+| **Multi-AZ de la Base de Datos** | Habilita el despliegue Multi-Zona de Disponibilidad para alta disponibilidad. Esto crea una réplica en espera en una AZ diferente y proporciona capacidad de conmutación por error automática. Recomendado para entornos de producción. |
+| **Respaldo Automatizado** | Habilita respaldos automáticos para la instancia RDS. Cuando está habilitado, MariaDB realizará snapshots diarios y respaldos de logs de transacciones, proporcionando capacidades de recuperación punto en el tiempo. |
+| **Período de Retención de Respaldo** | *(Requerido si el respaldo automatizado está habilitado)* Número de días (1-35) para los cuales se mantienen los respaldos automáticos. Períodos de retención más largos proporcionan más opciones de recuperación pero aumentan los costos de almacenamiento. |
+| **Ventana de Respaldo** | *(Requerido si el respaldo automatizado está habilitado)* Período de tiempo para respaldos automatizados en formato HH:MM-HH:MM (UTC). Elige un momento cuando la actividad de tu base de datos típicamente sea baja para minimizar el impacto en el rendimiento. |
+| **Réplicas de Lectura** | *(Requerido si el respaldo automatizado está habilitado)* Configuración para réplicas de lectura de la base de datos para mejorar el rendimiento de lectura y proporcionar disponibilidad adicional. Cada réplica requiere un nombre, clase de instancia y configuración de acceso público. |
+
+### 3. Personaliza el nombre de tus variables para tu base de datos MariaDB.
+
+Como se explicó, cuando se crea una dependencia, SleakOps genera un vargroup para contener todos los atributos necesarios. 
+En este paso puedes cambiar el nombre de los atributos en caso de que sea necesario. 
+SleakOps completa los valores automáticamente. 
+Después de este paso, tu dependencia es creada.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/mariadb/mariadb-create-outputs.png"
+    alt="Salidas de creación de MariaDB"
+/>
+</Zoom>

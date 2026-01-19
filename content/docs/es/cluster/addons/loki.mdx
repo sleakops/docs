@@ -1,0 +1,67 @@
+---
+sidebar_label: Loki
+pagination_back: cluster/addons/grafana
+pagination_next: cluster/addons/kubecost
+---
+
+import Zoom from "react-medium-image-zoom";
+import { FiExternalLink } from "react-icons/fi";
+
+# Loki
+
+Introducción
+[Loki <FiExternalLink/>](https://grafana.com/oss/loki/) es un Addon que te permite almacenar y consultar logs de los contenedores desplegados dentro del clúster. Loki depende de [Grafana <FiExternalLink/>](/docs/cluster/addons/grafana), ya que SleakOps lo utiliza como visor de logs. Es una herramienta crucial para la resolución de problemas, ya que puede almacenar los logs de todo lo que ocurre en el clúster, lo cual es útil para el análisis de las causas raíz de problemas en tus aplicaciones o en cualquier recurso asignado dentro del clúster.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/cluster/addons/loki/loki-log-explorer.png"
+    alt="loki-log-explorer"
+  />
+</Zoom>
+
+## Preguntas Frecuentes
+
+<details>
+<summary>
+### ¿Qué paneles me permiten leer logs?
+</summary>
+Actualmente, SleakOps proporciona dos paneles para consultar los logs recolectados por Loki:  
+- **Log Explorer**: Es un panel simple que te permite filtrar por Namespace, Pod, Contenedor y Stream, donde puedes elegir entre 'stdout' y 'stderr'. También te permite buscar expresiones mediante el campo 'Search Query' en la parte superior.  
+- **Container Log Dashboard**: Similar al anterior, pero más orientado a analizar casos complejos. Es más lento porque requiere más procesamiento, y para consultas generales no será necesario.
+</details>
+
+<details>
+<summary>
+### ¿Cuál es la mejor manera de usar Loki?
+</summary>
+Minimizar el rango de tiempo que se consulta es la mejor forma de revisar logs de manera rápida y sin errores, ya que este parámetro tiene la mayor influencia en el peso de la respuesta. Recomendamos primero obtener una visión general de cuándo ocurrió el problema y luego buscar en Loki los logs de un rango de tiempo más específico, ya que, generalmente, la cantidad de logs puede ser muy alta.  
+
+Ten en cuenta que Loki utiliza pequeñas unidades de procesamiento para lectura, escritura y como controlador (backend), por lo que las consultas grandes pueden ser lentas si no hay suficientes réplicas de lectura o capacidad de procesamiento. Esto se puede modificar mediante SleakOps, pero también incrementará los costos.
+</details>
+
+<details>
+<summary>
+### ¿Cómo puedo modificar la capacidad de procesamiento de Loki?
+</summary>
+SleakOps te permite modificar la capacidad de procesamiento de Loki a través de la configuración del Addon. Una forma de aumentar su capacidad es modificando la cantidad de réplicas desplegadas.  
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/cluster/addons/loki/loki-replicas-configuration.png"
+    alt="loki-replicas-configuration"
+  />
+</Zoom>
+</details>
+
+<details>
+<summary>
+### ¿Cómo captura y almacena logs Loki?
+</summary>
+Loki recolecta logs de cada nodo del clúster y, por lo tanto, de cada contenedor que se ejecuta en él. Para lograr esto, SleakOps utiliza Promtail, que es el colector de logs predeterminado para Loki. Por esta razón, cada nodo del clúster tendrá una instancia de Promtail desplegada, encargada de recopilar y enviar los logs a la instancia de escritura de Loki, que después de un cierto período los transfiere a S3 para almacenamiento a largo plazo.
+</details>
+
+<details>
+<summary>
+### ¿Cómo es el proceso de recolección de logs?
+</summary>
+El colector de logs, Promtail, recopila y transmite a Loki todos los logs generados a través de 'stdout' o 'stderr' de cada contenedor en ejecución en el clúster.
+</details>
