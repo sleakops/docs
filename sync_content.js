@@ -15,7 +15,9 @@
  *   i18n/es/docusaurus-plugin-content-docs-tutorials/current/... (Spanish tutorials)
  *
  * This script syncs content FROM the CMS structure TO the Docusaurus structure.
- * It also filters out temporary folders created by the CMS (hex IDs like 24ef675958d5).
+ * It also handles CMS temporary folders (hex IDs like 24ef675958d5) by extracting
+ * their contents to the parent directory.
+ *
  * Run this before building the site.
  */
 
@@ -69,17 +71,17 @@ function isCmsTempFolder(name) {
 }
 
 /**
- * Recursively copy directory contents, skipping CMS temp folders
+ * Recursively copy directory contents
+ * If a folder is a CMS temp folder (hex ID), extract its contents to the parent dest
  */
-function copyDirSync(src, dest, skippedFolders = []) {
+function copyDirSync(src, dest, stats = { count: 0, flattened: [] }) {
   if (!fs.existsSync(src)) {
-    return { count: 0, skipped: skippedFolders };
+    return stats;
   }
 
   // Create destination if it doesn't exist
   fs.mkdirSync(dest, { recursive: true });
 
-  let count = 0;
   const entries = fs.readdirSync(src, { withFileTypes: true });
 
   for (const entry of entries) {
@@ -87,20 +89,36 @@ function copyDirSync(src, dest, skippedFolders = []) {
     const destPath = path.join(dest, entry.name);
 
     if (entry.isDirectory()) {
-      // Skip CMS temporary folders
+      // If this is a CMS temp folder, flatten it - copy contents to current dest
       if (isCmsTempFolder(entry.name)) {
-        skippedFolders.push(path.relative(ROOT, srcPath));
-        continue;
+        // Copy contents of temp folder directly to dest (flattening)
+        const tempContents = fs.readdirSync(srcPath, { withFileTypes: true });
+        for (const tempEntry of tempContents) {
+          const tempSrcPath = path.join(srcPath, tempEntry.name);
+          const flatDestPath = path.join(dest, tempEntry.name);
+
+          if (tempEntry.isDirectory()) {
+            copyDirSync(tempSrcPath, flatDestPath, stats);
+          } else {
+            fs.copyFileSync(tempSrcPath, flatDestPath);
+            stats.count++;
+            stats.flattened.push({
+              from: path.relative(ROOT, tempSrcPath),
+              to: path.relative(ROOT, flatDestPath),
+            });
+          }
+        }
+      } else {
+        // Normal directory - recurse
+        copyDirSync(srcPath, destPath, stats);
       }
-      const result = copyDirSync(srcPath, destPath, skippedFolders);
-      count += result.count;
     } else {
       fs.copyFileSync(srcPath, destPath);
-      count++;
+      stats.count++;
     }
   }
 
-  return { count, skipped: skippedFolders };
+  return stats;
 }
 
 /**
@@ -127,7 +145,7 @@ function main() {
     "🔄 Syncing content from CMS structure to Docusaurus structure...\n",
   );
 
-  let totalSkipped = [];
+  let allFlattened = [];
 
   for (const mapping of SYNC_MAP) {
     const srcPath = path.join(ROOT, mapping.source);
@@ -140,19 +158,18 @@ function main() {
 
     // Clear destination and copy fresh
     clearDirSync(destPath);
-    const result = copyDirSync(srcPath, destPath, []);
-    console.log(`  ✓ ${mapping.description}: ${result.count} files synced`);
-    totalSkipped = totalSkipped.concat(result.skipped);
+    const stats = copyDirSync(srcPath, destPath, { count: 0, flattened: [] });
+    console.log(`  ✓ ${mapping.description}: ${stats.count} files synced`);
+    allFlattened = allFlattened.concat(stats.flattened);
   }
 
-  if (totalSkipped.length > 0) {
-    console.log(`\n⚠️  Skipped ${totalSkipped.length} CMS temp folder(s):`);
-    for (const folder of totalSkipped) {
-      console.log(`     - ${folder}`);
-    }
+  if (allFlattened.length > 0) {
     console.log(
-      "   (These are temporary folders created by the CMS. Consider removing them from the repo.)",
+      `\n📦 Flattened ${allFlattened.length} file(s) from CMS temp folders:`,
     );
+    for (const item of allFlattened) {
+      console.log(`     ${item.from} → ${item.to}`);
+    }
   }
 
   console.log("\n✅ Content sync complete!");
