@@ -18,9 +18,12 @@ const path = require("path");
 
 // Directories to process
 const DIRS_TO_CLEAN = [
-  path.join(__dirname, "tutorials"),
-  path.join(__dirname, "changelog"),
-  path.join(__dirname, "i18n/es/docusaurus-plugin-content-blog-changelog"),
+  path.join(__dirname, "content/tutorials/en"),
+  path.join(__dirname, "content/tutorials/es"),
+  path.join(__dirname, "content/changelog/en"),
+  path.join(__dirname, "content/changelog/es"),
+  path.join(__dirname, "content/docs/en"),
+  path.join(__dirname, "content/docs/es"),
 ];
 
 /**

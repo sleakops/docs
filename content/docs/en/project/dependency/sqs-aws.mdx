@@ -1,0 +1,89 @@
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# AWS SQS
+
+SleakOps integrates Amazon Simple Queue Service (SQS) into your application's architecture. Amazon SQS is a fully managed message queuing service that allows you to decouple application components, ensuring smooth and efficient message processing. By leveraging SQS, you can enhance the scalability and reliability of your applications, handling large volumes of messages asynchronously.  
+This section provides an overview of how to configure SQS within SleakOps and details the attributes needed for successful integration.
+
+:::info
+For further details on SQS and its benefits, you can refer to the [Amazon SQS Developer Guide <FiExternalLink/>](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/welcome.html).
+:::
+
+## FAQs 
+
+<details>
+<summary>
+### What is the difference between a Standard Queue and a FIFO Queue?
+</summary>
+1. A **Standard Queue** supports high throughput with at-least-once message delivery. Message ordering is not guaranteed but it's ideal for scenarios where message order isn't critical.
+2. A **FIFO Queue** ensures message ordering and exactly-once delivery. It's suitable for applications where message order is crucial.
+</details>
+
+<details>
+<summary>
+### What is Multi-AZ deployment and should I enable it?
+</summary>
+Multi-AZ (Availability Zone) deployment ensures high availability and failover support by replicating your database in another availability zone. It’s recommended for production environments to prevent downtime. Keep in mind that it increases costs.
+</details>
+
+<details>
+<summary>
+### What is a Dead-Letter Queue (DLQ), and when should I use it?
+</summary>
+A **DLQ** is a secondary queue where messages that can't be processed successfully after a certain number of attempts are sent. You should configure a DLQ to help with error handling and to prevent message loss. See [AWS SQS DLQ <FiExternalLink/>](https://aws.amazon.com/es/what-is/dead-letter-queue/).
+</details>
+
+<details>
+<summary>
+### What is Deduplication in a FIFO Queue?
+</summary>
+In an SQS FIFO Queue, deduplication ensures that duplicate messages are automatically removed, preserving strict message ordering.
+</details>
+
+## Set up your SQS
+### 1. Add SQS as a Dependency
+To integrate SQS with SleakOps:
+1. In the SleakOps console, go to the "Dependencies" section
+2. Choose "SQS" from the list of available dependency types. 
+For more detail see [Dependencies: Integrating Databases, Caching, and Messaging Services](/project/dependency/index.mdx).
+
+### 2. Set up your SQS database.
+You will access the following form:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/sqs/sqs-create-p1.png"
+    alt="sqs-create-p1"
+/>
+</Zoom>
+
+Here the parameters that SleakOps allows you to customize during the creation:
+
+| **Attribute** | **Description** |
+| --- | --- | 
+| **Fifo Queue** | Select if the queue is standard or fifo. Read more on FAQs |
+| **Fifo Deduplication** | Select if deduplication is activated. Read more on FAQs|
+| **Message Delay Seconds** | Seconds of delivery delay to messages on queue.  |
+| **Message Max Size** | Bytes maximum limit per message |
+| **Message Retention Seconds** |Seconds that a message is retained by SQS |
+| **Receive WaitTime Seconds** | The time for which a ReceiveMessage call will wait for a message to arrive (long polling) before returning |
+| **Visibility Timeout Seconds** | Seconds that a message is retained by SQS |
+| **Dead Letter Queue** |  Select if dead letter queue is enabled. Read more on FAQs |
+
+By activating the **Dead Letter Queue** feature, you need to complete the same information for the second queue.
+
+### 3. Customize your variable names for your SQS.
+
+As explained, when a dependency is created, SleakOps generates a vargroup to hold all the needed attributes. 
+In this step you can change the name of the attributes in case it is needed. 
+SleakOps completes the values automatically. 
+After this step, your dependency is created.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/dependency/sqs/sqs-create-outputs.png"
+    alt="sqs-create-outputs"
+/>
+</Zoom>

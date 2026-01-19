@@ -1,0 +1,48 @@
+import { FiExternalLink, FiCornerRightDown } from "react-icons/fi";
+
+# Workloads
+
+In SleakOps, an Workload is simply a user-defined workload that runs within the cluster. Depending on how and when you need your workload to run, you can choose from five different types:
+
+| Name | Description |
+| ------ | ----------- |
+| [Web Service](/project/workload/webservice) | An always-on service that handles HTTP requests (e.g., hosting websites, APIs). |
+| [Worker](/project/workload/worker) |	A background process for internal tasks (e.g., message queues, data processing). |
+| [Cronjob](/project/workload/cronjob) |	A scheduled job that runs periodically (e.g., daily at 3 a.m.). |
+| [Job](/project/workload/job) |	A one-time task, ideal for ad-hoc or maintenance operations. |
+| [Hook](/project/workload/hook) | A task triggered by deployment events (e.g., run database migrations or collect statistics). |
+
+
+## Which workload type is right for me?
+
+
+```mermaid
+flowchart TB
+    A("Does your workload<br>need to handle HTTP requests<br>(user or API traffic)?")
+    B["Create a<br><b>Web Service</b>"]
+    C("Do you need a process<br>running continuously in the background<br>waiting for tasks/events?")
+    D["Create a<br><b>Worker</b>"]
+    E("Do you need a task<br>to run on a schedule?")
+    F["Create a<br><b>CronJob</b>"]
+    G("Do you need a task<br>to run just once?")
+    H["Create a<br><b>Job</b>"]
+    I("Do you need a task<br>to run everytime<br>a deployment runs?")
+    J["Create a<br><b>Hook</b>"]
+
+    A -- "Yes" --> B
+    A -- "No" --> C
+    C -- "Yes" --> D
+    C -- "No" --> E
+    E -- "Yes" --> F
+    E -- "No" --> I
+    I -- "Yes" --> J
+    I -- "No" --> G
+    G -- "Yes" --> H
+```
+
+
+- **Web Service:** Choose this if you need your application or service to be available 24/7 to respond to HTTP requests.
+- **Worker:** Use this for background processing tasks, such as message queues or data pipelines, with no direct HTTP interaction.
+- **CronJob:** Ideal for recurring maintenance or reporting tasks scheduled at specific times.
+- **Job:** Suitable for one-time or on-demand tasks (e.g., manual database migrations).
+- **Hook:** Perfect if you want to automate certain actions (like database migrations or analytics) on every deployment.
