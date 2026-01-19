@@ -8,6 +8,7 @@ media_folder: static/img
 public_folder: /img
 
 # i18n Configuration - Multiple Folders Structure
+# Structure: content/docs/en/*, content/docs/es/*
 i18n:
   structure: multiple_folders
   locales: [en, es]
@@ -18,6 +19,7 @@ collections:
   # 📖 DOCUMENTATION
   # ============================================
 
+  # Root level docs (files directly in content/docs/en/ and content/docs/es/)
   - name: docs-root
     label: "📖 Documentation Root"
     folder: content/docs
@@ -26,6 +28,8 @@ collections:
     extension: mdx
     format: frontmatter
     i18n: true
+    identifier_field: title
+    slug: "{{slug}}"
     fields:
       - { name: title, label: Title, widget: string, i18n: true }
       - {
@@ -44,6 +48,7 @@ collections:
         }
       - { name: body, label: Body, widget: markdown, i18n: true }
 
+  # Cluster docs
   - name: docs-cluster
     label: "🖥️ Cluster"
     folder: content/docs
@@ -52,6 +57,8 @@ collections:
     extension: mdx
     format: frontmatter
     i18n: true
+    identifier_field: title
+    slug: "{{slug}}"
     fields:
       - { name: title, label: Title, widget: string, i18n: true }
       - {
@@ -78,6 +85,8 @@ collections:
     extension: mdx
     format: frontmatter
     i18n: true
+    identifier_field: title
+    slug: "{{slug}}"
     fields:
       - { name: title, label: Title, widget: string, i18n: true }
       - {
@@ -104,6 +113,8 @@ collections:
     extension: mdx
     format: frontmatter
     i18n: true
+    identifier_field: title
+    slug: "{{slug}}"
     fields:
       - { name: title, label: Title, widget: string, i18n: true }
       - {
@@ -130,6 +141,8 @@ collections:
     extension: mdx
     format: frontmatter
     i18n: true
+    identifier_field: title
+    slug: "{{slug}}"
     fields:
       - { name: title, label: Title, widget: string, i18n: true }
       - {
@@ -156,6 +169,8 @@ collections:
     extension: mdx
     format: frontmatter
     i18n: true
+    identifier_field: title
+    slug: "{{slug}}"
     fields:
       - { name: title, label: Title, widget: string, i18n: true }
       - {
@@ -182,6 +197,8 @@ collections:
     extension: mdx
     format: frontmatter
     i18n: true
+    identifier_field: title
+    slug: "{{slug}}"
     fields:
       - { name: title, label: Title, widget: string, i18n: true }
       - {
@@ -208,6 +225,8 @@ collections:
     extension: mdx
     format: frontmatter
     i18n: true
+    identifier_field: title
+    slug: "{{slug}}"
     fields:
       - { name: title, label: Title, widget: string, i18n: true }
       - {
@@ -234,6 +253,8 @@ collections:
     extension: mdx
     format: frontmatter
     i18n: true
+    identifier_field: title
+    slug: "{{slug}}"
     fields:
       - { name: title, label: Title, widget: string, i18n: true }
       - {
@@ -260,6 +281,8 @@ collections:
     extension: mdx
     format: frontmatter
     i18n: true
+    identifier_field: title
+    slug: "{{slug}}"
     fields:
       - { name: title, label: Title, widget: string, i18n: true }
       - {
@@ -286,6 +309,8 @@ collections:
     extension: mdx
     format: frontmatter
     i18n: true
+    identifier_field: title
+    slug: "{{slug}}"
     fields:
       - { name: title, label: Title, widget: string, i18n: true }
       - {
@@ -312,6 +337,8 @@ collections:
     extension: mdx
     format: frontmatter
     i18n: true
+    identifier_field: title
+    slug: "{{slug}}"
     fields:
       - { name: title, label: Title, widget: string, i18n: true }
       - {
@@ -338,6 +365,8 @@ collections:
     extension: mdx
     format: frontmatter
     i18n: true
+    identifier_field: title
+    slug: "{{slug}}"
     fields:
       - { name: title, label: Title, widget: string, i18n: true }
       - {
@@ -364,6 +393,8 @@ collections:
     extension: mdx
     format: frontmatter
     i18n: true
+    identifier_field: title
+    slug: "{{slug}}"
     fields:
       - { name: title, label: Title, widget: string, i18n: true }
       - {
@@ -390,6 +421,8 @@ collections:
     extension: mdx
     format: frontmatter
     i18n: true
+    identifier_field: title
+    slug: "{{slug}}"
     fields:
       - { name: title, label: Title, widget: string, i18n: true }
       - {
@@ -416,6 +449,8 @@ collections:
     extension: mdx
     format: frontmatter
     i18n: true
+    identifier_field: title
+    slug: "{{slug}}"
     fields:
       - { name: title, label: Title, widget: string, i18n: true }
       - {
@@ -442,6 +477,8 @@ collections:
     extension: mdx
     format: frontmatter
     i18n: true
+    identifier_field: title
+    slug: "{{slug}}"
     fields:
       - { name: title, label: Title, widget: string, i18n: true }
       - {
@@ -472,20 +509,26 @@ collections:
     extension: mdx
     format: frontmatter
     i18n: true
+    identifier_field: title
+    slug: "{{slug}}"
     fields:
       - { name: title, label: Title, widget: string, i18n: true }
-      - name: sidebar_label
-        label: Sidebar Label
-        widget: string
-        required: false
-        i18n: true
-      - name: sidebar_position
-        label: Sidebar Position
-        widget: number
-        required: false
-        value_type: int
-        min: 0
-        i18n: duplicate
+      - {
+          name: sidebar_label,
+          label: Sidebar Label,
+          widget: string,
+          required: false,
+          i18n: true,
+        }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+          value_type: int,
+          min: 0,
+          i18n: duplicate,
+        }
       - {
           name: description,
           label: Description,
@@ -509,12 +552,13 @@ collections:
           - { label: "Troubleshooting", value: "troubleshooting" }
         required: false
         i18n: duplicate
-      - name: image
-        label: Preview Image
-        widget: image
-        required: false
-        multiple: false
-        i18n: duplicate
+      - {
+          name: image,
+          label: Preview Image,
+          widget: image,
+          required: false,
+          i18n: duplicate,
+        }
       - { name: body, label: Body, widget: markdown, i18n: true }
 
   # ============================================
@@ -528,11 +572,11 @@ collections:
     create: true
     extension: md
     format: frontmatter
-    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    slug: "{{year}}-{{month}}-{{day}}-{{title | slug}}"
     i18n: true
+    identifier_field: title
     fields:
       - { name: title, label: Title, widget: string, i18n: true }
-      - { name: slug, label: Slug, widget: string, i18n: duplicate }
       - name: authors
         label: Authors
         widget: list
