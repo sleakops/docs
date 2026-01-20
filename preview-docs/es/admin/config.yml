@@ -18,63 +18,36 @@ collections:
   # 📖 DOCUMENTATION
   # ============================================
 
-  # Documentation Root (EN) - Test without i18n
-  - name: docs-root-en
-    label: "📖 Documentation Root (EN)"
-    folder: content/docs/en
+  # Documentation Root - archivos directamente en content/docs/<locale>/
+  - name: docs-root
+    label: "📖 Documentation Root"
+    folder: content/docs
+    path: "{{slug}}"
     create: true
     extension: mdx
     format: frontmatter
+    i18n: true
     identifier_field: title
-    meta:
-      path:
-        widget: string
-        label: Path
-        index_file: index
+    index_file:
+      name: index
+      label: "📄 Index"
     fields:
-      - { name: title, label: Title, widget: string }
+      - { name: title, label: Title, widget: string, i18n: true }
       - {
           name: sidebar_label,
           label: Sidebar Label,
           widget: string,
           required: false,
+          i18n: true,
         }
       - {
           name: sidebar_position,
           label: Sidebar Position,
           widget: number,
           required: false,
+          i18n: duplicate,
         }
-      - { name: body, label: Body, widget: markdown }
-
-  # Documentation Root (ES) - Test without i18n
-  - name: docs-root-es
-    label: "📖 Documentation Root (ES)"
-    folder: content/docs/es
-    create: true
-    extension: mdx
-    format: frontmatter
-    identifier_field: title
-    meta:
-      path:
-        widget: string
-        label: Path
-        index_file: index
-    fields:
-      - { name: title, label: Título, widget: string }
-      - {
-          name: sidebar_label,
-          label: Etiqueta Sidebar,
-          widget: string,
-          required: false,
-        }
-      - {
-          name: sidebar_position,
-          label: Posición Sidebar,
-          widget: number,
-          required: false,
-        }
-      - { name: body, label: Contenido, widget: markdown }
+      - { name: body, label: Body, widget: markdown, i18n: true }
 
   # Cluster
   - name: docs-cluster
@@ -531,6 +504,7 @@ collections:
   - name: tutorials
     label: "📚 Tutorials"
     folder: content/tutorials
+    path: "{{slug}}"
     create: true
     extension: mdx
     format: frontmatter
@@ -593,6 +567,7 @@ collections:
   - name: changelog
     label: "📝 Changelog"
     folder: content/changelog
+    path: "{{slug}}"
     create: true
     extension: md
     format: frontmatter
