@@ -11,8 +11,9 @@ tags:
   - background-jobs
   - kubernetes
   - scaling
-image: ../django-celery/django-celery.png
+image: /img/tutorials/django-celery/django-celery.png
 ---
+
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
@@ -52,14 +53,14 @@ Inside the Projects panel you will be able to see all the projects you have and 
 
 In the project creation screen we have the following fields:
 
-| **Setting** | **Description** |
-| --- | --- |
-| **Environment** | We have to select the previously created environment. |
-| Nodepool | We will leave the default one. |
+| **Setting**      | **Description**                                                                          |
+| ---------------- | ---------------------------------------------------------------------------------------- |
+| **Environment**  | We have to select the previously created environment.                                    |
+| Nodepool         | We will leave the default one.                                                           |
 | **Repositories** | We will select our repository that we want to deploy. In our case example-django-celery. |
-| Project Name | We can define a project name. For the example we will leave the default. |
-| **Branch** | It has to coincide with the one we have in our project. In our case it is “Main”. |
-| Dockerfile path | It is the relative path to the dockerfile in your project. |
+| Project Name     | We can define a project name. For the example we will leave the default.                 |
+| **Branch**       | It has to coincide with the one we have in our project. In our case it is “Main”.        |
+| Dockerfile path  | It is the relative path to the dockerfile in your project.                               |
 
 Once configured all that we create the project with the “Submit” button at the bottom right:
 
@@ -92,12 +93,12 @@ Here what we are going to do is to create a web service so we go to the web serv
 
 In this page we are going to complete the first form with the following fields:
 
-| **Setting** | **Description** |
-| --- | --- |
-| **Project** | We select the project we created previously, in our case “example-django-celery”. |
-| Name | We define a name for the web service. |
+| **Setting** | **Description**                                                                          |
+| ----------- | ---------------------------------------------------------------------------------------- |
+| **Project** | We select the project we created previously, in our case “example-django-celery”.        |
+| Name        | We define a name for the web service.                                                    |
 | **Command** | By default this will take the value that is in the dockerfile, in our case this is fine. |
-| Port | The same as the command. |
+| Port        | The same as the command.                                                                 |
 
 Then we continue by clicking on the “Next” button up to step 3:
 
@@ -107,9 +108,9 @@ Then we continue by clicking on the “Next” button up to step 3:
     alt="create-web-service-reference"
   />
 </Zoom>
-In step 3 we have to edit the path field and put the endpoint of healthcheck which
-in our case is “/healthcheck/”. Then click on the “Next” button until the web service
-is created:
+In step 3 we have to edit the path field and put the endpoint of healthcheck
+which in our case is “/healthcheck/”. Then click on the “Next” button until the
+web service is created:
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
     src="/img/quickstart/django_celery/create-web-service-2.png"
@@ -139,10 +140,10 @@ And click on the “Create” button to create a new one:
 
 In the workers creation screen we will have to complete the following fields:
 
-| **Setting** | **Description** |
-| --- | --- |
-| **Project** | Select the previously created project. In our case “example-django-celery”. |
-| Name | We define the name that we are going to give to the worker. In our case “celery”. |
+| **Setting** | **Description**                                                                                                                                                                                                                                 |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Project** | Select the previously created project. In our case “example-django-celery”.                                                                                                                                                                     |
+| Name        | We define the name that we are going to give to the worker. In our case “celery”.                                                                                                                                                               |
 | **Command** | Here we set the command to run celery, in our case it is: `bash celery -A core.celery_app worker -l INFO --concurrency 1 --max-tasks-per-child 1 --prefetch-multiplier 1 -n celery@%h --queues default,build,deployment,cluster,canvas,billing` |
 
 With these fields filled in we will click on the “Next” button at the bottom right and then “Submit” as we do not need to edit anything else:
@@ -167,10 +168,10 @@ With this we will see our celery published. Now we have to configure the hooks. 
 
 In the hook creation screen we will have the following fields:
 
-| **Setting** | **Description** |
-| --- | --- |
-| **Project** | Select the previously created project. In our case “example-django-celery”. |
-| **Name** | We define the name that we are going to give to the worker. In our case “migrations”. |
+| **Setting** | **Description**                                                                                       |
+| ----------- | ----------------------------------------------------------------------------------------------------- |
+| **Project** | Select the previously created project. In our case “example-django-celery”.                           |
+| **Name**    | We define the name that we are going to give to the worker. In our case “migrations”.                 |
 | **Command** | Here we set the command to run celery, in our case it is: `bash python manage.py migrate --no-input ` |
 
 With these fields filled in we will click on the “Next” button at the bottom right and then “Submit” as we do not need to edit anything else:
@@ -203,7 +204,7 @@ In this form we are going to do the same as the previous one but modifying the c
     alt="create-collectstatic-hook-reference"
   />
 </Zoom>
-The command we use is as follows:{" "}
+The command we use is as follows:
 
 ```plain
 bash python manage.py collectstatic --no-input
@@ -246,10 +247,10 @@ In the 1st postgresql creation form we will have to select our previously create
 
 In the 2nd form we are going to have a lot of fields, the only ones that matter to us are the following:
 
-| **Setting** | **Description** |
-| --- | --- |
+| **Setting**                  | **Description**                                  |
+| ---------------------------- | ------------------------------------------------ |
 | **Database Master Username** | Here we assign a root user name to our database. |
-| **Database Master Password** | A password for this root user. |
+| **Database Master Password** | A password for this root user.                   |
 
 With these fields filled in, we are ready to move on. Click on the “Next” button at the bottom right to proceed to the third form:
 
@@ -262,13 +263,13 @@ With these fields filled in, we are ready to move on. Click on the “Next” bu
 
 In this last form, we are going to adjust the environment variables we have in our project with respect to the database. To do this, we need to change the following variables to our own:
 
-| **Before** | **After** |
-| --- | --- |
-| \*_POSTGRESQL_NAME | DB_NAME |
-| \*_POSTGRESQL_USERNAME | DB_USER |
-| \*_POSTGRESQL_PASSWORD | DB_PASSWORD |
-| \*_POSTGRESQL_ADDRESS | DB_HOST |
-| \*_POSTGRESQL_PORT | DB_PORT |
+| **Before**              | **After**   |
+| ----------------------- | ----------- |
+| \*\_POSTGRESQL_NAME     | DB_NAME     |
+| \*\_POSTGRESQL_USERNAME | DB_USER     |
+| \*\_POSTGRESQL_PASSWORD | DB_PASSWORD |
+| \*\_POSTGRESQL_ADDRESS  | DB_HOST     |
+| \*\_POSTGRESQL_PORT     | DB_PORT     |
 
 It should look something like the image below. Then click on the “Submit” button and your database should be created:
 
@@ -336,8 +337,8 @@ And select Rabbitmq:
     alt="click-select-rabbitmq-reference"
   />
 </Zoom>
-In the first form we will have to select our project and define a name for it. Then
-click on the “Next” button at the bottom right:
+In the first form we will have to select our project and define a name for it.
+Then click on the “Next” button at the bottom right:
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
     src="/img/quickstart/django_celery/create-rabbitmq.png"
@@ -345,9 +346,10 @@ click on the “Next” button at the bottom right:
   />
 </Zoom>
 In the following form we have several fields but the only ones that matter to us
-for this example are the username and password, we can define whatever we want. For
-this example I chose admin as username and for the password I generated it randomly
-with the dice button. Then we click on the “Next” button to go to the next form:
+for this example are the username and password, we can define whatever we want.
+For this example I chose admin as username and for the password I generated it
+randomly with the dice button. Then we click on the “Next” button to go to the
+next form:
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
     src="/img/quickstart/django_celery/create-rabbitmq-2.png"
@@ -355,7 +357,7 @@ with the dice button. Then we click on the “Next” button to go to the next f
   />
 </Zoom>
 
-In this last form we have to change the name of the variable that ends in \*_BROKER_AUTH_URL to CELERY_BROKER_URL (as shown in the image). Then we click on the “Submit” button at the bottom right to finish creating rabbitmq:
+In this last form we have to change the name of the variable that ends in \*\_BROKER_AUTH_URL to CELERY_BROKER_URL (as shown in the image). Then we click on the “Submit” button at the bottom right to finish creating rabbitmq:
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -434,8 +436,8 @@ If we do not see any error then it means that the project is already deployed, w
     alt="deployments-reference"
   />
 </Zoom>
-This concludes our project deployment process. We leave you an optional step which
-is to configure the ci with github.
+This concludes our project deployment process. We leave you an optional step
+which is to configure the ci with github.
 
 ## Optional
 

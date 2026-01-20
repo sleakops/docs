@@ -14,7 +14,7 @@ const OUTPUT_FILE = path.join(
   __dirname,
   "src",
   "data",
-  "tutorials-generated.json"
+  "tutorials-generated.json",
 );
 
 /**
@@ -147,12 +147,22 @@ function processTutorial(fileInfo) {
     sidebarPosition = null;
   }
 
+  // Process image path
+  let imagePath = frontmatter.image || null;
+  if (imagePath && imagePath.startsWith("../")) {
+    // Resolve relative paths like ../django-celery/django-celery.png
+    // to /img/tutorials/django-celery/django-celery.png
+    const filename = path.basename(imagePath);
+    const slug = path.basename(path.dirname(imagePath));
+    imagePath = `/img/tutorials/${slug}/${filename}`;
+  }
+
   return {
     id: fileInfo.id,
     title: frontmatter.title || fileInfo.id,
     description: frontmatter.description || "",
     tags: frontmatter.tags || [],
-    image: frontmatter.image || null,
+    image: imagePath,
     sidebar_position: sidebarPosition,
   };
 }
