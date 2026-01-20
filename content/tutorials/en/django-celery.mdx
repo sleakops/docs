@@ -1,8 +1,8 @@
 ---
+title: Django + Celery
 sidebar_label: Django + Celery
 sidebar_position: 10
-title: "Django + Celery"
-description: "Learn how to deploy your Django + Celery project with distributed and scalable worker mode on Kubernetes using Sleakops"
+description: Learn how to deploy your Django + Celery project with distributed and scalable worker mode on Kubernetes using Sleakops
 tags:
   - django
   - celery
@@ -11,9 +11,8 @@ tags:
   - background-jobs
   - kubernetes
   - scaling
-image: /img/tutorial-img.png
+image: ../django-celery/django-celery.png
 ---
-
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
@@ -52,10 +51,11 @@ Inside the Projects panel you will be able to see all the projects you have and 
 </Zoom>
 
 In the project creation screen we have the following fields:
+
 | **Setting** | **Description** |
 | --- | --- |
 | **Environment** | We have to select the previously created environment. |
-| Nodepool| We will leave the default one. |
+| Nodepool | We will leave the default one. |
 | **Repositories** | We will select our repository that we want to deploy. In our case example-django-celery. |
 | Project Name | We can define a project name. For the example we will leave the default. |
 | **Branch** | It has to coincide with the one we have in our project. In our case it is “Main”. |
@@ -91,6 +91,7 @@ Here what we are going to do is to create a web service so we go to the web serv
 </Zoom>
 
 In this page we are going to complete the first form with the following fields:
+
 | **Setting** | **Description** |
 | --- | --- |
 | **Project** | We select the project we created previously, in our case “example-django-celery”. |
@@ -137,11 +138,12 @@ And click on the “Create” button to create a new one:
 </Zoom>
 
 In the workers creation screen we will have to complete the following fields:
+
 | **Setting** | **Description** |
 | --- | --- |
 | **Project** | Select the previously created project. In our case “example-django-celery”. |
 | Name | We define the name that we are going to give to the worker. In our case “celery”. |
-| **Command** | Here we set the command to run celery, in our case it is: `bash celery -A core.celery_app worker -l INFO --concurrency 1 --max-tasks-per-child 1 --prefetch-multiplier 1 -n celery@%h --queues default,build,deployment,cluster,canvas,billing`|
+| **Command** | Here we set the command to run celery, in our case it is: `bash celery -A core.celery_app worker -l INFO --concurrency 1 --max-tasks-per-child 1 --prefetch-multiplier 1 -n celery@%h --queues default,build,deployment,cluster,canvas,billing` |
 
 With these fields filled in we will click on the “Next” button at the bottom right and then “Submit” as we do not need to edit anything else:
 
@@ -164,6 +166,7 @@ With this we will see our celery published. Now we have to configure the hooks. 
 ### Create a migration hook
 
 In the hook creation screen we will have the following fields:
+
 | **Setting** | **Description** |
 | --- | --- |
 | **Project** | Select the previously created project. In our case “example-django-celery”. |
@@ -202,7 +205,7 @@ In this form we are going to do the same as the previous one but modifying the c
 </Zoom>
 The command we use is as follows:{" "}
 
-```
+```plain
 bash python manage.py collectstatic --no-input
 ```
 
@@ -242,6 +245,7 @@ In the 1st postgresql creation form we will have to select our previously create
 </Zoom>
 
 In the 2nd form we are going to have a lot of fields, the only ones that matter to us are the following:
+
 | **Setting** | **Description** |
 | --- | --- |
 | **Database Master Username** | Here we assign a root user name to our database. |
@@ -257,13 +261,14 @@ With these fields filled in, we are ready to move on. Click on the “Next” bu
 </Zoom>
 
 In this last form, we are going to adjust the environment variables we have in our project with respect to the database. To do this, we need to change the following variables to our own:
+
 | **Before** | **After** |
 | --- | --- |
-| \*\_POSTGRESQL_NAME | DB_NAME |
-| \*\_POSTGRESQL_USERNAME | DB_USER |
-| \*\_POSTGRESQL_PASSWORD | DB_PASSWORD |
-| \*\_POSTGRESQL_ADDRESS | DB_HOST |
-| \*\_POSTGRESQL_PORT | DB_PORT |
+| \*_POSTGRESQL_NAME | DB_NAME |
+| \*_POSTGRESQL_USERNAME | DB_USER |
+| \*_POSTGRESQL_PASSWORD | DB_PASSWORD |
+| \*_POSTGRESQL_ADDRESS | DB_HOST |
+| \*_POSTGRESQL_PORT | DB_PORT |
 
 It should look something like the image below. Then click on the “Submit” button and your database should be created:
 
@@ -350,7 +355,7 @@ with the dice button. Then we click on the “Next” button to go to the next f
   />
 </Zoom>
 
-In this last form we have to change the name of the variable that ends in \*\_BROKER_AUTH_URL to CELERY_BROKER_URL (as shown in the image). Then we click on the “Submit” button at the bottom right to finish creating rabbitmq:
+In this last form we have to change the name of the variable that ends in \*_BROKER_AUTH_URL to CELERY_BROKER_URL (as shown in the image). Then we click on the “Submit” button at the bottom right to finish creating rabbitmq:
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
