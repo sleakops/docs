@@ -1,8 +1,8 @@
 ---
-sidebar_label: "Third Party VPN Integration"
+title: Third Party VPN Integration
+sidebar_label: Third Party VPN Integration
 sidebar_position: 8
-title: "Third Party VPN Integration"
-description: "Comparison of VPN alternatives in AWS"
+description: Comparison of VPN alternatives in AWS
 tags:
   - VPN
   - AWS
@@ -11,26 +11,26 @@ tags:
   - connectivity
   - cost-analysis
   - transit-gateway
-image: /img/tutorial-img.png
+image: /img/tutorials/third-party-integration-vpn/third-party-integration-vpn.png
 ---
 
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
 
-The choice between these three alternatives is based on the balance between **costs**, **scalability** and **management complexity**:
+The choice between these three alternatives is based on the balance between **costs**,** scalability** and **management complexity**:
 
-### Transit Gateway (~$197/month in the described scenario)
+### Transit Gateway (\~$197/month in the described scenario)
 
 - Higher fixed cost per attachment.
 - Excellent option for larger topologies, multiple VPCs and scalability with minimal routing complexity.
 
-### Site-to-Site VPN + EC2 (~$80/month estimated)
+### Site-to-Site VPN + EC2 (\~$80/month estimated)
 
 - Easy configuration (native AWS solution).
 - Suitable for a moderate number of tunnels, although less flexible than TGW for large topologies.
 
-### VPN on EC2 (StrongSwan + Nginx) (~$20–21/month with 1 instance, or ~$40–42/month for HA)
+### VPN on EC2 (StrongSwan + Nginx) (\~$20–21/month with 1 instance, or \~$40–42/month for HA)
 
 - Significantly lower cost.
 - Higher administration and maintenance complexity (instance management, patches, manual failover).
@@ -48,24 +48,23 @@ VPN connections are established through IPsec tunnels, which can be configured t
 
 ### Cost Analysis
 
-**Hypothesis:**
+  **Hypothesis:**
 
 - **3 attachments** in the Transit Gateway, corresponding for example to:
-  1. VPC (Dev)
-  2. VPN (Prod)
-  3. VPN (Contingency)
+
+    1. VPC (Dev)
+    2. VPN (Prod)
+    3. VPN (Contingency)
+
 - **730 hours** of monthly usage (24/7).
 - **2 GB monthly transfer** per attachment, totaling **6 GB monthly**.
 - AWS rates (in most regions):
-  - **$0.09/hour/attachment**.
-  - **$0.002/GB** of data transfer.
-
-**Costs:**
-
-- **Attachment costs**: ~$197.10/month
-- **Data transfer cost**: ~$0.01/month
-
-**Total sum**: ~$197.11/month (rounded to ~$197.22/month in the original example).
+    - **$0.09/hour/attachment**.
+    - **$0.002/GB** of data transfer.
+  **Costs:**
+- **Attachment costs**: \~$197.10/month
+- **Data transfer cost**: \~$0.01/month
+  **Total sum**: \~$197.11/month (rounded to \~$197.22/month in the original example).
 
 ## Site-to-Site VPN
 
@@ -82,21 +81,18 @@ Two tunnels for automatic failover or maintenance that AWS usually does that cou
 
 ### Cost Analysis
 
-**Hypothesis:**
+  **Hypothesis:**
 
 - **3 connections (VPN)** (equivalent to the 3 "attachments" you mentioned: Dev, Main, Contingency).
 - Each VPN is an AWS-managed Site-to-Site tunnel.
 - **Site-to-Site VPN cost**: $0.05 per hour per VPN
 - **730 hours** monthly (24/7).
 - **2 GB monthly transfer** per VPN.
-
-**Costs:**
-
-- **VPN** (3 connections): ~$109.50
-- **Data transfer** (6 GB total): ~$0.54
-- **Network Load Balancer**: ~$20–25
-
-**Total sum**: ~$130–135 monthly.
+  **Costs:**
+- **VPN** (3 connections): \~$109.50
+- **Data transfer** (6 GB total): \~$0.54
+- **Network Load Balancer**: \~$20–25
+  **Total sum**: \~$130–135 monthly.
 
 ## VPN on EC2
 
@@ -108,21 +104,17 @@ In this solution, an EC2 instance is launched on which **StrongSwan** is install
 
 ### Cost Analysis
 
-**Hypothesis:**
+  **Hypothesis:**
 
 - **3 tunnels (VPN)** configured on the same instance (or on two instances for redundancy).
 - **EC2 instance** of small size, for example, **t3.small** (with approx. cost $0.02–0.023/h).
-
-**Costs:**
-
-- **EC2 + EBS**: ~$18–20/month (1 instance)
-- **Data transfer**: ~$0.54/month
-
-**Total sum**: ~$20–21/month (In case of 2 instances for HA => ~$40–42/month.)
+  **Costs:**
+- **EC2 + EBS**: \~$18–20/month (1 instance)
+- **Data transfer**: \~$0.54/month
+  **Total sum**: \~$20–21/month (In case of 2 instances for HA => \~$40–42/month.)
 
 Configuration of nginx and ipsec to achieve the connection setup.
-
-**nginx.conf**
+  **nginx.conf**
 
 ```nginx
 load_module /usr/lib/nginx/modules/ngx_stream_module.so;
@@ -154,7 +146,7 @@ stream {
 }
 ```
 
-**iptables.conf**
+  **iptables.conf**
 
 ```bash
 *mangle
@@ -164,8 +156,7 @@ stream {
 :OUTPUT ACCEPT [5933:572312]
 :POSTROUTING ACCEPT [6215:606049]
 COMMIT
-
-*nat
+  *nat
 :PREROUTING ACCEPT [159:9540]
 :INPUT ACCEPT [159:9540]
 :OUTPUT ACCEPT [168:10720]
@@ -175,8 +166,7 @@ COMMIT
 -A POSTROUTING -p tcp -m tcp --dport 22 -j SNAT --to-source <IP-TUNNEL-BIND>
 -A POSTROUTING -p tcp -m tcp --dport 443 -j SNAT --to-source <IP-TUNNEL-BIND>
 COMMIT
-
-*filter
+  *filter
 :INPUT ACCEPT [6016:538920]
 :FORWARD ACCEPT [123:22565]
 :OUTPUT ACCEPT [4614:432344]
