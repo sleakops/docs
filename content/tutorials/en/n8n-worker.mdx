@@ -1,8 +1,8 @@
 ---
-sidebar_label: "n8n + Worker Mode"
+title: n8n + Worker Mode
+sidebar_label: n8n + Worker Mode
 sidebar_position: 2
-title: "n8n + Worker Mode"
-description: "Learn how to deploy your n8n project with distributed and scalable worker mode on Kubernetes using Sleakops"
+description: Learn how to deploy your n8n project with distributed and scalable worker mode on Kubernetes using Sleakops
 tags:
   - n8n
   - kubernetes
@@ -11,7 +11,7 @@ tags:
   - automation
   - background-jobs
   - deployment
-image: /img/tutorial-img.png
+image: /img/tutorials/n8n-worker/n8n-worker.png
 ---
 
 import Zoom from "react-medium-image-zoom";
@@ -117,14 +117,14 @@ Within the Projects panel, you can see all your projects and manage them from he
 
 On the project creation screen, we have the following fields:
 
-| Configuration   | Description                                                        |
-| --------------- | ------------------------------------------------------------------ |
-| Environment     | We need to select the previously created environment.              |
-| Nodepool        | We'll leave the default.                                           |
-| Repositories    | We'll select our repository that contains the n8n project.         |
-| Project Name    | We can define a project name. For example, "n8n-server".           |
-| Branch          | It must match the branch in our project. In our case, it's "main". |
-| Dockerfile path | This is the relative path to the Dockerfile in your project.       |
+| Configuration | Description |
+| --- | --- |
+| Environment | We need to select the previously created environment. |
+| Nodepool | We'll leave the default. |
+| Repositories | We'll select our repository that contains the n8n project. |
+| Project Name | We can define a project name. For example, "n8n-server". |
+| Branch | It must match the branch in our project. In our case, it's "main". |
+| Dockerfile path | This is the relative path to the Dockerfile in your project. |
 
 Once all that is configured, we create the project using the "Submit" button in the bottom right corner:
 
@@ -155,12 +155,12 @@ Here we will create the main n8n web service that will handle the user interface
 
 On this page, we will complete the first form with the following fields:
 
-| Configuration | Description                                                         |
-| ------------- | ------------------------------------------------------------------- |
-| Project       | Select the project we created previously, in our case "n8n-server". |
-| Name          | Define a name for the web service, for example "n8n-main".          |
-| Command       | Default command from the Dockerfile (usually n8n start).            |
-| Port          | Port 5678 (n8n's default port).                                     |
+| Configuration | Description |
+| --- | --- |
+| Project | Select the project we created previously, in our case "n8n-server". |
+| Name | Define a name for the web service, for example "n8n-main". |
+| Command | Default command from the Dockerfile (usually n8n start). |
+| Port | Port 5678 (n8n's default port). |
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -218,11 +218,11 @@ Great, with this we can see our web service being deployed. Now let's deploy the
 
 On the worker creation screen, we will need to complete the following fields:
 
-| Configuration | Description                                                            |
-| ------------- | ---------------------------------------------------------------------- |
-| Project       | Select the previously created project. In our case, "n8n-server".      |
-| Name          | Define the name we will give to the worker. In our case, "n8n-worker". |
-| Command       | Here we set the command to run the n8n worker: `worker`                |
+| Configuration | Description |
+| --- | --- |
+| Project | Select the previously created project. In our case, "n8n-server". |
+| Name | Define the name we will give to the worker. In our case, "n8n-worker". |
+| Command | Here we set the command to run the n8n worker: `worker` |
 
 With these fields completed, we will click the "Next" button in the lower right corner and then "Submit," as we do not need to edit anything else.
 
@@ -252,11 +252,11 @@ Let's go to the dependencies section:
 
 First, we need to create a Redis dependency for the task queue. On the dependency creation screen, select Redis, and you will see the following fields:
 
-| Configuration   | Description                                                       |
-| --------------- | ----------------------------------------------------------------- |
-| Dependency Type | Select "Redis" from the available options.                        |
-| Project         | Select the previously created project. In our case, "n8n-server". |
-| Name            | Define the name for Redis. In our case, "n8n-redis".              |
+| Configuration | Description |
+| --- | --- |
+| Dependency Type | Select "Redis" from the available options. |
+| Project | Select the previously created project. In our case, "n8n-server". |
+| Name | Define the name for Redis. In our case, "n8n-redis". |
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -269,10 +269,10 @@ With these fields completed, we'll click the "Next" button in the bottom right c
 
 We need to configure the Redis connection variables to match what n8n expects:
 
-| Variable              | Value                          |
-| --------------------- | ------------------------------ |
+| Variable | Value |
+| --- | --- |
 | QUEUE_BULL_REDIS_HOST | (Redis Host of the dependency) |
-| QUEUE_BULL_REDIS_PORT | 6379                           |
+| QUEUE_BULL_REDIS_PORT | 6379 |
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -301,13 +301,13 @@ As an example in this guide, we'll leave it as "non-production."
 
 Just like with Redis, we need to configure the environment variable names as n8n expects. Go to the last step and before clicking submit, change the names to the following:
 
-| Before                  | After                  |
-| ----------------------- | ---------------------- |
-| \*\_POSTGRESQL_NAME     | DB_POSTGRESDB_DATABASE |
-| \*\_POSTGRESQL_USERNAME | DB_POSTGRESDB_USER     |
-| \*\_POSTGRESQL_PASSWORD | DB_POSTGRESDB_PASSWORD |
-| \*\_POSTGRESQL_ADDRESS  | DB_POSTGRESDB_HOST     |
-| \*\_POSTGRESQL_PORT     | DB_POSTGRESDB_PORT     |
+| Before | After |
+| --- | --- |
+| \*_POSTGRESQL_NAME | DB_POSTGRESDB_DATABASE |
+| \*_POSTGRESQL_USERNAME | DB_POSTGRESDB_USER |
+| \*_POSTGRESQL_PASSWORD | DB_POSTGRESDB_PASSWORD |
+| \*_POSTGRESQL_ADDRESS | DB_POSTGRESDB_HOST |
+| \*_POSTGRESQL_PORT | DB_POSTGRESDB_PORT |
 
 It should look something like the image below. Then click the "Submit" button and your database should be created:
 
@@ -335,24 +335,20 @@ We're going to create a new variable group. We'll switch to text mode to copy th
 This form has the following fields:
 
 - Project: Select the project we created earlier.
-
 - Workload: Select "global," which means it will be used by all our workloads.
-
 - Name: Define a name for this variable group.
-
 - Type: Choose whether to load it by file or by variable.
-
 - Vars: Here, enable text mode and copy the following environment variables:
 
-| Variable                             | Description                                                                                                                                                                                                                  |
-| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| DB_TYPE                              | Set to "postgresdb"                                                                                                                                                                                                          |
-| EXECUTIONS_MODE                      | Set to "queue" for worker mode                                                                                                                                                                                               |
-| N8N_ENCRYPTION_KEY                   | Generate a secure encryption key                                                                                                                                                                                             |
-| OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS | Set to "true"                                                                                                                                                                                                                |
-| N8N_HOST                             | Define the host you configured in your web service; for this example, it would be `n8n.demo.sleakops.com`                                                                                                                    |
-| N8N_WEBHOOK_URL                      | This variable is not strictly necessary to define; if you add a separate web service instance to handle webhooks with a different URL, you must specify which URL will handle the webhooks. `https://n8n.demo.sleakops.com/` |
-| N8N_EDITOR_BASE_URL                  | `https://n8n.demo.sleakops.com`                                                                                                                                                                                              |
+| Variable | Description |
+| --- | --- |
+| DB_TYPE | Set to "postgresdb" |
+| EXECUTIONS_MODE | Set to "queue" for worker mode |
+| N8N_ENCRYPTION_KEY | Generate a secure encryption key |
+| OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS | Set to "true" |
+| N8N_HOST | Define the host you configured in your web service; for this example, it would be `n8n.demo.sleakops.com` |
+| N8N_WEBHOOK_URL | This variable is not strictly necessary to define; if you add a separate web service instance to handle webhooks with a different URL, you must specify which URL will handle the webhooks. `https://n8n.demo.sleakops.com/` |
+| N8N_EDITOR_BASE_URL | `https://n8n.demo.sleakops.com` |
 
 If you want to see all the environment variables available to configure n8n, you can go to the following page of [n8n documentation](https://docs.n8n.io/hosting/configuration/environment-variables/)
 
@@ -491,7 +487,6 @@ Simple, go to the details of your worker or web service that we created earlier 
 ### 🔧 **Database Optimization**
 
 - **Connection Pooling**: Configure PostgreSQL connection pools for high concurrency.
-
 - **Read Replicas**: Use read replicas for reporting and analytics queries. (This can be done from Sleakops in the [Postgres](/docs/project/dependency/postgresql-aws) configuration.)
 - **Indexing**: Optimize database indexes for workflow execution queries.
 - **Backup Strategies**: Implement automated backups with point-in-time recovery. (This can be done from Sleakops in the [Postgres](/docs/project/dependency/postgresql-aws) configuration.)
