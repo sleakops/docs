@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "@docusaurus/Link";
+import useBaseUrl from "@docusaurus/useBaseUrl";
 import styles from "./TutorialCard.module.css";
 
 /**
@@ -24,15 +25,17 @@ export default function TutorialCard({
     : {};
 
   const FALLBACK_IMAGE = "/img/tutorial-img.png";
+  const resolvedImageUrl = useBaseUrl(tutorial.image || FALLBACK_IMAGE);
+  const resolvedFallbackUrl = useBaseUrl(FALLBACK_IMAGE);
 
   return (
     <Link to={tutorial.link} className={styles.tutorialCard} style={cardStyle}>
       <div className={styles.tutorialImage}>
         <img
-          src={tutorial.image || FALLBACK_IMAGE}
+          src={resolvedImageUrl}
           alt={tutorial.title}
           onError={(e) => {
-            e.target.src = FALLBACK_IMAGE;
+            e.target.src = resolvedFallbackUrl;
           }}
         />
       </div>
