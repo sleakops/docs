@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkdocs=self.webpackChunkdocs||[]).push([[4509],{88997:a=>{a.exports=JSON.parse('{"tag":{"label":"install","permalink":"/es/tutorial/tags/install","allTagsPath":"/es/tutorial/tags","count":1,"items":[{"id":"install-keda","title":"Instalar KEDA","description":"Tutorial: instalar KEDA","permalink":"/es/tutorial/install-keda"}],"unlisted":false}}')}}]);
