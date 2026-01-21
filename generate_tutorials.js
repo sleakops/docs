@@ -9,7 +9,8 @@ const fs = require("fs");
 const path = require("path");
 
 // Configuration
-const TUTORIALS_DIR = path.join(__dirname, "content", "tutorials", "en");
+const CONTENT_DIR = path.join(__dirname, "content", "tutorials");
+const LOCALES = ["en", "es"];
 const OUTPUT_FILE = path.join(
   __dirname,
   "src",
@@ -100,24 +101,24 @@ function parseFrontmatter(content) {
 }
 
 /**
- * Get all MDX files in the tutorials directory.
+ * Get all MDX files in a specific directory.
+ * @param {string} dir - The directory to scan
  * @returns {Array} - Array of file info objects
  */
-function getMdxFiles() {
-  if (!fs.existsSync(TUTORIALS_DIR)) {
-    console.log(`Warning: Tutorials directory not found: ${TUTORIALS_DIR}`);
+function getMdxFiles(dir) {
+  if (!fs.existsSync(dir)) {
     return [];
   }
 
   const files = [];
-  const entries = fs.readdirSync(TUTORIALS_DIR);
+  const entries = fs.readdirSync(dir);
 
   for (const entry of entries) {
     if (path.extname(entry) === ".mdx") {
       files.push({
         filename: entry,
         id: path.basename(entry, ".mdx"),
-        path: path.join(TUTORIALS_DIR, entry),
+        path: path.join(dir, entry),
       });
     }
   }
@@ -150,8 +151,6 @@ function processTutorial(fileInfo) {
   // Process image path
   let imagePath = frontmatter.image || null;
   if (imagePath && imagePath.startsWith("../")) {
-    // Resolve relative paths like ../django-celery/django-celery.png
-    // to /img/tutorials/django-celery/django-celery.png
     const filename = path.basename(imagePath);
     const slug = path.basename(path.dirname(imagePath));
     imagePath = `/img/tutorials/${slug}/${filename}`;
@@ -172,23 +171,31 @@ function processTutorial(fileInfo) {
  */
 function main() {
   console.log("📚 Generating tutorials data...");
+  const tutorialsByLocale = {};
 
-  const mdxFiles = getMdxFiles();
-  console.log(`Found ${mdxFiles.length} tutorial files`);
+  for (const locale of LOCALES) {
+    const localeDir = path.join(CONTENT_DIR, locale);
+    console.log(`Checking ${locale} tutorials in ${localeDir}`);
 
-  const tutorials = mdxFiles.map(processTutorial);
+    const mdxFiles = getMdxFiles(localeDir);
+    console.log(`Found ${mdxFiles.length} tutorial files for ${locale}`);
 
-  // Sort by sidebar_position first, then by title
-  tutorials.sort((a, b) => {
-    const posA = a.sidebar_position !== null ? a.sidebar_position : 9999;
-    const posB = b.sidebar_position !== null ? b.sidebar_position : 9999;
+    const tutorials = mdxFiles.map(processTutorial);
 
-    if (posA !== posB) {
-      return posA - posB;
-    }
+    // Sort by sidebar_position first, then by title
+    tutorials.sort((a, b) => {
+      const posA = a.sidebar_position !== null ? a.sidebar_position : 9999;
+      const posB = b.sidebar_position !== null ? b.sidebar_position : 9999;
 
-    return a.title.localeCompare(b.title);
-  });
+      if (posA !== posB) {
+        return posA - posB;
+      }
+
+      return a.title.localeCompare(b.title);
+    });
+
+    tutorialsByLocale[locale] = tutorials;
+  }
 
   // Ensure output directory exists
   const outputDir = path.dirname(OUTPUT_FILE);
@@ -197,8 +204,8 @@ function main() {
   }
 
   // Write the JSON file
-  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(tutorials, null, 2));
-  console.log(`✅ Generated ${OUTPUT_FILE} with ${tutorials.length} tutorials`);
+  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(tutorialsByLocale, null, 2));
+  console.log(`✅ Generated ${OUTPUT_FILE}`);
 }
 
 main();

@@ -6,6 +6,17 @@ import styles from "./RecentChangelog.module.css";
 // Changelog data - Latest 3 versions
 const changelogData = [
   {
+    id: "v240",
+    version: "2.4.0",
+    date: "2026-01-08",
+    type: "feature",
+    title: "Workload Auto-Diagnostics",
+    description:
+      "New AI-powered diagnostics for Workloads, Grace Period support, Cost Tags notifications, and UI improvements.",
+    slug: "version-2.4.0",
+  },
+  {
+    id: "v232",
     version: "2.3.2",
     date: "2025-12-19",
     type: "feature",
@@ -15,6 +26,7 @@ const changelogData = [
     slug: "v2-3-2",
   },
   {
+    id: "v231",
     version: "2.3.1",
     date: "2025-12-01",
     type: "feature",
@@ -22,15 +34,6 @@ const changelogData = [
     description:
       "Support for image analysis in the support bot, new documentation, and custom values for addons.",
     slug: "v2-3-1",
-  },
-  {
-    version: "2.3.0",
-    date: "2025-11-18",
-    type: "feature",
-    title: "Environment & Project Cloning",
-    description:
-      "New functions to clone Environments, Projects, Dependencies, Workloads, and Variable Groups.",
-    slug: "v2-3-0",
   },
 ];
 
@@ -72,7 +75,7 @@ export default function RecentChangelog() {
             <span className={styles.headerIcon}>📋</span>
             <h2 className={styles.title}>
               <Translate id="homepage.recentChangelog">
-                Changelog Reciente
+                Recent Changelog
               </Translate>
             </h2>
           </div>
@@ -94,9 +97,21 @@ export default function RecentChangelog() {
                 <div className={styles.card}>
                   <div className={styles.cardHeader}>
                     <TypeBadge type={item.type} />
-                    <span className={styles.cardTitle}>{item.title}</span>
+                    <span className={styles.cardTitle}>
+                      <Translate
+                        id={`homepage.recentChangelog.${item.id}.title`}
+                      >
+                        {item.title}
+                      </Translate>
+                    </span>
                   </div>
-                  <p className={styles.cardDescription}>{item.description}</p>
+                  <p className={styles.cardDescription}>
+                    <Translate
+                      id={`homepage.recentChangelog.${item.id}.description`}
+                    >
+                      {item.description}
+                    </Translate>
+                  </p>
                 </div>
               </div>
             </div>
@@ -106,7 +121,7 @@ export default function RecentChangelog() {
         <div className={styles.footer}>
           <Link to="/changelog" className={styles.viewAllLink}>
             <Translate id="homepage.viewFullChangelog">
-              Ver historial completo de cambios
+              View full changelog
             </Translate>
             <span className={styles.arrow}>→</span>
           </Link>

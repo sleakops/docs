@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from "react";
 import Layout from "@theme/Layout";
+import useDocusaurusContext from "@docusaurus/useDocusaurusContext";
 import Translate, { translate } from "@docusaurus/Translate";
 import TutorialCard from "@site/src/components/TutorialCard";
 import {
   TagList,
   Tags,
-  tutorialsList,
+  getTutorialsList,
   getTutorialLink,
 } from "@site/src/data/tutorials";
 import TutorialFilters from "./_components/TutorialFilters";
@@ -42,6 +43,10 @@ function NoResults() {
 }
 
 export default function TutorialsPage() {
+  const {
+    i18n: { currentLocale },
+  } = useDocusaurusContext();
+
   const [selectedTags, setSelectedTags] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -67,17 +72,18 @@ export default function TutorialsPage() {
   });
 
   // Transform tutorials to include link
+  const tutorialsList = getTutorialsList(currentLocale);
   const tutorials = useMemo(() => {
     return tutorialsList.map((t) => ({
       ...t,
       link: getTutorialLink(t.id),
     }));
-  }, []);
+  }, [tutorialsList]);
 
   // Handle tag toggle
   const handleTagToggle = (tag) => {
     setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
     );
   };
 
@@ -111,7 +117,7 @@ export default function TutorialsPage() {
   // Separate featured and regular tutorials
   const featuredTutorials = useMemo(
     () => filteredTutorials.filter((t) => t.tags?.includes("featured")),
-    [filteredTutorials]
+    [filteredTutorials],
   );
 
   // All tutorials for the "All" section

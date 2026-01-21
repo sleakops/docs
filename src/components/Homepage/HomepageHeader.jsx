@@ -10,17 +10,17 @@ export default function HomepageHeader() {
         <div className={styles.heroContent}>
           <div className={styles.heroText}>
             <h1 className={styles.heroTitle}>
-              <Translate id="header.hero.title">
+              <Translate id="homepage.hero.title">
                 Lift your ideas to the
               </Translate>{" "}
               <span className={styles.highlight}>Cloud</span>
               <br />
-              <Translate id="header.hero.title.line2">
+              <Translate id="homepage.hero.title.line2">
                 Leave the Journey to Us
               </Translate>
             </h1>
             <p className={styles.heroSubtitle}>
-              <Translate id="header.hero.subtitle">
+              <Translate id="homepage.hero.subtitle">
                 Empowering your business with scalable, secure, and efficient
                 infrastructure solutions.
               </Translate>
@@ -30,16 +30,16 @@ export default function HomepageHeader() {
           <div className={styles.ctaCard}>
             <div className={styles.ctaContent}>
               <span className={styles.ctaLabel}>
-                <Translate id="header.hero.cta.label">PRIMEROS PASOS</Translate>
+                <Translate id="homepage.hero.cta.label">GET STARTED</Translate>
               </span>
               <span className={styles.ctaQuestion}>
-                <Translate id="header.hero.cta.question">
-                  ¿Estás empezando de cero en SleakOps?
+                <Translate id="homepage.hero.cta.question">
+                  Starting from scratch in SleakOps?
                 </Translate>
               </span>
             </div>
             <Link className={styles.ctaButton} to="/docs">
-              <Translate id="header.hero.cta.button">Empezá por acá</Translate>
+              <Translate id="homepage.hero.cta.button">Start here</Translate>
               <span className={styles.ctaArrow}>→</span>
             </Link>
           </div>

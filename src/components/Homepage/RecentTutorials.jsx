@@ -1,11 +1,18 @@
 import React from "react";
 import Link from "@docusaurus/Link";
+import useDocusaurusContext from "@docusaurus/useDocusaurusContext";
 import Translate, { translate } from "@docusaurus/Translate";
 import TutorialCard from "@site/src/components/TutorialCard";
-import { tutorialsList, getTutorialLink } from "@site/src/data/tutorials";
+import { getTutorialsList, getTutorialLink } from "@site/src/data/tutorials";
 import styles from "./RecentTutorials.module.css";
 
 export default function RecentTutorials() {
+  const {
+    i18n: { currentLocale },
+  } = useDocusaurusContext();
+
+  const tutorialsList = getTutorialsList(currentLocale);
+
   // Get featured tutorials first, then others, limit to 3
   const featuredFirst = [...tutorialsList].sort((a, b) => {
     const aFeatured = a.tags?.includes("featured") ? 0 : 1;
