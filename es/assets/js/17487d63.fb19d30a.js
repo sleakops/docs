@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkdocs=self.webpackChunkdocs||[]).push([[9947],{71904:t=>{t.exports=JSON.parse('{"tag":{"label":"batch-operations","permalink":"/es/tutorial/tags/batch-operations","allTagsPath":"/es/tutorial/tags","count":1,"items":[{"id":"s3-batch","title":"S3 Batch","description":"S3 Batch","permalink":"/es/tutorial/s3-batch"}],"unlisted":false}}')}}]);

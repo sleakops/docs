@@ -1,0 +1,601 @@
+backend:
+  name: github
+  repo: sleakops/docs
+  branch: develop
+  base_url: https://sveltia-cms-auth.matias-izquierdo.workers.dev
+
+media_folder: static/img
+public_folder: /img
+
+# i18n Configuration - Multiple Folders Structure
+i18n:
+  structure: multiple_folders
+  locales: [en, es]
+  default_locale: en
+
+collections:
+  # ============================================
+  # 📖 DOCUMENTATION
+  # ============================================
+
+  # Documentation Root - archivos directamente en content/docs/<locale>/
+  - name: docs-root
+    label: "📖 Documentation Root"
+    folder: content/docs
+    path: "{{slug}}"
+    create: true
+    extension: mdx
+    format: frontmatter
+    i18n: true
+    identifier_field: title
+    index_file:
+      name: index
+      label: "📄 Index"
+    fields:
+      - { name: title, label: Title, widget: string, i18n: true }
+      - {
+          name: sidebar_label,
+          label: Sidebar Label,
+          widget: string,
+          required: false,
+          i18n: true,
+        }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+          i18n: duplicate,
+        }
+      - { name: body, label: Body, widget: markdown, i18n: true }
+
+  # Cluster
+  - name: docs-cluster
+    label: "🖥️ Cluster"
+    folder: content/docs
+    path: "cluster/{{slug}}"
+    create: true
+    extension: mdx
+    format: frontmatter
+    i18n: true
+    identifier_field: title
+    fields:
+      - { name: title, label: Title, widget: string, i18n: true }
+      - {
+          name: sidebar_label,
+          label: Sidebar Label,
+          widget: string,
+          required: false,
+          i18n: true,
+        }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+          i18n: duplicate,
+        }
+      - { name: body, label: Body, widget: markdown, i18n: true }
+
+  # Cluster > Addons
+  - name: docs-cluster-addons
+    label: "🖥️ Cluster > Addons"
+    folder: content/docs
+    path: "cluster/addons/{{slug}}"
+    create: true
+    extension: mdx
+    format: frontmatter
+    i18n: true
+    identifier_field: title
+    fields:
+      - { name: title, label: Title, widget: string, i18n: true }
+      - {
+          name: sidebar_label,
+          label: Sidebar Label,
+          widget: string,
+          required: false,
+          i18n: true,
+        }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+          i18n: duplicate,
+        }
+      - { name: body, label: Body, widget: markdown, i18n: true }
+
+  # Cluster > Nodepools
+  - name: docs-cluster-nodepools
+    label: "🖥️ Cluster > Nodepools"
+    folder: content/docs
+    path: "cluster/nodepools/{{slug}}"
+    create: true
+    extension: mdx
+    format: frontmatter
+    i18n: true
+    identifier_field: title
+    fields:
+      - { name: title, label: Title, widget: string, i18n: true }
+      - {
+          name: sidebar_label,
+          label: Sidebar Label,
+          widget: string,
+          required: false,
+          i18n: true,
+        }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+          i18n: duplicate,
+        }
+      - { name: body, label: Body, widget: markdown, i18n: true }
+
+  # Domain
+  - name: docs-domain
+    label: "🌐 Domain"
+    folder: content/docs
+    path: "domain/{{slug}}"
+    create: true
+    extension: mdx
+    format: frontmatter
+    i18n: true
+    identifier_field: title
+    fields:
+      - { name: title, label: Title, widget: string, i18n: true }
+      - {
+          name: sidebar_label,
+          label: Sidebar Label,
+          widget: string,
+          required: false,
+          i18n: true,
+        }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+          i18n: duplicate,
+        }
+      - { name: body, label: Body, widget: markdown, i18n: true }
+
+  # Environment
+  - name: docs-environment
+    label: "🔧 Environment"
+    folder: content/docs
+    path: "environment/{{slug}}"
+    create: true
+    extension: mdx
+    format: frontmatter
+    i18n: true
+    identifier_field: title
+    fields:
+      - { name: title, label: Title, widget: string, i18n: true }
+      - {
+          name: sidebar_label,
+          label: Sidebar Label,
+          widget: string,
+          required: false,
+          i18n: true,
+        }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+          i18n: duplicate,
+        }
+      - { name: body, label: Body, widget: markdown, i18n: true }
+
+  # Network
+  - name: docs-network
+    label: "🔗 Network"
+    folder: content/docs
+    path: "network/{{slug}}"
+    create: true
+    extension: mdx
+    format: frontmatter
+    i18n: true
+    identifier_field: title
+    fields:
+      - { name: title, label: Title, widget: string, i18n: true }
+      - {
+          name: sidebar_label,
+          label: Sidebar Label,
+          widget: string,
+          required: false,
+          i18n: true,
+        }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+          i18n: duplicate,
+        }
+      - { name: body, label: Body, widget: markdown, i18n: true }
+
+  # Project
+  - name: docs-project
+    label: "📦 Project"
+    folder: content/docs
+    path: "project/{{slug}}"
+    create: true
+    extension: mdx
+    format: frontmatter
+    i18n: true
+    identifier_field: title
+    fields:
+      - { name: title, label: Title, widget: string, i18n: true }
+      - {
+          name: sidebar_label,
+          label: Sidebar Label,
+          widget: string,
+          required: false,
+          i18n: true,
+        }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+          i18n: duplicate,
+        }
+      - { name: body, label: Body, widget: markdown, i18n: true }
+
+  # Project > Build
+  - name: docs-project-build
+    label: "📦 Project > Build"
+    folder: content/docs
+    path: "project/build/{{slug}}"
+    create: true
+    extension: mdx
+    format: frontmatter
+    i18n: true
+    identifier_field: title
+    fields:
+      - { name: title, label: Title, widget: string, i18n: true }
+      - {
+          name: sidebar_label,
+          label: Sidebar Label,
+          widget: string,
+          required: false,
+          i18n: true,
+        }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+          i18n: duplicate,
+        }
+      - { name: body, label: Body, widget: markdown, i18n: true }
+
+  # Project > Chart
+  - name: docs-project-chart
+    label: "📦 Project > Chart"
+    folder: content/docs
+    path: "project/chart/{{slug}}"
+    create: true
+    extension: mdx
+    format: frontmatter
+    i18n: true
+    identifier_field: title
+    fields:
+      - { name: title, label: Title, widget: string, i18n: true }
+      - {
+          name: sidebar_label,
+          label: Sidebar Label,
+          widget: string,
+          required: false,
+          i18n: true,
+        }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+          i18n: duplicate,
+        }
+      - { name: body, label: Body, widget: markdown, i18n: true }
+
+  # Project > Dependency
+  - name: docs-project-dependency
+    label: "📦 Project > Dependency"
+    folder: content/docs
+    path: "project/dependency/{{slug}}"
+    create: true
+    extension: mdx
+    format: frontmatter
+    i18n: true
+    identifier_field: title
+    fields:
+      - { name: title, label: Title, widget: string, i18n: true }
+      - {
+          name: sidebar_label,
+          label: Sidebar Label,
+          widget: string,
+          required: false,
+          i18n: true,
+        }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+          i18n: duplicate,
+        }
+      - { name: body, label: Body, widget: markdown, i18n: true }
+
+  # Project > Deployment
+  - name: docs-project-deployment
+    label: "📦 Project > Deployment"
+    folder: content/docs
+    path: "project/deployment/{{slug}}"
+    create: true
+    extension: mdx
+    format: frontmatter
+    i18n: true
+    identifier_field: title
+    fields:
+      - { name: title, label: Title, widget: string, i18n: true }
+      - {
+          name: sidebar_label,
+          label: Sidebar Label,
+          widget: string,
+          required: false,
+          i18n: true,
+        }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+          i18n: duplicate,
+        }
+      - { name: body, label: Body, widget: markdown, i18n: true }
+
+  # Project > Vargroup
+  - name: docs-project-vargroup
+    label: "📦 Project > Vargroup"
+    folder: content/docs
+    path: "project/vargroup/{{slug}}"
+    create: true
+    extension: mdx
+    format: frontmatter
+    i18n: true
+    identifier_field: title
+    fields:
+      - { name: title, label: Title, widget: string, i18n: true }
+      - {
+          name: sidebar_label,
+          label: Sidebar Label,
+          widget: string,
+          required: false,
+          i18n: true,
+        }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+          i18n: duplicate,
+        }
+      - { name: body, label: Body, widget: markdown, i18n: true }
+
+  # Project > Workload
+  - name: docs-project-workload
+    label: "📦 Project > Workload"
+    folder: content/docs
+    path: "project/workload/{{slug}}"
+    create: true
+    extension: mdx
+    format: frontmatter
+    i18n: true
+    identifier_field: title
+    fields:
+      - { name: title, label: Title, widget: string, i18n: true }
+      - {
+          name: sidebar_label,
+          label: Sidebar Label,
+          widget: string,
+          required: false,
+          i18n: true,
+        }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+          i18n: duplicate,
+        }
+      - { name: body, label: Body, widget: markdown, i18n: true }
+
+  # Provider
+  - name: docs-provider
+    label: "☁️ Provider"
+    folder: content/docs
+    path: "provider/{{slug}}"
+    create: true
+    extension: mdx
+    format: frontmatter
+    i18n: true
+    identifier_field: title
+    fields:
+      - { name: title, label: Title, widget: string, i18n: true }
+      - {
+          name: sidebar_label,
+          label: Sidebar Label,
+          widget: string,
+          required: false,
+          i18n: true,
+        }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+          i18n: duplicate,
+        }
+      - { name: body, label: Body, widget: markdown, i18n: true }
+
+  # Quickstart
+  - name: docs-quickstart
+    label: "🚀 Quickstart"
+    folder: content/docs
+    path: "quickstart/{{slug}}"
+    create: true
+    extension: mdx
+    format: frontmatter
+    i18n: true
+    identifier_field: title
+    fields:
+      - { name: title, label: Title, widget: string, i18n: true }
+      - {
+          name: sidebar_label,
+          label: Sidebar Label,
+          widget: string,
+          required: false,
+          i18n: true,
+        }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+          i18n: duplicate,
+        }
+      - { name: body, label: Body, widget: markdown, i18n: true }
+
+  # User
+  - name: docs-user
+    label: "👤 User"
+    folder: content/docs
+    path: "user/{{slug}}"
+    create: true
+    extension: mdx
+    format: frontmatter
+    i18n: true
+    identifier_field: title
+    fields:
+      - { name: title, label: Title, widget: string, i18n: true }
+      - {
+          name: sidebar_label,
+          label: Sidebar Label,
+          widget: string,
+          required: false,
+          i18n: true,
+        }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+          i18n: duplicate,
+        }
+      - { name: body, label: Body, widget: markdown, i18n: true }
+
+  # ============================================
+  # 📚 TUTORIALS
+  # ============================================
+
+  - name: tutorials
+    label: "📚 Tutorials"
+    folder: content/tutorials
+    path: "{{slug}}"
+    media_folder: "/static/img/tutorials/{{slug}}"
+    public_folder: "/img/tutorials/{{slug}}"
+    create: true
+    extension: mdx
+    format: frontmatter
+    i18n: true
+    identifier_field: title
+    fields:
+      - { name: title, label: Title, widget: string, i18n: true }
+      - {
+          name: sidebar_label,
+          label: Sidebar Label,
+          widget: string,
+          required: false,
+          i18n: true,
+        }
+      - {
+          name: sidebar_position,
+          label: Sidebar Position,
+          widget: number,
+          required: false,
+          value_type: int,
+          min: 0,
+          i18n: duplicate,
+        }
+      - {
+          name: description,
+          label: Description,
+          widget: text,
+          required: true,
+          i18n: true,
+        }
+      - name: tags
+        label: Tags
+        widget: select
+        multiple: true
+        options:
+          - { label: "⭐ Featured", value: "featured" }
+          - { label: "Getting Started", value: "getting-started" }
+          - { label: "AWS", value: "aws" }
+          - { label: "Kubernetes", value: "kubernetes" }
+          - { label: "Database", value: "database" }
+          - { label: "Security", value: "security" }
+          - { label: "Networking", value: "networking" }
+          - { label: "Deployment", value: "deployment" }
+          - { label: "Troubleshooting", value: "troubleshooting" }
+        required: false
+        i18n: duplicate
+      - {
+          name: image,
+          label: Preview Image,
+          widget: image,
+          required: false,
+          i18n: duplicate,
+        }
+      - { name: body, label: Body, widget: markdown, i18n: true }
+
+  # ============================================
+  # 📝 CHANGELOG
+  # ============================================
+
+  - name: changelog
+    label: "📝 Changelog"
+    folder: content/changelog
+    path: "{{slug}}"
+    create: true
+    extension: md
+    format: frontmatter
+    slug: "{{year}}-{{month}}-{{day}}-{{title | slug}}"
+    i18n: true
+    identifier_field: title
+    fields:
+      - { name: title, label: Title, widget: string, i18n: true }
+      - name: authors
+        label: Authors
+        widget: list
+        i18n: duplicate
+        fields:
+          - { name: name, label: Name, widget: string }
+          - { name: title, label: Title, widget: string, required: false }
+      - name: tags
+        label: Tags
+        widget: select
+        multiple: true
+        options:
+          - { label: "Release", value: "release" }
+          - { label: "Major", value: "major" }
+          - { label: "Minor", value: "minor" }
+          - { label: "Patch", value: "patch" }
+          - { label: "Feature", value: "feature" }
+          - { label: "Bugfix", value: "bugfix" }
+        required: false
+        i18n: duplicate
+      - { name: body, label: Body, widget: markdown, i18n: true }
