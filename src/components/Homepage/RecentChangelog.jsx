@@ -20,7 +20,7 @@ const changelogData = [
     version: "2.3.2",
     date: "2025-12-19",
     type: "feature",
-    title: "SleakOps CLI & Multi-cloud",
+    title: "SleakOps CLI",
     description:
       "New CLI features for local workload shell, S3 with CloudFront improvements, and API performance optimizations.",
     slug: "v2-3-2",
