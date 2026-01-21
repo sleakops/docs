@@ -68,8 +68,8 @@ Deploying n8n on a Kubernetes cluster with Sleakops provides enterprise-level sc
 ## Prerequisites
 
 - Sleakops account
-- A Cluster in this account. If you don't have one, [here's the documentation on how to do it](/cluster).
-- A configured Environment. If you don't have one, [here's the documentation on how to do it](/environment)
+- A Cluster in this account. If you don't have one, [here's the documentation on how to do it](/docs/cluster).
+- A configured Environment. If you don't have one, [here's the documentation on how to do it](/docs/environment)
 - n8n project configured with Docker. If you don't have it, you can fork or copy from [n8n-code](https://github.com/sleakops/n8n_sleakops). This project includes a docker-compose so you can deploy it locally as well, allowing you to have distributed environments as you want.
 
 # Let's Get Started
@@ -79,7 +79,7 @@ For this example, we're going to deploy an n8n project in distributed mode with 
 ## Create Project
 
 Projects are our code repositories. The only thing Sleakops needs to execute commands is a Dockerfile.
-For more information, you can see our [project documentation](/project)
+For more information, you can see our [project documentation](/docs/project)
 
 To start, we'll create a new project:
 
@@ -124,7 +124,7 @@ With that, the project begins to be created. Meanwhile, let's go to workloads wi
 ## Create Workloads
 
 Workloads are the processes that run your project. For the case of n8n that we're going to run in queue mode, we'll create a webservice for the web interface and a worker.
-For more information, you can see our [workloads documentation](/project/workload)
+For more information, you can see our [workloads documentation](/docs/project/workload)
 
 ### Create the Web Service
 Here we're going to create the main n8n web service that will handle the user interface and API:
@@ -206,7 +206,7 @@ With this, we'll see our n8n worker deployed.
 ## Create Dependencies (Redis and PostgreSQL)
 
 Dependencies are necessary resources for your application to function. In the case of n8n in queue mode, it needs a database and Redis.
-Sleakops leverages AWS services to offer you alternatives. You can see more information in [dependencies documentation](/project/dependency)
+Sleakops leverages AWS services to offer you alternatives. You can see more information in [dependencies documentation](/docs/project/dependency)
 
 Let's go to the dependencies section:
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
@@ -440,12 +440,12 @@ This will open a dashboard within Grafana with the historical consumption of you
 
 ### 🔧 **Database Optimization**
 - **Connection pooling**: Configure PostgreSQL connection pools for high concurrency.
-- **Read replicas**: Use read replicas for reporting and analytics queries. (You can do this from Sleakops from the [Postgres](/project/dependency/postgresql-aws) configuration)
+- **Read replicas**: Use read replicas for reporting and analytics queries. (You can do this from Sleakops from the [Postgres](/docs/project/dependency/postgresql-aws) configuration)
 - **Indexing**: Optimize database indexes for workflow execution queries
-- **Backup strategies**: Implement automated backups with point-in-time recovery. (You can do this from Sleakops from the [Postgres](/project/dependency/postgresql-aws) configuration)
+- **Backup strategies**: Implement automated backups with point-in-time recovery. (You can do this from Sleakops from the [Postgres](/docs/project/dependency/postgresql-aws) configuration)
 
 ### 🚀 **Advanced Configurations**
-- **Node affinity**: Schedule workers on appropriate node types (CPU vs memory optimized). (You can do this from Sleakops using [Nodepools](/cluster/nodepools))
+- **Node affinity**: Schedule workers on appropriate node types (CPU vs memory optimized). (You can do this from Sleakops using [Nodepools](/docs/cluster/nodepools))
 - **Pod disruption budgets**: Ensure minimum availability during cluster maintenance. (This is already covered by Sleakops)
 - **Resource quotas**: Set appropriate limits to prevent resource exhaustion. (You can do this from Sleakops by defining limits in your Workloads and in your Nodepools)
 - **Network policies**: Ensure inter-pod communication. (This is already done by Sleakops)

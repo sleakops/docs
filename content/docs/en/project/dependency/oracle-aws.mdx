@@ -6,42 +6,48 @@ import { FiExternalLink } from "react-icons/fi";
 
 SleakOps facilitates the integration of Oracle databases through Amazon RDS (Relational Database Service). Amazon RDS for Oracle is a fully managed service that simplifies database setup, operation, and scaling. By leveraging SleakOps for this integration, you can efficiently manage Oracle databases within your EKS (Elastic Kubernetes Service) environment, ensuring robust, scalable, and reliable data storage solutions for your applications.
 
-
-## FAQs 
-<details>
-<summary>
-### License
-</summary>
-When creating an Oracle DB using Sleakops License Included (LI). Currently Bring Your Own License (BYOL) is not supported, however, contact support for more information.
-</details>
-
+## FAQs
 
 <details>
-<summary>
-### How does SleakOps manage Oracle credentials?
-</summary>
-When you create an Oracle dependency in SleakOps, it automatically generates a Vargroup for your database. This Variable Group securely stores the Oracle credentials and other important configuration details, such as the database endpoint and user access information. You'll be able of manage them from  [Vargroups](/docs/project/vargroup/index.mdx) section.
+  <summary>### License</summary>
+  When creating an Oracle DB using Sleakops License Included (LI). Currently
+  Bring Your Own License (BYOL) is not supported, however, contact support for
+  more information.
 </details>
 
 <details>
-<summary>
-### What is Multi-AZ deployment and should I enable it?
-</summary>
-Multi-AZ (Availability Zone) deployment ensures high availability and failover support by replicating your database in another availability zone. It's recommended for production environments to prevent downtime. Keep in mind that it increases costs.
+  <summary>### How does SleakOps manage Oracle credentials?</summary>
+  When you create an Oracle dependency in SleakOps, it automatically generates a
+  Vargroup for your database. This Variable Group securely stores the Oracle
+  credentials and other important configuration details, such as the database
+  endpoint and user access information. You'll be able of manage them from
+  [Vargroups](/docs/project/vargroup) section.
 </details>
 
 <details>
-<summary>
-### Can I change the Oracle version after the database is deployed?
-</summary>
-No, the database engine version cannot be changed after deployment. You would need to create a new Oracle instance with the desired version and migrate your data. Or change it manually into the AWS Console.
+  <summary>### What is Multi-AZ deployment and should I enable it?</summary>
+  Multi-AZ (Availability Zone) deployment ensures high availability and failover
+  support by replicating your database in another availability zone. It's
+  recommended for production environments to prevent downtime. Keep in mind that
+  it increases costs.
 </details>
 
 <details>
-<summary>
-### What happens if I need more storage for my Oracle database?
-</summary>
-You can adjust the storage size when configuring your database. If you need more storage after deployment, you can scale modifying the settings in AWS as at the moment SleakOps does not support it. 
+  <summary>
+    ### Can I change the Oracle version after the database is deployed?
+  </summary>
+  No, the database engine version cannot be changed after deployment. You would
+  need to create a new Oracle instance with the desired version and migrate your
+  data. Or change it manually into the AWS Console.
+</details>
+
+<details>
+  <summary>
+    ### What happens if I need more storage for my Oracle database?
+  </summary>
+  You can adjust the storage size when configuring your database. If you need
+  more storage after deployment, you can scale modifying the settings in AWS as
+  at the moment SleakOps does not support it.
 </details>
 
 <details>
@@ -63,6 +69,7 @@ Replace `ORACLE_USERNAME`, `ORACLE_ENDPOINT`, `ORACLE_NAME`  and `ORACLE_PASSWOR
 For additional information on creating an Oracle dump, refer to the [official Oracle documentation <FiExternalLink/>](https://docs.oracle.com/en/database/oracle/oracle-database/19/sutil/oracle-original-export-utility.html).
 
 Another option is creating it directly from the AWS Console and then import it. See [Restoring to a DB instance](https://docs.aws.amazon.com/es_es/AmazonRDS/latest/UserGuide/USER_RestoreFromSnapshot.html).
+
 </details>
 
 <details>
@@ -88,13 +95,14 @@ Another option is creating it directly from the AWS Console and then import it. 
 </details>
 
 <details>
-<summary>
-### What should I do if I encounter connection issues with my Oracle database?
-</summary>
-- Ensure the database endpoint, username, and password are correct.
-- Verify that your security groups and firewall rules allow access.
-- Ensure the database is running and has enough resources (CPU, memory).
-Otherwise, contact us. 
+  <summary>
+    ### What should I do if I encounter connection issues with my Oracle
+    database?
+  </summary>
+  - Ensure the database endpoint, username, and password are correct. - Verify
+  that your security groups and firewall rules allow access. - Ensure the
+  database is running and has enough resources (CPU, memory). Otherwise, contact
+  us.
 </details>
 
 :::info
@@ -102,46 +110,50 @@ AWS documentation: [Amazon RDS Oracle Documentation](https://docs.aws.amazon.com
 :::
 
 ## Set up your Oracle
+
 ### 1. Add Oracle as a Dependency
+
 To integrate Oracle with SleakOps:
+
 1. In the SleakOps console, go to the "Dependencies" section
-2. Choose "Oracle" from the list of available dependency types. 
-For more detail see [Dependencies: Integrating Databases, Caching, and Messaging Services](/docs/project/dependency/index.mdx).
+2. Choose "Oracle" from the list of available dependency types.
+   For more detail see [Dependencies: Integrating Databases, Caching, and Messaging Services](/docs/project/dependency).
 
 ### 2. Set up your Oracle.
+
 You will access the following form:
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
-<img
+  <img
     src="/img/dependency/oracle/Oracle-create-p1.png"
     alt="Oracle-create-p1"
-/>
+  />
 </Zoom>
 
 Here the parameters that SleakOps allows you to customize during the creation:
 
-| **Attribute** | **Description** |
-| --- | --- |
-| **Database Engine Version** | Select the specific version of the Oracle database engine you wish to use. This ensures compatibility with your application requirements. Example: `19.0.0.0.ru-2024-01.rur-2024-01.r1`|
-| **Database Instance Class** | Define the instance class that specifies the hardware configuration for your Oracle database. This controls CPU, memory, and network performance.  Example: `db.m6g.large`, `db.t3.medium`. See [AWS detail](https://aws.amazon.com/es/rds/instance-types/). |
-| **Database Storage** | Specify the amount of storage allocated for the database. Example: 100 GB, 500 GB. |
-| **Username** | Provide the master username for the Oracle database. This is the main user with administrative privileges. Example: admin, root. |
-| **Password** | Password for the master user to access the database. |
-| **Multi-Availability Zone** | Enable or disable Multi-AZ deployment. This ensures high availability and failover support by replicating the database across multiple availability zones. Recommended for production environments. |
-| **Automated Backup** | Configure automated backups for the Oracle database. This ensures data protection by enabling daily snapshots and transaction log backups.  Set up the _Backup Retention Period_ and the _Backup Window_. Recommended for production environments. |
-| **Backup Retention Period** | Set the number of days to retain automated backups. |
-| **Backup Window** | Period of time while the backup will be done.  |
+| **Attribute**               | **Description**                                                                                                                                                                                                                                             |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Database Engine Version** | Select the specific version of the Oracle database engine you wish to use. This ensures compatibility with your application requirements. Example: `19.0.0.0.ru-2024-01.rur-2024-01.r1`                                                                     |
+| **Database Instance Class** | Define the instance class that specifies the hardware configuration for your Oracle database. This controls CPU, memory, and network performance. Example: `db.m6g.large`, `db.t3.medium`. See [AWS detail](https://aws.amazon.com/es/rds/instance-types/). |
+| **Database Storage**        | Specify the amount of storage allocated for the database. Example: 100 GB, 500 GB.                                                                                                                                                                          |
+| **Username**                | Provide the master username for the Oracle database. This is the main user with administrative privileges. Example: admin, root.                                                                                                                            |
+| **Password**                | Password for the master user to access the database.                                                                                                                                                                                                        |
+| **Multi-Availability Zone** | Enable or disable Multi-AZ deployment. This ensures high availability and failover support by replicating the database across multiple availability zones. Recommended for production environments.                                                         |
+| **Automated Backup**        | Configure automated backups for the Oracle database. This ensures data protection by enabling daily snapshots and transaction log backups. Set up the _Backup Retention Period_ and the _Backup Window_. Recommended for production environments.           |
+| **Backup Retention Period** | Set the number of days to retain automated backups.                                                                                                                                                                                                         |
+| **Backup Window**           | Period of time while the backup will be done.                                                                                                                                                                                                               |
 
 ### 3. Customize your variable's name for your Oracle data base.
 
-As explained, when a dependency is created, SleakOps generates a vargroup to hold all the needed attributes. 
-In this step you can change the name of the attributes in case it is needed. 
-SleakOps completes the values automatically. 
+As explained, when a dependency is created, SleakOps generates a vargroup to hold all the needed attributes.
+In this step you can change the name of the attributes in case it is needed.
+SleakOps completes the values automatically.
 After this step, your dependency is created.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
-<img
+  <img
     src="/img/dependency/oracle/Oracle-create-outputs.png"
     alt="Oracle-create-outputs"
-/>
+  />
 </Zoom>
