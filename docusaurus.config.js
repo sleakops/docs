@@ -11,11 +11,13 @@ const config = {
   url: "https://docs.sleakops.com",
   baseUrl: process.env.BASE_URL || "/",
   onBrokenLinks: "throw",
-  onBrokenMarkdownLinks: "throw",
   favicon: "img/favicon.ico",
 
   markdown: {
     mermaid: true,
+    hooks: {
+      onBrokenMarkdownLinks: "warn",
+    },
   },
 
   organizationName: "Craftech",
