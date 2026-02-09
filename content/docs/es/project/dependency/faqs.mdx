@@ -1,0 +1,37 @@
+---
+title: FAQs
+sidebar_label: ''
+sidebar_position: null
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+
+
+# 
+
+# FAQs
+
+<details>
+<summary>
+
+### **¿Puedo acceder a mi base de datos desde fuera del clúster de SleakOps?**
+
+</summary>
+No directamente. Por diseño, todas las bases de datos en SleakOps son **privadas**. Esto significa que solo son accesibles desde dentro del clúster de Kubernetes o a través de la VPN configurada para el entorno.
+
+Si necesitás conectar un servidor externo (por ejemplo, una herramienta de BI o un servidor en otra nube), la solución técnica es un **VPC Peering**.
+
+- **Configuración Manual:** Actualmente, SleakOps no automatiza la creación de peerings desde el panel. Si lo requerís, debés **contactar al equipo de soporte** para realizar la configuración de red de forma segura.
+
+**¿Por qué no simplemente hacer la base de datos pública?** Exponer una base de datos a internet es una práctica de alto riesgo que evitamos por las siguientes razones:
+
+1. **Ataques de Fuerza Bruta:** Al ser pública, cualquier bot en internet puede intentar adivinar tus credenciales constantemente.
+2. **Vulnerabilidades del Motor:** Si el motor de la base de datos (PostgreSQL/MySQL) tiene una falla de seguridad no parcheada, un atacante podría explotarla directamente.
+3. **Exfiltración de Datos:** Un error en la configuración de los grupos de seguridad podría dejar tus datos sensibles expuestos a todo el mundo.
+
+
+</details>
+
+<details>
+<summary>

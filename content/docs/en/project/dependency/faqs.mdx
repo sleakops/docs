@@ -1,0 +1,37 @@
+---
+title: FAQs
+sidebar_label: ''
+sidebar_position: null
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+
+
+# 
+
+# FAQs
+
+<details>
+<summary>
+
+### **Can I access my database from outside the SleakOps cluster?**
+
+</summary>
+Not directly. By design, all databases in SleakOps are **private**. This means they are only accessible from within the Kubernetes cluster or through the configured VPN for that environment.
+
+If you need to connect an external server (e.g., a BI tool or a server in another cloud), the technical solution is **VPC Peering**.
+
+- **Manual Configuration:** Currently, SleakOps does not automate peering creation through the dashboard. If required, you must **contact the support team** to set up the network configuration securely.
+
+**Why not just make the database public?** Exposing a database to the internet is a high-risk practice that we avoid for several reasons:
+
+1. **Brute Force Attacks:** If public, any bot on the internet can constantly attempt to guess your credentials.
+2. **Engine Vulnerabilities:** If the database engine (PostgreSQL/MySQL) has an unpatched security flaw, an attacker could exploit it directly.
+3. **Data Exfiltration:** A simple misconfiguration in security groups could leave your sensitive data exposed to the entire world.
+
+
+</details>
+
+<details>
+<summary>
