@@ -26,4 +26,21 @@ Remember that you need a Build to update the code that the Deployment runs insid
 
 SleakOps has its own CLI Tool that you can use to automate Builds and Deployments in your CI/CD. More info [here](/docs/cli).
 
-::: 
+:::
+
+## FAQs
+
+<details>
+<summary>
+### ¿Por qué mi build está fallando o siendo terminado?
+</summary>
+Si tu proceso de build está fallando inesperadamente o siendo terminado, a menudo se debe a recursos insuficientes (CPU o memoria) asignados para el proceso de build. El Pod que ejecuta el build puede ser eliminado por Kubernetes cuando excede los límites de recursos configurados.
+
+**Síntomas comunes:**
+- El build falla con errores OOMKilled (Out of Memory / Sin Memoria)
+- El proceso de build se detiene a mitad de ejecución sin mensajes de error claros
+- El build es extremadamente lento o parece congelado
+
+**Solución:**
+Aumenta los recursos de build en **Proyecto** → **Configuración** → **Deploy Build Resources**. Consulta la documentación de [Recursos de Deploy Build](/docs/project/build_resources) para instrucciones detalladas sobre cómo ajustar las asignaciones de CPU y memoria.
+</details>

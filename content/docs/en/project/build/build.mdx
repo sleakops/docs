@@ -27,3 +27,20 @@ Remember that you need a Build to update the code that the Deployment runs insid
 SleakOps has its own CLI Tool that you can use to automate Builds and Deployments in your CI/CD. More info [here](/docs/cli).
 
 :::
+
+## FAQs
+
+<details>
+<summary>
+### Why is my build failing or getting killed?
+</summary>
+If your build process is failing unexpectedly or being terminated, it's often due to insufficient resources (CPU or memory) allocated for the build process. The Pod running the build may be killed by Kubernetes when it exceeds the configured resource limits.
+
+**Common symptoms:**
+- Build fails with OOMKilled (Out of Memory) errors
+- Build process stops mid-execution without clear error messages
+- Build is extremely slow or appears frozen
+
+**Solution:**
+Increase the build resources in **Project** → **Settings** → **Deploy Build Resources**. See the [Deploy Build Resources](/docs/project/build_resources) documentation for detailed instructions on how to adjust CPU and memory allocations.
+</details>
