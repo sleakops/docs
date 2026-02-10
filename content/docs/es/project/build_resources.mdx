@@ -56,6 +56,11 @@ Configura los recursos asignados durante el proceso de despliegue:
 <summary>
 ### ¿Qué sucede si mi build o deployment excede los recursos configurados?
 </summary>
+
+:::info Revisa los Logs Primero
+Antes de ajustar recursos, siempre revisa tus logs de build y deployment para confirmar que las restricciones de recursos son la causa real del fallo. Busca mensajes de error específicos como `OOMKilled` o indicadores de límites de recursos.
+:::
+
 Cuando un proceso de build o deployment consume más CPU o memoria que los valores de solicitud configurados, el Pod que ejecuta el proceso puede ser terminado por Kubernetes antes de completarse. Esto resulta en:
 
 - **Builds fallidos**: El proceso de build se detiene a mitad de ejecución y no logra producir una imagen Docker
