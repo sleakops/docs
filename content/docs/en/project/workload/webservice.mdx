@@ -48,7 +48,22 @@ If the health check fails consecutively and reaches the Failure Threshold (defau
 <summary>
 ### How can I configure memory and CPU settings for my Web Service?
 </summary>
-You can configure the *CPU Request* and *CPU Limit* values to set the minimum and maximum CPU resources each instance in your cluster can use. Similarly, you set **Memory Request** and **Memory Limit** for memory allocation per instance.
+You can configure resource allocation for your Web Service in **Step 5: Finish the set up** when creating or updating the service:
+
+- **CPU Request**: The minimum CPU resources guaranteed for each instance
+- **CPU Limit**: The maximum CPU resources each instance can use
+- **Memory Request**: The minimum memory guaranteed for each instance
+- **Memory Limit**: The maximum memory each instance can use
+
+**Important - SleakOps Default Behavior:**
+
+If you specify **Request** values but leave the **Limit** fields empty, SleakOps automatically sets the limits to **130% of the request values**.
+
+For example:
+- **CPU Request** = `1000m` → **CPU Limit** automatically becomes `1300m`
+- **Memory Request** = `512Mi` → **Memory Limit** automatically becomes `665Mi`
+
+To override this default and set custom limits, simply specify your own **CPU Limit** and **Memory Limit** values in the configuration form. Your custom values will be used instead of the automatic 130% calculation.
 </details>
 
 <details>
