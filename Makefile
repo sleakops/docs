@@ -3,6 +3,9 @@ SHELL := /bin/bash
 run:  ## Run Docusaurus
 	docker compose up -d
 
+stop:  ## Run Docusaurus
+	docker compose down
+
 install: ## Install dependencies
 	docker compose run --rm doc yarn
 
