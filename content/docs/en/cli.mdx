@@ -108,7 +108,6 @@ jobs:
         run: sleakops deploy -p core -e main -w
 ```
 
-
 </TabItem>
 <TabItem value="GitLab">
 
@@ -142,7 +141,6 @@ deploy:
         - if: '$CI_COMMIT_BRANCH == main'
 ```
 
-
 </TabItem>
 <TabItem value="BitBucket">
 
@@ -162,7 +160,6 @@ pipelines:
                         - sleakops deploy -p core -e main -w
 ```
 
-
 </TabItem>
 </Tabs >
 
@@ -176,4 +173,16 @@ pipelines:
 </summary>
 
 No. SleakOps does not use webhooks to trigger CI/CD pipelines. Instead, the CI/CD process is executed through SleakOps CLI commands running in your pipeline runners: GitHub Actions, GitLab Runners, or Bitbucket Pipelines.
+</details>
+
+<details>
+<summary>
+
+### What should I do if the CLI returns "Multiple projects found with the same name and branch"?
+
+</summary>
+
+This message appears when you have multiple projects with the same name across different environments. To resolve this, specify the environment using the `-e` or `--environment` parameter in your build or deploy commands.
+
+The environment name must match exactly with the environment configured in SleakOps. You can find the correct environment value in the pipeline examples located at Project → Settings → Git Pipelines.
 </details>
