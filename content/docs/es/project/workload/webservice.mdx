@@ -47,7 +47,22 @@ Si la verificación de salud falla de manera consecutiva y alcanza el umbral de 
 <summary>
 ### ¿Cómo puedo configurar la memoria y los ajustes de CPU para mi Web Service?
 </summary>
-Puedes configurar los valores *CPU Request* y *CPU Limit* para establecer los recursos mínimos y máximos de CPU que cada instancia en tu clúster puede usar. De manera similar, puedes establecer **Memory Request** y **Memory Limit** para la asignación de memoria por instancia.
+Puedes configurar la asignación de recursos para tu Web Service en el **Paso 5: Finalizar la configuración** al crear o actualizar el servicio:
+
+- **CPU Request**: Los recursos mínimos de CPU garantizados para cada instancia
+- **CPU Limit**: Los recursos máximos de CPU que cada instancia puede usar
+- **Memory Request**: La memoria mínima garantizada para cada instancia
+- **Memory Limit**: La memoria máxima que cada instancia puede usar
+
+**Importante - Comportamiento Predeterminado de SleakOps:**
+
+Si especificas valores de **Request** pero dejas los campos de **Limit** vacíos, SleakOps automáticamente establece los límites al **130% de los valores de request**.
+
+Por ejemplo:
+- **CPU Request** = `1000m` → **CPU Limit** se convierte automáticamente en `1300m`
+- **Memory Request** = `512Mi` → **Memory Limit** se convierte automáticamente en `665Mi`
+
+Para sobrescribir este valor predeterminado y establecer límites personalizados, simplemente especifica tus propios valores de **CPU Limit** y **Memory Limit** en el formulario de configuración. Se usarán tus valores personalizados en lugar del cálculo automático del 130%.
 </details>
 
 <details>
