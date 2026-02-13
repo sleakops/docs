@@ -49,3 +49,63 @@ Configura los recursos asignados durante el proceso de despliegue:
 :::warning Límites de Recursos
 - Asegúrate de que tu clúster tenga recursos suficientes para acomodar las asignaciones solicitadas
 :::
+
+## FAQs
+
+<details>
+<summary>
+### ¿Qué sucede si mi build o deployment excede los recursos configurados?
+</summary>
+
+:::info Revisa los Logs Primero
+Antes de ajustar recursos, siempre revisa tus logs de build y deployment para confirmar que las restricciones de recursos son la causa real del fallo. Busca mensajes de error específicos como `OOMKilled` o indicadores de límites de recursos.
+:::
+
+Cuando un proceso de build o deployment consume más CPU o memoria que los valores de solicitud configurados, el Pod que ejecuta el proceso puede ser terminado por Kubernetes antes de completarse. Esto resulta en:
+
+- **Builds fallidos**: El proceso de build se detiene a mitad de ejecución y no logra producir una imagen Docker
+- **Deployments fallidos**: El proceso de deployment se interrumpe y no se completa exitosamente
+- **Mensajes de error**: Verás errores indicando que el Pod fue terminado debido a restricciones de recursos (OOMKilled para memoria o throttling de CPU)
+
+Este es un problema común cuando se trabaja con:
+- Bases de código grandes que requieren memoria significativa durante la compilación
+- Procesos de build complejos con múltiples dependencias
+- Proyectos con pasos extensos de testing o bundling
+</details>
+
+<details>
+<summary>
+### ¿Cómo aumento los recursos de build y deployment?
+</summary>
+Si estás experimentando fallos en builds o deployments debido a restricciones de recursos, puedes aumentar los recursos asignados:
+
+1. Navega a **Proyecto** → **Configuración** en la interfaz de SleakOps
+2. Selecciona **Deploy Build Resources** del menú de configuración
+3. Aumenta los valores para el recurso que está causando problemas:
+   - **Build Request CPU**: Aumenta si los builds son lentos o sufren throttling de CPU
+   - **Build Request Memory**: Aumenta si los builds fallan con errores OOMKilled
+   - **Deploy Request CPU**: Aumenta si los deployments son lentos
+   - **Deploy Request Memory**: Aumenta si los deployments fallan durante el proceso
+4. Haz clic en **Save** para aplicar los cambios
+5. Dispara un nuevo build o deployment para usar las asignaciones de recursos actualizadas
+
+:::tip Encontrando los Valores Correctos
+- Comienza duplicando los valores actuales si estás experimentando fallos
+- Monitorea el uso real de recursos durante builds/deployments
+- Ajusta de forma incremental hasta que los builds se completen exitosamente
+- Recuerda que valores más altos pueden impactar los costos y la capacidad del clúster
+:::
+</details>
+
+<details>
+<summary>
+### ¿Cómo sé qué valores configurar?
+</summary>
+Comienza con los valores por defecto y ajusta basándote en el comportamiento observado:
+
+- Si los builds fallan con errores **OOMKilled**, aumenta **Build Request Memory** (prueba con 2Gi, 4Gi, o más)
+- Si los builds son **muy lentos**, aumenta **Build Request CPU** (prueba con 1000m, 2000m, o más)
+- Si los deployments fallan o expiran, aumenta los valores correspondientes de **Deploy Request**
+
+Monitorea tus logs de build y deployment para identificar problemas relacionados con recursos y ajusta en consecuencia.
+</details>

@@ -41,8 +41,6 @@ const config = {
     },
   },
 
-  clientModules: [require.resolve("./src/clientModules/languageDetect.js")],
-
   // Eliminamos el tema easyops-cn/docusaurus-search-local
   themes: ["@docusaurus/theme-mermaid"],
 
@@ -59,6 +57,38 @@ const config = {
           routeBasePath: "/docs",
           sidebarCollapsible: true,
           sidebarCollapsed: true,
+          editUrl: (/** @type {{ docPath: string }} */ { docPath }) => {
+            // Map document paths to their corresponding CMS collections
+            // docPath format: "cluster/addons/example.mdx" or "index.mdx"
+
+            // Remove the file extension to get the slug
+            const slug = docPath.replace(/\.mdx?$/, "");
+
+            // Extract the path segments
+            const pathSegments = docPath.split("/");
+
+            // Determine the collection based on the path structure
+            let collection = "docs-root"; // Default for root-level files
+
+            if (pathSegments.length >= 2) {
+              const firstSegment = pathSegments[0];
+              const secondSegment = pathSegments[1];
+
+              // Check for nested collections (e.g., cluster/addons, project/build)
+              if (
+                pathSegments.length >= 3 &&
+                secondSegment !== pathSegments[pathSegments.length - 1]
+              ) {
+                collection = `docs-${firstSegment}-${secondSegment}`;
+              } else {
+                // Single-level collections (e.g., cluster, domain, environment)
+                collection = `docs-${firstSegment}`;
+              }
+            }
+
+            // Build the complete CMS URL with /entries/ and the slug
+            return `https://docs.sleakops.com/preview-docs/admin/#/collections/${collection}/entries/${slug}`;
+          },
         },
         blog: {},
         pages: {
@@ -100,6 +130,8 @@ const config = {
         showReadingTime: false,
         postsPerPage: 10,
         sortPosts: "descending",
+        editUrl:
+          "https://docs.sleakops.com/preview-docs/admin/#/collections/changelog",
       },
     ],
     [
@@ -109,7 +141,8 @@ const config = {
         path: "tutorials",
         routeBasePath: "tutorial",
         sidebarPath: require.resolve("./sidebars-tutorials.js"),
-        editUrl: undefined,
+        editUrl:
+          "https://docs.sleakops.com/preview-docs/admin/#/collections/tutorials",
       },
     ],
   ],

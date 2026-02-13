@@ -1,4 +1,5 @@
 ---
+title: Custer
 pagination_next: environment/index
 ---
 
@@ -16,12 +17,13 @@ En el contexto de [AWS Elastic Kubernetes Service](https://docs.aws.amazon.com/e
 
 Para obtener más información sobre los clústeres de Kubernetes, consulta [la documentación de Kubernetes](https://kubernetes.io/docs/concepts/overview/components/).
 
-
 ## Preguntas Frecuentes
 
 <details>
 <summary>
+
 ### ¿Cuáles son los beneficios de tener un clúster?
+
 </summary>
 Los clústeres te permiten implementar múltiples instancias de la misma aplicación sin esfuerzo, asegurando que si una instancia falla, otras puedan asumir el control de inmediato. Además, los clústeres ofrecen capacidades de escalado automático, ajustando automáticamente el número de nodos según fluctúe el tráfico, lo que garantiza alta disponibilidad y un rendimiento óptimo.
 
@@ -30,7 +32,9 @@ También proporcionan una excelente manera de aislar tu entorno de producción d
 
 <details>
 <summary>
+
 ### ¿Cómo maneja SleakOps los clústeres?
+
 </summary>
 SleakOps te ofrece la flexibilidad y el control necesarios para crear un clúster EKS que se alinee exactamente con tus requisitos.
 
@@ -39,29 +43,38 @@ Para definir cómo crear tu infraestructura, consulta: [Diseñando tu Infraestru
 
 <details>
 <summary>
+
 ### ¿Qué sucede cuando se crea un Clúster en SleakOps?
+
 </summary>
 SleakOps crea un grupo de Node Pools que te permitirá ejecutar tus aplicaciones utilizando la orquestación de Kubernetes según tus necesidades. Consulta [Node Pools](/docs/cluster/nodepools).
 </details>
 
 <details>
 <summary>
+
 ### ¿Qué es Karpenter?
+
 </summary>
 En el proceso de creación de tu clúster EKS, la provisión de nodos se gestiona de manera eficiente con la tecnología avanzada de Karpenter. Karpenter provisiona automáticamente los nodos con los recursos necesarios y escala el clúster según las demandas de la aplicación, eliminando preocupaciones sobre la desprovisión. A medida que cambian las cargas de trabajo, Karpenter ajusta dinámicamente los nodos y recursos, optimizando el rendimiento y los costos. Consulta [Karpenter Web](https://karpenter.sh/).
 </details>
 
 <details>
 <summary>
+
 ### ¿Cómo elegir los tipos de instancias correctos para mi clúster?
+
 </summary>
 Elegir los tipos de instancias correctos depende de los requisitos de tu aplicación, los objetivos de optimización de costos y las necesidades de disponibilidad. SleakOps proporciona diferentes node pools (Spot, On-Demand, Reserved) para ayudarte a optimizar costos mientras mantienes el rendimiento. Para obtener orientación detallada sobre tipos de instancias y dimensionamiento de clústeres, consulta [Tipos de Instancias y Manejo de Nodos](/docs/cluster/nodepools/instance-types).
 </details>
 
 <details>
 <summary>
+
 ### ¿Cómo maneja SleakOps las actualizaciones de clúster?
+
 </summary>
+
 1. Notificamos a los usuarios sobre una nueva versión aproximadamente con 1 mes de anticipación.
 2. Actualizamos los clústeres de un grupo de clientes seleccionados.
 3. Actualizamos todos los clústeres que no están marcados como de producción.
@@ -70,18 +83,22 @@ Elegir los tipos de instancias correctos depende de los requisitos de tu aplicac
 
 <details>
 <summary>
+
 ### ¿Cómo controlo los gastos del clúster?
+
 </summary>
 SleakOps te permite ver todos los gastos de tus clústeres en un solo lugar, clasificados por cuenta, recursos y fechas.
 
-Accede a *Clusters*, selecciona uno y haz clic en el botón: $
+Accede a _Clusters_, selecciona uno y haz clic en el botón: $
 </details>
 
 <details>
 <summary>
+
 ### ¿Cómo monitoreo mi clúster?
+
 </summary>
-Puedes monitorear la actividad de tu clúster accediendo a *Clusters* y haciendo clic en el botón correspondiente:
+Puedes monitorear la actividad de tu clúster accediendo a _Clusters_ y haciendo clic en el botón correspondiente:
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -91,11 +108,27 @@ Puedes monitorear la actividad de tu clúster accediendo a *Clusters* y haciendo
 </Zoom>
 </details>
 
+<details>
+<summary>
+
+### ¿Puedo conectar un servicio de Staging con uno de Producción si están en diferente clúster?
+
+</summary>
+Bajo un esquema de **multi-cuenta**, los entornos se encuentran en clústeres y cuentas de AWS separadas (Prod y Dev). En esta configuración, están totalmente aislados y no existe peering entre sus VPCs. Por el contrario, en caso de utilizar una **cuenta única**, ambos entornos conviven dentro del mismo clúster.
+
+La **buena práctica** es que permanezcan desconectados para garantizar el aislamiento total de los datos. El uso de un mismo clúster o de un esquema único (_single schema_) conlleva riesgos críticos de seguridad y estabilidad:
+
+- **Corrupción de Datos:** Un error en el código de Staging podría ejecutar comandos accidentales (como `DROP TABLE` o `DELETE`) que impacten directamente en la base de datos de Producción.
+- **Compromiso de Credenciales:** Si un atacante compromete el entorno de Staging (que suele tener políticas de acceso más flexibles), podría escalar privilegios y acceder a los secretos o llaves maestras de Producción.
+
+</details>
+
 ## Creemos tu primer Clúster en SleakOps
 
 :::warning  Crear un clúster te va a generar costos en AWS:
 
 Tarifa fija del servicio EKS: USD 0.10 por hora
+
 - Costos variables por los recursos que uses (EC2, almacenamiento, etc.)
 - Costos adicionales por servicios relacionados (balanceadores de carga, snapshots, etc.)
 :::
@@ -115,7 +148,7 @@ Para más información sobre las cuentas, consulta [Cuentas](/docs/provider/acco
 
 ### 2. Navega a la sección Crear Clúster
 
-En el *Panel Izquierdo*, accede a la opción *Clusters* y luego, en la esquina superior derecha, haz clic en el botón *Crear*.
+En el _Panel Izquierdo_, accede a la opción _Clusters_ y luego, en la esquina superior derecha, haz clic en el botón _Crear_.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -126,7 +159,7 @@ En el *Panel Izquierdo*, accede a la opción *Clusters* y luego, en la esquina s
 
 ### 3. Configura tu Clúster
 
-Con tu *Cuenta* seleccionada, accederás al siguiente formulario:
+Con tu _Cuenta_ seleccionada, accederás al siguiente formulario:
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -146,6 +179,6 @@ Aquí están los parámetros que SleakOps te permite personalizar durante la cre
 | **Memoria Máxima** | Define la memoria máxima que el clúster puede usar a medida que los servicios escalan. El autoscaler provisiona instancias según la demanda, pero esto no significa que el clúster siempre usará la memoria máxima; simplemente define el límite superior para el autoscaler. |
 | **CPU Máxima** | Define la CPU máxima que el clúster puede usar a medida que los servicios escalan. El autoscaler provisiona instancias según la demanda, pero esto no significa que el clúster siempre usará la CPU máxima; simplemente define el límite superior para el autoscaler. |
 
-Una vez que completes el formulario, haz clic en *Enviar* para iniciar la creación del clúster en la cuenta seleccionada de AWS.
+Una vez que completes el formulario, haz clic en _Enviar_ para iniciar la creación del clúster en la cuenta seleccionada de AWS.
 
 Este proceso creará un Clúster con cinco Node Pools por defecto. Consulta [Node Pools](/docs/cluster/nodepools).

@@ -1,4 +1,5 @@
 ---
+title: CLI
 sidebar_label: CLI de Sleakops
 sidebar_position: 8
 ---
@@ -10,24 +11,26 @@ import TabItem from '@theme/TabItem';
 
 # CLI
 
-
 ## Optimiza tu CI/CD con la CLI de SleakOps
-La CLI de SleakOps es un paquete de Python diseñado para simplificar tus flujos de trabajo de CI/CD. 
-Con solo dos subcomandos sencillos, puedes crear compilaciones y desplegar tus aplicaciones con facilidad, garantizando un proceso de desarrollo fluido y eficiente. 
+
+La CLI de SleakOps es un paquete de Python diseñado para simplificar tus flujos de trabajo de CI/CD.
+Con solo dos subcomandos sencillos, puedes crear compilaciones y desplegar tus aplicaciones con facilidad, garantizando un proceso de desarrollo fluido y eficiente.
 Para comenzar, simplemente instala SleakOps usando pip:
-```
+
+```plain
 pip install sleakops
 ```
 
 ### 1. Autenticación
 
-Para autenticarte con el SleakOps CLI, necesitas una API_KEY. Puedes obtener esta clave desde la [consola <FiExternalLink/>](https://console.sleakops.com/settings/apikey) haciendo clic en Generar API-Key. 
+Para autenticarte con el SleakOps CLI, necesitas una API_KEY. Puedes obtener esta clave desde la [consola <FiExternalLink/>](https://console.sleakops.com/settings/apikey) haciendo clic en Generar API-Key.
 Cada empresa puede tener solo una API_KEY activa a la vez. Si solicitas una nueva API_KEY, la antigua será revocada automáticamente. En la página se muestran las claves de la empresa y quién las generó.
 
 Una vez que tengas tu API_KEY, puedes usarla como argumento al ejecutar comandos de SleakOps o configurarla como una variable de entorno llamada SLEAKOPS_KEY.
 
 :::tip Configurando SLEAKOPS_KEY en Pipelines de CI/CD
 Para pipelines de CI/CD, se recomienda configurar SLEAKOPS_KEY como una variable de entorno secreta en tu proveedor de Git:
+
 - **GitHub**: Agrégala como un secreto de repositorio en Settings → Secrets and variables → Actions
 - **GitLab**: Agrégala como una variable de CI/CD en Settings → CI/CD → Variables
 - **Bitbucket**: Agrégala como una variable de repositorio en Repository settings → Pipelines → Repository variables
@@ -39,14 +42,14 @@ Esto asegura el acceso seguro a los servicios de SleakOps sin exponer tu clave A
 
 Para crear una compilación de tu aplicación, usa el siguiente comando:
 
-```
+```plain
 sleakops build [options]
 ```
 
 Este comando inicia el proceso de compilación, y SleakOps se encarga de compilar tu código, ejecutar pruebas y empaquetar la aplicación para su despliegue. Puedes especificar opciones adicionales para adaptar el proceso de compilación a tus necesidades específicas.
 
-Hay dos argumentos obligatorios: **project** y **branch**, que se utilizan para saber qué compilar. 
-Además, puedes añadir un **commit** para compilar un commit anterior, una **tag** para la imagen y el *proveedor* si necesitas especificarlo.
+Hay dos argumentos obligatorios: **project** y **branch**, que se utilizan para saber qué compilar.
+Además, puedes añadir un **commit** para compilar un commit anterior, una **tag** para la imagen y el _proveedor_ si necesitas especificarlo.
 
 Como se mencionó anteriormente, la clave puede ser un entrada aquí o una variable de entorno.
 
@@ -63,40 +66,42 @@ Esto es particularmente útil para pipelines de CI/CD donde quieres pasar difere
 :::
 
 ### 3. Realizar un Despliegue
+
 Una vez que tu compilación esté lista, puedes desplegar tu aplicación fácilmente usando el siguiente comando:
-```
+
+```plain
 sleakops deploy [options]
 ```
+
 SleakOps gestiona de manera transparente el proceso de despliegue, asegurando que tu aplicación esté en funcionamiento en poco tiempo. Puedes especificar opciones de despliegue para ajustar el proceso según tus requisitos.
 
 Aquí, **project** y **environment** son los argumentos obligatorios. El usuario puede añadir una **build** o **tag** de imagen para especificar una imagen. Aquí también están presentes las opciones de **wait** y **key**, su uso es el mismo que en el comando de compilación.
 
 ## Ejemplos de CI/CD
-Con la CLI de SleakOps, puedes integrar tus tuberías de CI/CD, automatizar el proceso de compilación y despliegue, y concentrarte en entregar aplicaciones excepcionales sin la molestia de intervención manual. 
+
+Con la CLI de SleakOps, puedes integrar tus tuberías de CI/CD, automatizar el proceso de compilación y despliegue, y concentrarte en entregar aplicaciones excepcionales sin la molestia de intervención manual.
 Disfruta de una experiencia de desarrollo fluida con SleakOps y crea flujos de trabajo de CI/CD personalizados.
 
-
 <Tabs>
-<TabItem value="GitHub" > 
+<TabItem value="GitHub" >
 <code>
-```
+
+```plain
 name: Deploy
 
 on:
   push:
       branches:
-      - main
+            - main
 jobs:
   build:
       runs-on: ubuntu-latest
       steps:
-      - name: Checkout repository
+            - name: Checkout repository
         uses: actions/checkout@v2
-
-      - name: Install SleakOps CLI
+              - name: Install SleakOps CLI
         run: pip install sleakops
-
-      - name: Run SleakOps build
+              - name: Run SleakOps build
         env:
           SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
         run: sleakops build -p core -b main -w
@@ -104,69 +109,96 @@ jobs:
       needs: [build]
       runs-on: ubuntu-latest
       steps:
-      - name: Checkout repository
+            - name: Checkout repository
         uses: actions/checkout@v2
-
-      - name: Install SleakOps CLI
+              - name: Install SleakOps CLI
         run: pip install sleakops
-
-      - name: Run SleakOps deploy
+              - name: Run SleakOps deploy
         env:
           SLEAKOPS_KEY: ${{ secrets.SLEAKOPS_KEY }}
         run: sleakops deploy -p core -e main -w
 ```
+
 </code>
 </TabItem>
-<TabItem value="GitLab"> 
+<TabItem value="GitLab">
 <code>
-```
+
+```plain
 image: python:3.9
 
 stages:
-  - build
-  - deploy
+    - build
+    - deploy
 
 build:
   stage: build
   script:
-    - apt-get update -qy
-    - apt-get install -y python3-pip
-    - pip3 install sleakops
-    - sleakops build -p core -b main -w
+        - apt-get update -qy
+        - apt-get install -y python3-pip
+        - pip3 install sleakops
+        - sleakops build -p core -b main -w
   rules:
-    - if: '$CI_COMMIT_BRANCH == main'
+        - if: '$CI_COMMIT_BRANCH == main'
 
 deploy:
   stage: deploy
   needs:
-    - build
+        - build
   script:
-    - apt-get update -qy
-    - apt-get install -y python3-pip
-    - pip3 install sleakops
-    - sleakops deploy -p core -e prod -w
+        - apt-get update -qy
+        - apt-get install -y python3-pip
+        - pip3 install sleakops
+        - sleakops deploy -p core -e prod -w
   rules:
-    - if: '$CI_COMMIT_BRANCH == main'
+        - if: '$CI_COMMIT_BRANCH == main'
 ```
+
 </code>
 </TabItem>
 <TabItem value="BitBucket">
 <code>
-```
+
+```plain
 image: python:3.9
 
 pipelines:
   branches:
     main:
-      - step:
+            - step:
           name: Deploy
           script:
-            - apt-get update -qy
-            - apt-get install -y python3-pip
-            - pip3 install sleakops
-            - sleakops build -p core -b main -w
-            - sleakops deploy -p core -e main -w
+                        - apt-get update -qy
+                        - apt-get install -y python3-pip
+                        - pip3 install sleakops
+                        - sleakops build -p core -b main -w
+                        - sleakops deploy -p core -e main -w
 ```
+
 </code>
 </TabItem>
 </Tabs >
+
+## FAQs
+
+<details>
+<summary>
+
+### ¿SleakOps usa webhooks para CI/CD?
+
+</summary>
+
+No. SleakOps no utiliza webhooks para activar pipelines de CI/CD. En su lugar, el proceso de CI/CD se ejecuta a través de comandos de SleakOps CLI corriendo en los runners de tu pipeline: GitHub Actions, GitLab Runners o Bitbucket Pipelines.
+</details>
+
+<details>
+<summary>
+
+### ¿Qué debo hacer si la CLI devuelve "Multiple projects found with the same name and branch"?
+
+</summary>
+
+Este mensaje aparece cuando tienes múltiples proyectos con el mismo nombre en diferentes ambientes. Para resolverlo, especifica el ambiente usando el parámetro `-e` o `--environment` en tus comandos de build o deploy.
+
+El nombre del ambiente debe coincidir exactamente con el ambiente configurado en SleakOps. Puedes encontrar el valor correcto del ambiente en los ejemplos de pipelines ubicados en Project → Settings → Git Pipelines.
+</details>

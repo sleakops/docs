@@ -1,3 +1,7 @@
+---
+title: Usuarios
+---
+
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
@@ -11,50 +15,68 @@ La gestión de usuarios en SleakOps te permite controlar el acceso a tu infraest
 Sleakops tiene tres campos fundamentales de permisos de usuario:
 
 #### Viewer (Solo Lectura)
+
 - **Objetivo**: Proporcionar acceso de solo lectura para monitorear y revisar la infraestructura sin realizar cambios
-- **Alcance**: 
-  - Ver todos los proyectos, clusters y recursos
-  - Acceder a dashboards de monitoreo y logs
-  - Revisar historial de despliegues y configuraciones
-  - No puede crear, modificar o eliminar recursos
+- **Alcance**:
+    - Ver todos los proyectos, clusters y recursos
+    - Acceder a dashboards de monitoreo y logs
+    - Revisar historial de despliegues y configuraciones
+    - No puede crear, modificar o eliminar recursos
 - **Política AWS IAM**: [ReadOnlyAccess <FiExternalLink/>](https://docs.aws.amazon.com/aws-managed-policy/latest/reference/ReadOnlyAccess.html)
-- **Ejemplos**: 
-  - Ingenieros DevOps que necesitan monitorear entornos de producción
-  - Auditores de seguridad revisando el cumplimiento de infraestructura
-  - Líderes de equipo que necesitan visibilidad del estado de los proyectos
+- **Ejemplos**:
+    - Ingenieros DevOps que necesitan monitorear entornos de producción
+    - Auditores de seguridad revisando el cumplimiento de infraestructura
+    - Líderes de equipo que necesitan visibilidad del estado de los proyectos
 
 #### Editor (Usuario Avanzado)
+
 - **Objetivo**: Habilitar capacidades de gestión de infraestructura y despliegue manteniendo límites de seguridad
 - **Alcance**:
-  - Crear y gestionar proyectos, clusters y cargas de trabajo
-  - Desplegar aplicaciones y gestionar recursos de infraestructura
-  - Configurar entornos, dependencias y redes
-  - No puede gestionar otros usuarios ni acceder a todas las cuentas por defecto
+    - Crear y gestionar proyectos, clusters y cargas de trabajo
+    - Desplegar aplicaciones y gestionar recursos de infraestructura
+    - Configurar entornos, dependencias y redes
+    - No puede gestionar otros usuarios ni acceder a todas las cuentas por defecto
 - **Política AWS IAM**: [PowerUserAccess <FiExternalLink/>](https://docs.aws.amazon.com/aws-managed-policy/latest/reference/PowerUserAccess.html)
 - **Ejemplos**:
-  - Desarrolladores senior desplegando aplicaciones
-  - Ingenieros DevOps gestionando infraestructura
-  - Miembros del equipo responsables de despliegues de proyectos específicos
+    - Desarrolladores senior desplegando aplicaciones
+    - Ingenieros DevOps gestionando infraestructura
+    - Miembros del equipo responsables de despliegues de proyectos específicos
 
 #### Admin (Administrador)
+
 - **Objetivo**: Proporcionar control completo de la plataforma incluyendo gestión de usuarios y acceso entre cuentas
 - **Alcance**:
-  - Todas las capacidades de Editor más gestión de usuarios
-  - Crear, modificar y eliminar cuentas de usuario
-  - Asignar roles y permisos a otros usuarios
-  - Acceso a todas las cuentas AWS sin restricciones
-  - Gestión de configuración y configuraciones de la plataforma
+    - Todas las capacidades de Editor más gestión de usuarios
+    - Crear, modificar y eliminar cuentas de usuario
+    - Asignar roles y permisos a otros usuarios
+    - Acceso a todas las cuentas AWS sin restricciones
+    - Gestión de configuración y configuraciones de la plataforma
 - **Política AWS IAM**: [AdministratorAccess <FiExternalLink/>](https://docs.aws.amazon.com/aws-managed-policy/latest/reference/AdministratorAccess.html)
 - **Ejemplos**:
-  - Administradores de plataforma
-  - Líderes de equipo gestionando múltiples proyectos
-  - Gerentes DevOps con responsabilidades entre equipos
+    - Administradores de plataforma
+    - Líderes de equipo gestionando múltiples proyectos
+    - Gerentes DevOps con responsabilidades entre equipos
+
+## Preguntas Frecuentes
+
+<details>
+<summary>
+
+### ¿Cómo elimino un usuario?
+
+</summary>
+
+Solo los administradores pueden eliminar usuarios. Para eliminar un usuario, accede a la Lista de Usuarios, en la columna Acción, haz clic en el ícono de la papelera. Luego confirma la acción.
+
+SleakOps maneja automáticamente el proceso completo de eliminación en todos los sistemas (usuario IAM, usuario del servidor Pritunl VPN y usuario de la consola de SleakOps). No se requieren pasos manuales adicionales fuera de la consola de SleakOps.
+
+Los usuarios eliminados no se pueden recuperar. Sin embargo, eliminar un usuario nunca elimina los recursos creados por ese usuario.
+</details>
 
 ### Configuración de Acceso
 
-**AWS Account Access**: Este campo muestra todas las cuentas, aquí seleccionas a qué cuentas el usuario (Editor o Read-only) tendrá acceso.
-
-**VPN Account Access**: Es similar al campo de accesos a cuentas de AWS, pero aquí defines si el usuario también será creado en el servidor VPN de la cuenta que le otorgues. Más información se puede consultar en la [documentación de VPN](/docs/user/vpn).
+  **AWS Account Access**: Este campo muestra todas las cuentas, aquí seleccionas a qué cuentas el usuario (Editor o Read-only) tendrá acceso.
+  **VPN Account Access**: Es similar al campo de accesos a cuentas de AWS, pero aquí defines si el usuario también será creado en el servidor VPN de la cuenta que le otorgues. Más información se puede consultar en la [documentación de VPN](/docs/user/vpn).
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img src="/img/users/USER-creation-form.png" alt="USER-creation-form" />
@@ -69,16 +91,19 @@ Después de la creación de este usuario, se creará un Usuario de AWS en la cue
 Algunos usuarios en tu organización pueden no tener acceso directo a la plataforma SleakOps pero aún interactúan con la infraestructura:
 
 ### Colaboradores Externos
+
 - **Escenario**: Contratistas o consultores externos que necesitan acceso temporal a recursos específicos de AWS
 - **Método de Acceso**: Acceso directo a la consola de AWS con permisos IAM limitados
 - **Gestión**: Manejado a través de AWS IAM directamente, no a través de la gestión de usuarios de SleakOps
 
 ### Observadores de Solo Lectura
+
 - **Escenario**: Stakeholders que necesitan visibilidad de costos y uso de infraestructura sin acceso operacional
 - **Método de Acceso**: AWS Cost Explorer, dashboards de CloudWatch o herramientas de reportes personalizadas
 - **Gestión**: Solo permisos de facturación y monitoreo de AWS
 
 ### Consumidores solo de VPN
+
 - **Escenario**: Usuarios que necesitan consumir cargas de trabajo y aplicaciones dentro de la VPN, pero no requieren capacidades de administración ni monitorización de la infraestructura.
 - **Método de acceso**: Solo acceso a la VPN, con permisos limitados para acceder a aplicaciones y servicios específicos.
 - **Gestión**: Cuentas de usuario de VPN con acceso restringido a cargas de trabajo y entornos designados.

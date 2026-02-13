@@ -1,4 +1,5 @@
 ---
+title: Cluster
 pagination_next: environment/index
 ---
 
@@ -10,59 +11,71 @@ import { FiExternalLink } from "react-icons/fi";
 
 On SleakOps, to deploy and run your applications effectively, Kubernetes clusters are essential.
 
-A cluster is a group of interconnected computers or instances that work together as a single unit to perform specific tasks or run applications. 
+A cluster is a group of interconnected computers or instances that work together as a single unit to perform specific tasks or run applications.
 
 In the context of [AWS Elastic Kubernetes Service <FiExternalLink/>](https://docs.aws.amazon.com/eks/) (EKS), a cluster consists of one or more EC2 instances (Nodes) that form the foundation for running containerized applications using Kubernetes orchestration.
 
 For more information on Kubernetes clusters, see [the Kubernetes documentation <FiExternalLink/>](https://kubernetes.io/docs/concepts/overview/components/).
 
-
-## FAQs 
+## FAQs
 
 <details>
 <summary>
+
 ### What are the benefits of having a cluster?
+
 </summary>
-Clusters allow you to deploy multiple instances of the same application effortlessly, ensuring that if one instance fails, others can instantly take over. Additionally, clusters offer auto-scaling capabilities, automatically adjusting the number of worker nodes as traffic fluctuates, which ensures high availability and optimal performance. 
+Clusters allow you to deploy multiple instances of the same application effortlessly, ensuring that if one instance fails, others can instantly take over. Additionally, clusters offer auto-scaling capabilities, automatically adjusting the number of worker nodes as traffic fluctuates, which ensures high availability and optimal performance.
 
 They also provide an excellent way to isolate your production environment from your staging environment.
 </details>
 
 <details>
 <summary>
+
 ### How SleakOps manage clusters?
+
 </summary>
-SleakOps offers you the flexibility and control needed to create an EKS cluster that aligns precisely with your requirements. 
+SleakOps offers you the flexibility and control needed to create an EKS cluster that aligns precisely with your requirements.
 
 To define how to create your infra, you can see: [Designing your Infra: Single Schema Vs. Multi Schema ](/docs/provider/schemas)
 </details>
 
 <details>
 <summary>
+
 ### What happens when a Cluster is created on SleakOps?
+
 </summary>
 SleakOps creates a group of Node Pools that will allow you to run your applications using Kubernetes orchestration based on your needs. See [Node Pools](/docs/cluster/nodepools).
 </details>
 
 <details>
 <summary>
+
 ### What is Karpenter?
+
 </summary>
 In the process of creating your EKS cluster, node provisioning is seamlessly managed by advanced Karpenter technology. Karpenter automatically provisions nodes with just the required resources and scales the cluster based on application demands, removing concerns about deprovisioning. As your workload changes, Karpenter adjusts nodes and resources dynamically, optimizing performance and cost. See [Karpenter Web](https://karpenter.sh/)
 </details>
 
 <details>
 <summary>
+
 ### How do I choose the right instance types for my cluster?
+
 </summary>
 Choosing the right instance types depends on your application requirements, cost optimization goals, and availability needs. SleakOps provides different node pools (Spot, On-Demand, Reserved) to help you optimize costs while maintaining performance. For detailed guidance on instance types and cluster sizing, see [Instance Types and Node Management](/docs/cluster/nodepools/instance-types).
 </details>
 
 <details>
 <summary>
+
 ### How does SleakOps handle cluster updates and upgrades?
+
 </summary>
-1. We notify users about new version coming in approximatively 1 month in advance. 
+
+1. We notify users about new version coming in approximatively 1 month in advance.
 2. Upgrade clusters for a group of selected customers.
 3. Upgrade all non-production flagged clusters.
 4. Upgrade all clusters.
@@ -70,16 +83,20 @@ Choosing the right instance types depends on your application requirements, cost
 
 <details>
 <summary>
-### How do I control cluster's expenses?
-</summary>
-SleakOps allows you to see all your clusters expenses in one place, classified by account, resources, dates. 
 
-Access *Clusters*, select one and click the button: $
+### How do I control cluster's expenses?
+
+</summary>
+SleakOps allows you to see all your clusters expenses in one place, classified by account, resources, dates.
+
+Access _Clusters_, select one and click the button: $
 </details>
 
 <details>
 <summary>
+
 ### How do I monitor my cluster?
+
 </summary>
 You can monitor your cluster's activity by accessing Clusters, and clicking into the button:
 
@@ -90,6 +107,37 @@ You can monitor your cluster's activity by accessing Clusters, and clicking into
   />
 </Zoom>
 
+</details>
+
+<details>
+<summary>
+
+### Can I connect a Staging service to a Production service if they are in different clusters?
+
+</summary>
+Tenés razón, se me pasó destacar el título en la versión en inglés. Aquí tenés el punto 2 completo, con los títulos bien marcados para ambos idiomas y la lógica de cuentas corregida:
+
+### **2. ¿Puedo conectar un servicio de Staging con uno de Producción si están en diferente clúster?**
+
+**Versión en Español**
+
+Bajo un esquema de **multi-cuenta**, los entornos se encuentran en clústeres y cuentas de AWS separadas (Prod y Dev). En esta configuración, están totalmente aislados y no existe peering entre sus VPCs. Por el contrario, en caso de utilizar una **cuenta única**, ambos entornos conviven dentro del mismo clúster.
+
+La **buena práctica** es que permanezcan desconectados para garantizar el aislamiento total de los datos. El uso de un mismo clúster o de un esquema único (_single schema_) conlleva riesgos críticos de seguridad:
+
+- **Corrupción de Datos:** Un bug en el código de Staging podría ejecutar comandos accidentales (como `DROP TABLE` o `DELETE`) que impacten directamente en la base de datos de Producción.
+- **Compromiso de Credenciales:** Si un atacante compromete el entorno de Staging (que suele tener políticas de acceso más flexibles), podría escalar privilegios y acceder a los secretos o llaves maestras de Producción.
+
+### **2. Can I connect a Staging service to a Production service if they are in different clusters?**
+
+**English Version**
+
+In a **multi-account** setup, environments reside in separate clusters and AWS accounts (Prod and Dev). In this configuration, they are completely isolated, and no VPC peering exists. Conversely, in a **single-account** setup, both environments coexist within the same cluster.
+
+**Best practice** is to keep them disconnected to ensure strict security and data isolation. Sharing a cluster or using a single database schema introduces critical risks:
+
+- **Data Corruption:** A bug in Staging code could trigger accidental commands (such as `DROP TABLE` or `DELETE`) that directly impact live Production data.
+- **Credential Compromise:** If an attacker compromises the Staging environment (which often has more relaxed security policies), they could escalate privileges to gain access to critical Production credentials or master keys.
 </details>
 
 ## Lets create your first Cluster on SleakOps
@@ -113,7 +161,7 @@ For more information regarding accounts, see [Accounts](/docs/provider/accounts)
 
 ### 2. Navigate to create Cluster section
 
-Into the *Left Pane*, access *Clusters* option and then, at the top right corner, click on the *Create* button.
+Into the _Left Pane_, access _Clusters_ option and then, at the top right corner, click on the _Create_ button.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -124,7 +172,7 @@ Into the *Left Pane*, access *Clusters* option and then, at the top right corner
 
 ### 3. Set up your Cluster
 
-With your *Account* selected, you will access the following form:
+With your _Account_ selected, you will access the following form:
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -138,10 +186,10 @@ Here the parameters that SleakOps allows you to customize during the creation:
 | **Setting** | **Description** |
 | --- | --- |
 | **Name** | Identify your cluster |
-| Description | Optional space to describe what is included into this cluster.  |
-| **Architecture Type** | Select the architecture type to be used during the creation for your instances: (64-Bit) ARM or (64-Bit) X86, based on your performance and compatibility needs. Then you'll be able of creating new instances using a different architecture.  |
+| Description | Optional space to describe what is included into this cluster. |
+| **Architecture Type** | Select the architecture type to be used during the creation for your instances: (64-Bit) ARM or (64-Bit) X86, based on your performance and compatibility needs. Then you'll be able of creating new instances using a different architecture. |
 | Production | **High-Availability (HA) Configuration**: When enabled, this setting transforms your cluster into a production-ready environment by distributing the EKS cluster across multiple Availability Zones (AZs). This provides redundancy and fault tolerance, ensuring uninterrupted operations even if one AZ experiences issues. Production clusters also benefit from enhanced monitoring, automated backups, and optimized resource allocation for critical workloads. |
 
-Once you've completed the form, click on *Submit* in order to trigger the cluster creation into the selected account on AWS. 
+Once you've completed the form, click on _Submit_ in order to trigger the cluster creation into the selected account on AWS.
 
 This process will create a Cluster with five node pools by default. See [Node Pools](/docs/cluster/nodepools).
