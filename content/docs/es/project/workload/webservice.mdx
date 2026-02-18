@@ -73,16 +73,18 @@ Los tiempos de respuesta largos pueden indicar problemas como limitaciones de re
 </summary>
 El **terminationGracePeriod** es una configuración de Kubernetes que define cuánto tiempo (en segundos) espera Kubernetes para que tu aplicación se detenga de forma ordenada antes de forzar su terminación. Esto es crucial para garantizar que tu servicio pueda finalizar el procesamiento de solicitudes activas, cerrar conexiones de base de datos o realizar operaciones de limpieza antes de apagarse.
 
+**Cómo funciona:** Cuando Kubernetes necesita detener tu contenedor (durante un despliegue, un evento de escalado o un apagado), primero envía una señal **SIGTERM** a tu proceso y luego espera la cantidad de segundos definida por `terminationGracePeriod` antes de matar forzosamente el contenedor. La mayoría de los frameworks con los que construimos aplicaciones manejan SIGTERM automáticamente, pero si tenés algo personalizado, asegurate de que tu aplicación escuche SIGTERM y cierre correctamente todas sus conexiones y procesos en curso — de lo contrario, Kubernetes puede matar el contenedor mientras una operación está a medias.
+
 **Valor predeterminado:** 30 segundos
 
 **Cuándo ajustarlo:**
-- Auméntalo si tu servicio necesita más tiempo para completar tareas de larga duración durante el apagado
-- Auméntalo si estás viendo terminaciones abruptas de conexiones o transacciones incompletas durante los despliegues
-- Disminúyelo si tu servicio se apaga rápidamente y deseas despliegues más rápidos
+- Auméntalo si tu servicio necesita más tiempo para completar tareas de larga duración durante el apagado.
+- Auméntalo si estás viendo terminaciones abruptas de conexiones o transacciones incompletas durante los despliegues.
+- Disminúyelo si tu servicio se apaga rápidamente y deseas despliegues más rápidos.
 
 **Cómo configurarlo en SleakOps:**
 
-Al crear o actualizar un Web Service, puedes configurar el **terminationGracePeriod** en el **Paso 3: Service Settings**. Este campo te permite especificar el número de segundos que Kubernetes debe esperar antes de detener forzosamente tu servicio.
+Al crear o actualizar un Web Service, puedes configurar el **terminationGracePeriod** en el **Paso 4: Ajustes del servicio**. Este campo te permite especificar el número de segundos que Kubernetes debe esperar antes de detener forzosamente tu servicio.
 
 **A través de Chart Templates:**
 

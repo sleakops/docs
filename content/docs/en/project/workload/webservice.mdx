@@ -74,16 +74,18 @@ Long response times may indicate issues such as resource constraints, applicatio
 </summary>
 The **terminationGracePeriod** is a Kubernetes setting that defines how long (in seconds) Kubernetes waits for your application to gracefully shut down before forcefully terminating it. This is crucial for ensuring your service can finish processing active requests, close database connections, or perform cleanup operations before shutting down.
 
+**How it works:** When Kubernetes needs to stop your container (during a deployment, scaling event, or shutdown), it first sends a **SIGTERM** signal to your process and then waits the number of seconds defined by `terminationGracePeriod` before forcefully killing the container. Most application frameworks handle SIGTERM automatically, but if you have custom processes, make sure your application listens for SIGTERM and gracefully closes all connections and ongoing work — otherwise Kubernetes may kill your container while it's still mid-operation.
+
 **Default value:** 30 seconds
 
 **When to adjust it:**
-- Increase it if your service needs more time to complete long-running tasks during shutdown
-- Increase it if you're seeing abrupt connection terminations or incomplete transactions during deployments
-- Decrease it if your service shuts down quickly and you want faster deployments
+- Increase it if your service needs more time to complete long-running tasks during shutdown.
+- Increase it if you're seeing abrupt connection terminations or incomplete transactions during deployments.
+- Decrease it if your service shuts down quickly and you want faster deployments.
 
 **How to configure it in SleakOps:**
 
-When creating or updating a Web Service, you can set the terminationGracePeriod in **Step 3: Service Settings**. This field allows you to specify the number of seconds Kubernetes should wait before forcefully stopping your service.
+When creating or updating a Web Service, you can set the terminationGracePeriod in **Step 4: Workload Settings**. This field allows you to specify the number of seconds Kubernetes should wait before forcefully stopping your service.
 
 **Via Chart Templates:**
 
