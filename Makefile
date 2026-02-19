@@ -3,6 +3,9 @@ SHELL := /bin/bash
 run:  ## Run Docusaurus
 	docker compose up -d
 
+stop:  ## Stop Docusaurus
+	docker compose down
+
 install: ## Install dependencies
 	docker compose run --rm doc yarn
 
@@ -55,5 +58,5 @@ translations: ## Generate translation files
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: install run run-es build build-en build-es serve collections tutorials clear translations help
+.PHONY: install run stop run-es build build-en build-es serve collections tutorials clear translations help
 .DEFAULT_GOAL := help
