@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkdocs=self.webpackChunkdocs||[]).push([[1202],{72865:e=>{e.exports=JSON.parse('{"metadata":{"permalink":"/changelog/page/4","page":4,"postsPerPage":10,"totalPages":6,"totalCount":52,"previousPage":"/changelog/page/3","nextPage":"/changelog/page/5","blogDescription":"SleakOps Changelog - Latest updates and releases","blogTitle":"Changelog"}}')}}]);
