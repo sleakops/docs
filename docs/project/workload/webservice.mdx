@@ -85,9 +85,39 @@ Long response times may indicate issues such as resource constraints, applicatio
 
 <details>
 <summary>
+### What is terminationGracePeriod and how do I configure it?
+</summary>
+The **terminationGracePeriod** is a Kubernetes setting that defines how long (in seconds) Kubernetes waits for your application to gracefully shut down before forcefully terminating it. This is crucial for ensuring your service can finish processing active requests, close database connections, or perform cleanup operations before shutting down.
+
+**How it works:** When Kubernetes needs to stop your container (during a deployment, scaling event, or shutdown), it first sends a **SIGTERM** signal to your process and then waits the number of seconds defined by `terminationGracePeriod` before forcefully killing the container. Most application frameworks handle SIGTERM automatically, but if you have custom processes, make sure your application listens for SIGTERM and gracefully closes all connections and ongoing work — otherwise Kubernetes may kill your container while it's still mid-operation.
+
+**Default value:** 30 seconds
+
+**When to adjust it:**
+- Increase it if your service needs more time to complete long-running tasks during shutdown.
+- Increase it if you're seeing abrupt connection terminations or incomplete transactions during deployments.
+- Decrease it if your service shuts down quickly and you want faster deployments.
+
+**How to configure it in SleakOps:**
+
+When creating or updating a Web Service, you can set the terminationGracePeriod in **Step 4: Workload Settings**. This field allows you to specify the number of seconds Kubernetes should wait before forcefully stopping your service.
+
+**Via Chart Templates:**
+
+You can also configure this value through Chart Templates by adding it to your values:
+
+```yaml
+terminationGracePeriodSeconds: 60  # Wait 60 seconds before force termination
+```
+
+This gives your application enough time to handle graceful shutdown procedures, ensuring data integrity and a better user experience during updates or scaling operations.
+</details>
+
+<details>
+<summary>
 ### How can I deploy my static web service?
 </summary>
-At the moment, Sleakops doesn’t natively support static sites, but you can still deploy them using the same flow as other sites, by containerizing them with a web server like Nginx. Below is a simple example of a Dockerfile and the corresponding nginx.conf to serve your static content.
+At the moment, Sleakops doesn't natively support static sites, but you can still deploy them using the same flow as other sites, by containerizing them with a web server like Nginx. Below is a simple example of a Dockerfile and the corresponding nginx.conf to serve your static content.
 
 ```
 FROM node:20.11.0-alpine AS base
@@ -204,12 +234,13 @@ You’ll see the following for to specify the conditions.
 | **Attribute** | **Description** |
 | --- | --- |
 | **Path** | The path where Kubernetes checks if the web service is operational. Default: `/` |
-| **Success Code** | The HTTP success code indicating the service’s health. Default: `200`.  |
+| **Success Code** | The HTTP success code indicating the service's health. Default: `200`.  |
 | **Initial Delay Seconds** | Number of seconds after startup before health checks begin.  Default: `10`.  |
 | **Timeout Seconds** | Number of seconds after startup before health checks begin.  Default: `1`.  |
 | **Period Seconds** | Interval (in seconds) between each health check probe. Default: `5`.  |
 | **Success Threshold** | Minimum number of consecutive successes required for the probe to be considered successful after it has failed. Default: `1`.  |
 | **Failure Threshold** | Number of consecutive failures before the probe is considered to have failed. Default: `60`.  |
+| **terminationGracePeriod** | Time in seconds that Kubernetes waits for graceful shutdown before forcefully terminating the service. Default: `30`.  |
 
 Once those attributes are completed, click the Next button to move to the next step. 
 
