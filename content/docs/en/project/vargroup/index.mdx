@@ -1,7 +1,5 @@
 ---
-title: Varibale Groups
-sidebar_label: ''
-sidebar_position: null
+title: Variable Groups
 ---
 
 import Zoom from "react-medium-image-zoom";
@@ -84,6 +82,29 @@ If duplicate keys exist across different var groups:
 - If two global vargroups have the same key, the most recently created one will be used.
 </details>
 
+<details>
+<summary>
+
+### What is the difference between ENV and FILE type Vargroups?
+
+</summary>
+
+- **ENV**: Variables are injected as environment variables into your workload containers. Each key-value pair becomes an environment variable accessible at runtime.
+- **FILE**: Variables are mounted as files inside your workload containers. Each key-value pair creates one file at the configured mount path. The Vargroup name becomes a subdirectory, each key becomes a filename, and each value becomes the file content.
+
+</details>
+
+<details>
+<summary>
+
+### How does Replicate To work?
+
+</summary>
+
+The **Replicate To** option allows you to select additional project environments where the Vargroup's Kubernetes Secret will also be created. This makes the variables available across multiple namespaces without having to recreate the Vargroup manually in each environment.
+
+</details>
+
 ## Create a VarGroup
 
 ### 1. Navigate to create Vargroup section
@@ -107,6 +128,7 @@ Complete the following attributes to create a new vargroup:
 | **Workload** | A microservice or component within the project. If selected, the vargroup is limited to it; otherwise, by selecting global it'll be accessible into the namespace. |
 | **Name** | A unique identifier for the var group, used to differentiate it within the project. Should be descriptive of the group's purpose. |
 | **Deploy** | Enable this option if you want SleakOps to automatically publish and deploy your workloads into the project. |
+| **Replicate To** | Optional. Select additional project environments where this Vargroup's Kubernetes Secret will also be created, making its variables available across multiple namespaces. |
 
 :::info
 If you choose to add the argument using the text option: Each argument should be added on a new line, separated by an equal sign (`=`), with no extra spaces.
@@ -124,3 +146,42 @@ ARGUMENT_ONE = VALUE
 </Zoom>
 
 Submit to create and Deploy your vargroup.
+
+### 3. Select a Type and configure your variables
+
+The **Type** field defines how the Vargroup is consumed by your workloads. Select the type that fits your use case:
+
+#### ENV — Key-Value Environment Variables
+
+Select **ENV** to inject variables as environment variables into your workload containers. Add key-value pairs using the form, or toggle **Textmode** to enter them as `KEY=VALUE` lines.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/vargroup/vargroup-env.png"
+    alt="vargroup-env"
+    style={{maxHeight: '500px' }} 
+/>
+</Zoom>
+
+#### FILE — Mounted Configuration Files
+
+Select **FILE** to mount variables as files inside your workload containers. When using this type, you must also provide a **Mount Path** — the directory where the files will be mounted.
+
+Each key-value pair creates one file following this structure:
+
+- The **Mount Path** is the base directory (e.g., `/nginx/`).
+- The **Vargroup name** becomes a subdirectory inside it (e.g., `my-config`).
+- Each **Key** becomes a filename (e.g., `nginx.conf`).
+- Each **Value** becomes the file content.
+
+:::info
+**Example:** with Mount Path `/nginx/`, Vargroup name `my-config`, and a key `nginx.conf`, the file will be mounted at `/nginx/my-config/nginx.conf` with the value as its content.
+:::
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/vargroup/vargroup-file.png"
+    alt="vargroup-file"
+    style={{maxHeight: '700px' }} 
+/>
+</Zoom>

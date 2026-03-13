@@ -84,6 +84,36 @@ Los tiempos de respuesta largos pueden indicar problemas como limitaciones de re
 
 <details>
 <summary>
+### ¿Qué es el terminationGracePeriod y cómo lo configuro?
+</summary>
+El **terminationGracePeriod** es una configuración de Kubernetes que define cuánto tiempo (en segundos) espera Kubernetes para que tu aplicación se detenga de forma ordenada antes de forzar su terminación. Esto es crucial para garantizar que tu servicio pueda finalizar el procesamiento de solicitudes activas, cerrar conexiones de base de datos o realizar operaciones de limpieza antes de apagarse.
+
+**Cómo funciona:** Cuando Kubernetes necesita detener tu contenedor (durante un despliegue, un evento de escalado o un apagado), primero envía una señal **SIGTERM** a tu proceso y luego espera la cantidad de segundos definida por `terminationGracePeriod` antes de matar forzosamente el contenedor. La mayoría de los frameworks con los que construimos aplicaciones manejan SIGTERM automáticamente, pero si tenés algo personalizado, asegurate de que tu aplicación escuche SIGTERM y cierre correctamente todas sus conexiones y procesos en curso — de lo contrario, Kubernetes puede matar el contenedor mientras una operación está a medias.
+
+**Valor predeterminado:** 30 segundos
+
+**Cuándo ajustarlo:**
+- Auméntalo si tu servicio necesita más tiempo para completar tareas de larga duración durante el apagado.
+- Auméntalo si estás viendo terminaciones abruptas de conexiones o transacciones incompletas durante los despliegues.
+- Disminúyelo si tu servicio se apaga rápidamente y deseas despliegues más rápidos.
+
+**Cómo configurarlo en SleakOps:**
+
+Al crear o actualizar un Web Service, puedes configurar el **terminationGracePeriod** en el **Paso 4: Ajustes del servicio**. Este campo te permite especificar el número de segundos que Kubernetes debe esperar antes de detener forzosamente tu servicio.
+
+**A través de Chart Templates:**
+
+También puedes configurar este valor a través de Chart Templates añadiéndolo a tus values:
+
+```yaml
+terminationGracePeriodSeconds: 60  # Esperar 60 segundos antes de la terminación forzada
+```
+
+Esto le da a tu aplicación tiempo suficiente para manejar procedimientos de apagado ordenado, asegurando la integridad de los datos y una mejor experiencia de usuario durante actualizaciones u operaciones de escalado.
+</details>
+
+<details>
+<summary>
 ### Como puedo desplegar mi sitio web estatico?
 </summary>
 Por el momento, Sleakops no ofrece soporte nativo para sitios estáticos. Sin embargo, puedes desplegarlos utilizando el mismo flujo que para otros sitios, contenedorizándolos con un servidor web como Nginx. A continuación, se muestra un ejemplo sencillo de un Dockerfile y su correspondiente nginx.conf para servir tu contenido estático.
@@ -211,6 +241,7 @@ Verás los siguientes atributos para especificar las condiciones.
 | **Segundos entre cada Verificación** | Intervalo (en segundos) entre cada prueba de verificación de salud. Predeterminado: `5`. |
 | **Umbral de Éxitos** | Número mínimo de éxitos consecutivos requeridos para que la prueba se considere exitosa después de fallar. Predeterminado: `1`. |
 | **Umbral de Fallos** | Número de fallos consecutivos antes de que la prueba se considere fallida. Predeterminado: `60`. |
+| **terminationGracePeriod** | Tiempo en segundos que Kubernetes espera para el apagado ordenado antes de terminar forzosamente el servicio. Predeterminado: `30`.  |
 
 Una vez completados estos atributos, haz clic en el botón Siguiente para continuar con el siguiente paso.
 
