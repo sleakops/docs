@@ -1,6 +1,5 @@
 ---
-title: Varibale Groups
-sidebar_position: null
+title: Variable Groups
 ---
 
 import Zoom from "react-medium-image-zoom";
@@ -80,6 +79,29 @@ Si existen claves duplicadas en diferentes Vargroups:
 - Si dos Vargroups globales tienen la misma clave, se usará el más recientemente creado.
 </details>
 
+<details>
+<summary>
+
+### ¿Cuál es la diferencia entre un Vargroup de tipo ENV y uno de tipo FILE?
+
+</summary>
+
+- **ENV**: Las variables se inyectan como variables de entorno en los contenedores de tu workload. Cada par clave-valor se convierte en una variable de entorno accesible en tiempo de ejecución.
+- **FILE**: Las variables se montan como archivos dentro de los contenedores de tu workload. Cada par clave-valor crea un archivo en el mount path configurado. El nombre del Vargroup se convierte en un subdirectorio, cada clave en un nombre de archivo y cada valor en el contenido del archivo.
+
+</details>
+
+<details>
+<summary>
+
+### ¿Cómo funciona la opción Replicate To (Replicar en)?
+
+</summary>
+
+La opción **Replicate To** te permite seleccionar entornos de proyecto adicionales donde también se creará el Secret de Kubernetes del Vargroup. Esto hace que las variables estén disponibles en múltiples namespaces sin necesidad de recrear el Vargroup manualmente en cada entorno.
+
+</details>
+
 ## Crea un grupo de variables
 
 ### 1. Navega a la sección para crear un Vargroup
@@ -103,6 +125,7 @@ Completa los siguientes atributos para crear un nuevo Vargroup:
 | **Servicio** | Un microservicio o componente dentro del proyecto. Si se selecciona, el Vargroup está limitado a él; si no, al seleccionar global estará accesible dentro del namespace. |
 | **Nombre** | Un identificador único para el Vargroup, utilizado para diferenciarlo dentro del proyecto. Debe ser descriptivo del propósito del grupo. |
 | **Desplegar** | Habilita esta opción si deseas que SleakOps publique y despliegue automáticamente tu servicio en el proyecto. |
+| **Replicar en** | Opcional. Selecciona entornos de proyecto adicionales donde también se creará el Secret de Kubernetes de este Vargroup, haciendo que sus variables estén disponibles en múltiples namespaces. |
 
 :::info
 Si eliges agregar el argumento usando la opción de texto: Cada argumento debe agregarse en una nueva línea, separada por un signo de igual (`=`), sin espacios adicionales.
@@ -120,3 +143,42 @@ ARGUMENTO_UNO=VALOR
 </Zoom>
 
 Envía para crear y desplegar tu Vargroup.
+
+### 3. Selecciona un tipo y configura tus variables
+
+El campo **Tipo** define cómo se consume el Vargroup en tus workloads. Selecciona el tipo que se adapte a tu caso de uso:
+
+#### ENV — Variables de Entorno Clave-Valor
+
+Selecciona **ENV** para inyectar las variables como variables de entorno en los contenedores de tu workload. Agrega pares clave-valor usando el formulario, o activa el **Textmode** para ingresarlos como líneas `CLAVE=VALOR`.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/vargroup/vargroup-env.png"
+    alt="vargroup-env"
+    style={{maxHeight: '500px' }} 
+/>
+</Zoom>
+
+#### FILE — Archivos de Configuración Montados
+
+Selecciona **FILE** para montar las variables como archivos dentro de los contenedores de tu workload. Al usar este tipo, también debes proporcionar un **Mount Path** — el directorio donde se montarán los archivos.
+
+Cada par clave-valor crea un archivo siguiendo esta estructura:
+
+- El **Mount Path** es el directorio base (ej. `/nginx/`).
+- El **nombre del Vargroup** se convierte en un subdirectorio dentro de él (ej. `my-config`).
+- Cada **Clave** se convierte en el nombre del archivo (ej. `nginx.conf`).
+- Cada **Valor** se convierte en el contenido del archivo.
+
+:::info
+**Ejemplo:** con Mount Path `/nginx/`, nombre de Vargroup `my-config` y una clave `nginx.conf`, el archivo se montará en `/nginx/my-config/nginx.conf` con el valor como contenido.
+:::
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+<img
+    src="/img/vargroup/vargroup-file.png"
+    alt="vargroup-file"
+    style={{maxHeight: '700px' }} 
+/>
+</Zoom>
