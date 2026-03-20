@@ -10,23 +10,17 @@ function formatDate(dateString, locale) {
   return new Intl.DateTimeFormat(locale, { month: "short", day: "numeric", year: "numeric" }).format(date);
 }
 
-const badgeConfig = {
-  added: { i18nId: "changelog.badge.added", defaultLabel: "Added", className: "badgeAdded" },
-  fixed: { i18nId: "changelog.badge.fixed", defaultLabel: "Fixed", className: "badgeFixed" },
-  improved: { i18nId: "changelog.badge.improved", defaultLabel: "Improved", className: "badgeImproved" },
-};
-
-function TypeBadge({ type }) {
-  const config = badgeConfig[type] || badgeConfig.improved;
-  return (
-    <span className={`${styles.badge} ${styles[config.className]}`}>
-      <Translate id={config.i18nId}>{config.defaultLabel}</Translate>
-    </span>
-  );
-}
-
 function ChangelogEntry({ entry, idx, locale }) {
   const version = entry.title.replace(/^Version\s*/i, "");
+
+  // Separate features (added/improved) from bug fixes
+  const featureItems = entry.sections
+    .filter((s) => s.type !== "fixed")
+    .flatMap((s) => s.items);
+
+  const bugFixCount = entry.sections
+    .filter((s) => s.type === "fixed")
+    .reduce((acc, s) => acc + s.items.length, 0);
 
   return (
     <div
@@ -36,35 +30,53 @@ function ChangelogEntry({ entry, idx, locale }) {
       <div className={styles.timelineDot} />
       <div className={styles.timelineContent}>
         <div className={styles.versionHeader}>
-          <Link to={`/changelog/${entry.slug}`} className={styles.versionLink}>
-            <span className={styles.version}>v{version}</span>
-          </Link>
+          <span className={styles.version}>v{version}</span>
           <span className={styles.date}>{formatDate(entry.date, locale)}</span>
         </div>
         <div className={styles.card}>
-          {entry.sections.map((section, sIdx) => (
-            <div key={sIdx} className={styles.section}>
-              <div className={styles.sectionHeader}>
-                <TypeBadge type={section.type} />
-                <span className={styles.sectionTitle}>{section.heading}</span>
-              </div>
+          {featureItems.length > 0 && (
+            <div className={styles.section}>
+              <p className={styles.sectionLabel}>
+                <span className={`${styles.badge} ${styles.badgeAdded}`}>
+                  <Translate id="changelog.section.features">Features</Translate>
+                </span>
+              </p>
               <ul className={styles.itemList}>
-                {section.items.slice(0, 3).map((item, iIdx) => (
+                {featureItems.slice(0, 3).map((item, iIdx) => (
                   <li key={iIdx} className={styles.item}>
                     <strong>{item.title}</strong>
                     {item.description && `: ${item.description}`}
                   </li>
                 ))}
-                {section.items.length > 3 && (
-                  <li className={`${styles.item} ${styles.moreItems}`}>
-                    <Translate id="changelog.more" values={{ count: section.items.length - 3 }}>
-                      {"+{count} more"}
-                    </Translate>
-                  </li>
-                )}
               </ul>
             </div>
-          ))}
+          )}
+
+          {bugFixCount > 0 && (
+            <div className={styles.bugFixRow}>
+              <span className={`${styles.badge} ${styles.badgeFixed}`}>
+                <strong>
+                  <Translate
+                    id="changelog.bugFixCount"
+                    values={{ count: bugFixCount }}
+                  >
+                    {"+{count} Bug Fixes"}
+                  </Translate>
+                </strong>
+              </span>
+            </div>
+          )}
+
+          <div className={styles.readMore}>
+            <Link to={`/changelog/${entry.slug}`} className={styles.readMoreLink}>
+              <span className={`${styles.badge} ${styles.badgeReadMore}`}>
+                <strong>
+                  <Translate id="changelog.readMore">Read more</Translate>
+                  {" →"}
+                </strong>
+              </span>
+            </Link>
+          </div>
         </div>
       </div>
     </div>

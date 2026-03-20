@@ -77,65 +77,90 @@ module.exports = function pluginChangelogRecent(context, options) {
 
 /**
  * Parse markdown content into categorized sections with their items.
- * Supports multiple formats:
- *   - ## New Features / ## Bug Fixes (standard)
- *   - ## **Version X.X.X** (bold headings, skipped)
- *   - **🚀 New Features:** / **🐞 Bug Fixes:** (bold-line sections)
- *   - ## Nuevas Funcionalidades (Spanish)
+ * Supports two formats:
+ *
+ * Format A (legacy):
+ *   ## New Features
+ *   - **Title:** Description
+ *
+ * Format B (new template):
+ *   🚀 New Features
+ *   Title · Area
+ *   Description text.
  */
 function parseSections(content) {
   const sections = [];
   const lines = content.split("\n");
 
   let currentSection = null;
+  let pendingTitle = null; // Format B: title line waiting for its description
 
   for (const line of lines) {
-    // Match ## headings (e.g., "## New Features", "## Bug Fixes:")
+    // Empty line: flush any pending title without description
+    if (!line.trim()) {
+      pendingTitle = null;
+      continue;
+    }
+
+    // --- Section heading detection ---
+
+    // Format A: ## headings (e.g., "## New Features", "## 🚀 New Features")
     const headingMatch = line.match(/^#{2,3}\s+\**(.+?)\**[:]*\s*$/);
     if (headingMatch) {
+      pendingTitle = null;
       const heading = cleanHeading(headingMatch[1].trim());
-      // Skip version title headings (e.g., "Version 2.4.0")
       if (/^version\s/i.test(heading)) continue;
-      currentSection = {
-        heading,
-        type: categorizeSection(heading),
-        items: [],
-      };
+      currentSection = { heading, type: categorizeSection(heading), items: [] };
       sections.push(currentSection);
       continue;
     }
 
-    // Match bold-line sections (e.g., "**🚀 New Features:**")
+    // Format A: bold-line sections (e.g., "**🚀 New Features:**")
     const boldSectionMatch = line.match(/^\*\*(.+?)\*\*[:]*\s*$/);
     if (boldSectionMatch) {
+      pendingTitle = null;
       const heading = cleanHeading(boldSectionMatch[1].trim());
       if (categorizeSection(heading) !== "improved" || /feature|fix|bug/i.test(heading)) {
-        currentSection = {
-          heading,
-          type: categorizeSection(heading),
-          items: [],
-        };
+        currentSection = { heading, type: categorizeSection(heading), items: [] };
         sections.push(currentSection);
         continue;
       }
     }
 
-    // Match list items
+    // Format B: bare emoji section heading (e.g., "🚀 New Features", "🐛 Bug Fixes")
+    const emojiHeadingMatch = line.match(/^[\p{Emoji_Presentation}]\s+(.+)/u);
+    if (emojiHeadingMatch) {
+      pendingTitle = null;
+      const heading = cleanHeading(line.trim());
+      const type = categorizeSection(heading);
+      if (type !== "improved" || /feature|fix|bug|improv|new/i.test(heading)) {
+        currentSection = { heading, type, items: [] };
+        sections.push(currentSection);
+        continue;
+      }
+    }
+
+    // Skip admonition markers and import/MDX lines
+    if (line.startsWith(":::") || line.startsWith("import ")) continue;
+
+    // --- Item detection (only inside a section) ---
     if (currentSection) {
-      // Format: "- **Title:** Description" or "- **Title** Description"
+      // Format A: "- **Title:** Description" or "- **Title** Description"
       const boldItemMatch = line.match(/^-\s+\*\*(.+?)\*\*[:.]?\s*(.*)/);
       if (boldItemMatch) {
+        pendingTitle = null;
         currentSection.items.push({
           title: boldItemMatch[1].trim(),
           description: boldItemMatch[2].trim(),
         });
         continue;
       }
-      // Format: "- Plain text description" (no bold)
+
+      // Format A: "- Plain text description"
       const plainItemMatch = line.match(/^-\s+(.+)/);
       if (plainItemMatch) {
+        pendingTitle = null;
         const text = plainItemMatch[1].trim();
-        // Try to split on first colon
         const colonIdx = text.indexOf(":");
         if (colonIdx > 0 && colonIdx < 60) {
           currentSection.items.push({
@@ -143,11 +168,22 @@ function parseSections(content) {
             description: text.substring(colonIdx + 1).trim(),
           });
         } else {
-          currentSection.items.push({
-            title: text,
-            description: "",
-          });
+          currentSection.items.push({ title: text, description: "" });
         }
+        continue;
+      }
+
+      // Format B: "Title · Area" — store as pending title
+      if (line.includes("·") && !line.startsWith("#") && !line.startsWith("*")) {
+        pendingTitle = line.split("·")[0].trim();
+        continue;
+      }
+
+      // Format B: description line following a pending title
+      if (pendingTitle && !line.startsWith("#") && !line.startsWith("*") && !line.startsWith("-")) {
+        currentSection.items.push({ title: pendingTitle, description: line.trim() });
+        pendingTitle = null;
+        continue;
       }
     }
   }
