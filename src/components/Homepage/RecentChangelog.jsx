@@ -1,72 +1,87 @@
 import React from "react";
 import Link from "@docusaurus/Link";
 import Translate from "@docusaurus/Translate";
+import { usePluginData } from "@docusaurus/useGlobalData";
 import styles from "./RecentChangelog.module.css";
 
-// Changelog data - Latest 3 versions
-const changelogData = [
-  {
-    id: "v240",
-    version: "2.4.0",
-    date: "2026-01-08",
-    type: "feature",
-    title: "Workload Auto-Diagnostics",
-    description:
-      "New AI-powered diagnostics for Workloads, Grace Period support, Cost Tags notifications, and UI improvements.",
-    slug: "version-2.4.0",
-  },
-  {
-    id: "v232",
-    version: "2.3.2",
-    date: "2025-12-19",
-    type: "feature",
-    title: "SleakOps CLI",
-    description:
-      "New CLI features for local workload shell, S3 with CloudFront improvements, and API performance optimizations.",
-    slug: "v2-3-2",
-  },
-  {
-    id: "v231",
-    version: "2.3.1",
-    date: "2025-12-01",
-    type: "feature",
-    title: "Image Analysis in Support",
-    description:
-      "Support for image analysis in the support bot, new documentation, and custom values for addons.",
-    slug: "v2-3-1",
-  },
-];
-
 function formatDate(dateString) {
-  const date = new Date(dateString);
+  const date = new Date(dateString + "T00:00:00");
   const day = date.getDate();
   const months = [
-    "Ene",
-    "Feb",
-    "Mar",
-    "Abr",
-    "May",
-    "Jun",
-    "Jul",
-    "Ago",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dic",
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
   ];
   const month = months[date.getMonth()];
   const year = date.getFullYear();
-  return `${day} ${month} ${year}`;
+  return `${month} ${day}, ${year}`;
 }
 
+const badgeConfig = {
+  added: { label: "Added", className: "badgeAdded" },
+  fixed: { label: "Fixed", className: "badgeFixed" },
+  improved: { label: "Improved", className: "badgeImproved" },
+};
+
 function TypeBadge({ type }) {
-  const badgeClass =
-    type === "performance" ? styles.badgePerformance : styles.badgeFeature;
-  const label = type === "performance" ? "PERFORMANCE" : "FEATURE";
-  return <span className={`${styles.badge} ${badgeClass}`}>{label}</span>;
+  const config = badgeConfig[type] || badgeConfig.improved;
+  return (
+    <span className={`${styles.badge} ${styles[config.className]}`}>
+      {config.label}
+    </span>
+  );
+}
+
+function ChangelogEntry({ entry, idx }) {
+  const version = entry.title.replace(/^Version\s*/i, "");
+
+  return (
+    <div
+      className={styles.timelineItem}
+      style={{ animationDelay: `${idx * 0.1}s` }}
+    >
+      <div className={styles.timelineDot} />
+      <div className={styles.timelineContent}>
+        <div className={styles.versionHeader}>
+          <Link to={`/changelog/${entry.slug}`} className={styles.versionLink}>
+            <span className={styles.version}>v{version}</span>
+          </Link>
+          <span className={styles.date}>{formatDate(entry.date)}</span>
+        </div>
+        <div className={styles.card}>
+          {entry.sections.map((section, sIdx) => (
+            <div key={sIdx} className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <TypeBadge type={section.type} />
+                <span className={styles.sectionTitle}>{section.heading}</span>
+              </div>
+              <ul className={styles.itemList}>
+                {section.items.slice(0, 3).map((item, iIdx) => (
+                  <li key={iIdx} className={styles.item}>
+                    <strong>{item.title}</strong>
+                    {item.description && `: ${item.description}`}
+                  </li>
+                ))}
+                {section.items.length > 3 && (
+                  <li className={`${styles.item} ${styles.moreItems}`}>
+                    +{section.items.length - 3} more
+                  </li>
+                )}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function RecentChangelog() {
+  const { recentChangelogs } = usePluginData("changelog-recent");
+
+  if (!recentChangelogs || recentChangelogs.length === 0) {
+    return null;
+  }
+
   return (
     <section className={styles.recentChangelog}>
       <div className="container">
@@ -82,39 +97,8 @@ export default function RecentChangelog() {
         </div>
 
         <div className={styles.timeline}>
-          {changelogData.map((item, idx) => (
-            <div
-              key={item.version}
-              className={styles.timelineItem}
-              style={{ animationDelay: `${idx * 0.1}s` }}
-            >
-              <div className={styles.timelineDot} />
-              <div className={styles.timelineContent}>
-                <div className={styles.versionHeader}>
-                  <span className={styles.version}>v{item.version}</span>
-                  <span className={styles.date}>{formatDate(item.date)}</span>
-                </div>
-                <div className={styles.card}>
-                  <div className={styles.cardHeader}>
-                    <TypeBadge type={item.type} />
-                    <span className={styles.cardTitle}>
-                      <Translate
-                        id={`homepage.recentChangelog.${item.id}.title`}
-                      >
-                        {item.title}
-                      </Translate>
-                    </span>
-                  </div>
-                  <p className={styles.cardDescription}>
-                    <Translate
-                      id={`homepage.recentChangelog.${item.id}.description`}
-                    >
-                      {item.description}
-                    </Translate>
-                  </p>
-                </div>
-              </div>
-            </div>
+          {recentChangelogs.map((entry, idx) => (
+            <ChangelogEntry key={entry.slug} entry={entry} idx={idx} />
           ))}
         </div>
 
