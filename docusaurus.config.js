@@ -128,10 +128,17 @@ const config = {
         blogSidebarTitle: "Recent Updates",
         blogSidebarCount: "ALL",
         showReadingTime: false,
-        postsPerPage: 10,
+        postsPerPage: 5,
         sortPosts: "descending",
+        onUntruncatedBlogPosts: "ignore",
         editUrl:
           "https://docs.sleakops.com/preview-docs/admin/#/collections/changelog",
+      },
+    ],
+    [
+      require.resolve("./plugins/changelog-recent"),
+      {
+        count: 3,
       },
     ],
     [
