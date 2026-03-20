@@ -9,70 +9,80 @@
         <generator>https://github.com/jpmonette/feed</generator>
         <language>es</language>
         <item>
-            <title><![CDATA[Version 2.7.0]]></title>
+            <title><![CDATA[Versión 2.7.0]]></title>
             <link>https://docs.sleakops.com/preview-docs/es/changelog/2026/03/16/version-2.7.0</link>
             <guid>https://docs.sleakops.com/preview-docs/es/changelog/2026/03/16/version-2.7.0</guid>
             <pubDate>Mon, 16 Mar 2026 00:00:00 GMT</pubDate>
-            <description><![CDATA[minor release · March 16, 2026]]></description>
-            <content:encoded><![CDATA[<p><code>minor release</code> · March 16, 2026</p>
+            <description><![CDATA[lanzamiento menor · 16 de marzo de 2026]]></description>
+            <content:encoded><![CDATA[<p><code>lanzamiento menor</code> · 16 de marzo de 2026</p>
 <hr>
-<div class="theme-admonition theme-admonition-danger admonition_xJq3 alert alert--danger"><div class="admonitionHeading_Gvgb"><span class="admonitionIcon_Rf37"><svg viewBox="0 0 12 16"><path fill-rule="evenodd" d="M5.05.31c.81 2.17.41 3.38-.52 4.31C3.55 5.67 1.98 6.45.9 7.98c-1.45 2.05-1.7 6.53 3.53 7.7-2.2-1.16-2.67-4.52-.3-6.61-.61 2.03.53 3.33 1.94 2.86 1.39-.47 2.3.53 2.27 1.67-.02.78-.31 1.44-1.13 1.81 3.42-.59 4.78-3.42 4.78-5.56 0-2.84-2.53-3.22-1.25-5.61-1.52.13-2.03 1.13-1.89 2.75.09 1.08-1.02 1.8-1.86 1.33-.67-.41-.66-1.19-.06-1.78C8.18 5.31 8.68 2.45 5.05.32L5.03.3l.02.01z"></path></svg></span>Breaking changes</div><div class="admonitionContent_BuS1"><ul>
-<li class=""><strong>Headlamp Addon Roles and Access:</strong> Headlamp integration relies on Kubernetes role-based access. Each user receives a token matching their role (e.g., 'viewer' users cannot access Shell or restart resources). Review RBAC permissions and verify users have the required access before using Headlamp. No other permissions or backwards compatibility changes are required.</li>
-<li class=""><strong>Deprecation Tag and Addon Availability:</strong> Addons now show a "Deprecated" tag in the list and drawer if marked as deprecated in the backend. Deprecated addons should not be installed in new environments, and users are encouraged to migrate as needed. Review the state of your installed addons and plan migrations away from deprecated ones.</li>
-</ul><hr><h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-new-features">🚀 New Features<a href="https://docs.sleakops.com/preview-docs/es/changelog/2026/03/16/version-2.7.0#-new-features" class="hash-link" aria-label="Enlace directo al 🚀 New Features" title="Enlace directo al 🚀 New Features" translate="no">​</a></h2><ul>
-<li class=""><strong>Headlamp Addon Integration</strong><br>
-<!-- -->Users can now deploy Headlamp as a native addon and access the cluster management IDE directly from the Addons panel. Automatic login is enabled through secure tokens based on your user role.</li>
-<li class=""><strong>Dedicated Inbox for Autodiagnostics</strong><br>
-<!-- -->Autodiagnostics tickets are now sent to a dedicated inbox for improved separation from standard support requests. This helps organize triage and filtering by account and resource.</li>
-<li class=""><strong>Autodiagnostics Ticket Screen</strong><br>
-<!-- -->A new screen shows a list of autodiagnostics tickets, filtered by resource. Access is available directly from workload actions for faster investigation and tracking.</li>
-<li class=""><strong>Loki v2 Addon</strong><br>
-<!-- -->The new Loki v2 addon is now available, leveraging Grafana Alloy and the latest Loki releases. You may run both Loki versions in parallel, with Loki v2 as the default datasource in Grafana.</li>
-</ul><hr><h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-improvements">✨ Improvements<a href="https://docs.sleakops.com/preview-docs/es/changelog/2026/03/16/version-2.7.0#-improvements" class="hash-link" aria-label="Enlace directo al ✨ Improvements" title="Enlace directo al ✨ Improvements" translate="no">​</a></h2><ul>
-<li class=""><strong>Cluster Upgrade Scheduling Visibility</strong><br>
-<!-- -->Clusters with a pending or scheduled upgrade now display a clear indicator in their dashboard card. This improves planning, operational awareness, and prevents missed upgrades.</li>
-<li class=""><strong>Deprecated Addon Label</strong><br>
-<!-- -->Addons flagged as deprecated now show a visual "Deprecated" badge in both the list and details drawer. This allows users to avoid installing outdated addons and plan migrations accordingly.</li>
-<li class=""><strong>Project Creation: Dockertron Integration</strong><br>
-<!-- -->Project creation now offers integrated Dockertron tooling, letting you automatically generate Dockerfiles if not present. This streamlines onboarding and leverages SleakOps AI directly during setup.</li>
-<li class=""><strong>API Returns All Dockertron Processes</strong><br>
-<!-- -->Dockertron's API now supports returning every ongoing process, enabling new management and monitoring capabilities in the frontend.</li>
-<li class=""><strong>Dockertron Process List in UI</strong><br>
-<!-- -->The Project view now lists all Dockertron containerization processes, allowing you to track progress and results easily.</li>
-<li class=""><strong>Environment Selection Persistence</strong><br>
-<!-- -->When returning from environment creation, the newly created environment is now preselected in the project form. The environment creation button is visible only to users with the required settings permissions.</li>
-<li class=""><strong>Clear Form Filters on Account Switch</strong><br>
-<!-- -->Project and environment filters are now reset when switching accounts, preventing empty or incorrect screens due to stale filters from previous accounts.</li>
-<li class=""><strong>Generic Forms: Required Field Indicator</strong><br>
-<!-- -->All generic forms now visually indicate required fields with an asterisk, improving clarity and consistency for users.</li>
-<li class=""><strong>Custom YAML Editor in Addon Configuration</strong><br>
-<!-- -->The "Enable Custom YAML values" setting now uses a code editor with YAML support, enhancing usability and reducing formatting errors.</li>
-<li class=""><strong>Project Layout Agnostic for Dockertron</strong><br>
-<!-- -->Dockertron is no longer tied to the Project layout, making it suitable for broader use cases.</li>
-<li class=""><strong>Fixtures by Addon for Loki Addons</strong><br>
-<!-- -->Fixtures are now separated by addon, paving the way for enhanced support such as the Loki integration.</li>
-<li class=""><strong>Detailed Addon Documentation for AI Creation</strong><br>
-<!-- -->New documentation enables AI-powered creation and extension of SleakOps Addons, covering both EKS and Helm-based workflows.</li>
-<li class=""><strong>Frontend Dockertron UI Adjustments</strong><br>
-<!-- -->Improved labeling, button visibility, and ordering in Dockertron's Project integration for a more intuitive UI.</li>
-<li class=""><strong>Improved Cluster Access Card (Dashboard)</strong><br>
-<!-- -->The "Get Access" card in the dashboard was redesigned for a clearer, more actionable experience.</li>
-</ul><hr><h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-bug-fixes">🐛 Bug Fixes<a href="https://docs.sleakops.com/preview-docs/es/changelog/2026/03/16/version-2.7.0#-bug-fixes" class="hash-link" aria-label="Enlace directo al 🐛 Bug Fixes" title="Enlace directo al 🐛 Bug Fixes" translate="no">​</a></h2><ul>
-<li class=""><strong>Fix Project Creation Redirect with Dockertron</strong><br>
-<!-- -->Completing a project creation with Dockertron now correctly redirects to the process execution screen and opens the newly created project in the Dockertron drawer.</li>
-<li class=""><strong>Resource Name Truncation in CronJob Creation</strong><br>
-<!-- -->Creating multiple resources with long names (such as CronJobs) now preserves the distinct names correctly, avoiding truncation collisions.</li>
-<li class=""><strong>Dashboard Alias Deletion Status</strong><br>
-<!-- -->When a web service alias is deleted, its real status is now properly reflected in the dashboard, ensuring accurate state information for operators.</li>
-<li class=""><strong>Domain Change in Environment (400 Error)</strong><br>
-<!-- -->Changing the domain on an environment now reliably triggers a deployment, updates all service URLs, and avoids misleading error messages.</li>
-<li class=""><strong>Aurora Public Read Replica Subnet Issue</strong><br>
-<!-- -->Aurora public read replicas are now correctly assigned to public subnets, resolving previous connectivity problems.</li>
-<li class=""><strong>Dashboard: ProjectEnv Transition Error</strong><br>
-<!-- -->The platform now prevents volume creation when the cluster is powered off, avoiding errors blocking cluster startup due to ProjectEnv transitions.</li>
-<li class=""><strong>Fix Cluster Shutdown DeletionProtection Check</strong><br>
-<!-- -->Cluster shutdown no longer fails due to mistaken deletion protection checks in dependencies.</li>
-</ul><hr></div></div>]]></content:encoded>
+<div class="theme-admonition theme-admonition-danger admonition_xJq3 alert alert--danger"><div class="admonitionHeading_Gvgb"><span class="admonitionIcon_Rf37"><svg viewBox="0 0 12 16"><path fill-rule="evenodd" d="M5.05.31c.81 2.17.41 3.38-.52 4.31C3.55 5.67 1.98 6.45.9 7.98c-1.45 2.05-1.7 6.53 3.53 7.7-2.2-1.16-2.67-4.52-.3-6.61-.61 2.03.53 3.33 1.94 2.86 1.39-.47 2.3.53 2.27 1.67-.02.78-.31 1.44-1.13 1.81 3.42-.59 4.78-3.42 4.78-5.56 0-2.84-2.53-3.22-1.25-5.61-1.52.13-2.03 1.13-1.89 2.75.09 1.08-1.02 1.8-1.86 1.33-.67-.41-.66-1.19-.06-1.78C8.18 5.31 8.68 2.45 5.05.32L5.03.3l.02.01z"></path></svg></span>Cambios que requieren atención</div><div class="admonitionContent_BuS1"><ul>
+<li class=""><strong>Roles y acceso para el addon Headlamp:</strong> La integración de Headlamp utiliza permisos basados en roles de Kubernetes. Cada usuario recibe un token acorde a su rol (por ejemplo, los usuarios 'viewer' no pueden acceder a SHELL ni reiniciar recursos). Revise los permisos RBAC y asegúrese de que los usuarios tengan acceso antes de utilizar Headlamp. No hay otros cambios de permisos ni de retrocompatibilidad requeridos.</li>
+<li class=""><strong>Etiqueta deprecar y disponibilidad de addons:</strong> Los addons ahora muestran una etiqueta de "Deprecated" en la lista y el panel lateral si el backend los marca como obsoletos. Los addons deprecated no deben instalarse en nuevos entornos y se recomienda a los usuarios migrar en función de esta información. Revise el estado de sus addons instalados y planifique la migración desde los que estén obsoletos.</li>
+</ul></div></div>
+<hr>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-nuevas-funcionalidades">🚀 Nuevas funcionalidades<a href="https://docs.sleakops.com/preview-docs/es/changelog/2026/03/16/version-2.7.0#-nuevas-funcionalidades" class="hash-link" aria-label="Enlace directo al 🚀 Nuevas funcionalidades" title="Enlace directo al 🚀 Nuevas funcionalidades" translate="no">​</a></h2>
+<ul>
+<li class=""><strong>Integración del addon Headlamp</strong><br>
+<!-- -->Ahora es posible desplegar Headlamp como addon nativo y acceder al IDE de gestión del cluster directamente desde el panel de Addons. El inicio de sesión automático se habilita mediante tokens seguros basados en su rol de usuario.</li>
+<li class=""><strong>Inbox dedicado para autodiagnósticos</strong><br>
+<!-- -->Los tickets de autodiagnóstico ahora se envían a una bandeja de entrada dedicada, separándolos de los tickets de soporte tradicionales. Esto mejora la organización del triage y el filtrado por cuenta y recurso.</li>
+<li class=""><strong>Pantalla de tickets de autodiagnóstico</strong><br>
+<!-- -->Una nueva pantalla lista únicamente los tickets de autodiagnóstico, filtrados por recurso. El acceso está disponible directamente desde las acciones de workloads para agilizar el análisis y seguimiento.</li>
+<li class=""><strong>Addon Loki v2</strong><br>
+<!-- -->Se encuentra disponible el nuevo addon Loki v2, que utiliza Grafana Alloy y las últimas versiones de Loki. Puede ejecutar ambas versiones de Loki en paralelo, siendo Loki v2 el datasource por defecto en Grafana.</li>
+</ul>
+<hr>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-mejoras">✨ Mejoras<a href="https://docs.sleakops.com/preview-docs/es/changelog/2026/03/16/version-2.7.0#-mejoras" class="hash-link" aria-label="Enlace directo al ✨ Mejoras" title="Enlace directo al ✨ Mejoras" translate="no">​</a></h2>
+<ul>
+<li class=""><strong>Visibilidad del agendamiento de upgrades de cluster</strong><br>
+<!-- -->Ahora se muestra un indicador claro en la card del dashboard cuando un cluster tiene un upgrade pendiente o programado. Esto facilita la planificación, anticipa impactos y previene upgrades olvidados.</li>
+<li class=""><strong>Etiqueta visual para addons deprecated</strong><br>
+<!-- -->Los addons marcados como obsoletos muestran una etiqueta visual "Deprecated" tanto en el listado como en el panel de detalles. Así los usuarios pueden evitar instalaciones nuevas de addons discontinuados y planificar migraciones.</li>
+<li class=""><strong>Integración de Dockertron en creación de proyectos</strong><br>
+<!-- -->El formulario de creación de proyectos ahora integra directamente la herramienta Dockertron, permitiendo generar Dockerfiles automáticamente si no existen. Esto optimiza el onboarding y aprovecha la IA de SleakOps en el setup inicial.</li>
+<li class=""><strong>API retorna todos los procesos Dockertron</strong><br>
+<!-- -->La API de Dockertron ahora puede devolver todos los procesos en ejecución, permitiendo nuevas capacidades de monitoreo y gestión desde el frontend.</li>
+<li class=""><strong>Listado de procesos Dockertron en la interfaz</strong><br>
+<!-- -->La vista de Project muestra ahora todos los procesos de contenerización de Dockertron, facilitando el seguimiento y la verificación de resultados.</li>
+<li class=""><strong>Persistencia de selección de entorno</strong><br>
+<!-- -->Al regresar de la creación de un entorno, el nuevo entorno queda preseleccionado en el formulario de proyecto. El botón para crear entornos sólo es visible para usuarios con permiso sobre Settings.</li>
+<li class=""><strong>Limpieza de filtros al cambiar de cuenta</strong><br>
+<!-- -->Los filtros de proyecto y entorno ahora se limpian automáticamente al cambiar de cuenta, evitando pantallas vacías o datos incorrectos por filtros persistentes.</li>
+<li class=""><strong>Indicador de campos obligatorios en formularios</strong><br>
+<!-- -->Todos los formularios genéricos ahora indican visualmente los campos obligatorios con un asterisco, mejorando la claridad y consistencia para los usuarios.</li>
+<li class=""><strong>Editor YAML especializado en configuración de addons</strong><br>
+<!-- -->La opción "Enable Custom YAML values" ahora utiliza un editor de código con soporte YAML, facilitando la edición y reduciendo errores de formato.</li>
+<li class=""><strong>Layout agnóstico de Project para Dockertron</strong><br>
+<!-- -->Dockertron ya no depende del layout de Project, ampliando los casos de uso.</li>
+<li class=""><strong>Fixtures separados por addon para Loki</strong><br>
+<!-- -->Los fixtures ahora se organizan por addon, facilitando mejores integraciones como la de Loki.</li>
+<li class=""><strong>Documentación de addons para creación con IA</strong><br>
+<!-- -->Nueva documentación cubre la creación y extensión asistida por IA de Addons SleakOps, describiendo flujos para EKS y Helm de forma completa.</li>
+<li class=""><strong>Ajustes de UI en la integración Dockertron</strong><br>
+<!-- -->Se mejoraron etiquetas, visibilidad de botones y el orden en la integración de Dockertron con Projects para una UI más intuitiva.</li>
+<li class=""><strong>Rediseño de la card "Get Access" en Dashboard</strong><br>
+<!-- -->La tarjeta "Get Access" del dashboard fue rediseñada para mayor claridad y facilidad de acción.</li>
+</ul>
+<hr>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-correcciones">🐛 Correcciones<a href="https://docs.sleakops.com/preview-docs/es/changelog/2026/03/16/version-2.7.0#-correcciones" class="hash-link" aria-label="Enlace directo al 🐛 Correcciones" title="Enlace directo al 🐛 Correcciones" translate="no">​</a></h2>
+<ul>
+<li class=""><strong>Corrección de redirección en creación de proyecto con Dockertron</strong><br>
+<!-- -->Al finalizar la creación de un proyecto usando Dockertron, la redirección ahora lleva a la pantalla de procesos y abre el drawer del proyecto recién creado.</li>
+<li class=""><strong>Corrección de truncado de nombres en CronJobs</strong><br>
+<!-- -->Al crear múltiples recursos con nombres largos (como CronJobs), ahora se mantienen los nombres distintos y se evitan colisiones por truncamiento.</li>
+<li class=""><strong>Estado de alias eliminado en Dashboard</strong><br>
+<!-- -->Al eliminar un alias de web service, su estado real ahora se refleja correctamente en el dashboard.</li>
+<li class=""><strong>Actualización de dominio en environment (error 400)</strong><br>
+<!-- -->Cambiar el dominio de un environment ahora dispara correctamente el deployment, actualiza todas las URLs y evita mensajes de error.</li>
+<li class=""><strong>Replica de lectura pública en Aurora</strong><br>
+<!-- -->Las replicas de lectura públicas en Aurora ahora asignan la subnet pública correctamente, solucionando problemas de conectividad.</li>
+<li class=""><strong>Error de transición de ProjectEnv al encender cluster</strong><br>
+<!-- -->La plataforma ahora impide crear volúmenes si el cluster está apagado, evitando errores que bloqueaban el inicio del cluster.</li>
+<li class=""><strong>Corrección en validación de Deletion Protection al apagar cluster</strong><br>
+<!-- -->Apagar un cluster ya no falla por validaciones erróneas en la protección contra eliminación de dependencias.</li>
+</ul>
+<hr>]]></content:encoded>
             <category>release</category>
         </item>
         <item>
