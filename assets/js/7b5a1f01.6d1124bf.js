@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkdocs=self.webpackChunkdocs||[]).push([[930],{40872:e=>{e.exports=JSON.parse('{"categoryGeneratedIndex":{"title":"User","slug":"/category/user","permalink":"/docs/category/user","sidebar":"tutorialSidebar","navigation":{"previous":{"title":"Network Resources","permalink":"/docs/network/"},"next":{"title":"User","permalink":"/docs/user/"}}}}')}}]);
