@@ -1,0 +1,160 @@
+---
+sidebar_position: 9
+---
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# AWS Oracle
+
+SleakOps facilita la integración de bases de datos Oracle a través de Amazon RDS (Relational Database Service). Amazon RDS para Oracle es un servicio completamente administrado que simplifica la configuración, operación y escalado de bases de datos. Al aprovechar SleakOps para esta integración, puedes gestionar eficientemente bases de datos Oracle dentro de tu entorno EKS (Elastic Kubernetes Service), asegurando soluciones de almacenamiento de datos robustas, escalables y confiables para tus aplicaciones.
+
+## Preguntas Frecuentes
+
+<details>
+  <summary>### Licencia</summary>
+  Al crear una base de datos Oracle en Sleakops se utiliza License Included (LI).
+  Actualmente no se admite Bring Your Own License (BYOL); sin embargo, contacta
+  al soporte para más información.
+</details>
+
+<details>
+  <summary>### ¿Cómo gestiona SleakOps las credenciales de Oracle?</summary>
+  Cuando creas una dependencia de Oracle en SleakOps, se genera automáticamente
+  un Vargroup para tu base de datos. Este Grupo de Variables almacena de forma
+  segura las credenciales de Oracle y otros detalles importantes de
+  configuración, como el endpoint de la base de datos y la información de acceso
+  de usuarios. Podrás gestionarlos desde la sección
+  [Vargroups](/docs/project/vargroup).
+</details>
+
+<details>
+  <summary>### ¿Qué es el despliegue Multi-AZ y debería habilitarlo?</summary>
+  El despliegue Multi-AZ (Zona de Disponibilidad múltiple) garantiza alta
+  disponibilidad y soporte de failover replicando tu base de datos en otra zona
+  de disponibilidad. Se recomienda para entornos de producción para evitar
+  tiempos de inactividad. Ten en cuenta que aumenta los costos.
+</details>
+
+<details>
+  <summary>
+    ### ¿Puedo cambiar la versión de Oracle después de que la base de datos esté desplegada?
+  </summary>
+  No, la versión del motor de base de datos no puede cambiarse después del
+  despliegue. Necesitarías crear una nueva instancia de Oracle con la versión
+  deseada y migrar tus datos, o cambiarlo manualmente desde la Consola de AWS.
+</details>
+
+<details>
+  <summary>
+    ### ¿Qué sucede si necesito más almacenamiento para mi base de datos Oracle?
+  </summary>
+  Puedes ajustar el tamaño del almacenamiento al configurar tu base de datos. Si
+  necesitas más almacenamiento después del despliegue, puedes escalarlo
+  modificando la configuración en AWS, ya que SleakOps no lo admite por el
+  momento.
+</details>
+
+<details>
+<summary>
+### ¿Cómo creo un dump de una base de datos Oracle?
+</summary>
+:::warning
+El cliente solo está disponible para distribuciones Linux x86-64.
+:::
+:::tip
+Sigue este enlace para instalar el [cliente <FiExternalLink/>](https://www.oracle.com/es/database/technologies/instant-client/linux-x86-64-downloads.html)
+:::
+Para crear un dump de tu base de datos Oracle, usa el siguiente comando:
+```
+exp ${ORACLE_USERNAME}/${ORACLE_PASSWORD}@${ORACLE_ENDPOINT}/${ORACLE_NAME} FILE=exp_file.dmp LOG=exp_file.log
+```
+Reemplaza `ORACLE_USERNAME`, `ORACLE_ENDPOINT`, `ORACLE_NAME` y `ORACLE_PASSWORD` con los valores correspondientes.
+
+Para información adicional sobre la creación de un dump de Oracle, consulta la [documentación oficial de Oracle <FiExternalLink/>](https://docs.oracle.com/en/database/oracle/oracle-database/19/sutil/oracle-original-export-utility.html).
+
+Otra opción es crearlo directamente desde la Consola de AWS y luego importarlo. Ver [Restaurar a una instancia de DB](https://docs.aws.amazon.com/es_es/AmazonRDS/latest/UserGuide/USER_RestoreFromSnapshot.html).
+
+</details>
+
+<details>
+<summary>
+### ¿Cómo importo un dump existente?
+</summary>
+:::warning
+El cliente solo está disponible para distribuciones Linux x86-64.
+:::
+:::tip
+Sigue este enlace para instalar el [cliente <FiExternalLink/>](https://www.oracle.com/es/database/technologies/instant-client/linux-x86-64-downloads.html)
+:::
+Puedes usar un cliente Oracle instalado en tu máquina local para importar el dump.
+```
+imp ${ORACLE_USERNAME}/${ORACLE_PASSWORD}@${ORACLE_ENDPOINT}/${ORACLE_NAME} FROMUSER=cust_schema TOUSER=cust_schema FILE=exp_file.dmp LOG=imp_file.log
+```
+Reemplaza `ORACLE_USERNAME`, `ORACLE_ENDPOINT`, `ORACLE_NAME` y `ORACLE_PASSWORD` con los valores correspondientes.
+
+Para información adicional sobre la importación de un dump de Oracle, consulta la [documentación oficial de Oracle <FiExternalLink/>](https://docs.oracle.com/en/database/oracle/oracle-database/19/sutil/oracle-original-import-utility.html).
+
+Otra opción es crearlo directamente desde la Consola de AWS y luego importarlo. Ver [Restaurar a una instancia de DB](https://docs.aws.amazon.com/es_es/AmazonRDS/latest/UserGuide/USER_RestoreFromSnapshot.html).
+
+</details>
+
+<details>
+  <summary>
+    ### ¿Qué debo hacer si tengo problemas de conexión con mi base de datos Oracle?
+  </summary>
+  - Verifica que el endpoint, el nombre de usuario y la contraseña de la base de datos sean correctos. - Comprueba que tus grupos de seguridad y reglas de firewall permitan el acceso. - Asegúrate de que la base de datos esté en ejecución y tenga suficientes recursos (CPU, memoria). De lo contrario, contáctanos.
+</details>
+
+:::info
+Documentación de AWS: [Documentación de Amazon RDS Oracle](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Oracle.html)
+:::
+
+## Configura tu Oracle
+
+### 1. Agrega Oracle como Dependencia
+
+Para integrar Oracle con SleakOps:
+
+1. En la consola de SleakOps, ve a la sección "Dependencies"
+2. Elige "Oracle" de la lista de tipos de dependencias disponibles.
+   Para más detalles, consulta [Dependencias: Integración de Bases de Datos, Caché y Servicios de Mensajería](/docs/project/dependency).
+
+### 2. Configura tu Oracle.
+
+Accederás al siguiente formulario:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/dependency/oracle/Oracle-create-p1.png"
+    alt="Oracle-create-p1"
+  />
+</Zoom>
+
+Aquí los parámetros que SleakOps te permite personalizar durante la creación:
+
+| **Atributo**                  | **Descripción**                                                                                                                                                                                                                                                         |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Database Engine Version**   | Selecciona la versión específica del motor de base de datos Oracle que deseas usar. Esto garantiza compatibilidad con los requisitos de tu aplicación. Ejemplo: `19.0.0.0.ru-2024-01.rur-2024-01.r1`                                                                     |
+| **Database Instance Class**   | Define la clase de instancia que especifica la configuración de hardware para tu base de datos Oracle. Esto controla CPU, memoria y rendimiento de red. Ejemplo: `db.m6g.large`, `db.t3.medium`. Ver [detalle en AWS](https://aws.amazon.com/es/rds/instance-types/). |
+| **Database Storage**          | Especifica la cantidad de almacenamiento asignado para la base de datos. Ejemplo: 100 GB, 500 GB.                                                                                                                                                                        |
+| **Username**                  | Proporciona el nombre de usuario maestro para la base de datos Oracle. Este es el usuario principal con privilegios administrativos. Ejemplo: admin, root.                                                                                                               |
+| **Password**                  | Contraseña del usuario maestro para acceder a la base de datos.                                                                                                                                                                                                          |
+| **Multi-Availability Zone**   | Habilita o deshabilita el despliegue Multi-AZ. Esto garantiza alta disponibilidad y soporte de failover replicando la base de datos en múltiples zonas de disponibilidad. Recomendado para entornos de producción.                                                       |
+| **Automated Backup**          | Configura copias de seguridad automáticas para la base de datos Oracle. Esto garantiza la protección de datos habilitando snapshots diarios y copias de seguridad de logs de transacciones. Configura el _Backup Retention Period_ y la _Backup Window_. Recomendado para entornos de producción. |
+| **Backup Retention Period**   | Establece el número de días para retener las copias de seguridad automáticas.                                                                                                                                                                                            |
+| **Backup Window**             | Período de tiempo durante el cual se realizará la copia de seguridad.                                                                                                                                                                                                   |
+
+### 3. Personaliza el nombre de las variables para tu base de datos Oracle.
+
+Como se explicó, cuando se crea una dependencia, SleakOps genera un vargroup para almacenar todos los atributos necesarios.
+En este paso puedes cambiar el nombre de los atributos en caso de que sea necesario.
+SleakOps completa los valores automáticamente.
+Después de este paso, tu dependencia queda creada.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/dependency/oracle/Oracle-create-outputs.png"
+    alt="Oracle-create-outputs"
+  />
+</Zoom>
