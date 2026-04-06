@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Synchronizes content from the CMS-friendly structure to Docusaurus i18n structure.
+ * Synchronizes content from the CMS-friendly structure to Docusaurus i18n structure
+ * using symlinks, so that Docusaurus hot reload works during development.
  *
  * CMS structure (multiple_folders - Sveltia CMS compatible):
  *   content/docs/en/...
@@ -9,25 +10,20 @@
  *   content/tutorials/es/...
  *
  * Docusaurus structure (what Docusaurus expects):
- *   docs/...                                                    (default locale = en)
- *   i18n/es/docusaurus-plugin-content-docs/current/...          (Spanish docs)
- *   tutorials/...                                               (default locale = en)
- *   i18n/es/docusaurus-plugin-content-docs-tutorials/current/... (Spanish tutorials)
+ *   docs/                                                       -> content/docs/en
+ *   i18n/es/docusaurus-plugin-content-docs/current/            -> content/docs/es
+ *   tutorials/                                                  -> content/tutorials/en
+ *   i18n/es/docusaurus-plugin-content-docs-tutorials/current/  -> content/tutorials/es
+ *   changelog/                                                  -> content/changelog/en
+ *   i18n/es/docusaurus-plugin-content-blog-changelog/          -> content/changelog/es
  *
- * This script syncs content FROM the CMS structure TO the Docusaurus structure.
- * It also handles CMS temporary folders (hex IDs like 24ef675958d5) by extracting
- * their contents to the parent directory.
- *
- * Run this before building the site.
+ * Run this before starting the site.
  */
 
 const fs = require("fs");
 const path = require("path");
 
 const ROOT = __dirname;
-
-// Regex to match CMS temporary folder names (12 hex characters)
-const CMS_TEMP_FOLDER_REGEX = /^[0-9a-f]{12}$/i;
 
 // Mapping: source (CMS) -> destination (Docusaurus)
 const SYNC_MAP = [
@@ -64,80 +60,31 @@ const SYNC_MAP = [
 ];
 
 /**
- * Check if a folder name looks like a CMS temporary ID
+ * Create a symlink from dest pointing to src.
+ * Removes any existing file, directory, or symlink at dest first.
  */
-function isCmsTempFolder(name) {
-  return CMS_TEMP_FOLDER_REGEX.test(name);
-}
+function createSymlink(src, dest) {
+  const srcAbs = path.resolve(ROOT, src);
+  const destAbs = path.resolve(ROOT, dest);
 
-/**
- * Recursively copy directory contents
- * If a folder is a CMS temp folder (hex ID), extract its contents to the parent dest
- */
-function copyDirSync(src, dest, stats = { count: 0, flattened: [] }) {
-  if (!fs.existsSync(src)) {
-    return stats;
-  }
-
-  // Create destination if it doesn't exist
-  fs.mkdirSync(dest, { recursive: true });
-
-  const entries = fs.readdirSync(src, { withFileTypes: true });
-
-  for (const entry of entries) {
-    const srcPath = path.join(src, entry.name);
-    const destPath = path.join(dest, entry.name);
-
-    if (entry.isDirectory()) {
-      // If this is a CMS temp folder, flatten it - copy contents to current dest
-      if (isCmsTempFolder(entry.name)) {
-        // Copy contents of temp folder directly to dest (flattening)
-        const tempContents = fs.readdirSync(srcPath, { withFileTypes: true });
-        for (const tempEntry of tempContents) {
-          const tempSrcPath = path.join(srcPath, tempEntry.name);
-          const flatDestPath = path.join(dest, tempEntry.name);
-
-          if (tempEntry.isDirectory()) {
-            copyDirSync(tempSrcPath, flatDestPath, stats);
-          } else {
-            fs.copyFileSync(tempSrcPath, flatDestPath);
-            stats.count++;
-            stats.flattened.push({
-              from: path.relative(ROOT, tempSrcPath),
-              to: path.relative(ROOT, flatDestPath),
-            });
-          }
-        }
-      } else {
-        // Normal directory - recurse
-        copyDirSync(srcPath, destPath, stats);
-      }
-    } else {
-      fs.copyFileSync(srcPath, destPath);
-      stats.count++;
-    }
-  }
-
-  return stats;
-}
-
-/**
- * Remove directory contents (but keep the directory)
- */
-function clearDirSync(dir) {
-  if (!fs.existsSync(dir)) {
+  if (!fs.existsSync(srcAbs)) {
+    console.log(`  ⏭️  Skipping (source not found): ${src}`);
     return;
   }
 
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
-  for (const entry of entries) {
-    const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      fs.rmSync(fullPath, { recursive: true, force: true });
-    } else {
-      fs.unlinkSync(fullPath);
-    }
+  // Remove existing dest (dir, file, or broken symlink)
+  try {
+    fs.lstatSync(destAbs); // throws if nothing exists
+    fs.rmSync(destAbs, { recursive: true, force: true });
+  } catch (_) {
+    // dest doesn't exist, nothing to remove
   }
+
+  // Ensure parent directory exists
+  fs.mkdirSync(path.dirname(destAbs), { recursive: true });
+
+  fs.symlinkSync(srcAbs, destAbs, "dir");
+  console.log(`  ✓ ${dest} → ${src}`);
 }
 
 /**
@@ -194,34 +141,11 @@ function syncTutorialImages() {
 
 function main() {
   console.log(
-    "🔄 Syncing content from CMS structure to Docusaurus structure...\n",
+    "🔗 Linking content from CMS structure to Docusaurus structure...\n",
   );
 
-  let allFlattened = [];
-
   for (const mapping of SYNC_MAP) {
-    const srcPath = path.join(ROOT, mapping.source);
-    const destPath = path.join(ROOT, mapping.dest);
-
-    if (!fs.existsSync(srcPath)) {
-      console.log(`  ⏭️  Skipping ${mapping.description} (source not found)`);
-      continue;
-    }
-
-    // Clear destination and copy fresh
-    clearDirSync(destPath);
-    const stats = copyDirSync(srcPath, destPath, { count: 0, flattened: [] });
-    console.log(`  ✓ ${mapping.description}: ${stats.count} files synced`);
-    allFlattened = allFlattened.concat(stats.flattened);
-  }
-
-  if (allFlattened.length > 0) {
-    console.log(
-      `\n📦 Flattened ${allFlattened.length} file(s) from CMS temp folders:`,
-    );
-    for (const item of allFlattened) {
-      console.log(`     ${item.from} → ${item.to}`);
-    }
+    createSymlink(mapping.source, mapping.dest);
   }
 
   // Sync tutorial images from CMS folders to static/img/tutorials

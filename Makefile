@@ -7,7 +7,7 @@ stop:  ## Stop Docusaurus
 	docker compose down
 
 install: ## Install dependencies
-	docker compose run --rm doc yarn
+	docker compose run --rm doc yarn --frozen-lockfile
 
 logs: ## View Docusaurus logs
 	docker compose logs -f doc

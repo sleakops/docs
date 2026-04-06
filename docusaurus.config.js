@@ -110,6 +110,19 @@ const config = {
 
   // Configuración del plugin docusaurus-lunr-search
   plugins: [
+    // Prevent webpack from resolving symlinks to their real paths.
+    // Required because content dirs (docs/, changelog/, i18n/) are symlinks
+    // pointing to content/. Without this, webpack uses the real path while
+    // the blog/docs plugin uses the symlink path, making blog post metadata
+    // undefined at render time.
+    function symlinkWebpackPlugin() {
+      return {
+        name: "symlink-webpack-plugin",
+        configureWebpack() {
+          return { resolve: { symlinks: false } };
+        },
+      };
+    },
     [
       require.resolve("docusaurus-lunr-search"),
       {
