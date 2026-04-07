@@ -142,17 +142,14 @@ function syncTutorialImages() {
 /**
  * Fix relative image paths in doc MDX files.
  *
- * The CMS generates co-located image references like `../slug/image.png`,
- * which resolve correctly inside `content/docs/en/` but break when Docusaurus
- * sees the files through the `docs/` symlink (where `../` escapes to the
- * project root instead of staying inside the docs directory).
+ * The CMS generates co-located image references using either:
+ *   - `../slug/image.png`  (English files)
+ *   - `slug/image.png`     (Spanish/translated files)
  *
- * This function rewrites `../slug/image.png` → `./slug/image.png` so the
- * paths resolve correctly in both the content structure and the symlinked
- * Docusaurus structure.
+ * Both forms break when Docusaurus resolves them through symlinks.
+ * This function normalises them to `./slug/image.png`.
  */
 function fixDocImagePaths() {
-  const IMAGE_EXT = /\.(png|jpg|jpeg|gif|webp|svg)/i;
   const locales = ["en", "es"];
   let fixedCount = 0;
   const fixed = [];
@@ -170,20 +167,19 @@ function fixDocImagePaths() {
       const filePath = path.join(docsDir, mdxFile.name);
       const content = fs.readFileSync(filePath, "utf-8");
 
-      // Match markdown images with ../ relative paths to co-located image folders
-      // e.g. ![alt](../some-slug/image.png) or ![alt](../some-slug/image.png "title")
-      const REPLACE_RE = /(\!\[[^\]]*\]\()\.\.\/([a-zA-Z0-9_-]+\/[^\s)"]*?\.(?:png|jpg|jpeg|gif|webp|svg))/gi;
+      // Normalise image paths: ../slug/img.png or slug/img.png → ./slug/img.png
+      // Matches markdown images whose URL is a relative path (no protocol, not starting with ./ or /)
       const newContent = content.replace(
-        REPLACE_RE,
+        /(\!\[[^\]]*\]\()(?:\.\.\/)?([a-zA-Z0-9_-]+\/[^\s)"]*?\.(?:png|jpg|jpeg|gif|webp|svg))/gi,
         (match, prefix, rest) => {
-          return `${prefix}./${rest}`;
+          const fixed = `${prefix}./${rest}`;
+          return fixed === match ? match : fixed;
         },
       );
 
       if (newContent !== content) {
+        const changes = newContent.split("\n").filter((line, i) => line !== content.split("\n")[i]).length;
         fs.writeFileSync(filePath, newContent, "utf-8");
-        const COUNT_RE = /!\[[^\]]*\]\(\.\.\/[a-zA-Z0-9_-]+\/[^\s)"]*?\.(?:png|jpg|jpeg|gif|webp|svg)/gi;
-        const changes = (content.match(COUNT_RE) || []).length;
         fixedCount += changes;
         fixed.push({
           file: path.relative(ROOT, filePath),
@@ -194,6 +190,63 @@ function fixDocImagePaths() {
   }
 
   return { count: fixedCount, fixed };
+}
+
+/**
+ * Copy co-located image folders from the default locale (en) to other locales.
+ *
+ * When authors add images via the CMS, the image folder is only created under
+ * `content/docs/en/<slug>/`.  Translated docs reference the same images but
+ * `content/docs/es/<slug>/` doesn't exist, so the build fails.
+ *
+ * This copies missing image folders from en → other locales.
+ */
+function syncDocImages() {
+  const IMAGE_RE = /\.(png|jpg|jpeg|gif|webp|svg)$/i;
+  const srcLocale = "en";
+  const otherLocales = ["es"];
+  const srcDir = path.join(ROOT, "content/docs", srcLocale);
+  let count = 0;
+  const synced = [];
+
+  if (!fs.existsSync(srcDir)) return { count: 0, synced: [] };
+
+  const entries = fs.readdirSync(srcDir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+
+    const srcImgDir = path.join(srcDir, entry.name);
+    const imageFiles = fs.readdirSync(srcImgDir, { withFileTypes: true })
+      .filter((f) => f.isFile() && IMAGE_RE.test(f.name));
+
+    if (imageFiles.length === 0) continue;
+
+    for (const locale of otherLocales) {
+      const destImgDir = path.join(ROOT, "content/docs", locale, entry.name);
+
+      // Check if the locale has a matching MDX that references these images
+      const mdxPath = path.join(ROOT, "content/docs", locale, `${entry.name}.mdx`);
+      if (!fs.existsSync(mdxPath)) continue;
+
+      fs.mkdirSync(destImgDir, { recursive: true });
+
+      for (const imgFile of imageFiles) {
+        const srcPath = path.join(srcImgDir, imgFile.name);
+        const destPath = path.join(destImgDir, imgFile.name);
+        fs.copyFileSync(srcPath, destPath);
+        count++;
+      }
+
+      synced.push({
+        from: path.relative(ROOT, srcImgDir),
+        to: path.relative(ROOT, destImgDir),
+        images: imageFiles.length,
+      });
+    }
+  }
+
+  return { count, synced };
 }
 
 function main() {
@@ -207,6 +260,18 @@ function main() {
     }
   } else {
     console.log("  ℹ️  No doc image paths to fix");
+  }
+
+  // Copy co-located image folders from en to other locales
+  console.log("\n🖼️  Syncing doc images across locales...");
+  const docImgStats = syncDocImages();
+  if (docImgStats.count > 0) {
+    console.log(`  ✓ Copied ${docImgStats.count} image(s):`);
+    for (const item of docImgStats.synced) {
+      console.log(`     ${item.from} → ${item.to} (${item.images} image(s))`);
+    }
+  } else {
+    console.log("  ℹ️  No doc images to sync across locales");
   }
 
   console.log(
