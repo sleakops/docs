@@ -4,6 +4,8 @@
 const lightCodeTheme = require("prism-react-renderer/themes/github");
 const darkCodeTheme = require("prism-react-renderer/themes/dracula");
 
+const isPreview = process.env.BASE_URL && process.env.BASE_URL !== "/";
+
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: "SleakOps Documentation",
@@ -57,38 +59,40 @@ const config = {
           routeBasePath: "/docs",
           sidebarCollapsible: true,
           sidebarCollapsed: true,
-          editUrl: (/** @type {{ docPath: string }} */ { docPath }) => {
-            // Map document paths to their corresponding CMS collections
-            // docPath format: "cluster/addons/example.mdx" or "index.mdx"
+          editUrl: isPreview
+            ? (/** @type {{ docPath: string }} */ { docPath }) => {
+                // Map document paths to their corresponding CMS collections
+                // docPath format: "cluster/addons/example.mdx" or "index.mdx"
 
-            // Remove the file extension to get the slug
-            const slug = docPath.replace(/\.mdx?$/, "");
+                // Remove the file extension to get the slug
+                const slug = docPath.replace(/\.mdx?$/, "");
 
-            // Extract the path segments
-            const pathSegments = docPath.split("/");
+                // Extract the path segments
+                const pathSegments = docPath.split("/");
 
-            // Determine the collection based on the path structure
-            let collection = "docs-root"; // Default for root-level files
+                // Determine the collection based on the path structure
+                let collection = "docs-root"; // Default for root-level files
 
-            if (pathSegments.length >= 2) {
-              const firstSegment = pathSegments[0];
-              const secondSegment = pathSegments[1];
+                if (pathSegments.length >= 2) {
+                  const firstSegment = pathSegments[0];
+                  const secondSegment = pathSegments[1];
 
-              // Check for nested collections (e.g., cluster/addons, project/build)
-              if (
-                pathSegments.length >= 3 &&
-                secondSegment !== pathSegments[pathSegments.length - 1]
-              ) {
-                collection = `docs-${firstSegment}-${secondSegment}`;
-              } else {
-                // Single-level collections (e.g., cluster, domain, environment)
-                collection = `docs-${firstSegment}`;
+                  // Check for nested collections (e.g., cluster/addons, project/build)
+                  if (
+                    pathSegments.length >= 3 &&
+                    secondSegment !== pathSegments[pathSegments.length - 1]
+                  ) {
+                    collection = `docs-${firstSegment}-${secondSegment}`;
+                  } else {
+                    // Single-level collections (e.g., cluster, domain, environment)
+                    collection = `docs-${firstSegment}`;
+                  }
+                }
+
+                // Build the complete CMS URL with /entries/ and the slug
+                return `https://docs.sleakops.com/preview-docs/admin/#/collections/${collection}/entries/${slug}`;
               }
-            }
-
-            // Build the complete CMS URL with /entries/ and the slug
-            return `https://docs.sleakops.com/preview-docs/admin/#/collections/${collection}/entries/${slug}`;
-          },
+            : undefined,
         },
         blog: {},
         pages: {
@@ -144,8 +148,9 @@ const config = {
         postsPerPage: 5,
         sortPosts: "descending",
         onUntruncatedBlogPosts: "ignore",
-        editUrl:
-          "https://docs.sleakops.com/preview-docs/admin/#/collections/changelog",
+        editUrl: isPreview
+          ? "https://docs.sleakops.com/preview-docs/admin/#/collections/changelog"
+          : undefined,
       },
     ],
     [
@@ -161,8 +166,9 @@ const config = {
         path: "tutorials",
         routeBasePath: "tutorial",
         sidebarPath: require.resolve("./sidebars-tutorials.js"),
-        editUrl:
-          "https://docs.sleakops.com/preview-docs/admin/#/collections/tutorials",
+        editUrl: isPreview
+          ? "https://docs.sleakops.com/preview-docs/admin/#/collections/tutorials"
+          : undefined,
       },
     ],
   ],
