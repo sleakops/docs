@@ -6,7 +6,7 @@ title: Política de Privacidad
 
 **Última actualización:** 15 de mayo de 2024
 
-Bienvenido a SleakOps, operado por Craftech-io, Inc. ("nosotros" o "nuestro"). Nuestro servicio, accesible desde [www.sleakops.com](http://www.sleakops.com/) ("Servicio"), se compromete a proteger su privacidad. Esta Política de Privacidad describe nuestras prácticas con respecto a la recopilación, uso y divulgación de su información a través del uso de nuestro Servicio, y aplica a todos los visitantes, usuarios y otras personas que accedan al Servicio.
+Bienvenido a SleakOps, operado por Craftech-io, Inc. ("nosotros" o "nuestro"). Nuestro servicio, accesible desde [www.sleakops.com](https://www.sleakops.com/) ("Servicio"), se compromete a proteger su privacidad. Esta Política de Privacidad describe nuestras prácticas con respecto a la recopilación, uso y divulgación de su información a través del uso de nuestro Servicio, y aplica a todos los visitantes, usuarios y otras personas que accedan al Servicio.
 
 Al utilizar nuestro Servicio, usted acepta la recopilación y el uso de información de acuerdo con esta política.
 

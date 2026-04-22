@@ -6,7 +6,7 @@ title: Privacy Policy
 
 **Last Updated:** May 15th, 2024
 
-Welcome to SleakOps, operated by Craftech-io, Inc. ("us", "we", or "our"). Our service, accessible from [www.sleakops.com](http://www.sleakops.com/) ("Service"), is committed to protecting your privacy. This Privacy Policy outlines our practices regarding the collection, use, and disclosure of your information through your use of our Service and applies to all visitors, users, and others who access the Service.
+Welcome to SleakOps, operated by Craftech-io, Inc. ("us", "we", or "our"). Our service, accessible from [www.sleakops.com](https://www.sleakops.com/) ("Service"), is committed to protecting your privacy. This Privacy Policy outlines our practices regarding the collection, use, and disclosure of your information through your use of our Service and applies to all visitors, users, and others who access the Service.
 
 By using our Service, you agree to the collection and use of information in accordance with this policy.
 

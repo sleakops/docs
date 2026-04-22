@@ -208,4 +208,4 @@ Craftech-io, Inc. shall not be liable for any failure to perform its obligations
 
 ## Contact Us
 
-If you have any questions about this Terms, please contact us: [contact@sleakops.com](mailto:contact@sleakops.com)
+If you have any questions about these Terms, please contact us: [contact@sleakops.com](mailto:contact@sleakops.com)
