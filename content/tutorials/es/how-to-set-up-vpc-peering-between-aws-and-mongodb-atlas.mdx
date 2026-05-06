@@ -1,0 +1,314 @@
+---
+title: Cómo configurar VPC Peering entre AWS y MongoDB Atlas
+sidebar_label: MongoDB Atlas VPC Peering
+sidebar_position: null
+description: Conectá tu VPC de AWS a MongoDB Atlas mediante VPC Peering para acceso privado a la base de datos — y aprendé cuándo usar peering y cuándo optar por alternativas.
+tags:
+  - aws
+  - database
+  - networking
+  - kubernetes
+image: ''
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+
+Conectá tu VPC de AWS a MongoDB Atlas mediante VPC Peering para acceso privado y de baja latencia a la base de datos — y aprendé cuándo usar peering y cuándo optar por alternativas.
+
+
+## Prerrequisitos
+
+
+- Una cuenta de MongoDB Atlas con un cluster de tier \*\*M10 o superior\*\*
+- Una cuenta de AWS con una VPC donde corren tus workloads
+- Rol de \*\*Project Owner\*\* en MongoDB Atlas
+- DNS hostnames y DNS resolution habilitados en tu VPC de AWS
+
+
+## Empecemos
+
+
+### Cuándo usar VPC Peering
+
+
+El VPC Peering es la opción correcta cuando:
+
+
+- Tus workloads corren dentro de una VPC de AWS en la \*\*misma región\*\* que tu cluster de Atlas
+- Necesitás \*\*conectividad privada\*\* — el tráfico nunca sale del backbone de AWS
+- Usás clusters de Atlas en tier \*\*M10 o superior\*\*
+- Tus recursos corren en EKS, EC2, u otro servicio dentro de la VPC
+
+
+El VPC Peering \*\*no está disponible\*\* en estos casos:
+
+
+- Tiers de cluster \*\*M0, M2, M5 o Serverless\*\* — no soportan peering
+- \*\*Peering multi-cloud\*\* — Atlas no soporta peering entre distintos proveedores (ej: GCP ↔ AWS)
+- \*\*CIDRs solapados\*\* — si el CIDR de tu VPC de AWS se solapa con el de Atlas, el peering no puede establecerse
+
+
+:::warning
+Si alguno de los casos anteriores aplica, pasá directamente a [Alternativa: Whitelist de la IP del NAT Gateway](#alternativa-whitelist-de-la-ip-del-nat-gateway).
+:::
+
+
+### Alternativa: Whitelist de la IP del NAT Gateway
+
+
+Si el peering no es una opción, podés permitir conexiones a Atlas desde tu VPC registrando la IP pública de tu \*\*NAT Gateway\*\*:
+
+
+1. En la consola de AWS, navegá a \*\*VPC → NAT Gateways\*\* y copiá la \*\*Elastic IP\*\* asociada a tu NAT Gateway.
+2. En MongoDB Atlas, navegá a \*\*Network Access → IP Access List → Add IP Address\*\*.
+3. Ingresá la Elastic IP con una descripción como \`NAT Gateway - produccion\`.
+
+
+Tus workloads se conectarán a Atlas a través de internet vía el NAT, sin necesidad de peering.
+
+
+:::info
+Esta opción tiene mayor latencia que el peering, pero funciona con cualquier tier de cluster y no requiere planificación de CIDRs.
+:::
+
+
+---
+
+
+### Paso 1 — Recopilar información de AWS
+
+
+Antes de configurar el peering en Atlas, necesitás los siguientes valores de tu cuenta de AWS.
+
+
+\*\*Obtener el Account ID\*\*
+
+
+Hacé clic en tu nombre de usuario en la esquina superior derecha de la consola de AWS. Tu \*\*Account ID\*\* de 12 dígitos aparece en el menú desplegable.
+
+
+{/\* TODO: screenshot - Menú desplegable en la consola de AWS mostrando el Account ID \*/}
+
+
+\*\*Obtener el VPC ID y CIDR\*\*
+
+
+En la consola de AWS, buscá \*\*VPC\*\* y abrí \*\*Your VPCs\*\*. Seleccioná la VPC donde corren tus workloads y anotá el \*\*VPC ID\*\* (comienza con \`vpc-\`) y el \*\*IPv4 CIDR\*\* (ej: \`10.0.0.0/16\`).
+
+
+{/\* TODO: screenshot - Lista de VPCs mostrando VPC ID y columna IPv4 CIDR \*/}
+
+
+| \*\*Campo\*\*                   | \*\*Dónde encontrarlo\*\*                                  |
+| --------------------------- | ------------------------------------------------------ |
+| \*\*Account ID\*\*              | Menú desplegable en la esquina superior derecha de AWS |
+| \*\*VPC ID\*\*                  | VPC → Your VPCs (comienza con \`vpc-\`)                  |
+| \*\*VPC CIDR\*\*                | VPC → Your VPCs → columna IPv4 CIDR                    |
+| \*\*Application VPC Region\*\*  | La región de AWS donde vive tu VPC                     |
+
+
+---
+
+
+### Paso 2 — Crear la conexión de Peering en Atlas
+
+
+1. En MongoDB Atlas, navegá a \*\*Network Access\*\* en el menú lateral izquierdo.
+2. Hacé clic en la pestaña \*\*Peering\*\* y luego en \*\*Add Peering Connection\*\*.
+
+
+{/\* TODO: screenshot - Atlas Network Access → pestaña Peering \*/}
+
+
+3. Seleccioná \*\*AWS\*\* como proveedor cloud y completá el formulario con los valores del Paso 1:
+   - \*\*Account ID\*\* — tu número de cuenta de AWS de 12 dígitos
+   - \*\*VPC ID\*\* — el ID de VPC que comienza con \`vpc-\`
+   - \*\*VPC CIDR\*\* — el rango de IPs de tu VPC
+   - \*\*Application VPC Region\*\* — la región de AWS
+   - \*\*Atlas VPC CIDR\*\* — Atlas sugerirá un rango (ej: \`192.168.240.0/21\`); conservalo salvo que entre en conflicto con tu red
+
+
+{/\* TODO: screenshot - Formulario de conexión de Peering en Atlas completo \*/}
+
+
+4. Hacé clic en \*\*Initiate Peering\*\*.
+
+
+Atlas mostrará la conexión con estado \*\*"Waiting for Approval"\*\*. La solicitud debe aceptarse ahora desde la consola de AWS.
+
+
+{/\* TODO: screenshot - Lista de Peering en Atlas con estado "Waiting for Approval" \*/}
+
+
+---
+
+
+### Paso 3 — Aceptar la solicitud de Peering en AWS
+
+
+1. En la consola de AWS, navegá a \*\*VPC → Peering connections\*\*.
+2. Verás una conexión con estado \*\*"Pending acceptance"\*\*.
+
+
+{/\* TODO: screenshot - Lista de Peering connections en AWS con estado Pending acceptance \*/}
+
+
+3. Seleccioná la conexión, hacé clic en \*\*Actions → Accept request\*\*.
+4. Revisá los detalles en el modal (VPCs, CIDRs, regiones) y confirmá.
+
+
+{/\* TODO: screenshot - Modal de confirmación Accept request en AWS \*/}
+
+
+Una vez aceptada, el estado cambia a \*\*"Active"\*\* en AWS y \*\*"Available"\*\* en Atlas.
+
+
+{/\* TODO: screenshot - Lista de Peering en Atlas con estado "Available" \*/}
+
+
+---
+
+
+### Paso 4 — Configurar las Route Tables
+
+
+Para que el tráfico fluya a través de la conexión de peering, debés agregar una ruta en la Route Table de las subnets donde corren tus workloads.
+
+
+1. En la consola de AWS, navegá a \*\*VPC → Route Tables\*\*.
+2. Seleccioná la Route Table asociada a las subnets de tus workloads.
+3. Abrí la pestaña \*\*Routes\*\* y hacé clic en \*\*Edit routes → Add route\*\*:
+   - \*\*Destination\*\*: el CIDR de la VPC de Atlas (ej: \`192.168.240.0/21\`)
+   - \*\*Target\*\*: seleccioná \*\*Peering Connection\*\* y elegí la conexión que acabás de crear
+4. Hacé clic en \*\*Save changes\*\*.
+
+
+{/\* TODO: screenshot - Diálogo Edit routes en AWS con CIDR de Atlas y target Peering \*/}
+
+
+---
+
+
+### Paso 5 — Configurar un Security Group
+
+
+Creá un Security Group que permita tráfico de salida hacia los puertos de MongoDB Atlas:
+
+
+1. En la consola de AWS, navegá a \*\*EC2 → Security Groups → Create security group\*\*.
+2. Agregá una regla de \*\*salida (outbound)\*\*:
+
+
+| \*\*Tipo\*\*   | \*\*Protocolo\*\* | \*\*Rango de puertos\*\* | \*\*Destino\*\*                                      |
+| ---------- | ------------- | -------------------- | ------------------------------------------------ |
+| Custom TCP | TCP           | 27015 – 27017        | CIDR de la VPC de Atlas (ej: \`192.168.240.0/21\`) |
+
+
+3. Asociá este Security Group a las instancias EC2, node groups de EKS u otros recursos que necesiten conectarse a Atlas.
+
+
+:::tip
+Si usás \*\*EKS con Karpenter\*\*, agregá el siguiente tag al Security Group para que Karpenter lo detecte y aplique automáticamente:
+
+
+| \*\*Key\*\*                    | \*\*Value\*\*                  |
+| -------------------------- | -------------------------- |
+| \`karpenter.sh/discovery\`   | \`<nombre-del-cluster>\`     |
+:::
+
+
+---
+
+
+### Paso 6 — Agregar el CIDR de tu VPC a la IP Access List
+
+
+Crear la conexión de peering no es suficiente — también debés habilitar el acceso a nivel de red.
+
+
+En MongoDB Atlas, navegá a \*\*Network Access → IP Access List → Add IP Address\*\* e ingresá el \*\*CIDR de tu VPC de AWS\*\* (ej: \`10.0.0.0/16\`).
+
+
+{/\* TODO: screenshot - IP Access List en Atlas con el CIDR de la VPC agregado \*/}
+
+
+---
+
+
+### Paso 7 (Opcional) — Conectarse a través de una VPN
+
+
+Si tu equipo accede a MongoDB Atlas mediante una VPN como Pritunl, la resolución DNS estándar no funcionará sobre el peering por defecto. Seguí estos pasos para habilitarla:
+
+
+\*\*Habilitar Custom DNS en Atlas\*\*
+
+
+En Atlas, navegá a \*\*Project → Settings\*\* y habilitá \*\*"Using Custom DNS on AWS with VPC peering"\*\*.
+
+
+{/\* TODO: screenshot - Project Settings en Atlas con la opción Custom DNS habilitada \*/}
+
+
+\*\*Usar el connection string de Peering privado\*\*
+
+
+Al conectarte al cluster, seleccioná \*\*"Private IP for Peering"\*\* en el modal de conexión. Esto provee un hostname que resuelve a la IP privada del cluster.
+
+
+{/\* TODO: screenshot - Modal de conexión en Atlas con "Private IP for Peering" seleccionado \*/}
+
+
+\*\*Agregar la ruta del CIDR de Atlas en Pritunl\*\*
+
+
+En la configuración del servidor de Pritunl, agregá el CIDR de la VPC de Atlas como ruta adicional para que los clientes VPN puedan alcanzarlo.
+
+
+{/\* TODO: screenshot - Configuración de rutas en Pritunl con el CIDR de Atlas \*/}
+
+
+Conectate a la VPN y probá la conexión usando la nueva dirección privada.
+
+
+---
+
+
+## Verificación
+
+
+\*\*Desde una instancia EC2 privada:\*\*
+
+
+\`\`\`bash
+dnf install -qy mongodb-mongosh-shared-openssl3
+mongosh "mongodb+srv://<tu-cluster>.mongodb.net/" --apiVersion 1 --username <tu-usuario>
+\`\`\`
+
+
+\*\*Desde un Pod en EKS:\*\*
+
+
+\`\`\`yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mongodb-client
+spec:
+  containers:
+    - name: mongodb-client
+      image: mongo:latest
+      command: ["/bin/sh", "-c", "sleep 3600"]
+\`\`\`
+
+
+\`\`\`bash
+kubectl exec -it mongodb-client -- \
+  mongosh "mongodb+srv://<tu-cluster>.mongodb.net/" --apiVersion 1 --username <tu-usuario>
+\`\`\`
+
+
+Una conexión exitosa confirma que el peering está funcionando correctamente.
