@@ -1,0 +1,86 @@
+---
+title: AWS Cost Optimization Strategies
+sidebar_label: Optimize AWS Costs
+sidebar_position: 36
+description: Practical AWS cost optimization techniques — Spot Instances, S3 Intelligent-Tiering, Graviton processors, Savings Plans, CloudFront, and Compute Optimizer.
+tags:
+  - aws
+  - cost-optimization
+image: /img/tutorials/optimize-aws-costs/optimize-aws-costs.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Practical techniques to reduce AWS costs without sacrificing reliability — covering compute, storage, CDN, and right-sizing strategies.
+
+## 1. Spot Instances with Auto Scaling — Cut EC2 Costs Significantly
+
+Running all workloads on On-Demand EC2 instances is expensive. Moving stateless or fault-tolerant workloads to **Spot Instances** backed by an **Auto Scaling Group (ASG)** with On-Demand fallback can cut those costs substantially.
+
+**When to use:** Batch jobs, background workers, CI/CD build agents, stateless web services.
+
+```yaml
+# Example ASG mixed instances policy
+MixedInstancesPolicy:
+  InstancesDistribution:
+    OnDemandPercentageAboveBaseCapacity: 20
+    SpotAllocationStrategy: capacity-optimized
+```
+
+## 2. S3 Intelligent-Tiering — Stop Paying for Cold Data
+
+Paying S3 Standard rates for logs, reports, and backups that are rarely accessed is wasteful. **S3 Intelligent-Tiering** automatically moves objects to cheaper storage classes when they're not accessed frequently.
+
+**Enable on a bucket:**
+
+```bash
+aws s3api put-bucket-intelligent-tiering-configuration \
+  --bucket your-bucket \
+  --id default-tiering \
+  --intelligent-tiering-configuration '{"Id":"default-tiering","Status":"Enabled","Tierings":[{"Days":90,"AccessTier":"ARCHIVE_ACCESS"}]}'
+```
+
+Storage cost can drop **20–30%** for cold data buckets.
+
+## 3. AWS Graviton — Cheaper and Faster EC2
+
+Graviton2/3 (ARM-based) instances are **20–30% cheaper** than equivalent x86 instances and often faster for many workloads. Migration only requires rebuilding Docker images for ARM64:
+
+```dockerfile
+FROM --platform=linux/arm64 node:20-alpine
+```
+
+```bash
+docker buildx build --platform linux/arm64 -t your-image:latest .
+```
+
+Compatible instance families: `m7g`, `c7g`, `r7g`.
+
+## 4. AWS Savings Plans — Predictable Discounts
+
+For workloads that always run, committing to a **1-year Compute Savings Plan** reduces EC2 costs by **up to 40%** compared to On-Demand pricing.
+
+Purchase via **AWS Cost Explorer → Savings Plans → Purchase a Savings Plan**.
+
+## 5. CloudFront — Reduce S3 Egress Costs
+
+Serving static assets directly from S3 generates high egress costs. Putting **CloudFront** in front of S3 reduces both GET requests and data transfer costs while improving page load times via CDN edge caching.
+
+## 6. Compute Optimizer — Find Right-Sizing Opportunities
+
+**AWS Compute Optimizer** analyzes usage metrics and recommends right-sized instance types. It often finds workloads running on oversized instances that can be downsized with no performance impact.
+
+Enable it at: **AWS Console → Compute Optimizer → Get started**.
+
+## Summary
+
+| Technique | Typical savings | Best for |
+| --- | --- | --- |
+| Spot Instances + ASG | 50–70% on compute | Stateless, fault-tolerant workloads |
+| S3 Intelligent-Tiering | 20–30% on storage | Logs, backups, infrequently accessed data |
+| Graviton instances | 20–30% on compute | Any containerized workload |
+| Savings Plans | Up to 40% on compute | Always-on servers |
+| CloudFront | Reduces egress + GET costs | Static assets, media |
+| Compute Optimizer | Variable | Over-provisioned instances |
