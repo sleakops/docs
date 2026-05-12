@@ -1,0 +1,98 @@
+---
+title: Worker Use Cases in SleakOps
+sidebar_label: Worker Use Cases
+sidebar_position: 27
+description: Explore common use cases for SleakOps Worker Workloads — background processing, scheduled tasks, autoscaling, ETL, pipelines, and third-party API integrations.
+tags:
+  - kubernetes
+  - background-jobs
+  - scaling
+  - deployment
+image: /img/tutorials/workers-use-cases/workers-use-cases.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Explore the most common use cases for SleakOps Worker Workloads — from asynchronous message processing to scheduled tasks, autoscaling, and pipeline orchestration.
+
+## What is a Worker Workload?
+
+In SleakOps, a **Worker** is a Workload type designed for background processing. Unlike a Web Service, a Worker doesn't expose an HTTP endpoint — it runs continuously, consuming messages from a queue or executing tasks triggered by events or schedules.
+
+## Use Cases
+
+### 1. Background Message and Task Processing
+
+A Worker can consume messages from a queue or task backend such as **RabbitMQ, AWS SQS, Redis, PostgreSQL (listen/notify), Kafka**, etc.
+
+Common examples:
+- Asynchronous event processing (email sending, push notifications, database updates)
+- Data ingestion into real-time analytics systems
+- Microservice orchestration via event queues
+
+### 2. Scheduled and Event-Driven Tasks
+
+When an application needs to execute tasks based on a **cron schedule, system events, or user-defined triggers**, Workers handle execution without blocking other processes.
+
+Common examples:
+- **Recurring tasks**: log cleanup, cache regeneration, periodic data updates
+- **Event-driven tasks**: when a user action requires background processing (report generation, image/video processing)
+
+Two execution strategies:
+1. Run the task directly inside the Worker (simpler, less recommended for Kubernetes clusters)
+2. Send a message to a queue so a specialized Worker processes it
+
+### 3. Autoscaling Workers Based on Load
+
+Workers can be scaled dynamically based on the number of pending messages in the queue or resource consumption in the cluster.
+
+Common examples:
+- Launch additional Worker instances during traffic spikes to process tasks in parallel
+- Use **KEDA** (Kubernetes Event-Driven Autoscaling) to scale Workers based on queue depth metrics
+
+### 4. File Processing and ETL (Extract, Transform, Load)
+
+Workers are well-suited for handling heavy files or processing large data volumes asynchronously.
+
+Common examples:
+- Processing CSV/JSON files and loading them into a database
+- Format conversion (images, videos, PDFs)
+- Log ingestion and real-time data analysis
+
+### 5. Workflow Orchestration and Pipelines
+
+Some tasks require multiple chained steps that can be managed by Workers.
+
+Common examples:
+- Machine Learning pipeline: data download → preprocessing → model training → evaluation
+- Approval workflows in enterprise applications (purchase requests moving through multiple stages)
+
+### 6. Security and Compliance Workers
+
+Workers can run security and compliance checks in the background.
+
+Common examples:
+- **Log monitoring** for anomalies or unauthorized access attempts
+- **Vulnerability scanning** on containers or infrastructure
+- **Permission management and audit** in authentication systems
+
+### 7. Third-Party API Integrations
+
+Workers handle third-party API integrations without blocking the main application.
+
+Common examples:
+- Data synchronization with CRM, ERP, or other external services
+- Sending data to third-party services (Stripe, Twilio, Google Sheets)
+- Monitoring external API changes and updating the application
+
+## Choosing the Right Worker Pattern
+
+| Pattern | When to use |
+| --- | --- |
+| **Single Worker consuming a queue** | Simple async tasks with one consumer |
+| **Multiple Workers on the same queue** | High-throughput processing requiring parallelism |
+| **Worker + KEDA autoscaling** | Variable load; scale to zero when idle |
+| **Chained Workers (pipeline)** | Complex multi-step workflows |
+| **Cron-triggered Worker** | Recurring scheduled tasks |
