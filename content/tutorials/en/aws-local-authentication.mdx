@@ -1,0 +1,99 @@
+---
+title: Configure AWS Authentication for Local Development
+sidebar_label: AWS Local Authentication
+sidebar_position: 30
+description: Set up AWS CLI credentials and cross-account role assumption on your local machine to access SleakOps AWS resources across development, management, and production accounts.
+tags:
+  - aws
+  - security
+image: /img/tutorials/aws-local-authentication/aws-local-authentication.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Set up AWS CLI credentials on your local machine to access SleakOps AWS resources across development, management, and production accounts using cross-account role assumption.
+
+## How SleakOps Manages AWS Users
+
+SleakOps creates users in the **Security account**. Each user can assume roles in other accounts (development, management, production). This means you don't use direct credentials for each account — you assume a role from your Security account user.
+
+**Flow:** Your user (Security account) → assumes a role (target account) → gets temporary credentials to operate.
+
+Depending on your role in SleakOps, you can assume one of:
+- `SleakopsViewerRole`
+- `SleakopsEditorRole`
+- `SleakopsAdminRole`
+
+## Prerequisites
+
+- An **Access Key** and **Secret Key** from a user in the Security account
+- The **ARN of the role** in the target account (e.g., `arn:aws:iam::123456789012:role/SleakopsEditorRole`) — get this from the **AWS Switch Role** action in SleakOps. See [AWS Console Authentication](/user/aws_console_authentication)
+- [AWS CLI v2 <FiExternalLink/>](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) installed
+
+## Step 1 — Configure the Base User Credentials
+
+```bash
+aws configure
+```
+
+Enter when prompted:
+- **AWS Access Key ID** — your Security account access key
+- **AWS Secret Access Key** — your Security account secret key
+- **Default region** — e.g., `us-east-1`
+- **Output format** — `json`
+
+This writes to:
+- Linux/macOS: `~/.aws/credentials` and `~/.aws/config`
+- Windows: `C:\Users\<USER>\.aws\credentials`
+
+## Step 2 — Add Role Profiles for Each Target Account
+
+Edit `~/.aws/config` (Linux/macOS) or `C:\Users\<USER>\.aws\config` (Windows) and add:
+
+```ini
+[profile security-account]
+aws_access_key_id = YOUR_ACCESS_KEY
+aws_secret_access_key = YOUR_SECRET_KEY
+region = us-east-1
+
+[profile dev-account]
+role_arn = arn:aws:iam::111111111111:role/SleakopsEditorRole
+source_profile = security-account
+region = us-east-1
+
+[profile prd-account]
+role_arn = arn:aws:iam::333333333333:role/SleakopsEditorRole
+source_profile = security-account
+region = us-east-1
+```
+
+- `security-account` — your base user with access keys
+- `dev-account` / `prd-account` — profiles that use the base credentials to assume the target role
+
+## Step 3 — Test the Role Assumption
+
+```bash
+aws sts get-caller-identity --profile dev-account
+```
+
+You should see a `UserId` and `Arn` corresponding to the **role in the target account**.
+
+## Step 4 — Use the Profile
+
+Run any AWS command with the target profile:
+
+```bash
+aws s3 ls --profile dev-account
+aws eks list-clusters --profile prd-account
+```
+
+## Summary
+
+| Step | Action |
+| --- | --- |
+| 1 | Install AWS CLI v2 |
+| 2 | Configure base Security account credentials with `aws configure` |
+| 3 | Edit `~/.aws/config` to add role profiles for each environment |
+| 4 | Use `--profile <profile-name>` in your commands |
