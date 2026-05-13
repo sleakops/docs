@@ -1,0 +1,99 @@
+---
+title: Configurar autenticación de AWS para desarrollo local
+sidebar_label: Autenticación AWS Local
+sidebar_position: 30
+description: Configurá las credenciales de AWS CLI y la asunción de roles cross-account en tu máquina local para acceder a recursos AWS de SleakOps en las cuentas de desarrollo, management y producción.
+tags:
+  - aws
+  - security
+image: /img/tutorials/aws-local-authentication/aws-local-authentication.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Configurá las credenciales de AWS CLI en tu máquina local para acceder a recursos AWS de SleakOps en las cuentas de desarrollo, management y producción usando asunción de roles cross-account.
+
+## Cómo SleakOps Gestiona Usuarios AWS
+
+SleakOps crea usuarios en la **cuenta Security**. Cada usuario puede asumir roles en las demás cuentas (development, management, production). Esto significa que no usás credenciales directas para cada cuenta — asumís un rol desde tu usuario de la cuenta Security.
+
+**Flujo:** Tu usuario (cuenta Security) → asume un rol (cuenta destino) → obtiene credenciales temporales para operar.
+
+Dependiendo del rol que tengas en SleakOps, podés asumir uno de:
+- `SleakopsViewerRole`
+- `SleakopsEditorRole`
+- `SleakopsAdminRole`
+
+## Prerrequisitos
+
+- Una **Access Key** y **Secret Key** de un usuario en la cuenta Security
+- El **ARN del rol** en la cuenta destino (ej. `arn:aws:iam::123456789012:role/SleakopsEditorRole`) — obtenelo desde la acción **AWS Switch Role** en SleakOps. Ver [Autenticación en consola AWS](/user/aws_console_authentication)
+- [AWS CLI v2 <FiExternalLink/>](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) instalado
+
+## Paso 1 — Configurar las credenciales del usuario base
+
+```bash
+aws configure
+```
+
+Ingresá cuando se solicite:
+- **AWS Access Key ID** — tu access key de la cuenta Security
+- **AWS Secret Access Key** — tu secret key de la cuenta Security
+- **Default region** — ej. `us-east-1`
+- **Output format** — `json`
+
+Esto escribe en:
+- Linux/macOS: `~/.aws/credentials` y `~/.aws/config`
+- Windows: `C:\Users\<USUARIO>\.aws\credentials`
+
+## Paso 2 — Agregar perfiles de rol para cada cuenta destino
+
+Editá `~/.aws/config` (Linux/macOS) o `C:\Users\<USUARIO>\.aws\config` (Windows) y agregá:
+
+```ini
+[profile security-account]
+aws_access_key_id = TU_ACCESS_KEY
+aws_secret_access_key = TU_SECRET_KEY
+region = us-east-1
+
+[profile dev-account]
+role_arn = arn:aws:iam::111111111111:role/SleakopsEditorRole
+source_profile = security-account
+region = us-east-1
+
+[profile prd-account]
+role_arn = arn:aws:iam::333333333333:role/SleakopsEditorRole
+source_profile = security-account
+region = us-east-1
+```
+
+- `security-account` — tu usuario base con access keys
+- `dev-account` / `prd-account` — perfiles que usan las credenciales base para asumir el rol en la cuenta destino
+
+## Paso 3 — Probar la asunción del rol
+
+```bash
+aws sts get-caller-identity --profile dev-account
+```
+
+Deberías ver un `UserId` y un `Arn` que corresponden al **rol de la cuenta destino**.
+
+## Paso 4 — Usar el perfil
+
+Ejecutá cualquier comando AWS con el perfil correspondiente:
+
+```bash
+aws s3 ls --profile dev-account
+aws eks list-clusters --profile prd-account
+```
+
+## Resumen
+
+| Paso | Acción |
+| --- | --- |
+| 1 | Instalar AWS CLI v2 |
+| 2 | Configurar credenciales base de la cuenta Security con `aws configure` |
+| 3 | Editar `~/.aws/config` para agregar perfiles de rol por entorno |
+| 4 | Usar `--profile <nombre-perfil>` en tus comandos |
