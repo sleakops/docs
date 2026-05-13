@@ -1,0 +1,107 @@
+---
+title: Instalar New Relic en tu Aplicación
+sidebar_label: Instalar New Relic
+sidebar_position: 35
+description: Instalá y configurá el agente de monitoreo New Relic en tu aplicación — configuración de cuenta, instalación del agente por lenguaje y buenas prácticas de configuración.
+tags:
+  - monitoring
+  - deployment
+  - node
+  - python
+image: /img/tutorials/install-new-relic/install-new-relic.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Instalá y configurá el agente de monitoreo [New Relic <FiExternalLink/>](https://newrelic.com/) en tu aplicación para medir y mejorar el rendimiento, con instrucciones paso a paso para múltiples runtimes.
+
+## Prerrequisitos
+
+- Una cuenta en New Relic (creala en [newrelic.com <FiExternalLink/>](https://newrelic.com/))
+- Tu License Key de New Relic (la encontrás en **Account settings**)
+- Acceso para reiniciar o redesplegar tu aplicación
+
+## Paso 1 — Obtener la License Key
+
+1. Iniciá sesión en tu cuenta de New Relic.
+2. Navegá a **Account settings**.
+3. Copiá tu **License Key** — la necesitarás para la configuración del agente.
+
+## Paso 2 — Instalar el Agente
+
+Elegí el agente para tu runtime:
+
+### Node.js
+
+```bash
+npm install newrelic --save
+```
+
+Creá `newrelic.js` en la raíz de tu proyecto:
+
+```javascript
+exports.config = {
+  app_name: ['Nombre de tu App'],
+  license_key: 'tu-license-key',
+  logging: {
+    level: 'info',
+  },
+};
+```
+
+Requerí el agente al inicio de tu archivo de entrada:
+
+```javascript
+require('newrelic');
+// resto de tu app
+```
+
+### Python
+
+```bash
+pip install newrelic
+```
+
+Generar el archivo de configuración:
+
+```bash
+newrelic-admin generate-config TU_LICENSE_KEY newrelic.ini
+```
+
+Ejecutar la app a través del agente:
+
+```bash
+NEW_RELIC_CONFIG_FILE=newrelic.ini newrelic-admin run-program python app.py
+```
+
+### Java
+
+Agregá el JAR del agente al comando de inicio:
+
+```bash
+java -javaagent:/ruta/a/newrelic.jar -jar tu-app.jar
+```
+
+Configurá `newrelic.yml` con tu `license_key` y `app_name`.
+
+## Paso 3 — Reiniciar la Aplicación
+
+Una vez configurado el agente, reiniciá o redesplegá tu aplicación. New Relic empezará a enviar datos a tu cuenta en pocos minutos.
+
+## Alternativas de Monitoreo
+
+| Herramienta | Fortalezas | Consideraciones |
+| --- | --- | --- |
+| **New Relic** | Fácil configuración, amplio soporte de lenguajes | Costo a escala |
+| **Datadog** | Excelente multi-cloud e integraciones | Puede ser costoso a escala |
+| **Dynatrace** | Optimización automática con IA | Curva de aprendizaje pronunciada |
+| **AppDynamics** | Análisis profundo de rendimiento | Requiere configuración inicial detallada |
+
+## Buenas Prácticas
+
+- **Monitoreo continuo:** Revisá regularmente las métricas y configurá alertas para responder rápidamente a incidentes.
+- **Análisis de costo:** Revisá tu plan a medida que crece el tráfico de la aplicación para evitar cargos inesperados.
+- **Mantener configuración actualizada:** Revisá la configuración del agente después de cambios significativos en la aplicación.
+- **Seguir la documentación oficial:** Siempre consultá la [documentación de New Relic <FiExternalLink/>](https://docs.newrelic.com/) para las últimas versiones y opciones de configuración.
