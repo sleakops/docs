@@ -1,0 +1,98 @@
+---
+title: Casos de Uso para Workers en SleakOps
+sidebar_label: Casos de Uso de Workers
+sidebar_position: 27
+description: Explorá los casos de uso más comunes para Workloads Worker en SleakOps — procesamiento en segundo plano, tareas programadas, autoescalado, ETL, pipelines e integraciones con APIs externas.
+tags:
+  - kubernetes
+  - background-jobs
+  - scaling
+  - deployment
+image: /img/tutorials/workers-use-cases/workers-use-cases.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Explorá los casos de uso más comunes para Workloads Worker en SleakOps — desde el procesamiento asíncrono de mensajes hasta tareas programadas, autoescalado y orquestación de pipelines.
+
+## ¿Qué es un Workload Worker?
+
+En SleakOps, un **Worker** es un tipo de Workload diseñado para procesamiento en segundo plano. A diferencia de un Web Service, un Worker no expone un endpoint HTTP — corre continuamente consumiendo mensajes de una cola o ejecutando tareas disparadas por eventos o schedules.
+
+## Casos de Uso
+
+### 1. Procesamiento de Mensajes o Tareas en Segundo Plano
+
+Un Worker puede consumir mensajes de una cola o backend de tareas como **RabbitMQ, AWS SQS, Redis, PostgreSQL (listen/notify), Kafka**, etc.
+
+Ejemplos comunes:
+- Procesamiento de eventos asíncronos (envío de correos, notificaciones push, actualización de bases de datos)
+- Ingesta de datos en sistemas de análisis en tiempo real
+- Orquestación de microservicios mediante colas de eventos
+
+### 2. Ejecución de Tareas Programadas o Basadas en Eventos
+
+Cuando una aplicación necesita ejecutar tareas en base a un **crontab, eventos del sistema o triggers definidos por el usuario**, los Workers manejan la ejecución sin bloquear otros procesos.
+
+Ejemplos comunes:
+- **Tareas recurrentes**: limpieza de logs, regeneración de caché, actualizaciones periódicas de datos
+- **Tareas basadas en eventos**: cuando un usuario realiza una acción que requiere procesar datos en segundo plano (generación de reportes, procesamiento de imágenes o videos)
+
+Dos estrategias de ejecución:
+1. Ejecutar la tarea dentro del mismo Worker (más simple, menos recomendable en clusters de Kubernetes)
+2. Enviar un mensaje a una cola para que un Worker especializado lo procese
+
+### 3. Autoescalado de Workers Basado en Carga
+
+Los Workers pueden escalarse dinámicamente en función de la cantidad de mensajes pendientes en la cola o el consumo de recursos en el cluster.
+
+Ejemplos comunes:
+- Lanzar instancias adicionales de Workers durante picos de tráfico para procesar tareas en paralelo
+- Usar **KEDA** (Kubernetes Event-Driven Autoscaling) para escalar Workers basándose en métricas de profundidad de la cola
+
+### 4. Procesamiento de Archivos y ETL (Extract, Transform, Load)
+
+Los Workers son ideales para manejar archivos pesados o procesar grandes volúmenes de datos de forma asíncrona.
+
+Ejemplos comunes:
+- Procesamiento de archivos CSV/JSON y carga en una base de datos
+- Conversión y transformación de formatos (imágenes, videos, PDFs)
+- Ingesta de logs y análisis de datos en tiempo real
+
+### 5. Orquestación de Flujos de Trabajo y Pipelines
+
+Algunas tareas requieren múltiples pasos encadenados que pueden ser gestionados mediante Workers.
+
+Ejemplos comunes:
+- Pipeline de Machine Learning: descarga de datos → preprocesamiento → entrenamiento de modelo → evaluación
+- Flujos de aprobación en aplicaciones empresariales (solicitudes de compras que pasan por diferentes etapas)
+
+### 6. Workers para Seguridad y Compliance
+
+Los Workers pueden ejecutar verificaciones de seguridad y cumplimiento de políticas en segundo plano.
+
+Ejemplos comunes:
+- **Monitoreo de logs** en busca de anomalías o intentos de acceso no autorizados
+- **Escaneo de vulnerabilidades** en contenedores o infraestructura
+- **Gestión de permisos y auditoría** de accesos en sistemas de autenticación
+
+### 7. Integraciones con APIs Externas
+
+Los Workers manejan integraciones con APIs de terceros sin bloquear la aplicación principal.
+
+Ejemplos comunes:
+- Sincronización de datos con CRM, ERP u otros servicios externos
+- Envío de datos a servicios de terceros (Stripe, Twilio, Google Sheets)
+- Monitoreo de cambios en APIs externas y actualización en la aplicación
+
+## Eligiendo el Patrón Correcto
+
+| Patrón | Cuándo usarlo |
+| --- | --- |
+| **Worker único consumiendo una cola** | Tareas async simples con un consumidor |
+| **Múltiples Workers en la misma cola** | Alto throughput que requiere paralelismo |
+| **Worker + autoescalado KEDA** | Carga variable; escalar a cero cuando no hay trabajo |
+| **Workers encadenados (pipeline)** | Flujos de trabajo complejos de múltiples pasos |
+| **Worker disparado por cron** | Tareas recurrentes programadas |
