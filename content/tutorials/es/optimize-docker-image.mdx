@@ -1,0 +1,119 @@
+---
+title: Cómo Optimizar el Tamaño de tu Imagen Docker
+sidebar_label: Optimizar Imágenes Docker
+sidebar_position: 42
+description: Reducí el tamaño de las imágenes Docker y mejorá los tiempos de build usando imágenes base Alpine, builds multi-stage y .dockerignore — técnicas prácticas para imágenes listas para producción.
+tags:
+  - docker
+  - deployment
+  - performance
+image: /img/tutorials/optimize-docker-image/optimize-docker-image.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Reducí el tamaño de las imágenes Docker y mejorá los tiempos de build usando imágenes base Alpine, builds multi-stage y `.dockerignore` — haciendo tus imágenes más rápidas de descargar, desplegar y más seguras.
+
+## Por Qué Importa el Tamaño de la Imagen
+
+Las imágenes más pequeñas significan tiempos de pull más rápidos, despliegues más ágiles, menor costo de almacenamiento en el registry, y una superficie de ataque reducida con menos paquetes instalados.
+
+## Técnica 1 — Usar Imágenes Base Alpine o Slim
+
+En lugar de una imagen base completa, usar una alternativa mínima:
+
+```dockerfile
+# Antes — imagen grande
+FROM node:20
+
+# Después — mucho más pequeña
+FROM node:20-alpine
+```
+
+Imágenes base mínimas comunes:
+| Runtime | Imagen mínima |
+| --- | --- |
+| Node.js | `node:20-alpine` |
+| Python | `python:3.12-slim` |
+| Java | `eclipse-temurin:21-jre-alpine` |
+| Go | `scratch` o `gcr.io/distroless/static` |
+
+:::warning
+Alpine usa `musl libc` en lugar de `glibc`. Algunos paquetes se comportan diferente. Probá tu aplicación exhaustivamente al cambiar.
+:::
+
+## Técnica 2 — Builds Multi-Stage
+
+Usar una etapa para construir y una etapa mínima separada para el runtime:
+
+```dockerfile
+# Etapa de build — tiene todas las herramientas
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# Etapa de runtime — solo lo necesario para correr
+FROM node:20-alpine
+WORKDIR /app
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/node_modules ./node_modules
+CMD ["node", "dist/index.js"]
+```
+
+Esto mantiene herramientas de build, código fuente y archivos intermedios fuera de la imagen final.
+
+## Técnica 3 — Usar `.dockerignore`
+
+Prevenir que archivos innecesarios sean enviados al build context:
+
+```
+# .dockerignore
+node_modules
+.git
+.env
+*.log
+dist
+coverage
+.DS_Store
+README.md
+```
+
+Un build context más pequeño acelera cada `docker build`.
+
+## Técnica 4 — Ordenar Capas para Eficiencia de Cache
+
+Docker cachea las capas. Ponés las capas que cambian frecuentemente al final para maximizar los cache hits:
+
+```dockerfile
+# Bien — dependencias cacheadas separadas del código fuente
+COPY package*.json ./
+RUN npm ci
+COPY . .        # los cambios de fuente no invalidan el cache de npm ci
+
+# Mal — npm ci se re-ejecuta en cada cambio de fuente
+COPY . .
+RUN npm ci
+```
+
+## Técnica 5 — Eliminar Archivos Innecesarios Post-Instalación
+
+```dockerfile
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    algún-paquete \
+    && rm -rf /var/lib/apt/lists/*
+```
+
+## Resumen
+
+| Técnica | Impacto |
+| --- | --- |
+| Imágenes base Alpine/slim | Reducción de tamaño 3–10x |
+| Builds multi-stage | Elimina herramientas de build y fuente de la imagen final |
+| `.dockerignore` | Builds más rápidos, sin filtrado accidental de secretos |
+| Orden de capas | Builds incrementales más rápidos por reutilización del cache |
+| Limpieza post-instalación | Elimina caches del gestor de paquetes |
