@@ -1,0 +1,90 @@
+---
+title: Instalar Datadog en un Cluster EKS de SleakOps
+sidebar_label: Instalar Datadog
+sidebar_position: 34
+description: Instalá el agente de monitoreo Datadog en un cluster Amazon EKS gestionado por SleakOps usando Helm, con un values.yaml y buenas prácticas recomendadas.
+tags:
+  - kubernetes
+  - monitoring
+  - helm
+  - aws
+image: /img/tutorials/install-datadog/install-datadog.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Instalá el agente de monitoreo [Datadog <FiExternalLink/>](https://www.datadoghq.com/) en un cluster EKS de SleakOps usando Helm para obtener visibilidad completa del rendimiento de las aplicaciones y la salud de la infraestructura.
+
+## Prerrequisitos
+
+- Un cluster EKS de SleakOps con `kubectl` y Helm configurados
+- Una cuenta de Datadog y una API key
+
+## Paso 1 — Verificar AWS CLI y kubectl
+
+Verificar que el entorno está listo:
+
+```bash
+aws --version
+kubectl version --short
+helm version
+```
+
+## Paso 2 — Agregar el Repositorio Helm de Datadog
+
+```bash
+helm repo add datadog https://helm.datadoghq.com
+helm repo update
+```
+
+## Paso 3 — Crear `values.yaml`
+
+```yaml
+datadog:
+  apiKey: <TU_DATADOG_API_KEY>
+  clusterName: <NOMBRE_DE_TU_CLUSTER>
+  logs:
+    enabled: true
+    containerCollectAll: true
+  apm:
+    portEnabled: true
+  processAgent:
+    enabled: true
+```
+
+:::warning
+No commities `values.yaml` con la API key en un repositorio. Usá un Secret de Kubernetes o pasá `--set datadog.apiKey=...` directamente.
+:::
+
+## Paso 4 — Instalar el Agente de Datadog
+
+```bash
+helm install datadog-agent datadog/datadog \
+  --namespace datadog \
+  --create-namespace \
+  -f values.yaml
+```
+
+## Paso 5 — Verificar la Instalación
+
+```bash
+kubectl get pods -n datadog
+```
+
+Todos los pods `datadog-agent-*` deberían llegar al estado `Running` en pocos minutos.
+
+## Comparación de Opciones de Instalación
+
+| Método | Ventajas | Desventajas |
+| --- | --- | --- |
+| **Helm (esta guía)** | Flexible, configurable, estándar | Requiere conocimiento de Helm |
+| **Datadog Operator** | Gestión del ciclo de vida, basado en CRD | Más complejo de configurar |
+| **Fargate Logging** | Sin gestión de nodos | Solo funciona para cargas específicas |
+
+## Buenas Prácticas
+
+- **Protegé la API key:** Guardarla en un Secret de Kubernetes en lugar de directamente en `values.yaml`.
+- **Configurá alertas:** Creá monitores en Datadog para recibir notificaciones cuando se detecten problemas.
+- **Mantené versiones actualizadas:** Mantener tanto el agente de Datadog como el cluster EKS actualizados para evitar incompatibilidades.
