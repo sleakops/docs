@@ -1,0 +1,78 @@
+---
+title: Transferir un dominio a Amazon Route 53
+sidebar_label: Transferir dominio a Route 53
+sidebar_position: 22
+description: Checklist y guía paso a paso para transferir un dominio desde tu registrador actual a Amazon Route 53 sin tiempo de inactividad.
+tags:
+  - aws
+  - route53
+  - dns
+  - domain
+  - networking
+image: /img/tutorials/transfer-domain-route53/transfer-domain-route53.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Transferí un dominio desde tu registrador actual a Amazon Route 53 siguiendo este checklist de preparación, migración de DNS y solicitud de transferencia para evitar downtime.
+
+:::info
+Verificá que la extensión de tu dominio (ej. `.com`, `.net`, `.mx`) esté soportada por Route 53 antes de comenzar: [Lista de TLDs soportados <FiExternalLink/>](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/registrar-tld-list.html).
+:::
+
+## Prerrequisitos
+
+- Acceso a tu cuenta en el registrador actual
+- Acceso al correo del registrante en WHOIS (se recibirán correos de autorización ahí)
+- El dominio debe tener al menos 60 días desde su registro o última transferencia
+- Si DNSSEC está habilitado, debe desactivarse en el registrador actual antes de transferir
+
+## Empecemos
+
+### Etapa 1 — Checklist de pre-transferencia
+
+Completá todo esto antes de tocar la consola de AWS:
+
+- [ ] **Confirmar soporte de TLD** — verificar que la extensión esté en la [lista de TLDs soportados <FiExternalLink/>](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/registrar-tld-list.html)
+- [ ] **Verificar acceso al correo del registrante** — recibirás los correos de autorización ahí
+- [ ] **Desbloquear el dominio** — desactivar el "Transfer Lock" o "Domain Lock" en el registrador actual
+- [ ] **Confirmar antigüedad del dominio** — al menos 60 días desde el registro o la última transferencia
+- [ ] **Obtener el Auth Code (EPP Code)** — solicitarlo al registrador actual; obligatorio para la mayoría de los TLDs
+- [ ] **Desactivar DNSSEC** — si está habilitado, desactivarlo antes de la transferencia
+- [ ] **Verificar el estado del dominio en WHOIS** — el estado debe ser `ok`. No se pueden transferir dominios en estos estados:
+  - `clientTransferProhibited`
+  - `pendingDelete`
+  - `pendingTransfer`
+  - `redemptionPeriod`
+  - `serverTransferProhibited`
+
+:::warning
+Si el dominio vence en menos de 7 días, renovalo en el registrador actual antes de intentar la transferencia.
+:::
+
+### Etapa 2 — Migrar los registros DNS primero (recomendado)
+
+AWS recomienda migrar el servicio DNS antes de transferir el registro del dominio para evitar downtime.
+
+1. **Crear una zona hospedada en Route 53** con el mismo nombre que tu dominio. SleakOps puede crearla por vos.
+2. **Copiar todos los registros DNS** (A, MX, CNAME, TXT) del proveedor actual a la nueva zona en Route 53.
+3. (Opcional) **Actualizar los name servers** en el registrador actual a los de Route 53 para probar la resolución antes de la transferencia.
+
+### Etapa 3 — Enviar la solicitud de transferencia en Route 53
+
+1. Ir a **Route 53 → Registered domains → Transfer in**.
+2. Ingresar el nombre del dominio y hacer clic en **Check** para confirmar que es transferible.
+3. Ingresar el **Auth Code** obtenido en la Etapa 1.
+4. Configurar DNS: seleccionar la zona hospedada en Route 53 (recomendado) o mantener los name servers actuales.
+5. Revisar y completar la **información de contacto del registrante** — debe coincidir con la del registrador actual para evitar bloqueos por cambio de titularidad.
+6. Revisar el costo (generalmente incluye renovación por 1 año) y confirmar el pedido.
+
+### Etapa 4 — Completar la transferencia
+
+- Estar atento al correo del registrante por si llega un enlace de autorización.
+- Monitorear el progreso en **Route 53 → Pending requests**.
+- Según el TLD, las transferencias pueden tardar desde unos minutos hasta 10 días.
+- Una vez completada, AWS envía un correo de confirmación.
+- (Si aplica) **Reactivar DNSSEC** una vez que la transferencia esté completa y el DNS funcione correctamente.

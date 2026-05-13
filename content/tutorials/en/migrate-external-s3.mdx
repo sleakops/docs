@@ -1,0 +1,95 @@
+---
+title: Migrate an External S3 Bucket to SleakOps
+sidebar_label: Migrate External S3
+sidebar_position: 17
+description: Copy objects from a source S3 bucket in an external AWS account to a SleakOps-managed S3 bucket using cross-account bucket policies and aws s3 sync.
+tags:
+  - aws
+  - s3
+  - migration
+  - storage
+image: /img/tutorials/migrate-external-s3/migrate-external-s3.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Import objects from an S3 bucket in an external AWS account into a SleakOps-managed S3 bucket using a cross-account bucket policy and `aws s3 sync` run from a Pod inside your SleakOps cluster.
+
+## Prerequisites
+
+- A Cluster configured in SleakOps ([Cluster docs](/docs/cluster))
+- The destination S3 bucket already created as a Dependency in SleakOps
+- Access to the source AWS account to add a bucket policy
+- The destination account ID and the Service Account role name for your Project
+
+## Let's Start
+
+### Step 1 — Add a cross-account bucket policy on the source bucket
+
+In the **source account**, attach this policy to the source S3 bucket. Replace the placeholders:
+
+- `MAIN-SOURCE-BUCKET-NAME` — source bucket name
+- `DESTINATION_ACCOUNT_ID` — AWS account ID where SleakOps is deployed
+- `SERVICE_ACCOUNT_NAME` — the IAM role of your SleakOps Project, following the pattern `{PROJECT_NAME}-{ENVIRONMENT_NAME}-{SHORT_UUID}-sa`
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DelegateS3Access",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::DESTINATION_ACCOUNT_ID:role/SERVICE_ACCOUNT_NAME"
+      },
+      "Action": ["s3:ListBucket", "s3:GetObject", "s3:GetObjectTagging"],
+      "Resource": [
+        "arn:aws:s3:::MAIN-SOURCE-BUCKET-NAME/*",
+        "arn:aws:s3:::MAIN-SOURCE-BUCKET-NAME"
+      ]
+    }
+  ]
+}
+```
+
+### Step 2 — Open a Pod shell in the destination namespace
+
+Open the shell of any Pod deployed in the same **namespace** as your destination S3 Dependency. The Pod's Service Account already has permission to write to the SleakOps-managed bucket.
+
+{/* TODO: screenshot - Opening a Pod shell from SleakOps console */}
+
+### Step 3 — Install AWS CLI and run the sync
+
+From the Pod shell, install the AWS CLI if it is not already available, then run a dry-run first to verify the command:
+
+```bash
+aws s3 sync --dryrun \
+  s3://MAIN-SOURCE-BUCKET-NAME \
+  s3://SLEAKOPS-DESTINATION-BUCKET-NAME
+```
+
+If the output looks correct, run the actual sync:
+
+```bash
+aws s3 sync \
+  s3://MAIN-SOURCE-BUCKET-NAME \
+  s3://SLEAKOPS-DESTINATION-BUCKET-NAME
+```
+
+:::warning
+If the buckets are in different regions, add the region arguments to avoid errors:
+
+```bash
+aws s3 sync \
+  s3://MAIN-SOURCE-BUCKET-NAME \
+  s3://SLEAKOPS-DESTINATION-BUCKET-NAME \
+  --source-region SOURCE-REGION-NAME \
+  --region DESTINATION-REGION-NAME
+```
+:::
+
+### Step 4 — Remove the cross-account policy
+
+Once the migration is complete, detach the bucket policy from the source bucket to close the cross-account access.

@@ -1,0 +1,201 @@
+---
+title: Deploy AWS Lambda Functions with GitHub Actions
+sidebar_label: Lambda CI/CD with GitHub Actions
+sidebar_position: 23
+description: Build a GitHub Actions pipeline that packages, tests, and deploys AWS Lambda functions automatically on every push to main or staging.
+tags:
+  - aws
+  - lambda
+  - ci-cd
+  - github-actions
+  - deployment
+image: /img/tutorials/lambda-cicd-github-actions/lambda-cicd-github-actions.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Automate the build, test, and deployment of AWS Lambda functions using GitHub Actions, with branch-based environments and optional rollback on health-check failure.
+
+## Prerequisites
+
+- An AWS Lambda function already created
+- An IAM user or role with the required permissions (see below)
+- A GitHub repository containing your Lambda code
+
+## Let's Start
+
+### Step 1 — Project structure
+
+Organize your Lambda project like this:
+
+```
+lambda-project/
+├── .github/
+│   └── workflows/
+│       └── deploy.yml
+├── src/
+│   └── handlers/
+│       └── example_handler.py
+├── requirements.txt
+└── README.md
+```
+
+### Step 2 — Example Lambda function (Python)
+
+```python
+import json
+import os
+import boto3
+import logging
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+def lambda_handler(event, context):
+    try:
+        table_name = os.environ.get('TABLE_NAME', 'default-table')
+        logger.info(f"Processing event: {json.dumps(event)}")
+        dynamodb = boto3.resource('dynamodb')
+        table = dynamodb.Table(table_name)
+        table.put_item(Item={
+            'id': event.get('id', 'unknown'),
+            'data': event.get('data', {}),
+            'request_id': context.aws_request_id
+        })
+        return {
+            'statusCode': 200,
+            'body': json.dumps({'message': 'Success', 'request_id': context.aws_request_id})
+        }
+    except Exception as e:
+        logger.error(f"Error: {str(e)}", exc_info=True)
+        return {'statusCode': 500, 'body': json.dumps({'error': str(e)})}
+```
+
+### Step 3 — GitHub Actions workflow
+
+Create `.github/workflows/deploy.yml`:
+
+```yaml
+name: Deploy Lambda
+
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+    branches: [main]
+
+env:
+  AWS_REGION: us-east-1
+  LAMBDA_FUNCTION_NAME: example-lambda
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt -t ./package
+          cp -r src/* ./package/
+
+      - name: Create deployment package
+        run: |
+          cd package
+          zip -r ../lambda-deployment.zip .
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy to Lambda
+        run: |
+          aws lambda update-function-code \
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME }} \
+            --zip-file fileb://lambda-deployment.zip
+
+      - name: Update Lambda configuration
+        run: |
+          aws lambda update-function-configuration \
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME }} \
+            --environment Variables="{TABLE_NAME=${{ secrets.DYNAMODB_TABLE }}}" \
+            --timeout 30 \
+            --memory-size 256
+
+      - name: Health check
+        run: |
+          aws lambda invoke \
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME }} \
+            --payload '{"id": "health-check"}' \
+            response.json
+          if ! grep -q '"statusCode": 200' response.json; then
+            echo "Health check failed"
+            exit 1
+          fi
+```
+
+### Step 4 — Add secrets in GitHub
+
+Go to **Settings → Secrets and variables → Actions** and add:
+
+| Secret | Description |
+| --- | --- |
+| `AWS_ACCESS_KEY_ID` | AWS access key |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret key |
+| `DYNAMODB_TABLE` | DynamoDB table name (optional) |
+
+### Step 5 — Required IAM permissions
+
+The IAM user or role used by GitHub Actions needs at minimum:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "lambda:UpdateFunctionCode",
+        "lambda:UpdateFunctionConfiguration",
+        "lambda:PublishVersion",
+        "lambda:UpdateAlias",
+        "lambda:InvokeFunction"
+      ],
+      "Resource": "arn:aws:lambda:*:*:function:*"
+    }
+  ]
+}
+```
+
+## Troubleshooting
+
+**Package too large:** Use Lambda Layers for heavy dependencies:
+
+```bash
+aws lambda publish-layer-version \
+  --layer-name common-dependencies \
+  --zip-file fileb://dependencies-layer.zip \
+  --compatible-runtimes python3.11
+
+aws lambda update-function-configuration \
+  --function-name example-lambda \
+  --layers arn:aws:lambda:us-east-1:123456789:layer:common-dependencies:1
+```
+
+**Permission denied:** Verify the IAM policy in Step 5 is attached to the role used by GitHub Actions.

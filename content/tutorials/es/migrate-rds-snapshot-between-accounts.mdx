@@ -1,0 +1,138 @@
+---
+title: Migrar un snapshot de Amazon RDS entre cuentas
+sidebar_label: Migrar snapshot de RDS
+sidebar_position: 12
+description: Guía paso a paso para compartir y restaurar un snapshot de Amazon RDS entre cuentas de AWS, incluyendo escenarios con cifrado y cross-region.
+tags:
+  - aws
+  - rds
+  - database
+  - migration
+  - snapshot
+  - kms
+image: /img/tutorials/migrate-rds-snapshot-between-accounts/migrate-rds-snapshot-between-accounts.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Compartí y restaurá un snapshot de Amazon RDS entre cuentas de AWS, cubriendo bases de datos no cifradas, cifradas con la clave KMS predeterminada y cifradas con clave KMS personalizada, además del escenario cross-region.
+
+## Prerrequisitos
+
+- Acceso a la consola de AWS en la cuenta origen y la cuenta destino
+- Un Cluster configurado en SleakOps ([Documentación de Cluster](/docs/cluster))
+- Un Environment configurado ([Documentación de Environment](/docs/environment))
+- El ID de la cuenta destino (formato de 12 dígitos)
+
+## Empecemos
+
+### Caso 1 — RDS no cifrada
+
+**En la cuenta origen:**
+
+1. Ir a **RDS → Snapshots**.
+2. Seleccionar la snapshot → **Actions → Share snapshot**.
+3. Ingresar el **ID de la cuenta destino** (formato: `123456789012`).
+4. Confirmar.
+
+**En la cuenta destino:**
+
+1. Ir a **SleakOps → Dependencies → Create**.
+2. Seleccionar **Create an RDS from a snapshot**.
+3. Ingresar el identificador de la snapshot compartida.
+
+---
+
+### Caso 2 — RDS cifrada con la clave KMS predeterminada de AWS (`aws/rds`)
+
+:::warning
+Las claves KMS administradas por AWS (`aws/rds`) **no se pueden compartir directamente** entre cuentas. Primero es necesario re-cifrar la snapshot con una clave administrada por el cliente (CMK).
+:::
+
+**En la cuenta origen:**
+
+1. Crear una clave KMS personalizada con la política descripta en el [Caso 3](#caso-3--rds-cifrada-con-clave-kms-personalizada-cmk).
+2. Ir a **RDS → Snapshots**.
+3. Seleccionar la snapshot cifrada → **Actions → Copy snapshot**, eligiendo la clave KMS recién creada.
+4. Esperar a que finalice la copia.
+5. Sobre la nueva snapshot → **Actions → Share snapshot**.
+6. Ingresar el ID de la cuenta destino.
+
+**En la cuenta destino:**
+
+1. Ir a **SleakOps → Dependencies → Create**.
+2. Seleccionar **Create an RDS from a snapshot**.
+3. Ingresar el identificador de la snapshot compartida.
+
+:::info
+Validar temporalmente que la política de seguridad permita snapshots sin cifrado durante este proceso.
+:::
+
+---
+
+### Caso 3 — RDS cifrada con clave KMS personalizada (CMK)
+
+**En la cuenta origen — compartir la clave KMS:**
+
+1. Ir a **KMS → Customer managed keys**.
+2. Seleccionar la clave usada para cifrar la RDS.
+3. En **Key policy**, agregar el siguiente statement en la sección de permisos:
+
+```json
+{
+  "Sid": "Allow use of the key from destination account",
+  "Effect": "Allow",
+  "Principal": {
+    "AWS": "arn:aws:iam::<<DESTINATION_ACCOUNT_ID>>:root"
+  },
+  "Action": [
+    "kms:Encrypt",
+    "kms:Decrypt",
+    "kms:ReEncrypt*",
+    "kms:GenerateDataKey*",
+    "kms:DescribeKey",
+    "kms:CreateGrant"
+  ],
+  "Resource": "*"
+}
+```
+
+**En la cuenta origen — compartir la snapshot:**
+
+1. Ir a **RDS → Snapshots**.
+2. Seleccionar la snapshot → **Actions → Share snapshot**.
+3. Ingresar el ID de la cuenta destino.
+
+**En la cuenta destino — copiar con clave KMS propia:**
+
+1. Ir a **RDS → Snapshots → Shared with me**.
+2. Seleccionar la snapshot → **Actions → Copy snapshot**.
+3. Seleccionar una clave KMS de la cuenta destino (obligatorio).
+4. Esperar a que finalice la copia.
+
+**En la cuenta destino — restaurar:**
+
+1. Ir a **SleakOps → Dependencies → Create**.
+2. Seleccionar **Create an RDS from a snapshot**.
+3. Ingresar el identificador de la snapshot copiada.
+
+---
+
+### Caso especial — Snapshots en diferentes regiones
+
+Si la snapshot está en una región diferente a donde querés restaurarla:
+
+**En la cuenta origen:**
+
+1. Ir a **RDS → Snapshots**.
+2. Seleccionar la snapshot → **Actions → Copy snapshot**.
+3. En **Destination Region**, seleccionar la región destino.
+4. Si está cifrada con CMK, seleccionar una clave KMS válida en la región destino.
+5. Esperar que finalice la copia cross-region.
+6. Continuar con el proceso normal de compartir según el caso (1, 2 o 3).
+
+:::info
+Las claves KMS son específicas por región. Al copiar entre regiones, siempre usá una clave KMS de la región destino. Las copias cross-region pueden tardar horas dependiendo del tamaño de la snapshot.
+:::

@@ -1,0 +1,89 @@
+---
+title: Access an RDS Instance from Outside Your VPC
+sidebar_label: RDS External Access
+sidebar_position: 21
+description: Options to securely access an Amazon RDS instance running in a private subnet from outside the VPC — Bastion Host, AWS Client VPN, PrivateLink, and public access.
+tags:
+  - aws
+  - rds
+  - database
+  - networking
+  - security
+  - vpn
+image: /img/tutorials/rds-external-access/rds-external-access.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Connect to an Amazon RDS instance running in a private subnet from outside the VPC, using the secure approach that fits your access pattern.
+
+:::warning
+Exposing a database directly to the internet is not recommended. It significantly increases the attack surface. Use the options below to avoid unnecessary risk.
+:::
+
+## Options
+
+| Option | Security | Ease of setup |
+| --- | --- | --- |
+| **Bastion Host (EC2)** | High | Medium |
+| **AWS Client VPN** | Very high | Easy |
+| **AWS PrivateLink** | Highest | Complex |
+| **Direct public access** | Not recommended | Easy |
+
+## Option 1 — Bastion Host (Recommended for occasional admin access)
+
+A Bastion Host is an EC2 instance in a public subnet that acts as a relay.
+
+1. Create an EC2 instance in a **public subnet** with a public IP.
+2. Connect to the EC2 via SSH.
+3. From the EC2, connect to the RDS endpoint using your database client.
+
+**Example — Oracle with SQL*Plus from the EC2:**
+
+```bash
+sqlplus username/password@//rds-endpoint:1521/service_name
+```
+
+**SSH tunnel for local SQL Developer:**
+
+```bash
+ssh -L 1521:rds-endpoint:1521 ec2-user@public-ip-ec2 -i "key.pem"
+```
+
+Then connect your local SQL Developer to `localhost:1521`.
+
+## Option 2 — AWS Client VPN (Recommended for regular access from your laptop)
+
+Configure an AWS Client VPN in the same VPC as the RDS. Once connected, the RDS private endpoint becomes reachable from your local machine.
+
+See the [AWS Client VPN documentation <FiExternalLink/>](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/what-is.html) for setup steps, or follow the [SleakOps VPN tutorial](/tutorial/third-party-integration-vpn).
+
+## Option 3 — AWS PrivateLink (For cross-VPC or cross-account secure access)
+
+AWS PrivateLink exposes the RDS to other VPCs or accounts without traversing the public internet.
+
+1. Create an AWS PrivateLink (VPC Endpoint Service) in the VPC where the RDS lives.
+2. Configure a VPC Endpoint in the other VPC (which can be public-facing).
+3. Connect to the RDS through the PrivateLink endpoint.
+
+See the [PrivateLink documentation <FiExternalLink/>](https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/endpoint-services-overview.html).
+
+## Option 4 — Direct Public Access (Not recommended)
+
+If you must make the RDS publicly reachable, follow the [Make an RDS Public tutorial](/tutorial/make-rds-public).
+
+:::warning
+This process involves approximately 20 minutes of downtime. The simplified steps are:
+1. Create a new VPC and a Subnet Group inside it.
+2. Move the RDS to the new VPC.
+3. Create a public Subnet Group in the SleakOps-managed VPC.
+4. Move the RDS back to the SleakOps VPC using the public Subnet Group.
+5. Enable **Public Access** on the RDS.
+6. Create and attach a Security Group that restricts access to trusted IPs only.
+:::
+
+:::info
+**RDS Proxy does not support public access.** RDS Proxy is designed for internal VPC connection pooling only — it has no public IP. Use one of the options above instead.
+:::
