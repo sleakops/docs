@@ -1,0 +1,245 @@
+---
+title: Solución Universal de DNS para Pritunl Client
+sidebar_label: Fix de DNS para Pritunl
+sidebar_position: 26
+description: Corregí la resolución DNS de la VPN Pritunl en Linux, macOS y Windows con scripts por OS y un script universal multiplataforma.
+tags:
+  - vpn
+  - networking
+  - dns
+  - pritunl
+image: /img/tutorials/pritunl-dns-universal/pritunl-dns-universal.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Corregí la resolución DNS del cliente Pritunl para que los dominios privados de la VPN (endpoints EKS, servicios internos, microservicios) siempre se resuelvan correctamente en Linux, macOS y Windows.
+
+## El Problema
+
+Al usar Pritunl Client, algunos sistemas operativos no aplican correctamente el **DNS interno de la VPN**, lo que provoca que los **dominios privados o de infraestructura no se resuelvan**.
+
+Cada OS maneja el DNS por interfaz de manera diferente — `systemd-resolved`, `resolvconf`, `NetworkManager`, `scutil`, la API de Windows — y en ciertos casos **ignoran el DNS que la VPN entrega**.
+
+El resultado es un comportamiento inconsistente:
+- En algunas máquinas, los dominios internos funcionan
+- En otras, la resolución falla y requiere configuración manual
+- En redes con IPs privadas o dinámicas, el problema es aún más frecuente
+
+La solución universal es **aplicar el DNS de la VPN explícitamente sobre la interfaz VPN** usando herramientas nativas del sistema (`resolvectl`, `scutil`, PowerShell). Esto garantiza la resolución correcta sin modificar configuraciones permanentes del sistema.
+
+## Prerrequisitos
+
+- Pritunl Client instalado y conectado a un perfil de VPN
+- Acceso `sudo` / administrador en la máquina
+
+## Script para Linux
+
+Compatible con Ubuntu, Debian, Fedora, Arch, Manjaro, Kali, PopOS y cualquier distribución con `systemd-resolved`.
+
+### `fix_vpn_dns_linux.sh`
+
+```bash
+#!/bin/bash
+
+# CONFIGURACIÓN: editá estos valores
+VPN_IFACE="tun0"                                          # Interfaz típica de Pritunl
+VPN_DNS="10.110.0.2"                                      # DNS interno
+VPN_DOMAIN="internal.us-east-1.eks.amazonaws.com"        # Dominio interno EKS
+
+if ip link show "$VPN_IFACE" >/dev/null 2>&1; then
+    echo "[+] VPN detectada en $VPN_IFACE"
+    if command -v resolvectl >/dev/null 2>&1; then
+        echo "[+] Aplicando DNS..."
+        sudo resolvectl dns "$VPN_IFACE" "$VPN_DNS"
+        sudo resolvectl domain "$VPN_IFACE" "~$VPN_DOMAIN"
+    else
+        echo "[!] resolvectl no encontrado. No se puede aplicar DNS sin intrusión."
+    fi
+else
+    echo "[-] VPN no detectada. DNS sin cambios."
+fi
+```
+
+```bash
+chmod +x fix_vpn_dns_linux.sh
+./fix_vpn_dns_linux.sh
+```
+
+**Verificar:**
+
+```bash
+resolvectl status tun0
+```
+
+## Script para macOS
+
+### `fix_vpn_dns_macos.sh`
+
+```bash
+#!/bin/bash
+
+VPN_IFACE="utun2"
+VPN_DNS="10.110.0.2"
+VPN_DOMAIN="internal.us-east-1.eks.amazonaws.com"
+
+if ifconfig "$VPN_IFACE" >/dev/null 2>&1; then
+    echo "[+] VPN detectada. Configurando DNS..."
+    sudo scutil <<EOF
+open
+d.init
+d.add ServerAddresses * $VPN_DNS
+d.add SupplementalMatchDomains * $VPN_DOMAIN
+set State:/Network/Service/$VPN_IFACE/DNS
+quit
+EOF
+else
+    echo "[-] VPN no detectada."
+fi
+```
+
+**Verificar:**
+
+```bash
+scutil --dns
+```
+
+## Script para Windows (PowerShell)
+
+### `fix_vpn_dns_windows.ps1`
+
+```powershell
+$vpnName = "Pritunl"
+$vpnDns  = "10.110.0.2"
+
+$adapter = Get-NetAdapter | Where-Object { $_.InterfaceDescription -match $vpnName }
+if ($adapter) {
+    Write-Host "[+] VPN detectada. Configurando DNS..."
+    Set-DnsClientServerAddress -InterfaceIndex $adapter.InterfaceIndex -ServerAddresses $vpnDns
+} else {
+    Write-Host "[-] VPN no detectada."
+}
+```
+
+**Verificar:**
+
+```powershell
+Get-DnsClientServerAddress
+```
+
+## Script Universal Multiplataforma
+
+Este script único **detecta automáticamente el sistema operativo** y aplica la configuración correspondiente.
+
+### `universal_fix_vpn_dns.sh`
+
+```bash
+#!/usr/bin/env bash
+# Fix universal de DNS para Pritunl — Linux / macOS / Windows
+
+# ---- CONFIGURAR ESTO ----
+VPN_IFACE_LINUX="tun0"
+VPN_IFACE_MACOS="utun2"
+VPN_ADAPTER_WINDOWS="Pritunl"
+VPN_DNS="10.110.0.2"
+VPN_DOMAIN="internal.us-east-1.eks.amazonaws.com"
+# -------------------------
+
+detect_os() {
+    case "$(uname -s)" in
+        Linux*)  echo "linux";;
+        Darwin*) echo "macos";;
+        *)       echo "other";;
+    esac
+}
+
+run_linux() {
+    echo "[OS] Linux"
+    if ! ip link show "$VPN_IFACE_LINUX" >/dev/null 2>&1; then
+        echo "[-] VPN no detectada en $VPN_IFACE_LINUX."
+        return
+    fi
+    echo "[+] VPN detectada."
+    if command -v resolvectl >/dev/null 2>&1; then
+        sudo resolvectl dns    "$VPN_IFACE_LINUX" "$VPN_DNS"
+        sudo resolvectl domain "$VPN_IFACE_LINUX" "~$VPN_DOMAIN"
+        echo "[✓] DNS aplicado."
+    else
+        echo "[!] resolvectl no encontrado."
+    fi
+}
+
+run_macos() {
+    echo "[OS] macOS"
+    if ! ifconfig "$VPN_IFACE_MACOS" >/dev/null 2>&1; then
+        echo "[-] VPN no detectada en $VPN_IFACE_MACOS."
+        return
+    fi
+    echo "[+] VPN detectada. Aplicando DNS..."
+    sudo scutil <<EOF
+open
+d.init
+d.add ServerAddresses * $VPN_DNS
+d.add SupplementalMatchDomains * $VPN_DOMAIN
+set State:/Network/Service/$VPN_IFACE_MACOS/DNS
+quit
+EOF
+    echo "[✓] DNS aplicado."
+}
+
+run_windows() {
+    echo "[OS] Windows"
+    powershell -NoProfile -Command "
+    \$adapter = Get-NetAdapter | Where-Object { \$_.InterfaceDescription -match '$VPN_ADAPTER_WINDOWS' }
+    if (\$adapter) {
+        Write-Host '[+] VPN detectada. Configurando DNS...'
+        Set-DnsClientServerAddress -InterfaceIndex \$adapter.InterfaceIndex -ServerAddresses '$VPN_DNS'
+        Write-Host '[✓] DNS aplicado.'
+    } else {
+        Write-Host '[-] VPN no detectada.'
+    }
+    "
+}
+
+OS="$(detect_os)"
+case "$OS" in
+    linux) run_linux;;
+    macos) run_macos;;
+    *)
+        if command -v powershell.exe >/dev/null 2>&1 || command -v powershell >/dev/null 2>&1; then
+            run_windows
+        else
+            echo "[ERROR] Sistema operativo no soportado."
+        fi
+        ;;
+esac
+```
+
+```bash
+chmod +x universal_fix_vpn_dns.sh
+./universal_fix_vpn_dns.sh
+```
+
+### Variables de configuración
+
+| Variable | Descripción | Ejemplo |
+| --- | --- | --- |
+| `VPN_IFACE_LINUX` | Interfaz VPN en Linux | `tun0` |
+| `VPN_IFACE_MACOS` | Interfaz VPN en macOS | `utun2` |
+| `VPN_ADAPTER_WINDOWS` | Nombre del adaptador en Windows | `Pritunl` |
+| `VPN_DNS` | IP del servidor DNS interno | `10.110.0.2` |
+| `VPN_DOMAIN` | Dominio interno | `internal.us-east-1.eks.amazonaws.com` |
+
+## Solución de Problemas
+
+| Problema | Causa | Solución |
+| --- | --- | --- |
+| El script no detecta la VPN | Nombre de interfaz incorrecto | Verificar con `ip link` (Linux), `ifconfig` (macOS), `Get-NetAdapter` (Windows) |
+| El DNS no se aplica | Falta de permisos | Ejecutar con `sudo` |
+| Funciona pero se pierde al reconectar | No está automatizado | Crear un hook post-conexión en Pritunl para ejecutar el script automáticamente |
+
+:::warning
+Estos scripts **no** realizan cambios permanentes en el sistema. La configuración DNS desaparece automáticamente al desconectar la VPN.
+:::
