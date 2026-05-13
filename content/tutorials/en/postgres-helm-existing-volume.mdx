@@ -1,0 +1,128 @@
+---
+title: Deploy a PostgreSQL Helm Chart Using an Existing EBS Volume
+sidebar_label: Postgres Helm with Existing Volume
+sidebar_position: 16
+description: Deploy the Bitnami PostgreSQL Helm chart on SleakOps pointing to a pre-existing EBS volume by creating PV and PVC resources with the correct node affinity.
+tags:
+  - kubernetes
+  - helm
+  - postgresql
+  - storage
+  - ebs
+image: /img/tutorials/postgres-helm-existing-volume/postgres-helm-existing-volume.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Deploy the Bitnami PostgreSQL Helm chart inside a SleakOps cluster pointing to a pre-existing EBS volume, by creating the required PersistentVolume and PersistentVolumeClaim resources.
+
+:::info
+This tutorial assumes you have already followed [Migrate EBS Volumes to a New Account](/tutorial/migrate-ebs-volumes) and have a migrated volume ID available.
+:::
+
+## Prerequisites
+
+- A Cluster configured in SleakOps with EBS CSI Driver installed
+- An Environment and Project deployed
+- The EBS Volume ID and its availability zone
+- `kubectl` and `helm` installed locally
+- The SleakOps cluster's NodePool name
+
+## Let's Start
+
+### Step 1 — (Optional) Identify the volume ID
+
+If you migrated the volume using the EBS migration guide, run this command from a Pod with the required IAM permissions to list migrated volumes:
+
+```bash
+aws ec2 describe-volumes \
+  --filters Name=status,Values=available \
+  --query "Volumes[?Tags[?Key=='Name'] && Tags[?Key=='Pod'] && Tags[?Key=='OriginalVolumeId']].[{VolumeId: VolumeId, Name: Tags[?Key=='Name']|[0].Value, Pod: Tags[?Key=='Pod']|[0].Value, OriginalVolumeId: Tags[?Key=='OriginalVolumeId']|[0].Value, Size: Size}]" \
+  --output table
+```
+
+Copy the `VolumeId` of the target volume.
+
+### Step 2 — Create the PV, PVC, and deploy with Helm
+
+Set the variables, then run the script to create the Kubernetes resources and deploy the chart:
+
+```bash
+volume_id="vol-111aaa222ddd3333fff44"
+pv_name="your-pv-name"
+storage_size="8Gi"
+availability_zone="us-east-1a"
+nodepool_name="your-nodepool-name"
+
+pvc_name="${pv_name}-claim"
+
+# Create PV and PVC
+kubectl apply -f - <<EOF
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: $pv_name
+spec:
+  capacity:
+    storage: $storage_size
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ebs-csi-default-sc
+  awsElasticBlockStore:
+    volumeID: $volume_id
+    fsType: ext4
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: $pvc_name
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: $storage_size
+  storageClassName: ebs-csi-default-sc
+  volumeName: $pv_name
+EOF
+
+# Create Helm values file
+cat > values.yaml <<EOF
+primary:
+  persistence:
+    existingClaim: $pvc_name
+
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: topology.kubernetes.io/zone
+                operator: In
+                values:
+                  - $availability_zone
+
+  tolerations:
+    - key: "karpenter.sh/nodepool"
+      operator: "Equal"
+      value: $nodepool_name
+EOF
+
+# Deploy chart
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
+helm install my-postgres bitnami/postgresql -f values.yaml
+```
+
+:::warning
+**Node affinity is required.** If you omit the `nodeAffinity` configuration, Kubernetes may schedule the Pod in a different availability zone from the volume, causing the Pod to remain in a `Pending` state indefinitely.
+:::
+
+:::warning
+**Tolerations are required.** SleakOps clusters use Karpenter node pools. The `tolerations` block ensures the Pod is scheduled on the correct nodes.
+:::

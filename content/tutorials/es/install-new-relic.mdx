@@ -14,6 +14,8 @@ image: /img/tutorials/install-new-relic/install-new-relic.png
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
 
 Instalá y configurá el agente de monitoreo [New Relic <FiExternalLink/>](https://newrelic.com/) en tu aplicación para medir y mejorar el rendimiento, con instrucciones paso a paso para múltiples runtimes.
 
@@ -33,7 +35,8 @@ Instalá y configurá el agente de monitoreo [New Relic <FiExternalLink/>](https
 
 Elegí el agente para tu runtime:
 
-### Node.js
+<Tabs>
+  <TabItem value="nodejs" label="Node.js">
 
 ```bash
 npm install newrelic --save
@@ -58,7 +61,8 @@ require('newrelic');
 // resto de tu app
 ```
 
-### Python
+  </TabItem>
+  <TabItem value="python" label="Python">
 
 ```bash
 pip install newrelic
@@ -76,7 +80,8 @@ Ejecutar la app a través del agente:
 NEW_RELIC_CONFIG_FILE=newrelic.ini newrelic-admin run-program python app.py
 ```
 
-### Java
+  </TabItem>
+  <TabItem value="java" label="Java">
 
 Agregá el JAR del agente al comando de inicio:
 
@@ -85,6 +90,9 @@ java -javaagent:/ruta/a/newrelic.jar -jar tu-app.jar
 ```
 
 Configurá `newrelic.yml` con tu `license_key` y `app_name`.
+
+  </TabItem>
+</Tabs>
 
 ## Paso 3 — Reiniciar la Aplicación
 

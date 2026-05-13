@@ -42,6 +42,8 @@ SleakOps network infrastructure is built around these core components:
 
 This segmentation ensures that only necessary services are exposed and that sensitive data remains protected.
 
+{/* TODO: screenshot - Network architecture diagram showing VPCs, public/private/persistence subnets, Internet Gateway, and traffic flow */}
+
 ## 3. External-DNS and Route53
 
 An automated solution manages public DNS records for deployed services, integrating the infrastructure with Route53. This makes services securely and simply accessible from the internet. External-DNS does not expose services directly — it automates the management of public DNS records for resources that are already exposed (for example, via an Application Load Balancer).
@@ -51,6 +53,8 @@ An automated solution manages public DNS records for deployed services, integrat
 To allow controlled communication between environments (for example, between management and production), SleakOps explicitly configures **VPC Peering connections** between the VPCs of each environment.
 
 A VPC Peering allows two VPCs to exchange internal traffic as if they were on the same network, without passing through the internet, NAT Gateway, or a VPN. It is a direct connection between two networks.
+
+{/* TODO: screenshot - VPC Peering diagram showing connections between management, development, and production VPCs */}
 
 :::tip
 In addition to Internet Gateway access, SleakOps supports other connectivity mechanisms such as **Pritunl VPN**, **NAT Gateway**, and **Transit Gateway**, depending on the use case and the required level of isolation.

@@ -1,0 +1,98 @@
+---
+title: Migrar archivos entre volúmenes de Kubernetes con kubectl cp
+sidebar_label: Migrar archivos entre volúmenes
+sidebar_position: 18
+description: Copiá archivos almacenados en Persistent Volumes de Kubernetes de un cluster a otro usando kubectl cp, sin necesitar dumps de base de datos ni herramientas de snapshot.
+tags:
+  - kubernetes
+  - migration
+  - storage
+  - kubectl
+image: /img/tutorials/migrate-files-volumes-copy/migrate-files-volumes-copy.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Transferí archivos almacenados en Persistent Volumes de Kubernetes desde un cluster origen a uno destino usando `kubectl cp`, pasando por la máquina local como intermediario.
+
+## Prerrequisitos
+
+- `kubectl` instalado y configurado con contextos para ambos clusters
+- Acceso a ambos clusters (kubeconfigs configurados, ej. via `aws eks update-kubeconfig`)
+- Nombre del Pod origen, namespace y la ruta dentro del Pod donde se almacenan los archivos
+- Nombre del Pod destino y su namespace
+
+## Empecemos
+
+### Paso 1 — Configurar acceso kubectl a ambos clusters
+
+Asegurate de tener entradas en el kubeconfig para ambos clusters. Por ejemplo:
+
+```bash
+aws eks update-kubeconfig --region us-east-1 --name source-cluster-name --profile source-profile
+aws eks update-kubeconfig --region us-east-1 --name target-cluster-name --profile target-profile
+```
+
+Verificá que los contextos estén disponibles:
+
+```bash
+kubectl config get-contexts
+```
+
+### Paso 2 — Ejecutar el script de migración
+
+Guardá el siguiente script como `transfer.sh`, personalizá las variables al inicio y ejecutalo:
+
+```bash
+#!/bin/bash
+
+SOURCE_CONTEXT="source-context"      # Contexto kubectl del cluster origen
+TARGET_CONTEXT="target-context"      # Contexto kubectl del cluster destino
+SOURCE_POD="source-pod-name"
+SOURCE_NAMESPACE="source-namespace"
+SOURCE_PATH="/path/in/source-pod"
+
+TARGET_POD="target-pod-name"
+TARGET_NAMESPACE="target-namespace"
+TARGET_PATH="/path/in/target-pod"
+
+TEMP_LOCAL_DIR="/tmp/k8s-transfer"
+
+# Copiar del Pod origen a la máquina local
+kubectl config use-context $SOURCE_CONTEXT
+echo "Copiando archivos de $SOURCE_POD..."
+mkdir -p $TEMP_LOCAL_DIR
+kubectl cp $SOURCE_NAMESPACE/$SOURCE_POD:$SOURCE_PATH $TEMP_LOCAL_DIR
+
+if [ $? -ne 0 ]; then
+  echo "Error: falló la copia desde el Pod origen."
+  exit 1
+fi
+
+# Copiar de la máquina local al Pod destino
+kubectl config use-context $TARGET_CONTEXT
+echo "Copiando archivos a $TARGET_POD..."
+kubectl cp $TEMP_LOCAL_DIR/. $TARGET_NAMESPACE/$TARGET_POD:$TARGET_PATH
+
+if [ $? -ne 0 ]; then
+  echo "Error: falló la copia al Pod destino."
+  exit 1
+fi
+
+# Limpiar
+rm -rf $TEMP_LOCAL_DIR
+echo "Transferencia completa."
+```
+
+Hacelo ejecutable y corrélo:
+
+```bash
+chmod +x transfer.sh
+./transfer.sh
+```
+
+:::info
+Este enfoque es ideal para assets de aplicaciones — archivos subidos, multimedia, configuración — que no son parte de una base de datos. Para datos de bases de datos, usá la [guía de restauración de dump de PostgreSQL](/tutorial/postgresql-dump-restore).
+:::

@@ -1,0 +1,158 @@
+---
+title: Desplegar Retool con Helm Charts en SleakOps
+sidebar_label: Desplegar Retool con Helm
+sidebar_position: 24
+description: Desplegá Retool v6.3.6 en un cluster de Kubernetes de SleakOps usando el Helm chart oficial con EBS, EFS y un NodePool dedicado para AMD64.
+tags:
+  - kubernetes
+  - helm
+  - deployment
+image: /img/tutorials/deploy-retool-helm/deploy-retool-helm.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Desplegá [Retool <FiExternalLink/>](https://retool.com) en un cluster de Kubernetes de SleakOps usando el [Helm chart v6.3.6 <FiExternalLink/>](https://artifacthub.io/packages/helm/retool/retool/6.3.6).
+
+:::info
+Esta guía corresponde a la **versión 6.3.6 del Helm Chart**. Consultá [ArtifactHub <FiExternalLink/>](https://artifacthub.io/packages/helm/retool/retool) para la versión más reciente y posibles cambios en los values.
+:::
+
+## Prerrequisitos
+
+**Prerrequisitos en SleakOps:**
+
+- [EBS CSI Driver](/docs/cluster/addon/ebs-csi-driver) instalado (necesario para el volumen de PostgreSQL)
+- [EFS CSI Driver](/docs/cluster/addon/efs-csi-driver) instalado (necesario para el almacenamiento de apps y flujos de Retool)
+- Un NodePool AMD64 dedicado creado (Retool solo corre en arquitectura AMD64)
+
+**Prerrequisitos en Kubernetes:**
+
+- Namespace `retool` creado
+- Secret `retool-keys` creado con las siguientes claves:
+  - `encryption-key`: generar con `openssl rand -base64 36`
+  - `jwt-secret`: generar con `openssl rand -base64 36`
+  - `license-key`: tu licencia de Retool
+- Secret `retool-postgresql` creado con:
+  - `password`
+  - `postgres-password`
+  - `replication-password`
+- Credenciales OAuth de Google (`clientId` y `clientSecret`) para SSO
+
+## Empecemos
+
+### Paso 1 — Crear el archivo `retool-values.yaml`
+
+Reemplazá todos los valores marcados con `{...}` para tu despliegue:
+
+```yaml
+config:
+  auth:
+    google:
+      clientId: xxxxxxxxxxxxxxxxx.apps.googleusercontent.com
+      clientSecret: xxxxxxxxxxxxxxxxxxxxxxx
+  encryption-key: privateprivateprivateprivateprivateprivate
+  jwt-secret: privateprivateprivateprivateprivateprivate
+  licenseKeySecretName: retool-keys
+  useInsecureCookies: true
+
+env:
+  ALLOW_SAME_ORIGIN_OPTION: "true"
+  BASE_DOMAIN: https://retool.{dominio}.com
+  COOKIE_INSECURE: "true"
+  DOMAINS: https://retool.{dominio}.com
+  HOST_HEADER_NAME: x-forwarded-host
+  SANDBOX_DOMAIN: https://retool.{dominio}.com
+
+image:
+  pullPolicy: IfNotPresent
+  repository: tryretool/backend
+  tag: 3.114.13-stable   # reemplazar con la versión objetivo
+
+ingress:
+  enabled: true
+  annotations:
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:111222333444:certificate/12121212-1212-1212-1212-121212232323
+    alb.ingress.kubernetes.io/group.name: {group.name}-private
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/target-type: ip
+  hosts:
+  - host: retool.{dominio}.com
+    paths:
+    - path: /
+      pathType: Prefix
+  ingressClassName: alb-ingressclass-private
+  labels:
+    app.kubernetes.io/name: retool{dominio}com
+  tls:
+  - hosts:
+    - retool.{dominio}.com
+
+nodeSelector:
+  karpenter.sh/nodepool: {nodepool_name}   # ej: amd64-utilities
+  kubernetes.io/arch: amd64
+
+persistentVolumeClaim:
+  enabled: true
+  mountPath: /retool_backend/pv-data
+  size: 15Gi
+  storageClass: efs-sc-retain
+
+postgresql:
+  auth:
+    username: postgres
+    existingSecret: retool-postgresql
+    secretKeys:
+      adminPasswordKey: postgres-password
+      replicationPasswordKey: replication-password
+      userPasswordKey: password
+  primary:
+    tolerations:
+    - key: karpenter.sh/nodepool
+      operator: Equal
+      value: {nodepool_name}   # ej: amd64-utilities
+
+replicaCount: 1
+
+resources:
+  limits:
+    cpu: 4096m
+    memory: 8192Mi
+  requests:
+    cpu: 1024m
+    memory: 2048Mi
+
+serviceAccount:
+  name: retool-sa
+
+tolerations:
+- key: karpenter.sh/nodepool
+  operator: Equal
+  value: {nodepool_name}   # ej: amd64-utilities
+```
+
+### Paso 2 — Desplegar el chart
+
+Agregar el repo Helm de Retool e instalar:
+
+```bash
+helm repo add retool https://charts.retool.com
+helm repo update
+
+helm upgrade --install retool retool/retool \
+  --version 6.3.6 \
+  --namespace retool \
+  --values retool-values.yaml
+```
+
+### Paso 3 — Verificar el despliegue
+
+Verificar que los Pods estén corriendo:
+
+```bash
+kubectl get pods -n retool
+```
+
+Una vez que el Pod `retool` esté en estado `Running`, abrí `https://retool.{dominio}.com` para completar la configuración inicial.

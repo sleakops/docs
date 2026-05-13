@@ -14,6 +14,8 @@ image: /img/tutorials/aws-codeartifact-java/aws-codeartifact-java.png
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
 
 Configurá un proyecto Java Maven para resolver dependencias desde [AWS CodeArtifact <FiExternalLink/>](https://aws.amazon.com/codeartifact/) — un repositorio privado de artefactos — dentro de un build Dockerizado, con ejemplos de pipelines CI/CD.
 
@@ -101,7 +103,8 @@ build:
 
 ## Paso 4 — Configuración del Pipeline CI/CD
 
-### GitHub Actions
+<Tabs>
+  <TabItem value="github" label="GitHub Actions">
 
 ```yaml
 # .github/workflows/maven.yml
@@ -141,7 +144,8 @@ jobs:
         run: mvn -s settings.xml clean package deploy
 ```
 
-### GitLab CI
+  </TabItem>
+  <TabItem value="gitlab" label="GitLab CI">
 
 ```yaml
 # gitlab-ci.yml
@@ -166,7 +170,8 @@ build_artifacts:
     - develop
 ```
 
-### Bitbucket Pipelines
+  </TabItem>
+  <TabItem value="bitbucket" label="Bitbucket Pipelines">
 
 ```yaml
 # bitbucket-pipelines.yml
@@ -183,6 +188,9 @@ build_artifacts:
           --query authorizationToken --output text)
       - mvn -B clean install deploy -DskipTests
 ```
+
+  </TabItem>
+</Tabs>
 
 ## Buenas Prácticas
 

@@ -1,0 +1,88 @@
+---
+title: Migrar una base de datos PostgreSQL grande desde Heroku a RDS
+sidebar_label: Migrar Postgres de Heroku a RDS
+sidebar_position: 14
+description: Migrá bases de datos PostgreSQL grandes (20 GB+) desde Heroku a Amazon RDS usando pgcopydb y un Job de SleakOps, con soporte para migración incremental posterior.
+tags:
+  - aws
+  - rds
+  - postgresql
+  - heroku
+  - migration
+  - database
+image: /img/tutorials/migrate-postgres-heroku-to-rds/migrate-postgres-heroku-to-rds.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Migrá una base de datos PostgreSQL grande desde Heroku a Amazon RDS usando [pgcopydb <FiExternalLink/>](https://pgcopydb.readthedocs.io/en/latest/) ejecutado dentro de un Job de SleakOps, con una migración incremental opcional para sincronizar datos nuevos después de la carga inicial.
+
+:::info
+Para bases de datos mayores a 20 GB, Heroku recomienda [hacer un fork de la base de datos <FiExternalLink/>](https://devcenter.heroku.com/articles/heroku-postgres-fork) antes de migrar, para no impactar el tráfico de producción.
+:::
+
+## Prerrequisitos
+
+- Un Cluster configurado en SleakOps ([Documentación de Cluster](/docs/cluster))
+- Un Environment y Project ya desplegados
+- La Dependency RDS destino creada en SleakOps
+- La RDS destino debe tener **al menos el doble del almacenamiento** de los datos origen (ej: si el origen es 400 GB, aprovisioná al menos 800 GB)
+- Credenciales y connection string de la base de datos en Heroku
+
+## Empecemos
+
+### Paso 1 — Crear un Job en SleakOps
+
+Creá un Job usando una imagen de Postgres compatible con la versión de tu base de datos. El Job crea un Pod donde correrá `pgcopydb`.
+
+:::tip
+Configuración de ejemplo:
+- **Image URL:** `docker.io/library/postgres`
+- **Image tag:** `17`
+- **Command:** `/bin/sh -c 'sleep infinity'`
+:::
+
+{/* TODO: screenshot - Formulario de creación de Job en SleakOps */}
+
+### Paso 2 — Abrir la terminal del Pod
+
+Conectate a la terminal del Pod creado por el Job (por ejemplo, desde Lens).
+
+### Paso 3 — Ejecutar la migración inicial
+
+Configurá las URLs de conexión origen y destino, y ejecutá `pgcopydb clone`:
+
+```bash
+export PG_SOURCE_URL="postgres://user:pass@host:5432/dbname"
+export PG_TARGET_URL="postgres://${USERNAME}:${PASSWORD}@${ADDRESS}:5432/${NAME}?sslmode=require&keepalives=1&keepalives_idle=30"
+
+pgcopydb clone \
+  --source "$PG_SOURCE_URL" \
+  --target "$PG_TARGET_URL" \
+  --jobs N \
+  --not-consistent \
+  --no-owner \
+  --dir /tmp/pgcopydb \
+  --no-acl
+```
+
+Reemplazá `N` con la cantidad de workers paralelos apropiada para el CPU disponible en el Pod.
+
+### Paso 4 — (Opcional) Migración incremental posterior
+
+Una vez finalizado el clone inicial, ejecutá una migración de seguimiento para importar las filas nuevas escritas en el origen después de la carga inicial:
+
+```bash
+cat /tmp/pgcopydb/snapshot.json | jq '.lsn'
+
+pgcopydb follow \
+  --source "$PG_SOURCE_URL" \
+  --target "$PG_TARGET_URL" \
+  --dir /tmp/pgcopydb \
+  --endpos "LSN_OBTENIDO" \
+  --jobs N
+```
+
+Reemplazá `LSN_OBTENIDO` con el valor LSN devuelto por el comando anterior.

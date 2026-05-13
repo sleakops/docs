@@ -14,6 +14,8 @@ image: /img/tutorials/install-new-relic/install-new-relic.png
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
 
 Install and configure the [New Relic <FiExternalLink/>](https://newrelic.com/) monitoring agent on your application to measure and improve performance, with step-by-step instructions for multiple runtimes.
 
@@ -33,7 +35,8 @@ Install and configure the [New Relic <FiExternalLink/>](https://newrelic.com/) m
 
 Choose the agent for your runtime:
 
-### Node.js
+<Tabs>
+  <TabItem value="nodejs" label="Node.js">
 
 ```bash
 npm install newrelic --save
@@ -58,7 +61,8 @@ require('newrelic');
 // rest of your app
 ```
 
-### Python
+  </TabItem>
+  <TabItem value="python" label="Python">
 
 ```bash
 pip install newrelic
@@ -76,7 +80,8 @@ Run your app through the agent:
 NEW_RELIC_CONFIG_FILE=newrelic.ini newrelic-admin run-program python app.py
 ```
 
-### Java
+  </TabItem>
+  <TabItem value="java" label="Java">
 
 Add the agent JAR to your startup command:
 
@@ -85,6 +90,9 @@ java -javaagent:/path/to/newrelic.jar -jar your-app.jar
 ```
 
 Configure `newrelic.yml` with your `license_key` and `app_name`.
+
+  </TabItem>
+</Tabs>
 
 ## Step 3 — Restart the Application
 

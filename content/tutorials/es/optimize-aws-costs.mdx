@@ -33,14 +33,7 @@ MixedInstancesPolicy:
 
 Pagar tarifas de S3 Standard por logs, reportes y backups que casi no se acceden es innecesario. **S3 Intelligent-Tiering** mueve automáticamente los objetos a clases de almacenamiento más baratas cuando no se acceden con frecuencia.
 
-**Habilitar en un bucket:**
-
-```bash
-aws s3api put-bucket-intelligent-tiering-configuration \
-  --bucket tu-bucket \
-  --id default-tiering \
-  --intelligent-tiering-configuration '{"Id":"default-tiering","Status":"Enabled","Tierings":[{"Days":90,"AccessTier":"ARCHIVE_ACCESS"}]}'
-```
+**Habilitarlo desde la consola de SleakOps:** navegá a la configuración de la Dependency S3 del bucket, abrí la configuración de almacenamiento y activá Intelligent-Tiering. También podés configurarlo directamente en la consola de AWS S3 en **Bucket → Properties → Intelligent-Tiering**.
 
 El costo de almacenamiento puede reducirse **20–30%** para buckets de datos fríos.
 
@@ -57,6 +50,10 @@ docker buildx build --platform linux/arm64 -t tu-imagen:latest .
 ```
 
 Familias de instancias compatibles: `m7g`, `c7g`, `r7g`.
+
+:::warning
+Antes de migrar workloads de producción a ARM64, verificá que tu aplicación y todas sus dependencias compilen y funcionen correctamente en arquitectura ARM64. Algunas librerías nativas y binarios pueden no tener builds disponibles para ARM64.
+:::
 
 ## 4. AWS Savings Plans — Descuentos para Cargas Predecibles
 
