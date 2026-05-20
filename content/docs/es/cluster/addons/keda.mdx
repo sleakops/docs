@@ -1,0 +1,183 @@
+---
+title: KEDA
+sidebar_label: KEDA
+sidebar_position: 7
+---
+
+import Zoom from "react-medium-image-zoom";
+import { FiExternalLink } from "react-icons/fi";
+
+# KEDA
+
+[KEDA <FiExternalLink/>](https://keda.sh/docs/2.19/) — **K**ubernetes-based **E**vent-**D**riven **A**utoscaler — es un Addon que permite escalar workloads de tu Clúster en base a **señales externas**: la cantidad de mensajes en una cola SQS, el lag de un consumer group de Kafka, una alarma de CloudWatch, la cantidad de claves pendientes en Redis, el número de filas en una base de datos, y decenas más. Mientras que el HPA nativo de Kubernetes solo escala según CPU y memoria de los Pods, KEDA consulta la fuente externa, pregunta cuánto trabajo está pendiente, y escala el workload acorde — incluso bajando a **cero réplicas** cuando no hay nada para procesar.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/cluster/addons/keda/keda-architecture.png"
+    alt="keda-architecture"
+  />
+</Zoom>
+
+SleakOps instala el operador de KEDA y configura los permisos de IAM que necesita para leer métricas de AWS. **Vos** después definís las reglas de escalado para cada Workload como manifiestos de Kubernetes (recursos `ScaledObject`) — KEDA lee esos manifiestos, observa los triggers configurados, y ajusta las réplicas detrás de escena.
+
+:::info Beta
+El addon de KEDA se encuentra en **Beta**. La instalación y el cableado de permisos de AWS son estables, pero la configuración subyacente puede seguir evolucionando.
+:::
+
+## Preguntas Frecuentes
+
+<details>
+<summary>
+### ¿Qué es KEDA y cuándo conviene usarlo?
+</summary>
+Usá KEDA cada vez que la señal natural de escalado para un Workload viva **fuera del Pod**. Casos típicos en SleakOps:
+
+- Un worker que consume una cola **SQS** — escalá el Deployment en base a la profundidad de la cola, hasta cero entre ráfagas.
+- Un consumer de un topic de **Kafka** — escalá según el lag del consumer group en lugar de CPU.
+- Un batch programado — escalá con un trigger **cron** y volvé a cero al terminar la ventana.
+- Un procesador que reacciona a métricas de **CloudWatch** (conexiones de RDS, métricas custom de la aplicación, etc.).
+
+Si solo necesitás escalar por CPU/memoria del Pod, el HPA nativo es suficiente — pero KEDA también puede modelar ese caso (mirá el template de CPU/memoria más abajo) si querés tener todas las reglas de escalado en un solo lugar.
+</details>
+
+<details>
+<summary>
+### ¿Cómo instalo KEDA en mi Clúster?
+</summary>
+Desde la consola de SleakOps:
+
+1. Abrí la sección **Clusters** y localizá el Clúster destino.
+2. Hacé clic en **Manage Addons** en la tarjeta del Clúster.
+3. En la lista de addons buscá **Keda** y abrí su panel de detalle.
+4. (Opcional) Agregá una o más policies de AWS en **AWS Managed Policy Names** — mirá la próxima FAQ.
+5. Hacé clic en **Install**.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/cluster/addons/keda/keda-install-form-default.png"
+    alt="keda-install-form-default"
+  />
+</Zoom>
+
+SleakOps despliega el operador de KEDA, su metrics adapter, los admission webhooks, y la ServiceAccount con el rol de IAM asociado. No hay que configurar nada adicional dentro del Clúster — una vez que aparezca como **Installed** en la lista de addons, KEDA queda listo para reaccionar a los `ScaledObject` que apliques en cualquier Namespace.
+</details>
+
+<details>
+<summary>
+### ¿Qué pongo en "AWS Managed Policy Names"?
+</summary>
+Los scalers de KEDA para AWS (SQS, CloudWatch, DynamoDB Streams, Kinesis, …) necesitan **leer métricas de tu cuenta AWS** para saber cuánto trabajo está pendiente. SleakOps le da a KEDA su propio rol de IAM mediante IRSA (IAM Roles for Service Accounts), y el campo **AWS Managed Policy Names** es donde listás las policies de AWS managed que ese rol debe llevar.
+
+Agregá una entrada por policy — exactamente como AWS la escribe — por ejemplo:
+
+| **Si querés que KEDA escale en…** | **Agregá esta policy**        |
+| --------------------------------- | ----------------------------- |
+| Profundidad de cola **SQS**       | `AmazonSQSReadOnlyAccess`     |
+| Métricas de **CloudWatch**        | `CloudWatchReadOnlyAccess`    |
+| **DynamoDB Streams**              | `AmazonDynamoDBReadOnlyAccess` |
+| Métricas de **Kinesis**           | `AmazonKinesisReadOnlyAccess` |
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/cluster/addons/keda/keda-install-form-policies.png"
+    alt="keda-install-form-policies"
+  />
+</Zoom>
+
+Podés dejar la lista vacía si solo vas a usar triggers que no son de AWS (Kafka, Redis, cron, RabbitMQ, …) — KEDA se instala igual y funciona para esos casos. Las policies se pueden agregar o quitar después reabriendo el panel del addon y haciendo clic en **Update**.
+
+:::tip Usá policies de solo lectura
+KEDA solo necesita **leer** métricas. Quedate con las `*ReadOnlyAccess` — no hay caso en el que KEDA tenga que escribir en una cola, un stream, o una tabla.
+:::
+</details>
+
+<details>
+<summary>
+### ¿Cómo escalo concretamente un Workload con KEDA?
+</summary>
+KEDA se configura a través de manifiestos de Kubernetes que **vos** definís junto al Workload. SleakOps no los genera — los aplicás vos (vía `kubectl apply`, Helm, o el pipeline de manifiestos que use tu Proyecto). Los dos patterns abajo cubren la mayoría de los casos.
+
+**Pattern 1 — Escalar según la profundidad de una cola SQS (event-driven)**
+
+```yaml
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: order-worker-scaler
+  namespace: my-app
+spec:
+  scaleTargetRef:
+    name: order-worker          # el Deployment a escalar
+  minReplicaCount: 0            # bajar a cero cuando no hay trabajo
+  maxReplicaCount: 20
+  pollingInterval: 30           # consultar la cola cada 30 segundos
+  cooldownPeriod: 300           # esperar 5 min de inactividad antes de bajar a 0
+  triggers:
+    - type: aws-sqs-queue
+      authenticationRef:
+        name: keda-aws-trigger-auth
+      metadata:
+        queueURL: https://sqs.us-east-1.amazonaws.com/123456789012/orders
+        queueLength: "10"        # un Pod cada 10 mensajes en la cola
+        awsRegion: us-east-1
+        identityOwner: operator  # usar la ServiceAccount de KEDA (IRSA)
+---
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: keda-aws-trigger-auth
+  namespace: my-app
+spec:
+  podIdentity:
+    provider: aws                # KEDA lee SQS con el rol de IAM
+                                 # que SleakOps asoció vía awsPolicyNames
+```
+
+El `TriggerAuthentication` es lo que conecta el manifiesto con el rol IRSA que configuró SleakOps — por eso ingresar `AmazonSQSReadOnlyAccess` en el formulario del addon es lo único que hace falta del lado AWS.
+
+**Pattern 2 — Escalar según CPU y memoria (reemplazo del HPA)**
+
+Si lo que querés es un escalado tipo HPA con más opciones, KEDA también lo cubre sin necesidad de triggers externos ni permisos de AWS:
+
+```yaml
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: web-api-scaler
+  namespace: my-app
+spec:
+  scaleTargetRef:
+    name: web-api
+  minReplicaCount: 2            # mantener al menos 2 réplicas activas
+  maxReplicaCount: 12
+  triggers:
+    - type: cpu
+      metricType: Utilization
+      metadata:
+        value: "70"             # escalar cuando el uso promedio de CPU > 70%
+    - type: memory
+      metricType: Utilization
+      metadata:
+        value: "80"
+```
+
+Para el catálogo completo de triggers (Kafka, Redis, Prometheus, cron, NATS, MongoDB, …) consultá la [documentación de KEDA Scalers <FiExternalLink/>](https://keda.sh/docs/2.19/scalers/).
+</details>
+
+<details>
+<summary>
+### ¿Puedo personalizar el deployment de KEDA?
+</summary>
+Sí. La configuración del addon expone un switch **Enable Custom Values**. Al activarlo aparece un editor YAML donde podés sobreescribir cualquier valor soportado por el Helm chart upstream de KEDA (cantidad de réplicas, resource requests, log level, namespaces a observar, …).
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/cluster/addons/keda/keda-install-form-customvalues.png"
+    alt="keda-install-form-customvalues"
+  />
+</Zoom>
+
+:::warning Usar con precaución
+Los Custom Values sobreescriben los defaults que SleakOps valida como parte del addon. Valores mal configurados pueden romper el operador, el metrics adapter, o el cableado de IRSA. Mantené el diff chico y modificá únicamente las claves que entendés. Consultá los [valores oficiales del Helm chart de KEDA <FiExternalLink/>](https://github.com/kedacore/charts/blob/main/keda/values.yaml) para la referencia completa.
+:::
+</details>
