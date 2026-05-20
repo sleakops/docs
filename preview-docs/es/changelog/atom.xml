@@ -18,36 +18,32 @@
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-nuevas-funcionalidades">🚀 Nuevas funcionalidades<a href="https://docs.sleakops.com/preview-docs/es/changelog/2026/05/13/version-2.10.0#-nuevas-funcionalidades" class="hash-link" aria-label="Enlace directo al 🚀 Nuevas funcionalidades" title="Enlace directo al 🚀 Nuevas funcionalidades" translate="no">​</a></h2>
 <ul>
 <li class="">
-<p><strong>Presentador de novedades (Feature Presenter Modal)</strong><br>
-<!-- -->Ahora, un modal de novedades informa automáticamente a los usuarios sobre nuevas funcionalidades importantes del producto al iniciar sesión, mostrando imágenes y descripciones. El modal solo aparece si hay novedades sin ver y permite navegar entre distintas releases, además de registrar la interacción en Google Analytics.</p>
+<p><strong>Monitoreo avanzado de costos de AWS Bedrock y definición de presupuesto límite</strong><br>
+<!-- -->SleakOps ahora monitorea los costos totales de las solicitudes a AWS Bedrock realizadas a través de SleakOps y permite definir un límite máximo de gasto.</p>
 </li>
 <li class="">
-<p><strong>Pantalla dedicada de Activity Log</strong><br>
-<!-- -->Los registros de actividad ahora cuentan con una pantalla exclusiva para una mejor visualización de los eventos del sistema y una navegación más eficiente.</p>
-</li>
-<li class="">
-<p><strong>Pantalla de Addons en Clusters</strong><br>
-<!-- -->Los addons instalados en los clusters ahora se muestran en una pantalla de tabla dedicada, en lugar del popover anterior, facilitando la gestión de grandes volúmenes y mejorando la navegación. Puede accederse directamente desde el detalle del cluster y permite abrir el detalle de cada addon.</p>
-</li>
-<li class="">
-<p><strong>Monitoreo avanzado de costos y definición de límites</strong><br>
-<!-- -->SleakOps ahora brinda monitoreo detallado de los costos de requests AWS Bedrock por cliente y permite definir un límite máximo de costos mediante una sección dedicada en Configuración &gt; Costo IA.</p>
-</li>
-<li class="">
-<p><strong>Modo solo infraestructura en Dockertron</strong><br>
-<!-- -->Dockertron soporta ahora un modo “solo infraestructura”, permitiendo a los proyectos que ya cuentan con Dockerfiles aprovechar el modelador de infraestructura de SleakOps sin regenerar archivos Docker ni docker-compose innecesarios.</p>
-</li>
-<li class="">
-<p><strong>Opción de Buildpacks a nivel proyecto</strong><br>
-<!-- -->A partir de esta versión, los proyectos pueden elegir Buildpacks como alternativa a Docker para construir sus aplicaciones, replicando la flexibilidad de plataformas como Northflank o Heroku.</p>
+<p><strong>Opción de Buildpacks a nivel proyecto</strong>  (alpha)
+A partir de esta versión, los proyectos pueden elegir Buildpacks como alternativa a Docker para construir sus aplicaciones, replicando la flexibilidad de plataformas como Northflank o Heroku.</p>
 </li>
 <li class="">
 <p><strong>Soporte de Redis cluster como dependencia</strong><br>
 <!-- -->SleakOps soporta ahora Redis en modo clúster como dependencia, habilitando mayor escalabilidad y alta disponibilidad para cargas de trabajo que lo requieran.</p>
 </li>
 <li class="">
-<p><strong>Drawer de detalle en Members, Environments y Clusters</strong><br>
-<!-- -->Ahora puedes visualizar el detalle de Miembros, Environments y Clusters desde el listado mediante un drawer, sin abandonar la pantalla, facilitando la administración y manteniendo una experiencia coherente.</p>
+<p><strong>Reportes con IA</strong>  (beta)
+Nueva funcionalidad que permite generar informes de distintos tipos: detalle de costos, análisis de seguridad, diagrama de infraestructura. Es posible iterar sobre los resultados a través de un chat para ajustarlos según las necesidades. Los resultados son visuales y accionables, brindando visibilidad avanzada desde la consola de SleakOps.</p>
+</li>
+<li class="">
+<p><strong>Nueva sección de Upgrades</strong>  (beta)
+El sistema de actualizaciones se rediseñó para mayor confiabilidad y transparencia. Las actualizaciones de infraestructura ahora se pueden programar y supervisar desde una pantalla dedicada. Algunas actualizaciones, como la de un cluster, incluyen un reporte de estado detallado.</p>
+</li>
+<li class="">
+<p><strong>Buildkit</strong><br>
+<!-- -->Se deprecó Kaniko como sistema de build y se adoptó BuildKit, una solución ampliamente adoptada en la industria con soporte activo y comunidad consolidada, disponible en todos los proyectos.</p>
+</li>
+<li class="">
+<p><strong>Integración con IA privada</strong><br>
+<!-- -->Los análisis con IA utilizados en autodiagnósticos, reportes y soporte se ejecutan dentro de la cuenta AWS del propio cliente. Esto garantiza que la información de infraestructura no salga del entorno controlado, mejorando el encapsulamiento de datos, el cumplimiento normativo y la latencia de las respuestas.</p>
 </li>
 </ul>
 <hr>
@@ -59,55 +55,59 @@
 </li>
 <li class="">
 <p><strong>Nueva visualización en la tabla de Miembros</strong><br>
-<!-- -->La tabla Members muestra ahora el nombre del usuario sobre el email, iconos visuales de tarjetas de acceso y badges de roles para una identificación más clara y gestión más sencilla.</p>
-</li>
-<li class="">
-<p><strong>Iconos de addons en tarjetas de clusters</strong><br>
-<!-- -->Las tarjetas de Clusters ahora exhiben los íconos de los addons instalados, brindando contexto visual inmediato.</p>
-</li>
-<li class="">
-<p><strong>Activación automática de Cost Allocation Tags para Bedrock</strong><br>
-<!-- -->Los tags de request metadata de Bedrock ahora se activan automáticamente como Cost Allocation Tags en AWS, permitiendo filtrado en AWS Cost Explorer y una gestión de costos más precisa.</p>
-</li>
-<li class="">
-<p><strong>Filtros y UI optimizados</strong><br>
-<!-- -->Los filtros de ContentType y DependencyType en la interfaz ahora muestran nombres legibles en vez de IDs y se aplicaron mejoras visuales para una experiencia más ágil.</p>
+<!-- -->La tabla de Miembros muestra ahora el nombre del usuario sobre el email, iconos visuales de tarjetas de acceso y badges de roles para una identificación más clara y gestión más sencilla.</p>
 </li>
 <li class="">
 <p><strong>Enrutamiento personalizado en ingress de Workloads</strong><br>
 <!-- -->Ahora es posible dirigir las URLs y alias de ingress a servicios específicos de Kubernetes desde la UI, manteniendo estas asignaciones tras redeploys, habilitando escenarios de ruteo avanzados.</p>
 </li>
 <li class="">
-<p><strong>Formulario de webservices rediseñado</strong><br>
-<!-- -->El formulario de webservices y workloads ahora está dividido en secciones lógicas y deja de ser genérico, combinando simplicidad para nuevos usuarios y opciones avanzadas para expertos.</p>
+<p><strong>Formulario de webservices rediseñado</strong> (alpha)
+El formulario de webservices y workloads ahora está dividido en secciones lógicas y deja de ser genérico, combinando simplicidad para nuevos usuarios y opciones avanzadas para expertos.</p>
 </li>
 <li class="">
-<p><strong>Mejora en filtrado de variablegroups</strong><br>
-<!-- -->El filtrado por proyecto en variablegroups ahora incluye tanto los que están asociados directamente como los que comparten variables con el project.</p>
+<p><strong>Mejora en filtrado de variable groups</strong><br>
+<!-- -->El filtrado por proyecto en variable groups ahora incluye tanto los que están asociados directamente como los que comparten variables con el proyecto.</p>
+</li>
+<li class="">
+<p><strong>Pantalla dedicada de Activity Log</strong><br>
+<!-- -->Mejor navegación en registros de actividad, con más filtros y navegación cruzada entre recursos, usuarios y actividad.</p>
+</li>
+<li class="">
+<p><strong>Pantalla de Addons en Clusters</strong><br>
+<!-- -->Nueva pantalla dedicada a navegar y gestionar los addons de un cluster, facilitando la gestión en grandes cantidades de addons. Puede accederse directamente desde el detalle del cluster y permite abrir el detalle de cada addon.</p>
+</li>
+<li class="">
+<p><strong>Mejoras en detalles de recursos y nuevos detalles (Miembros, Environments y Clusters)</strong><br>
+<!-- -->Ahora es posible visualizar todas las configuraciones desde un detalle y navegar entre detalles cuando un recurso tiene relación con otro, facilitando la administración y manteniendo una experiencia coherente. Además, los listados de Miembros, Environments y Clusters ahora tienen detalle.</p>
+</li>
+<li class="">
+<p><strong>Modo solo infraestructura en Dockertron</strong>  (beta)
+Dockertron soporta ahora un modo "solo infraestructura", permitiendo a los proyectos que ya cuentan con Dockerfiles aprovechar el modelador de infraestructura de SleakOps sin regenerar archivos Docker ni docker-compose innecesarios.</p>
 </li>
 </ul>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-correcciones">🐛 Correcciones<a href="https://docs.sleakops.com/preview-docs/es/changelog/2026/05/13/version-2.10.0#-correcciones" class="hash-link" aria-label="Enlace directo al 🐛 Correcciones" title="Enlace directo al 🐛 Correcciones" translate="no">​</a></h2>
 <ul>
 <li class="">
-<p><strong>Actualización de cache de variablegroups en dependencias</strong><br>
-<!-- -->Se corrigió un error en el que los vargroups en el detalle de dependencias no se actualizaban correctamente al cambiar entre distintas dependencias.</p>
+<p><strong>Enlaces rotos en el detalle de Deployments</strong><br>
+<!-- -->Resuelto el problema que impedía el funcionamiento de los enlaces en la pantalla de detalle de Deployments para los usuarios.</p>
+</li>
+<li class="">
+<p><strong>Actualización de caché de variable groups en dependencias</strong><br>
+<!-- -->Se corrigió un error en el que los variable groups en el detalle de dependencias no se actualizaban correctamente al cambiar entre distintas dependencias.</p>
 </li>
 <li class="">
 <p><strong>Actualización de estado en volúmenes</strong><br>
 <!-- -->Ahora los volúmenes actualizan correctamente su estado tras modificaciones, asegurando un seguimiento fiable.</p>
 </li>
 <li class="">
-<p><strong>Visualización de múltiples líneas en Activity Log</strong><br>
-<!-- -->Se corrigió el renderizado de registros de actividad con múltiples líneas de texto para mostrar el formato adecuado.</p>
-</li>
-<li class="">
-<p><strong>Enlaces rotos en el detalle de Deployments</strong><br>
-<!-- -->Resuelto el problema que impedía el funcionamiento de los enlaces en la pantalla de detalle de Deployments para los usuarios.</p>
-</li>
-<li class="">
 <p><strong>Corrección en autocompletado de comandos</strong><br>
 <!-- -->Se investigó y ajustó el caso en que los comandos se autocompletan inesperadamente al ser borrados.</p>
+</li>
+<li class="">
+<p><strong>Visualización de múltiples líneas en Activity Log</strong><br>
+<!-- -->Se corrigió el renderizado de registros de actividad con múltiples líneas de texto para mostrar el formato adecuado.</p>
 </li>
 </ul>
 <hr>]]></content>
@@ -127,84 +127,68 @@
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-nuevas-funcionalidades">🚀 Nuevas funcionalidades<a href="https://docs.sleakops.com/preview-docs/es/changelog/2026/04/28/version-2.9.0#-nuevas-funcionalidades" class="hash-link" aria-label="Enlace directo al 🚀 Nuevas funcionalidades" title="Enlace directo al 🚀 Nuevas funcionalidades" translate="no">​</a></h2>
 <ul>
 <li class="">
+<p><strong>Autodiagnóstico extendido a Clusters, Dependencias, Builds y Deployments</strong>   (alpha)
+El autodiagnóstico ahora está disponible para Clusters, Dependencias, Builds y Deployments, permitiendo generar un diagnóstico técnico asistido por IA para estos recursos, acelerando el troubleshooting y unificando los flujos de diagnóstico.</p>
+</li>
+<li class="">
 <p><strong>Generación automática de configuración CI/CD para proyectos</strong><br>
-<!-- -->Ahora los administradores y editores pueden generar una pull request para configurar CI/CD de SleakOps en sus repositorios de proyectos directamente desde la interfaz o el backoffice, agilizando el onboarding y eliminando pasos manuales.</p>
-</li>
-<li class="">
-<p><strong>Autodiagnóstico extendido a Clusters, Builds y Deployments</strong><br>
-<!-- -->El autodiagnóstico ahora está disponible desde los listados de Clusters, Builds y Deployments, permitiendo a los usuarios crear tickets de diagnóstico técnico para estos recursos, acelerando el troubleshooting y unificando los flujos de diagnóstico.</p>
-</li>
-<li class="">
-<p><strong>Traqueo de costos para uso de API de Bedrock</strong><br>
-<!-- -->El uso del servicio Bedrock ahora es monitoreado para calcular los costos por cuenta de cliente, facilitando el control y monitoreo de gastos.</p>
-</li>
-<li class="">
-<p><strong>Informes de costos, seguridad y diagramas de infraestructura desde el chatbot</strong><br>
-<!-- -->El chatbot ahora puede generar informes automáticos de desglose de costos, hallazgos de seguridad y diagramas de infraestructura. Los resultados son visuales y accionables, brindando visibilidad avanzada desde la consola de SleakOps.</p>
+<!-- -->Los administradores y editores ahora pueden generar una pull request para configurar el CI/CD de SleakOps en sus repositorios directamente desde la interfaz, agilizando el onboarding y eliminando pasos manuales.</p>
 </li>
 </ul>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-mejoras">✨ Mejoras<a href="https://docs.sleakops.com/preview-docs/es/changelog/2026/04/28/version-2.9.0#-mejoras" class="hash-link" aria-label="Enlace directo al ✨ Mejoras" title="Enlace directo al ✨ Mejoras" translate="no">​</a></h2>
 <ul>
 <li class="">
-<p><strong>Centralización y visibilidad del flujo de cambios pendientes</strong><br>
-<!-- -->El sistema de cambios pendientes se rediseñó para mayor confiabilidad y transparencia. Los cambios ahora se rastrean y muestran con precisión, soportando múltiples modificaciones y aislamiento entre entornos.</p>
-</li>
-<li class="">
-<p><strong>Navegación mejorada: títulos consistentes en todas las pestañas</strong><br>
-<!-- -->Todas las pestañas de la aplicación ahora muestran títulos descriptivos y nombres de recursos, facilitando la navegación en proyectos, clusters, dependencias y pantallas de monitoreo.</p>
-</li>
-<li class="">
-<p><strong>Monitoring de dependencias: mejoras de título y acceso rápido</strong><br>
-<!-- -->Ahora la pantalla de monitoreo de dependencias muestra el nombre de la dependencia en el título y permite acceder al detalle del recurso desde un botón, facilitando la identificación y mejorando el flujo de trabajo.</p>
+<p><strong>Monitoreo de dependencias: mejoras de título y acceso rápido</strong><br>
+<!-- -->La pantalla de monitoreo de dependencias ahora muestra el nombre de la dependencia en el título y permite acceder al detalle del recurso desde un botón, facilitando la identificación y mejorando el flujo de trabajo.</p>
 </li>
 <li class="">
 <p><strong>Mejora en las tarjetas de autodiagnóstico</strong><br>
 <!-- -->Las tarjetas del flujo de diagnóstico ahora muestran claramente a qué recurso pertenece cada diagnóstico, simplificando la revisión y asociación de incidencias.</p>
 </li>
 <li class="">
-<p><strong>Integración de modelos Bedrock Anthropic</strong><br>
-<!-- -->Ahora los modelos de Bedrock Anthropic están habilitados para uso programático gracias a la actualización de la librería.</p>
+<p><strong>Optimización de costos en consumos de IA</strong><br>
+<!-- -->Se optimizaron las llamadas al servicio AWS Bedrock mediante el uso de modelos más eficientes, reduciendo el costo de consumo de IA que se factura directamente en la cuenta del cliente.</p>
 </li>
 <li class="">
-<p><strong>Actualización de Boto3 a versión 1.40+ en core</strong><br>
-<!-- -->Los módulos core ahora utilizan boto3 versión 1.40+ para soportar funcionalidades avanzadas de Bedrock, incluyendo integración con Claude de manera programática.</p>
-</li>
-<li class="">
-<p><strong>Sincronización de estados de servicios con releases PendingApproval</strong><br>
-<!-- -->El estado de los servicios (draft/published) ahora se mantiene sincronizado con las releases PendingApproval, reflejando estados más precisos.</p>
+<p><strong>Mayor visibilidad de cambios pendientes de aplicar</strong><br>
+<!-- -->Cada vez que se realiza un cambio en cualquier recurso (dependencias, variable groups, workloads, etc.) que requiere un deployment para aplicar, ahora se puede ver un deployment pendiente de forma global, facilitando el seguimiento del estado real cambios pendientes.</p>
 </li>
 </ul>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-correcciones">🐛 Correcciones<a href="https://docs.sleakops.com/preview-docs/es/changelog/2026/04/28/version-2.9.0#-correcciones" class="hash-link" aria-label="Enlace directo al 🐛 Correcciones" title="Enlace directo al 🐛 Correcciones" translate="no">​</a></h2>
 <ul>
 <li class="">
+<p><strong>BuildKit: builds con nombres de recursos extensos</strong><br>
+<!-- -->Los builds con nombres largos de proyectos, jobs o service accounts en BuildKit ahora normalizan correctamente los nombres, asegurando que las builds finalicen correctamente.</p>
+</li>
+<li class="">
 <p><strong>Visualización global de Clusters y Environments sin cuenta seleccionada</strong><br>
-<!-- -->Ahora es posible visualizar y gestionar Clusters y Environments aunque no se tenga una cuenta seleccionada, permitiendo una vista global real e eliminando limitaciones anteriores.</p>
+<!-- -->Ahora es posible visualizar y gestionar Clusters y Environments aunque no se tenga una cuenta seleccionada, permitiendo una vista global real y eliminando limitaciones anteriores.</p>
 </li>
 <li class="">
 <p><strong>Acciones de Start/Stop de clusters funcionan sin cuenta seleccionada</strong><br>
 <!-- -->Los botones de inicio y apagado de clusters ahora funcionan correctamente incluso cuando no hay una cuenta seleccionada, ya que se determina automáticamente la cuenta correspondiente.</p>
 </li>
 <li class="">
-<p><strong>Activity Log: iconos y tooltips de volúmenes corregidos</strong><br>
-<!-- -->El icono y tooltip del volumen de un proyecto ahora se muestran correctamente en el historial de actividad, mejorando la identificación de recursos.</p>
+<p><strong>Visualización de secrets en Variable Groups</strong><br>
+<!-- -->Al cambiar entre secrets de distintos Variable Groups, ahora se cargan y muestran correctamente, evitando confusión de información sensible entre configuraciones.</p>
+</li>
+<li class="">
+<p><strong>Cálculo del tiempo restante en hover</strong><br>
+<!-- -->El tiempo restante ahora se actualiza automáticamente en cada recarga de datos y no solo al hacer hover, manteniendo siempre valores precisos en los listados.</p>
 </li>
 <li class="">
 <p><strong>Activity Log: corrección de error de renderizado en filtros</strong><br>
 <!-- -->Se solucionó un bug de renderizado que causaba parpadeos o inestabilidad visual al aplicar filtros, generando una experiencia más estable y fluida.</p>
 </li>
 <li class="">
-<p><strong>Visualización de secrets en Variable Groups</strong><br>
-<!-- -->Ahora al cambiar entre secrets de distintos Variable Groups se cargan y muestran correctamente, evitando fugas de información sensible entre configuraciones.</p>
+<p><strong>Navegación mejorada: títulos consistentes en todas las pestañas</strong><br>
+<!-- -->Todas las pestañas de la aplicación ahora muestran títulos descriptivos y nombres de recursos, facilitando la navegación en proyectos, clusters, dependencias y pantallas de monitoreo.</p>
 </li>
 <li class="">
-<p><strong>BuildKit: builds con nombres de recursos extensos</strong><br>
-<!-- -->Los builds con nombres largos de proyectos, jobs o service accounts en BuildKit ahora normalizan correctamente los nombres y ya no se quedan atascados, asegurando que las builds finalicen correctamente.</p>
-</li>
-<li class="">
-<p><strong>Cálculo del tiempo restante en hover</strong><br>
-<!-- -->El cálculo del tiempo restante ahora se actualiza automáticamente en cada recarga de datos y no solo al hacer hover, manteniendo siempre valores precisos en los listados.</p>
+<p><strong>Activity Log: iconos y tooltips de volúmenes corregidos</strong><br>
+<!-- -->El icono y tooltip del volumen de un proyecto ahora se muestran correctamente en el historial de actividad, mejorando la identificación de recursos.</p>
 </li>
 </ul>
 <hr>]]></content>

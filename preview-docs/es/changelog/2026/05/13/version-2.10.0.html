@@ -13,8 +13,8 @@
 
 <link rel="alternate" type="application/rss+xml" href="/preview-docs/es/changelog/rss.xml" title="SleakOps Documentation RSS Feed">
 <link rel="alternate" type="application/atom+xml" href="/preview-docs/es/changelog/atom.xml" title="SleakOps Documentation Atom Feed"><link rel="stylesheet" href="/preview-docs/es/assets/css/styles.77ab7ca1.css">
-<script src="/preview-docs/es/assets/js/runtime~main.57e096bf.js" defer="defer"></script>
-<script src="/preview-docs/es/assets/js/main.207b4412.js" defer="defer"></script>
+<script src="/preview-docs/es/assets/js/runtime~main.5b851695.js" defer="defer"></script>
+<script src="/preview-docs/es/assets/js/main.e3446c6d.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
 <svg style="display: none;"><defs>
@@ -25,36 +25,32 @@
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-nuevas-funcionalidades">🚀 Nuevas funcionalidades<a href="#-nuevas-funcionalidades" class="hash-link" aria-label="Enlace directo al 🚀 Nuevas funcionalidades" title="Enlace directo al 🚀 Nuevas funcionalidades" translate="no">​</a></h2>
 <ul>
 <li class="">
-<p><strong>Presentador de novedades (Feature Presenter Modal)</strong><br>
-<!-- -->Ahora, un modal de novedades informa automáticamente a los usuarios sobre nuevas funcionalidades importantes del producto al iniciar sesión, mostrando imágenes y descripciones. El modal solo aparece si hay novedades sin ver y permite navegar entre distintas releases, además de registrar la interacción en Google Analytics.</p>
+<p><strong>Monitoreo avanzado de costos de AWS Bedrock y definición de presupuesto límite</strong><br>
+<!-- -->SleakOps ahora monitorea los costos totales de las solicitudes a AWS Bedrock realizadas a través de SleakOps y permite definir un límite máximo de gasto.</p>
 </li>
 <li class="">
-<p><strong>Pantalla dedicada de Activity Log</strong><br>
-<!-- -->Los registros de actividad ahora cuentan con una pantalla exclusiva para una mejor visualización de los eventos del sistema y una navegación más eficiente.</p>
-</li>
-<li class="">
-<p><strong>Pantalla de Addons en Clusters</strong><br>
-<!-- -->Los addons instalados en los clusters ahora se muestran en una pantalla de tabla dedicada, en lugar del popover anterior, facilitando la gestión de grandes volúmenes y mejorando la navegación. Puede accederse directamente desde el detalle del cluster y permite abrir el detalle de cada addon.</p>
-</li>
-<li class="">
-<p><strong>Monitoreo avanzado de costos y definición de límites</strong><br>
-<!-- -->SleakOps ahora brinda monitoreo detallado de los costos de requests AWS Bedrock por cliente y permite definir un límite máximo de costos mediante una sección dedicada en Configuración &gt; Costo IA.</p>
-</li>
-<li class="">
-<p><strong>Modo solo infraestructura en Dockertron</strong><br>
-<!-- -->Dockertron soporta ahora un modo “solo infraestructura”, permitiendo a los proyectos que ya cuentan con Dockerfiles aprovechar el modelador de infraestructura de SleakOps sin regenerar archivos Docker ni docker-compose innecesarios.</p>
-</li>
-<li class="">
-<p><strong>Opción de Buildpacks a nivel proyecto</strong><br>
-<!-- -->A partir de esta versión, los proyectos pueden elegir Buildpacks como alternativa a Docker para construir sus aplicaciones, replicando la flexibilidad de plataformas como Northflank o Heroku.</p>
+<p><strong>Opción de Buildpacks a nivel proyecto</strong>  (alpha)
+A partir de esta versión, los proyectos pueden elegir Buildpacks como alternativa a Docker para construir sus aplicaciones, replicando la flexibilidad de plataformas como Northflank o Heroku.</p>
 </li>
 <li class="">
 <p><strong>Soporte de Redis cluster como dependencia</strong><br>
 <!-- -->SleakOps soporta ahora Redis en modo clúster como dependencia, habilitando mayor escalabilidad y alta disponibilidad para cargas de trabajo que lo requieran.</p>
 </li>
 <li class="">
-<p><strong>Drawer de detalle en Members, Environments y Clusters</strong><br>
-<!-- -->Ahora puedes visualizar el detalle de Miembros, Environments y Clusters desde el listado mediante un drawer, sin abandonar la pantalla, facilitando la administración y manteniendo una experiencia coherente.</p>
+<p><strong>Reportes con IA</strong>  (beta)
+Nueva funcionalidad que permite generar informes de distintos tipos: detalle de costos, análisis de seguridad, diagrama de infraestructura. Es posible iterar sobre los resultados a través de un chat para ajustarlos según las necesidades. Los resultados son visuales y accionables, brindando visibilidad avanzada desde la consola de SleakOps.</p>
+</li>
+<li class="">
+<p><strong>Nueva sección de Upgrades</strong>  (beta)
+El sistema de actualizaciones se rediseñó para mayor confiabilidad y transparencia. Las actualizaciones de infraestructura ahora se pueden programar y supervisar desde una pantalla dedicada. Algunas actualizaciones, como la de un cluster, incluyen un reporte de estado detallado.</p>
+</li>
+<li class="">
+<p><strong>Buildkit</strong><br>
+<!-- -->Se deprecó Kaniko como sistema de build y se adoptó BuildKit, una solución ampliamente adoptada en la industria con soporte activo y comunidad consolidada, disponible en todos los proyectos.</p>
+</li>
+<li class="">
+<p><strong>Integración con IA privada</strong><br>
+<!-- -->Los análisis con IA utilizados en autodiagnósticos, reportes y soporte se ejecutan dentro de la cuenta AWS del propio cliente. Esto garantiza que la información de infraestructura no salga del entorno controlado, mejorando el encapsulamiento de datos, el cumplimiento normativo y la latencia de las respuestas.</p>
 </li>
 </ul>
 <hr>
@@ -66,55 +62,59 @@
 </li>
 <li class="">
 <p><strong>Nueva visualización en la tabla de Miembros</strong><br>
-<!-- -->La tabla Members muestra ahora el nombre del usuario sobre el email, iconos visuales de tarjetas de acceso y badges de roles para una identificación más clara y gestión más sencilla.</p>
-</li>
-<li class="">
-<p><strong>Iconos de addons en tarjetas de clusters</strong><br>
-<!-- -->Las tarjetas de Clusters ahora exhiben los íconos de los addons instalados, brindando contexto visual inmediato.</p>
-</li>
-<li class="">
-<p><strong>Activación automática de Cost Allocation Tags para Bedrock</strong><br>
-<!-- -->Los tags de request metadata de Bedrock ahora se activan automáticamente como Cost Allocation Tags en AWS, permitiendo filtrado en AWS Cost Explorer y una gestión de costos más precisa.</p>
-</li>
-<li class="">
-<p><strong>Filtros y UI optimizados</strong><br>
-<!-- -->Los filtros de ContentType y DependencyType en la interfaz ahora muestran nombres legibles en vez de IDs y se aplicaron mejoras visuales para una experiencia más ágil.</p>
+<!-- -->La tabla de Miembros muestra ahora el nombre del usuario sobre el email, iconos visuales de tarjetas de acceso y badges de roles para una identificación más clara y gestión más sencilla.</p>
 </li>
 <li class="">
 <p><strong>Enrutamiento personalizado en ingress de Workloads</strong><br>
 <!-- -->Ahora es posible dirigir las URLs y alias de ingress a servicios específicos de Kubernetes desde la UI, manteniendo estas asignaciones tras redeploys, habilitando escenarios de ruteo avanzados.</p>
 </li>
 <li class="">
-<p><strong>Formulario de webservices rediseñado</strong><br>
-<!-- -->El formulario de webservices y workloads ahora está dividido en secciones lógicas y deja de ser genérico, combinando simplicidad para nuevos usuarios y opciones avanzadas para expertos.</p>
+<p><strong>Formulario de webservices rediseñado</strong> (alpha)
+El formulario de webservices y workloads ahora está dividido en secciones lógicas y deja de ser genérico, combinando simplicidad para nuevos usuarios y opciones avanzadas para expertos.</p>
 </li>
 <li class="">
-<p><strong>Mejora en filtrado de variablegroups</strong><br>
-<!-- -->El filtrado por proyecto en variablegroups ahora incluye tanto los que están asociados directamente como los que comparten variables con el project.</p>
+<p><strong>Mejora en filtrado de variable groups</strong><br>
+<!-- -->El filtrado por proyecto en variable groups ahora incluye tanto los que están asociados directamente como los que comparten variables con el proyecto.</p>
+</li>
+<li class="">
+<p><strong>Pantalla dedicada de Activity Log</strong><br>
+<!-- -->Mejor navegación en registros de actividad, con más filtros y navegación cruzada entre recursos, usuarios y actividad.</p>
+</li>
+<li class="">
+<p><strong>Pantalla de Addons en Clusters</strong><br>
+<!-- -->Nueva pantalla dedicada a navegar y gestionar los addons de un cluster, facilitando la gestión en grandes cantidades de addons. Puede accederse directamente desde el detalle del cluster y permite abrir el detalle de cada addon.</p>
+</li>
+<li class="">
+<p><strong>Mejoras en detalles de recursos y nuevos detalles (Miembros, Environments y Clusters)</strong><br>
+<!-- -->Ahora es posible visualizar todas las configuraciones desde un detalle y navegar entre detalles cuando un recurso tiene relación con otro, facilitando la administración y manteniendo una experiencia coherente. Además, los listados de Miembros, Environments y Clusters ahora tienen detalle.</p>
+</li>
+<li class="">
+<p><strong>Modo solo infraestructura en Dockertron</strong>  (beta)
+Dockertron soporta ahora un modo &quot;solo infraestructura&quot;, permitiendo a los proyectos que ya cuentan con Dockerfiles aprovechar el modelador de infraestructura de SleakOps sin regenerar archivos Docker ni docker-compose innecesarios.</p>
 </li>
 </ul>
 <hr>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-correcciones">🐛 Correcciones<a href="#-correcciones" class="hash-link" aria-label="Enlace directo al 🐛 Correcciones" title="Enlace directo al 🐛 Correcciones" translate="no">​</a></h2>
 <ul>
 <li class="">
-<p><strong>Actualización de cache de variablegroups en dependencias</strong><br>
-<!-- -->Se corrigió un error en el que los vargroups en el detalle de dependencias no se actualizaban correctamente al cambiar entre distintas dependencias.</p>
+<p><strong>Enlaces rotos en el detalle de Deployments</strong><br>
+<!-- -->Resuelto el problema que impedía el funcionamiento de los enlaces en la pantalla de detalle de Deployments para los usuarios.</p>
+</li>
+<li class="">
+<p><strong>Actualización de caché de variable groups en dependencias</strong><br>
+<!-- -->Se corrigió un error en el que los variable groups en el detalle de dependencias no se actualizaban correctamente al cambiar entre distintas dependencias.</p>
 </li>
 <li class="">
 <p><strong>Actualización de estado en volúmenes</strong><br>
 <!-- -->Ahora los volúmenes actualizan correctamente su estado tras modificaciones, asegurando un seguimiento fiable.</p>
 </li>
 <li class="">
-<p><strong>Visualización de múltiples líneas en Activity Log</strong><br>
-<!-- -->Se corrigió el renderizado de registros de actividad con múltiples líneas de texto para mostrar el formato adecuado.</p>
-</li>
-<li class="">
-<p><strong>Enlaces rotos en el detalle de Deployments</strong><br>
-<!-- -->Resuelto el problema que impedía el funcionamiento de los enlaces en la pantalla de detalle de Deployments para los usuarios.</p>
-</li>
-<li class="">
 <p><strong>Corrección en autocompletado de comandos</strong><br>
 <!-- -->Se investigó y ajustó el caso en que los comandos se autocompletan inesperadamente al ser borrados.</p>
+</li>
+<li class="">
+<p><strong>Visualización de múltiples líneas en Activity Log</strong><br>
+<!-- -->Se corrigió el renderizado de registros de actividad con múltiples líneas de texto para mostrar el formato adecuado.</p>
 </li>
 </ul>
 <hr></div><footer class="docusaurus-mt-lg"><div class="row margin-top--sm theme-blog-footer-edit-meta-row"><div class="col"><b>Etiquetas:</b><ul class="tags_jXut padding--none margin-left--sm"><li class="tag_QGVx"><a rel="tag" class="tag_zVej tagRegular_sFm0" href="/preview-docs/es/changelog/tags/release">release</a></li></ul></div></div><div class="row margin-top--sm theme-blog-footer-edit-meta-row"><div class="col noPrint_WFHX"><a href="https://docs.sleakops.com/preview-docs/admin/#/collections/changelog/changelog/2026-05-13-version-2.10.0.md" target="_blank" rel="noopener noreferrer" class="theme-edit-this-page"><svg fill="currentColor" height="20" width="20" viewBox="0 0 40 40" class="iconEdit_Z9Sw" aria-hidden="true"><g><path d="m34.5 11.7l-3 3.1-6.3-6.3 3.1-3q0.5-0.5 1.2-0.5t1.1 0.5l3.9 3.9q0.5 0.4 0.5 1.1t-0.5 1.2z m-29.5 17.1l18.4-18.5 6.3 6.3-18.4 18.4h-6.3v-6.2z"></path></g></svg>Editar esta página</a></div><div class="col lastUpdated_JAkA"></div></div></footer></article><nav class="pagination-nav docusaurus-mt-lg" aria-label="Barra de paginación de publicaciones del blog"><a class="pagination-nav__link pagination-nav__link--next" href="/preview-docs/es/changelog/2026/04/28/version-2.9.0"><div class="pagination-nav__sublabel">Publicación más antigua</div><div class="pagination-nav__label">Versión 2.9.0</div></a></nav></main><div class="col col--2"><div class="tableOfContents_bqdL thin-scrollbar"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#-nuevas-funcionalidades" class="table-of-contents__link toc-highlight">🚀 Nuevas funcionalidades</a></li><li><a href="#-mejoras" class="table-of-contents__link toc-highlight">✨ Mejoras</a></li><li><a href="#-correcciones" class="table-of-contents__link toc-highlight">🐛 Correcciones</a></li></ul></div></div></div></div></div><footer class="footer"><div class="container container-fluid"><div class="row footer__links"><div class="theme-layout-footer-column col footer__col"><div class="footer__title">Docs</div><ul class="footer__items clean-list"><li class="footer__item"><a class="footer__link-item" href="/preview-docs/es/tutorials">Tutorial</a></li><li class="footer__item"><a href="https://sleakops.com/" target="_blank" rel="noopener noreferrer" class="footer__link-item">About us<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li><li class="footer__item"><a href="https://sleakops.com/contact" target="_blank" rel="noopener noreferrer" class="footer__link-item">Contact us<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li></ul></div><div class="theme-layout-footer-column col footer__col"><div class="footer__title">More</div><ul class="footer__items clean-list"><li class="footer__item"><a href="https://craftech.notion.site/Terms-Conditions-efb8d9a980654625af456732ed44b197" target="_blank" rel="noopener noreferrer" class="footer__link-item">Terms &amp; Conditions<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li><li class="footer__item"><a href="https://craftech.notion.site/Privacy-Policy-of-SleakOps-55b977da50d84871809879d065b16b3b" target="_blank" rel="noopener noreferrer" class="footer__link-item">Privacy Policy<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a></li></ul></div></div><div class="footerBottom_eWW_"><div class="footerLeft_y1O1"><div class="footer__copyright">Copyright © 2026 SleakOps.</div></div><div class="socialLinks_LjiY"><a href="https://www.instagram.com/sleakops/" target="_blank" rel="noopener noreferrer" class="socialLink_r7sO" aria-label="Visit our Instagram page" title="Instagram"><svg stroke="currentColor" fill="currentColor" stroke-width="0" role="img" viewBox="0 0 24 24" class="socialIcon_la_w" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><title></title><path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06l.045.03zm0 3.678c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"></path></svg></a><a href="https://www.linkedin.com/company/sleakops/" target="_blank" rel="noopener noreferrer" class="socialLink_r7sO" aria-label="Visit our LinkedIn page" title="LinkedIn"><svg stroke="currentColor" fill="currentColor" stroke-width="0" role="img" viewBox="0 0 24 24" class="socialIcon_la_w" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><title></title><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"></path></svg></a></div></div></div></footer></div>
