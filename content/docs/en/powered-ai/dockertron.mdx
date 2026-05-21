@@ -1,0 +1,72 @@
+---
+title: Dockertron
+sidebar_label: Dockertron
+sidebar_position: 2
+---
+
+import Zoom from "react-medium-image-zoom";
+
+# Dockertron
+
+Dockertron analyzes your repository and generates everything needed to run your application on SleakOps: production-ready Dockerfiles, a docker-compose configuration, and the full infrastructure model — no config files to write, no templates to copy.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="https://sleakops-features-changelog.s3.us-east-2.amazonaws.com/images/Dockertron.gif"
+    alt="dockertron-demo"
+  />
+</Zoom>
+
+:::info Beta
+Dockertron is currently in **Beta**. The core generation workflow is stable; configuration surface and output format may still evolve.
+:::
+
+## FAQs
+
+<details>
+<summary>
+### What does Dockertron generate?
+</summary>
+For each repository it processes, Dockertron produces:
+
+- A **Dockerfile** per detected service, optimized for production (base image, deps, healthchecks, startup command)
+- A **docker-compose.yml** that wires all services together
+- The **SleakOps infrastructure model** — workloads, dependencies, and environment variables ready to import into the console
+- A **README** with instructions to run the project locally
+
+All files are delivered via a Pull Request in your repository so you can review every change before merging.
+</details>
+
+<details>
+<summary>
+### How do I start a Dockertron run?
+</summary>
+1. Open **Projects** in the SleakOps console.
+2. Select the project you want to dockerize.
+3. Go to **Configuration → Dockertron**.
+4. Fill in the language and framework details.
+5. Click **Run** — the AI takes it from there.
+
+For a detailed walkthrough, see the [full Dockertron documentation](/docs/project/dockertron).
+</details>
+
+<details>
+<summary>
+### What languages and frameworks are supported?
+</summary>
+Dockertron works with any language and framework — you specify them in the form. It has been tested extensively with Python (Django, FastAPI, Flask), Node.js (Express, Next.js), Go, Java (Spring Boot), and Ruby on Rails. The AI adapts to whatever you provide.
+</details>
+
+<details>
+<summary>
+### How long does a run take?
+</summary>
+Typically between 5 and 30 minutes depending on repository size and complexity. You will receive a notification when the Pull Request is ready.
+</details>
+
+<details>
+<summary>
+### Can I modify the generated files?
+</summary>
+Yes. Everything Dockertron generates arrives as a Pull Request — you can review, edit, and request changes before merging. The generated files are standard Docker configuration, so you can adjust them like any other Dockerfile or docker-compose.
+</details>
