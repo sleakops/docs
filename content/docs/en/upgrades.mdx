@@ -1,0 +1,87 @@
+---
+title: Upgrades
+sidebar_label: Upgrades
+sidebar_position: 15
+---
+
+import Zoom from "react-medium-image-zoom";
+
+# Upgrades
+
+Upgrades lets you schedule and monitor Kubernetes version upgrades across all your environments from a single place. Plan each upgrade with full visibility into what is changing, track its progress in real time, and ensure nothing runs at the wrong time or goes unnoticed.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="https://sleakops-features-changelog.s3.us-east-2.amazonaws.com/images/Migrations.gif"
+    alt="upgrades-demo"
+  />
+</Zoom>
+
+:::info Beta
+Upgrades is currently in **Beta**. Core scheduling and monitoring are stable; advanced configuration options are still being added.
+:::
+
+## FAQs
+
+<details>
+<summary>
+### What can I upgrade?
+</summary>
+From the Upgrades section you can schedule and track version upgrades for:
+
+- **Clusters** — Kubernetes control plane and node group versions
+- **Environments** — upgrade all resources tied to a specific environment in a coordinated sequence
+- **Add-ons** — keep cluster add-ons (Grafana, Prometheus, KEDA, etc.) aligned with supported versions
+
+SleakOps validates compatibility before scheduling and flags any blockers before the upgrade begins.
+</details>
+
+<details>
+<summary>
+### How do I schedule an upgrade?
+</summary>
+1. Open **Upgrades** from the SleakOps sidebar.
+2. Select the cluster or environment you want to upgrade.
+3. Choose the target version.
+4. Pick a date and time window for the upgrade.
+5. Review the upgrade plan and confirm.
+
+SleakOps queues the upgrade and sends a notification when it starts and when it completes.
+</details>
+
+<details>
+<summary>
+### What happens during an upgrade?
+</summary>
+SleakOps upgrades resources in a controlled sequence to minimize downtime:
+
+1. The control plane is updated first.
+2. Node groups are rolled one at a time — existing workloads are drained and rescheduled before each node is replaced.
+3. Add-ons are updated to versions compatible with the new Kubernetes release.
+4. The upgrade status is updated in real time so you can follow every step.
+
+If a step fails, the upgrade halts and SleakOps surfaces the error with context on what to do next.
+</details>
+
+<details>
+<summary>
+### Can I upgrade multiple environments at once?
+</summary>
+You can schedule upgrades across multiple environments, but SleakOps runs them sequentially by default to reduce blast radius. Upgrade your staging environment first, validate, and then schedule production — this is the recommended flow for critical infrastructure changes.
+</details>
+
+<details>
+<summary>
+### What if the upgrade fails?
+</summary>
+SleakOps stops the upgrade at the first failed step to prevent cascading changes. The console shows the exact error, the resource that failed, and the recommended next action.
+
+For cluster upgrades, a failed node replacement does not affect already-upgraded nodes — only the in-progress node group is paused, leaving the rest of the cluster operational.
+</details>
+
+<details>
+<summary>
+### Can I cancel a scheduled upgrade?
+</summary>
+Yes. Scheduled upgrades can be cancelled at any time before they start. Once an upgrade is in progress it cannot be rolled back automatically — contact support if you need to stop an active upgrade.
+</details>
