@@ -5,15 +5,17 @@ sidebar_position: 15
 ---
 
 import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
 
 # Upgrades
 
-Upgrades te permite programar y monitorear actualizaciones de versión de Kubernetes en todos tus entornos desde un solo lugar. Planificá cada upgrade con visibilidad completa de lo que va a cambiar, seguí su progreso en tiempo real y asegurate de que nada se ejecute en el momento equivocado ni pase desapercibido.
+Upgrades te permite programar y monitorear actualizaciones de versión de infraestructura en todas tus cuentas desde un solo lugar. Visualizá upgrades pendientes y completados, seguí las fechas de ejecución y mantené tus entornos actualizados sin perder visibilidad.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
-    src="https://sleakops-features-changelog.s3.us-east-2.amazonaws.com/images/Migrations.gif"
-    alt="upgrades-demo"
+    src={require("./upgrades/upgrades-list.png").default}
+    alt="upgrades-list"
   />
 </Zoom>
 
@@ -25,63 +27,57 @@ Upgrades está actualmente en **Beta**. La programación y el monitoreo central 
 
 <details>
 <summary>
-### ¿Qué puedo actualizar?
+### ¿Dónde encuentro Upgrades?
 </summary>
-Desde la sección Upgrades podés programar y seguir actualizaciones de versión para:
+Upgrades es accesible directamente desde la barra lateral principal bajo **Upgrades** (`/migrations/`). También es accesible desde **Settings → Upgrades**.
 
-- **Clusters** — versiones del control plane y los node groups de Kubernetes
-- **Entornos** — actualizá todos los recursos asociados a un entorno en una secuencia coordinada
-- **Add-ons** — mantené los add-ons del cluster (Grafana, Prometheus, KEDA, etc.) alineados con versiones compatibles
+La página muestra una tabla con todos los upgrades programados y completados, filtrados por cuenta.
+</details>
 
-SleakOps valida la compatibilidad antes de programar el upgrade y marca cualquier bloqueador antes de que comience.
+<details>
+<summary>
+### ¿Qué información muestra la tabla de Upgrades?
+</summary>
+Cada fila de la tabla muestra:
+
+| **Columna** | **Descripción** |
+|---|---|
+| **Upgrade** | El tipo de actualización a aplicar |
+| **Account** | La cuenta que es objetivo del upgrade |
+| **Execution Date** | Cuándo está programado para ejecutarse |
+| **Actions** | Acciones disponibles para ese upgrade |
+
+Usá el filtro **Select an account** en la parte superior izquierda para ver resultados de una cuenta específica.
 </details>
 
 <details>
 <summary>
 ### ¿Cómo programo un upgrade?
 </summary>
-1. Abrí **Upgrades** desde la barra lateral de SleakOps.
-2. Seleccioná el cluster o entorno que querés actualizar.
-3. Elegí la versión objetivo.
-4. Seleccioná una fecha y ventana horaria para el upgrade.
-5. Revisá el plan y confirmá.
+Usá la barra de búsqueda (⌘K) o el botón **Upgrade** en la parte superior de la lista para crear un nuevo upgrade programado. Seleccioná la cuenta objetivo y configurá la fecha de ejecución.
 
-SleakOps encola el upgrade y te envía una notificación cuando comienza y cuando finaliza.
-</details>
-
-<details>
-<summary>
-### ¿Qué sucede durante un upgrade?
-</summary>
-SleakOps actualiza los recursos en una secuencia controlada para minimizar el tiempo de inactividad:
-
-1. Primero se actualiza el control plane.
-2. Los node groups se actualizan de a uno — los workloads existentes son drenados y reprogramados antes de reemplazar cada nodo.
-3. Los add-ons se actualizan a versiones compatibles con la nueva versión de Kubernetes.
-4. El estado del upgrade se actualiza en tiempo real para que puedas seguir cada paso.
-
-Si un paso falla, el upgrade se detiene y SleakOps muestra el error con contexto sobre qué hacer a continuación.
+{/* TODO: screenshot - Formulario de nuevo upgrade mostrando selección de cuenta y selector de fecha de ejecución */}
 </details>
 
 <details>
 <summary>
 ### ¿Puedo actualizar múltiples entornos a la vez?
 </summary>
-Podés programar upgrades en múltiples entornos, pero SleakOps los ejecuta en secuencia por defecto para reducir el radio de impacto. Actualizá primero tu entorno de staging, validá el resultado y luego programá producción — este es el flujo recomendado para cambios críticos de infraestructura.
+Podés programar upgrades en múltiples cuentas y entornos, pero los upgrades se ejecutan en secuencia por defecto para reducir el radio de impacto. El flujo recomendado es actualizar staging primero, validar el resultado y luego programar producción.
 </details>
 
 <details>
 <summary>
-### ¿Qué pasa si el upgrade falla?
+### ¿Qué sucede durante un upgrade?
 </summary>
-SleakOps detiene el upgrade en el primer paso fallido para evitar cambios en cascada. La consola muestra el error exacto, el recurso que falló y la acción recomendada.
+SleakOps actualiza los recursos en una secuencia controlada para minimizar el tiempo de inactividad. Si un paso falla, el upgrade se detiene y la consola muestra el error con contexto sobre qué hacer a continuación.
 
-Para upgrades de cluster, un reemplazo de nodo fallido no afecta los nodos ya actualizados — solo se pausa el node group en progreso, dejando el resto del cluster operativo.
+Para upgrades de cluster la secuencia es: primero el control plane, luego los node groups de a uno — los workloads existentes son drenados y reprogramados antes de reemplazar cada nodo.
 </details>
 
 <details>
 <summary>
 ### ¿Puedo cancelar un upgrade programado?
 </summary>
-Sí. Los upgrades programados pueden cancelarse en cualquier momento antes de que comiencen. Una vez que un upgrade está en progreso no puede revertirse automáticamente — contactá a soporte si necesitás detener un upgrade activo.
+Sí. Los upgrades programados que aún no iniciaron pueden cancelarse desde la columna Actions en la tabla de Upgrades. Una vez que un upgrade está en progreso no puede revertirse automáticamente — contactá a soporte si necesitás detener un upgrade activo.
 </details>

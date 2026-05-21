@@ -5,17 +5,14 @@ sidebar_position: 1
 ---
 
 import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
 
 # Autodiagnostics
 
 Autodiagnostics generates an AI-powered diagnosis for any resource managed by SleakOps. The AI reads logs and infrastructure state, identifies the root cause, and suggests corrective actions — so you spend less time debugging and more time shipping.
 
-<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
-  <img
-    src="https://sleakops-features-changelog.s3.us-east-2.amazonaws.com/images/Autodiagnostic.gif"
-    alt="autodiagnostics-demo"
-  />
-</Zoom>
+{/* TODO: screenshot - Autodiagnostics button on a resource detail page (e.g. a failed deployment or service) */}
 
 ## FAQs
 
@@ -25,21 +22,20 @@ Autodiagnostics generates an AI-powered diagnosis for any resource managed by Sl
 </summary>
 Autodiagnostics is an AI agent embedded in SleakOps that analyzes any resource — a failing deployment, a crashing Pod, a dependency with connectivity issues — and produces a structured diagnosis: what went wrong, why it happened, and what to do about it.
 
-Instead of manually correlating logs, Kubernetes events, and infrastructure state, you get a clear explanation in seconds, directly inside the console.
+Instead of manually correlating logs, Kubernetes events, and infrastructure state, you get a clear explanation directly inside the console.
 </details>
 
 <details>
 <summary>
-### Where can I trigger a diagnosis?
+### Where do I trigger a diagnosis?
 </summary>
-Look for the **Diagnose** button on any resource that supports it:
+The **Diagnose** action appears on individual resource detail pages when there is an issue to analyze:
 
-- Projects and services
 - Deployments and releases
+- Projects and services
 - Dependencies
-- Support tickets
 
-You can also access all diagnostics from the **Support** section in the sidebar.
+Once triggered, the diagnosis opens as a conversation in the **Support** section (`/support/`) where you can review the root cause analysis and follow-up with the AI.
 </details>
 
 <details>
@@ -50,7 +46,7 @@ When you trigger a diagnosis, the AI reads:
 
 - Recent logs from the affected resource
 - Kubernetes events in the relevant namespace
-- Current infrastructure state from SleakOps (configurations, deployments, dependencies)
+- Current infrastructure state (configurations, deployments, dependencies)
 
 It correlates all available signals to surface the root cause, not just the symptom.
 </details>

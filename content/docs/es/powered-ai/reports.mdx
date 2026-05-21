@@ -5,15 +5,17 @@ sidebar_position: 3
 ---
 
 import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
 
 # Reportes con IA
 
-Los Reportes con IA generan resúmenes de diagnóstico bajo demanda de tu infraestructura. Elegís entre un conjunto de prompts específicos, y la IA produce un análisis estructurado — causas raíz, recursos afectados y acciones recomendadas — basado en el estado real de tu entorno.
+Los Reportes con IA generan resúmenes de diagnóstico bajo demanda de tu infraestructura. Hacé clic en **Create Report**, seleccioná un prompt de IA predefinido y obtenés un análisis estructurado — causas raíz, recursos afectados y acciones recomendadas — basado en el estado real de tu entorno.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
-    src="https://sleakops-features-changelog.s3.us-east-2.amazonaws.com/images/Reports.gif"
-    alt="ai-reports-demo"
+    src={require("./reports/reports-page.png").default}
+    alt="ai-reports-page"
   />
 </Zoom>
 
@@ -25,32 +27,37 @@ Los Reportes con IA están actualmente en **Beta**. El catálogo de prompts y el
 
 <details>
 <summary>
-### ¿Qué es un Reporte con IA?
+### ¿Dónde encuentro los Reportes con IA?
 </summary>
-Un Reporte con IA es un análisis estructurado de tu infraestructura generado bajo demanda. Seleccionás un prompt — por ejemplo, "¿Por qué este servicio responde lento?" o "¿Qué cambió en el último deployment?" — y la IA produce un desglose claro de las causas raíz, los recursos involucrados y las acciones que deberías tomar.
-
-Los Reportes son distintos de los Autodiagnósticos: los Autodiagnósticos apuntan a un único recurso en respuesta a un error, mientras que los Reportes permiten hacer preguntas más amplias sobre múltiples recursos o ventanas de tiempo.
+Los Reportes con IA están en **Settings → Reports** (`/reports/`). Navegá a Settings desde la barra lateral y seleccioná **Reports** en el menú izquierdo.
 </details>
 
 <details>
 <summary>
-### ¿Dónde encuentro los Reportes con IA?
+### ¿Cómo genero un reporte?
 </summary>
-Los Reportes con IA están disponibles en la sección **Reportes** de la barra lateral de SleakOps. También podés generar un reporte directamente desde la vista detallada de un recurso cuando haya un prompt disponible para ese contexto.
+1. Navegá a **Settings → Reports**.
+2. Hacé clic en **+ Create Report**.
+3. Se abre un panel con **AI Assistant Prompts** — un catálogo con búsqueda de prompts de análisis predefinidos.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./reports/reports-ai-prompts.png").default}
+    alt="ai-assistant-prompts-panel"
+  />
+</Zoom>
+
+4. Seleccioná un prompt del catálogo o escribí una pregunta libre en el campo de mensaje.
+5. La IA genera un reporte estructurado basado en el estado real de tu infraestructura.
 </details>
 
 <details>
 <summary>
 ### ¿Qué prompts están disponibles?
 </summary>
-El catálogo de Reportes incluye prompts para preguntas operativas frecuentes:
+El catálogo de Reportes incluye prompts predefinidos para preguntas operativas frecuentes como salud de servicios, historial de deployments, disponibilidad de dependencias y utilización de recursos. Usá el buscador en el panel **AI Assistant Prompts** para encontrar el prompt que se ajuste a tu situación.
 
-- Salud y degradación del rendimiento de servicios
-- Historial de deployments y configuración drift
-- Conectividad y disponibilidad de dependencias
-- Utilización de recursos y anomalías de costos
-
-El catálogo crece con cada release. Si falta un prompt que necesitás, el [Chat de Infraestructura](conversation) te permite hacer preguntas libres.
+También podés escribir una pregunta libre directamente en el campo de mensaje en la parte inferior del panel.
 </details>
 
 <details>
@@ -60,8 +67,8 @@ El catálogo crece con cada release. Si falta un prompt que necesitás, el [Chat
 
 | | Autodiagnósticos | Reportes con IA |
 |---|---|---|
-| Activación | Ante falla del recurso | Manual, bajo demanda |
-| Alcance | Un recurso | Recurso, entorno o cluster |
+| Activación | Desde un recurso específico con un problema | Manual, bajo demanda desde Settings → Reports |
+| Alcance | Un recurso | Configurable — recurso, entorno o cluster |
 | Enfoque | "¿Qué falló y por qué?" | "¿Cuál es el estado de X en Y?" |
 | Salida | Causa raíz + sugerencia de corrección | Análisis estructurado con contexto |
 
@@ -72,5 +79,5 @@ Usá Autodiagnósticos cuando algo ya está roto. Usá Reportes para entender pr
 <summary>
 ### ¿Los reportes se guardan?
 </summary>
-Sí. Los reportes generados se guardan en la consola de SleakOps y pueden revisarse, compartirse con el equipo o usarse como contexto al abrir un ticket de soporte.
+Sí. Los reportes generados se guardan en la lista de Reportes y pueden revisarse en cualquier momento desde **Settings → Reports**.
 </details>

@@ -5,52 +5,59 @@ sidebar_position: 3
 ---
 
 import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
 
 # AI Reports
 
-AI Reports generate on-demand diagnostic summaries of your infrastructure. Choose from a set of targeted prompts, and the AI produces a structured analysis — root causes, affected resources, and recommended actions — based on your actual environment state.
+AI Reports generate on-demand diagnostic summaries of your infrastructure. Click **Create Report**, select a pre-defined AI prompt, and get a structured analysis — root causes, affected resources, and recommended actions — based on your actual environment state.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
-    src="https://sleakops-features-changelog.s3.us-east-2.amazonaws.com/images/Reports.gif"
-    alt="ai-reports-demo"
+    src={require("./reports/reports-page.png").default}
+    alt="ai-reports-page"
   />
 </Zoom>
 
 :::info Beta
-AI Reports is currently in **Beta**. Prompt catalog and output format are actively evolving.
+AI Reports is currently in **Beta**. The prompt catalog and output format are actively evolving.
 :::
 
 ## FAQs
 
 <details>
 <summary>
-### What is an AI Report?
+### Where do I find AI Reports?
 </summary>
-An AI Report is a structured analysis of your infrastructure generated on demand. You select a prompt — for example, "Why is this service responding slowly?" or "What changed in the last deployment?" — and the AI produces a clear breakdown of root causes, the resources involved, and the actions you should take.
-
-Reports are different from Autodiagnostics: Autodiagnostics targets a single resource in response to an error, while Reports let you ask broader questions across multiple resources or time windows.
+AI Reports live inside **Settings → Reports** (`/reports/`). Navigate to Settings from the sidebar and select **Reports** from the left menu.
 </details>
 
 <details>
 <summary>
-### Where do I find AI Reports?
+### How do I generate a report?
 </summary>
-AI Reports are available from the **Reports** section in the SleakOps sidebar. You can also generate a report directly from a resource's detail view when a report prompt is available for that context.
+1. Navigate to **Settings → Reports**.
+2. Click **+ Create Report**.
+3. A panel opens showing **AI Assistant Prompts** — a searchable catalog of pre-defined analysis prompts.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./reports/reports-ai-prompts.png").default}
+    alt="ai-assistant-prompts-panel"
+  />
+</Zoom>
+
+4. Select a prompt from the catalog or type in the message field to ask a custom question.
+5. The AI generates a structured report based on your live infrastructure state.
 </details>
 
 <details>
 <summary>
 ### What prompts are available?
 </summary>
-The Reports catalog includes prompts for common operational questions:
+The Reports catalog includes pre-defined prompts for common operational questions such as service health, deployment history, dependency availability, and resource utilization. Use the search box in the **AI Assistant Prompts** panel to find the prompt that matches your situation.
 
-- Service health and performance degradation
-- Deployment history and configuration drift
-- Dependency connectivity and availability
-- Resource utilization and cost anomalies
-
-The catalog grows with each release. If a prompt you need is missing, [Infrastructure Chat](conversation) lets you ask ad-hoc questions.
+You can also type a free-form question directly in the message field at the bottom of the panel.
 </details>
 
 <details>
@@ -60,8 +67,8 @@ The catalog grows with each release. If a prompt you need is missing, [Infrastru
 
 | | Autodiagnostics | AI Reports |
 |---|---|---|
-| Trigger | On resource failure | Manual, on demand |
-| Scope | Single resource | Resource, environment, or cluster |
+| Trigger | Activated from a specific resource with an issue | Manual, on demand from Settings → Reports |
+| Scope | Single resource | Configurable — resource, environment, or cluster |
 | Focus | "What broke and why?" | "What is the state of X across Y?" |
 | Output | Root cause + fix suggestion | Structured analysis with context |
 
@@ -72,5 +79,5 @@ Use Autodiagnostics when something is already broken. Use Reports to proactively
 <summary>
 ### Are reports saved?
 </summary>
-Yes. Generated reports are saved in the SleakOps console and can be revisited, shared with teammates, or used as context when opening a support ticket.
+Yes. Generated reports are saved in the Reports list and can be revisited at any time from **Settings → Reports**.
 </details>

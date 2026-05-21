@@ -5,17 +5,14 @@ sidebar_position: 1
 ---
 
 import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
 
 # Autodiagnósticos
 
 Los Autodiagnósticos generan un diagnóstico impulsado por IA para cualquier recurso administrado por SleakOps. La IA lee los logs y el estado de la infraestructura, identifica la causa raíz y sugiere acciones correctivas — para que pases menos tiempo depurando y más tiempo construyendo.
 
-<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
-  <img
-    src="https://sleakops-features-changelog.s3.us-east-2.amazonaws.com/images/Autodiagnostic.gif"
-    alt="autodiagnostics-demo"
-  />
-</Zoom>
+{/* TODO: screenshot - Botón Diagnosticar en la página de detalle de un recurso (ej. un deployment fallido o un servicio con error) */}
 
 ## Preguntas frecuentes
 
@@ -25,21 +22,20 @@ Los Autodiagnósticos generan un diagnóstico impulsado por IA para cualquier re
 </summary>
 Los Autodiagnósticos son un agente de IA integrado en SleakOps que analiza cualquier recurso — un deployment fallido, un Pod que crashea, una dependencia con problemas de conectividad — y produce un diagnóstico estructurado: qué salió mal, por qué sucedió y qué hacer al respecto.
 
-En lugar de correlacionar manualmente logs, eventos de Kubernetes y estado de infraestructura, obtenés una explicación clara en segundos, directamente dentro de la consola.
+En lugar de correlacionar manualmente logs, eventos de Kubernetes y estado de infraestructura, obtenés una explicación clara directamente dentro de la consola.
 </details>
 
 <details>
 <summary>
-### ¿Dónde puedo activar un diagnóstico?
+### ¿Dónde activo un diagnóstico?
 </summary>
-Buscá el botón **Diagnosticar** en cualquier recurso que lo soporte:
+La acción **Diagnosticar** aparece en las páginas de detalle de recursos individuales cuando hay un problema que analizar:
 
-- Proyectos y servicios
 - Deployments y releases
+- Proyectos y servicios
 - Dependencias
-- Tickets de soporte
 
-También podés acceder a todos los diagnósticos desde la sección **Soporte** en la barra lateral.
+Una vez activado, el diagnóstico se abre como una conversación en la sección **Support** (`/support/`), donde podés revisar el análisis de causa raíz y hacer preguntas de seguimiento a la IA.
 </details>
 
 <details>
@@ -50,7 +46,7 @@ Cuando activás un diagnóstico, la IA lee:
 
 - Logs recientes del recurso afectado
 - Eventos de Kubernetes en el namespace correspondiente
-- Estado actual de la infraestructura en SleakOps (configuraciones, deployments, dependencias)
+- Estado actual de la infraestructura (configuraciones, deployments, dependencias)
 
 Correlaciona todas las señales disponibles para identificar la causa raíz, no solo el síntoma.
 </details>
@@ -59,7 +55,7 @@ Correlaciona todas las señales disponibles para identificar la causa raíz, no 
 <summary>
 ### ¿Aplica correcciones automáticamente?
 </summary>
-No. Los Autodiagnósticos son de solo lectura. Muestra el diagnóstico y recomienda acciones, pero todos los pasos de remediación requieren tu aprobación explícita. Vos mantenés el control de cada cambio en tu infraestructura.
+No. Los Autodiagnósticos son de solo lectura. Muestran el diagnóstico y recomiendan acciones, pero todos los pasos de remediación requieren tu aprobación explícita. Vos mantenés el control de cada cambio en tu infraestructura.
 </details>
 
 <details>

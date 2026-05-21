@@ -5,6 +5,8 @@ sidebar_position: 2
 ---
 
 import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
 
 # Dockertron
 
@@ -12,8 +14,8 @@ Dockertron analiza tu repositorio y genera todo lo necesario para correr tu apli
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
-    src="https://sleakops-features-changelog.s3.us-east-2.amazonaws.com/images/Dockertron.gif"
-    alt="dockertron-demo"
+    src={require("./dockertron/dockertron-executions.png").default}
+    alt="dockertron-executions-list"
   />
 </Zoom>
 
@@ -22,6 +24,41 @@ Dockertron está actualmente en **Beta**. El flujo central de generación es est
 :::
 
 ## Preguntas frecuentes
+
+<details>
+<summary>
+### ¿Dónde encuentro Dockertron?
+</summary>
+Dockertron es accesible desde **Projects** en la barra lateral principal. Navegá a **Projects → Dockertron Executions** (`/dockertron/`). La página lista todas las ejecuciones anteriores con su repositorio, rama, estado y fecha de creación.
+
+Hacé clic en **Dockertron IA** para iniciar una nueva ejecución.
+</details>
+
+<details>
+<summary>
+### ¿Cómo inicio una ejecución de Dockertron?
+</summary>
+1. Navegá a **Projects → Dockertron Executions** en la barra lateral.
+2. Hacé clic en **Dockertron IA**.
+3. Completá el formulario de dos pasos:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./dockertron/dockertron-ia-form.png").default}
+    alt="dockertron-ia-form"
+  />
+</Zoom>
+
+**Paso 1 — Project Source:** Seleccioná el repositorio privado y la rama a analizar.
+
+**Paso 2 — Quiz Details:** Proporcioná contexto adicional para refinar la generación (lenguaje, framework, configuraciones especiales).
+
+4. Hacé clic en **Generate projects with AI**.
+
+:::info
+Solo los repositorios privados están disponibles para ejecuciones de Dockertron.
+:::
+</details>
 
 <details>
 <summary>
@@ -39,22 +76,9 @@ Todos los archivos se entregan mediante un Pull Request en tu repositorio para q
 
 <details>
 <summary>
-### ¿Cómo inicio una ejecución de Dockertron?
-</summary>
-1. Abrí **Proyectos** en la consola de SleakOps.
-2. Seleccioná el proyecto que querés dockerizar.
-3. Andá a **Configuración → Dockertron**.
-4. Completá los datos de lenguaje y framework.
-5. Hacé clic en **Ejecutar** — la IA se encarga del resto.
-
-Para un recorrido detallado, consultá la [documentación completa de Dockertron](/docs/project/dockertron).
-</details>
-
-<details>
-<summary>
 ### ¿Qué lenguajes y frameworks son compatibles?
 </summary>
-Dockertron funciona con cualquier lenguaje y framework — vos los especificás en el formulario. Ha sido ampliamente probado con Python (Django, FastAPI, Flask), Node.js (Express, Next.js), Go, Java (Spring Boot) y Ruby on Rails. La IA se adapta a lo que indiques.
+Dockertron funciona con cualquier lenguaje y framework — vos proporcionás el contexto en el paso Quiz Details. Ha sido ampliamente probado con Python (Django, FastAPI, Flask), Node.js (Express, Next.js), Go, Java (Spring Boot) y Ruby on Rails.
 </details>
 
 <details>
