@@ -10,7 +10,7 @@ import { FiExternalLink } from "react-icons/fi";
 
 # Upgrades
 
-Upgrades te permite programar y monitorear actualizaciones de versión de infraestructura en todas tus cuentas desde un solo lugar. Visualizá upgrades pendientes y completados, seguí las fechas de ejecución y mantené tus entornos actualizados sin perder visibilidad.
+Upgrades es donde SleakOps muestra los cambios de infraestructura que la plataforma planea aplicar sobre tus cuentas — actualizaciones de versión, cambios de configuración, reorganización de recursos. Desde acá podés revisar lo que está agendado para tu empresa, leer los pasos manuales que requiere cada upgrade, ejecutar uno antes de su fecha programada o moverlo dentro de la ventana permitida.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -19,65 +19,176 @@ Upgrades te permite programar y monitorear actualizaciones de versión de infrae
   />
 </Zoom>
 
-:::info Beta
-Upgrades está actualmente en **Beta**. La programación y el monitoreo central son estables; las opciones de configuración avanzadas se siguen incorporando.
+:::info
+Los upgrades los crea SleakOps. El cliente no puede crear tipos de upgrade ni agendar nuevos desde el panel — sólo actúa sobre los que SleakOps encola para sus cuentas.
 :::
+
+## Dónde encontrar Upgrades
+
+Upgrades vive en `/upgrades/` y tiene una entrada dedicada en el footer del sidebar, al lado del botón de notificaciones. La entrada es visible para **Admin** y **Editor**; los Viewers pueden llegar a la página por URL directa cuando su empresa tiene la feature habilitada.
+
+Cuando hay al menos un upgrade **Pending** en tu empresa, el ícono del sidebar se vuelve rojo, se mueve sutilmente y muestra un contador con la cantidad de upgrades pendientes en todas las cuentas.
+
+## Leer la tabla de Upgrades
+
+La lista muestra siempre los upgrades de **todas las cuentas a las que tenés acceso**, independientemente de la cuenta seleccionada en la barra superior. Los Admin ven la empresa entera; Editors y Viewers ven los upgrades de las cuentas que tienen asignadas.
+
+| **Columna** | **Descripción** |
+|---|---|
+| **Upgrade** | El título del upgrade y su estado actual. Cuando apunta a un recurso específico (un Cluster, un NodePool, un Service), el ícono del modelo y su nombre aparecen debajo del título. |
+| **Account** | La cuenta sobre la que se va a ejecutar el upgrade. |
+| **Execution Date** | Tiempo relativo — **fecha programada** mientras el upgrade está Pending, **momento real de ejecución** para el resto de los estados. Pasá el cursor por encima para ver el timestamp exacto. |
+| **Actions** | Ver detalle, Ejecutar y (cuando aplica) Revisar instrucciones. |
+
+Las filas Pending tienen un tinte rojo sutil para que el trabajo pendiente sea fácil de identificar de un vistazo. El mismo rojo se reutiliza en el pill de estado y en el badge del sidebar — es la única señal visual que SleakOps usa para "acción con deadline".
+
+Filtrá la tabla por **State** (Pending, In Progress, Completed, Error), **Account** o **Model** (el tipo de recurso al que apunta el upgrade) desde la barra superior. Los deep-links desde otras secciones (por ejemplo, desde un Cluster específico) llegan con el filtro aplicado.
+
+## Estados
+
+| **Estado** | **Significado** |
+|---|---|
+| **Pending** | Agendado pero no iniciado. Lo podés ejecutar ahora o mover su fecha. |
+| **Running** | Ejecución en curso. El upgrade no se puede cancelar ni reprogramar. |
+| **Completed** | Terminó con éxito. No requiere acción adicional. |
+| **Error** | La ejecución falló. El error se muestra en el drawer y podés reintentar desde el panel sin esperar a SleakOps. |
+
+Transiciones: `Pending → Running → Completed`. Desde `Running`, ante un fallo, el upgrade cae a `Error`; desde `Error` podés reintentar y vuelve a `Running`.
+
+## Ejecutar un upgrade
+
+Podés ejecutar un upgrade Pending o Error de dos maneras:
+
+1. **Desde la lista** — clic en el ícono verde de play en la columna Actions.
+2. **Desde el drawer** — abrí el upgrade y clic en el botón **Execute** del header. El popover deja elegir **Execute Now** o modificar la fecha programada.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./upgrades/upgrades-execute-popover.png").default}
+    alt="execute-popover"
+  />
+</Zoom>
+
+Elegir **Execute Now** abre un modal de confirmación. Cuando el upgrade tiene prerequisites, aparecen como banner de advertencia dentro del modal — completá esos pasos manuales antes de confirmar.
+
+{/* TODO: screenshot - modal de confirmación de Execute con el banner de advertencia de prerequisites. Requiere un MigrationType con prerequisites configurados. */}
+
+El botón Execute aparece deshabilitado cuando se cumple alguna de estas condiciones:
+
+- Tu rol no está autorizado para este tipo de upgrade.
+- El upgrade ya está Running o Completed.
+- Existe un **upgrade Pending más antiguo y de otro tipo** sobre la misma cuenta — ese tiene que terminar primero.
+- La suscripción de tu empresa no está activa (el upgrade queda bloqueado).
+
+Una vez confirmado Execute Now, el upgrade se encola inmediatamente y no se puede detener.
+
+## Reprogramar un upgrade
+
+Los Admin y Editor pueden mover la fecha programada de un upgrade Pending o Error. Abrí el drawer, hacé clic en **Execute** en el header y usá la sección **Schedule** del popover — o hacé clic sobre el bloque de schedule dentro de la pestaña **Details**.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./upgrades/upgrades-drawer.png").default}
+    alt="upgrades-drawer-details"
+  />
+</Zoom>
+
+La nueva fecha tiene que caer dentro de `[ahora + 1 hora, deadline]`. El deadline es la **Limit Date** del tipo de upgrade — el día tras el cual SleakOps considera el upgrade vencido. El picker deshabilita todo lo que esté fuera de esa ventana.
+
+El orden cross-tipo se valida al reprogramar:
+
+- No podés mover la fecha **antes** de un upgrade Pending más antiguo y de otro tipo sobre la misma cuenta.
+- No podés mover la fecha **después** de un upgrade Pending más nuevo y de otro tipo sobre la misma cuenta.
+
+Los upgrades **del mismo tipo** sobre la misma cuenta no se restringen entre sí — los podés reordenar libremente.
+
+## El drawer del Upgrade
+
+Hacé clic en cualquier fila para abrir el drawer. Tiene dos pestañas:
+
+### Details
+
+- **Basic Information** — nombre de la entidad (cuando el upgrade apunta a un recurso específico), tipo de upgrade, cuenta, descripción, estado.
+- **Schedule** — Execution Date y Deadline (Limit Date). Hacé clic en la sección para editar el schedule en línea cuando tu rol lo permite.
+- **Metadata** — fecha de creación y parámetros adjuntos al upgrade.
+- **Activity Logs** — el trail de auditoría de este upgrade (ejecuciones, cambios de schedule), con usuario y timestamp de cada acción.
+
+### Instructions
+
+Sólo aparece cuando el tipo de upgrade trae prerequisites o postrequisites:
+
+- **Prerequisites** — pasos numerados a completar antes de ejecutar.
+- **Post-Execution Steps** — pasos a verificar después de que el upgrade termine.
+
+Mientras el upgrade esté Pending, el label de la pestaña **Instructions** se pone naranja para recordarte que la leas antes de ejecutar. Desde la lista, un ícono de checklist al lado del botón Execute en la columna Actions abre el drawer directamente en esa pestaña.
+
+{/* TODO: screenshot - drawer con la pestaña Instructions abierta mostrando prerequisites numerados y pasos post-ejecución. Requiere un MigrationType con prerequisites/postrequisites configurados. */}
+
+## Permisos
+
+| **Acción** | **Admin** | **Editor** (cuentas asignadas) | **Viewer** (cuentas asignadas) |
+|---|---|---|---|
+| Ver upgrades | Sí | Sí | Sí |
+| Ejecutar un upgrade | Sí | Sí | No |
+| Reprogramar un upgrade | Sí | Sí | No |
+
+Cada tipo de upgrade puede restringir aún más quién puede ejecutarlo o reprogramarlo — Viewer **nunca** está permitido. Cuando tu rol no autoriza una acción, los controles quedan deshabilitados y el tooltip explica por qué.
+
+## Cuando un upgrade falla
+
+Cuando el equipo de SleakOps lanza un upgrade, cada evento relevante — inicio, finalización, fallo — deja una notificación en tu inbox in-app. Ante un fallo, el upgrade pasa al estado **Error**, el drawer muestra el mensaje de error arriba de la pestaña Details, y el equipo de SleakOps es alertado automáticamente.
+
+No tenés que esperar a que SleakOps actúe. Abrí el upgrade, leé el error y hacé clic en **Execute** otra vez desde el drawer. El retry corre el mismo upgrade con los mismos parámetros. Una vez resuelto el problema subyacente, el retry va a tener éxito.
+
+SleakOps no hace rollback automático. Si un upgrade debe deshacerse, contactá a soporte.
 
 ## Preguntas frecuentes
 
 <details>
 <summary>
-### ¿Dónde encuentro Upgrades?
+### ¿Por qué no puedo crear un upgrade?
 </summary>
-Upgrades es accesible directamente desde la barra lateral principal bajo **Upgrades** (`/migrations/`). También es accesible desde **Settings → Upgrades**.
-
-La página muestra una tabla con todos los upgrades programados y completados, filtrados por cuenta.
+SleakOps define y agenda los upgrades de forma centralizada. Vos ves los upgrades que la plataforma encola para tus cuentas y decidís **cuándo** dentro de la ventana permitida — ejecutar ya o mover la fecha dentro de `[hoy, deadline]`. La creación de tipos de upgrade queda reservada al equipo de SleakOps.
 </details>
 
 <details>
 <summary>
-### ¿Qué información muestra la tabla de Upgrades?
+### ¿Puedo cancelar un upgrade agendado?
 </summary>
-Cada fila de la tabla muestra:
-
-| **Columna** | **Descripción** |
-|---|---|
-| **Upgrade** | El tipo de actualización a aplicar |
-| **Account** | La cuenta que es objetivo del upgrade |
-| **Execution Date** | Cuándo está programado para ejecutarse |
-| **Actions** | Acciones disponibles para ese upgrade |
-
-Usá el filtro **Select an account** en la parte superior izquierda para ver resultados de una cuenta específica.
+No. La cancelación no está disponible — todo upgrade encolado va a correrse eventualmente. Lo que sí podés hacer es reprogramarlo dentro de la ventana permitida o, cuando se acerca el deadline, ejecutarlo antes en un momento que se acomode a tu ventana de mantenimiento. Si un cambio puntual deja de ser relevante para tu cuenta, contactá al equipo de SleakOps.
 </details>
 
 <details>
 <summary>
-### ¿Cómo programo un upgrade?
+### ¿Cuál es la diferencia entre "Pending" y "Running"?
 </summary>
-Usá la barra de búsqueda (⌘K) o el botón **Upgrade** en la parte superior de la lista para crear un nuevo upgrade programado. Seleccioná la cuenta objetivo y configurá la fecha de ejecución.
-
-{/* TODO: screenshot - Formulario de nuevo upgrade mostrando selección de cuenta y selector de fecha de ejecución */}
+**Pending** significa que el upgrade está encolado pero no arrancó — todavía controlás el timing. **Running** significa que la ejecución empezó y la plataforma toma el control; desde ese punto no se puede cancelar ni reprogramar.
 </details>
 
 <details>
 <summary>
-### ¿Puedo actualizar múltiples entornos a la vez?
+### Mi upgrade está bloqueado — ¿qué significa "scheduling locked"?
 </summary>
-Podés programar upgrades en múltiples cuentas y entornos, pero los upgrades se ejecutan en secuencia por defecto para reducir el radio de impacto. El flujo recomendado es actualizar staging primero, validar el resultado y luego programar producción.
+Cuando una empresa no tiene suscripción activa de SleakOps, sus upgrades se conservan en la lista para auditoría pero no se pueden ejecutar ni reprogramar. Un banner de advertencia se muestra dentro del drawer. Reactivá la suscripción para desbloquearlos.
 </details>
 
 <details>
 <summary>
-### ¿Qué sucede durante un upgrade?
+### ¿Por qué Execute está deshabilitado si el upgrade está Pending?
 </summary>
-SleakOps actualiza los recursos en una secuencia controlada para minimizar el tiempo de inactividad. Si un paso falla, el upgrade se detiene y la consola muestra el error con contexto sobre qué hacer a continuación.
-
-Para upgrades de cluster la secuencia es: primero el control plane, luego los node groups de a uno — los workloads existentes son drenados y reprogramados antes de reemplazar cada nodo.
+Hay varias razones que pueden deshabilitar el botón Execute: tu rol no está autorizado para este tipo de upgrade, la suscripción de la empresa no está activa, o existe un **upgrade Pending más antiguo y de otro tipo** sobre la misma cuenta que debe completarse primero. Pasá el cursor sobre el botón para ver el caso aplicable.
 </details>
 
 <details>
 <summary>
-### ¿Puedo cancelar un upgrade programado?
+### ¿Cómo veo quién ejecutó o reprogramó un upgrade?
 </summary>
-Sí. Los upgrades programados que aún no iniciaron pueden cancelarse desde la columna Actions en la tabla de Upgrades. Una vez que un upgrade está en progreso no puede revertirse automáticamente — contactá a soporte si necesitás detener un upgrade activo.
+Abrí la pestaña **Details** del drawer y bajá hasta **Activity Logs**. Cada ejecución y cada cambio de schedule queda registrado con el usuario que lo accionó y el timestamp.
+</details>
+
+<details>
+<summary>
+### ¿Son lo mismo que las migrations de base de datos de Django?
+</summary>
+No. "Upgrades" acá se refiere a **cambios de infraestructura** que SleakOps aplica sobre tus recursos AWS/Kubernetes — actualizaciones de versión, cambios de configuración, reorganización de recursos. Las migrations de base de datos de la aplicación viven en tu código y corren como parte de tus deployments.
 </details>
