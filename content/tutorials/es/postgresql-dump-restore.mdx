@@ -37,7 +37,7 @@ Antes de comenzar, creá un snapshot manual de la RDS. Seguí la [documentación
 Ejecutá este comando desde cualquier máquina con acceso de red a la base de datos origen. Pedirá la contraseña:
 
 ```bash
-pg_dump -h POSTGRESQL_ADDRESS -U POSTGRESQL_USERNAME -W > dump.sql
+pg_dump -h POSTGRESQL_ADDRESS -U POSTGRESQL_USERNAME -W -Fc -f dump.dump
 ```
 
 Para opciones detalladas, consultá la [documentación de la Dependency PostgreSQL de SleakOps](/docs/project/dependency/postgresql-aws#how-do-i-create-a-postgresql-database-dump).
@@ -75,7 +75,7 @@ pg_restore -j 8 -O -v -e --clean --if-exists --no-owner --no-privileges \
   -U POSTGRESQL_USERNAME \
   -W \
   -d POSTGRESQL_DATABASE \
-  {PATH_TO_DUMP}
+  dump.dump
 ```
 
 El flag `-j 8` usa 8 workers en paralelo para acelerar la restauración. Ajustá según el CPU disponible.

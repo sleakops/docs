@@ -73,8 +73,9 @@ spec:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
   storageClassName: ebs-csi-default-sc
-  awsElasticBlockStore:
-    volumeID: $volume_id
+  csi:
+    driver: ebs.csi.aws.com
+    volumeHandle: $volume_id
     fsType: ext4
 ---
 apiVersion: v1

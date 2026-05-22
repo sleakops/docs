@@ -47,6 +47,7 @@ Save the following script as `transfer.sh`, customize the variables at the top, 
 
 ```bash
 #!/bin/bash
+set -euo pipefail
 
 SOURCE_CONTEXT="source-context"      # kubectl context for the source cluster
 TARGET_CONTEXT="target-context"      # kubectl context for the target cluster
@@ -61,25 +62,13 @@ TARGET_PATH="/path/in/target-pod"
 TEMP_LOCAL_DIR="/tmp/k8s-transfer"
 
 # Copy from source pod to local machine
-kubectl config use-context $SOURCE_CONTEXT
 echo "Copying files from $SOURCE_POD..."
 mkdir -p $TEMP_LOCAL_DIR
-kubectl cp $SOURCE_NAMESPACE/$SOURCE_POD:$SOURCE_PATH $TEMP_LOCAL_DIR
-
-if [ $? -ne 0 ]; then
-  echo "Error: failed to copy from source pod."
-  exit 1
-fi
+kubectl --context="$SOURCE_CONTEXT" cp $SOURCE_NAMESPACE/$SOURCE_POD:$SOURCE_PATH $TEMP_LOCAL_DIR
 
 # Copy from local machine to target pod
-kubectl config use-context $TARGET_CONTEXT
 echo "Copying files to $TARGET_POD..."
-kubectl cp $TEMP_LOCAL_DIR/. $TARGET_NAMESPACE/$TARGET_POD:$TARGET_PATH
-
-if [ $? -ne 0 ]; then
-  echo "Error: failed to copy to target pod."
-  exit 1
-fi
+kubectl --context="$TARGET_CONTEXT" cp $TEMP_LOCAL_DIR/. $TARGET_NAMESPACE/$TARGET_POD:$TARGET_PATH
 
 # Clean up
 rm -rf $TEMP_LOCAL_DIR
