@@ -47,7 +47,7 @@ Create `newrelic.js` in the root of your project:
 ```javascript
 exports.config = {
   app_name: ['Your App Name'],
-  license_key: 'your-license-key',
+  license_key: process.env.NEW_RELIC_LICENSE_KEY,
   logging: {
     level: 'info',
   },
@@ -71,7 +71,8 @@ pip install newrelic
 Generate a config file:
 
 ```bash
-newrelic-admin generate-config YOUR_LICENSE_KEY newrelic.ini
+export NEW_RELIC_LICENSE_KEY=your-license-key
+newrelic-admin generate-config $NEW_RELIC_LICENSE_KEY newrelic.ini
 ```
 
 Run your app through the agent:
