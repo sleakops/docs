@@ -1,7 +1,132 @@
 ---
 title: Headlamp
 sidebar_label: Headlamp
-sidebar_position: null
+sidebar_position: 5
 ---
 
-Headlamp
+import Zoom from "react-medium-image-zoom";
+import { FiExternalLink } from "react-icons/fi";
+
+# Headlamp
+
+[Headlamp <FiExternalLink/>](https://headlamp.dev/docs/latest/) es un Addon que ofrece una interfaz web para explorar y administrar los recursos de Kubernetes de tu Clúster — Pods, Deployments, Nodos, Namespaces, ConfigMaps, Events y más — sin salir del navegador. SleakOps despliega Headlamp dentro del Clúster, lo expone detrás de la VPN de SleakOps, y emite un token de acceso de corta duración que refleja los permisos del usuario logueado en SleakOps.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./headlamp/headlamp-ui.png").default}
+    alt="headlamp-ui"
+  />
+</Zoom>
+
+:::info Beta
+El addon de Headlamp se encuentra en **Beta**. El flujo de instalación y acceso es estable, pero las opciones de configuración subyacentes pueden seguir evolucionando.
+:::
+
+## Preguntas Frecuentes
+
+<details>
+<summary>
+### ¿Qué es Headlamp y cuándo conviene usarlo?
+</summary>
+Headlamp es una interfaz web de código abierto para Kubernetes mantenida por la CNCF. En SleakOps es la manera recomendada de inspeccionar el estado de un Clúster desde el navegador sin necesidad de instalar `kubectl` localmente. Casos típicos de uso:
+
+- Inspeccionar el estado de Pods y Deployments mientras se debuggea una release que falló.
+- Leer logs de contenedores y Events para un Namespace específico.
+- Revisar la capacidad de los Nodos y los workloads asignados a cada uno.
+- Aplicar ediciones puntuales de YAML respetando los mismos permisos RBAC que tu usuario de SleakOps.
+
+Para métricas puras usá [Grafana](/docs/cluster/addons/grafana). Para análisis de costos usá [Kubecost](/docs/cluster/addons/kubecost). Headlamp se enfoca en el grafo de recursos en vivo del Clúster.
+</details>
+
+<details>
+<summary>
+### ¿Cómo instalo Headlamp en mi Clúster?
+</summary>
+Desde la consola de SleakOps:
+
+1. Abrí la sección **Clusters** y localizá el Clúster destino.
+2. Hacé clic en **Manage Addons** en la tarjeta del Clúster.
+3. En la lista de addons buscá **Headlamp** y abrí su panel de detalle.
+4. Revisá la configuración y hacé clic en **Install**.
+
+La configuración por defecto es suficiente para la mayoría de los clústeres — Headlamp viene con su propio Ingress, Service y bindings de RBAC, todo conectado por SleakOps.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./headlamp/headlamp-detail.png").default}
+    alt="headlamp-install-form"
+  />
+</Zoom>
+</details>
+
+<details>
+<summary>
+### ¿Cómo accedo a Headlamp una vez instalado?
+</summary>
+Una vez que Headlamp está instalado, la tarjeta del Clúster muestra un pequeño ícono de Headlamp junto a los demás addons:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./headlamp/headlamp-installed-card.png").default}
+    alt="headlamp-installed-card"
+  />
+</Zoom>
+
+Al hacer clic en ese ícono se abre el diálogo **Headlamp Access**, que te guía por tres pasos:
+
+1. **Conectarte a la VPN.** Headlamp vive detrás de la red del Clúster. Usá el botón **Get Pritunl Credentials** para obtener el perfil de VPN si todavía no lo tenés.
+2. **Obtener el token de acceso.** SleakOps genera un token nuevo asociado a tu usuario. Vas a ver un check verde cuando el token esté listo.
+3. **Abrir Headlamp.** Hacé clic en **Open Headlamp** para abrir el dashboard en una nueva pestaña y pegá el token en el campo **ID token** que aparece en la pantalla de login de Headlamp.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./headlamp/headlamp-token-dialog.png").default}
+    alt="headlamp-token-dialog"
+  />
+</Zoom>
+</details>
+
+<details>
+<summary>
+### ¿Por qué tengo que conectarme a la VPN?
+</summary>
+El endpoint de Headlamp **no está expuesto públicamente**. Escucha en un hostname privado dentro de la red del Clúster para que la superficie de la API de Kubernetes — logs de Pods, Secrets, RBAC, exec — nunca sea accesible desde internet. La misma VPN de SleakOps que protege a [Grafana](/docs/cluster/addons/grafana) y a otras herramientas internas del clúster es la que hace que la URL de Headlamp sea resolvible desde tu máquina.
+
+Si el token se genera pero el dashboard no carga, lo primero a revisar es la conexión a la VPN. Mirá la [documentación de VPN](/docs/user/vpn) para detalles de configuración.
+</details>
+
+<details>
+<summary>
+### ¿Cuánto tiempo es válido el token de acceso?
+</summary>
+El token es **de corta duración**. Se emite bajo demanda cada vez que abrís el diálogo de acceso y expira tras una ventana corta — suficiente para una sesión de debugging, pero lo bastante breve como para que un token compartido por accidente no pueda usarse de forma indefinida.
+
+Si tu sesión de Headlamp empieza a devolver errores de autenticación, cerrá la pestaña del dashboard, reabrí el diálogo desde la consola de SleakOps, copiá el nuevo token y pegalo otra vez. SleakOps emite uno nuevo sin pasos adicionales.
+</details>
+
+<details>
+<summary>
+### ¿Qué significa "acceso con scope por rol"?
+</summary>
+El token que genera SleakOps está atado a una ServiceAccount de Kubernetes cuyos bindings de RBAC reflejan los permisos de tu rol en SleakOps. En la práctica esto significa que un usuario `viewer` de SleakOps entra a una sesión de Headlamp que puede leer recursos pero no editar, eliminar ni hacer exec en Pods, mientras que un usuario `admin` obtiene el conjunto completo de verbos de administración.
+
+Como el binding vive en el Clúster, la restricción se mantiene incluso si el token se reutiliza fuera de la consola de SleakOps — Headlamp por sí solo no concede permisos adicionales más allá de los que el token ya trae.
+</details>
+
+<details>
+<summary>
+### ¿Puedo personalizar el deployment de Headlamp?
+</summary>
+Sí. La configuración del addon expone un switch **Enable Custom Values**. Al activarlo aparece un editor YAML donde podés sobreescribir cualquier valor soportado por el Helm chart upstream de Headlamp (por ejemplo `baseURL`, anotaciones del Ingress, plugins, cantidad de réplicas).
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./headlamp/headlamp-install-form.png").default}
+    alt="headlamp-install-form-custom-values"
+  />
+</Zoom>
+
+:::warning Usar con precaución
+Los Custom Values sobreescriben los defaults que SleakOps valida como parte del addon. Valores mal configurados pueden romper el deployment, el Ingress o el flujo de autenticación por token. Mantené el diff chico y modificá únicamente las claves que entendés. Consultá los [valores oficiales del chart de Headlamp <FiExternalLink/>](https://github.com/headlamp-k8s/headlamp/blob/main/charts/headlamp/values.yaml) para la referencia completa.
+:::
+</details>

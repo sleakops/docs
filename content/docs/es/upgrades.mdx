@@ -1,0 +1,162 @@
+---
+title: Upgrades
+sidebar_label: Upgrades
+sidebar_position: 15
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Upgrades
+
+Upgrades es donde SleakOps muestra los cambios de infraestructura que la plataforma planea aplicar sobre tus cuentas — actualizaciones de versión, cambios de configuración, reorganización de recursos. Revisá lo que está agendado, leé los pasos manuales que requiere cada upgrade, ejecutalo antes de su fecha programada o movelo dentro de la ventana permitida.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./upgrades/upgrades-list.png").default}
+    alt="upgrades-list"
+  />
+</Zoom>
+
+:::info
+Los upgrades los crea SleakOps. Vos actuás sobre los que ya están encolados para tus cuentas — no se pueden crear ni cancelar desde el panel.
+:::
+
+## Dónde encontrar Upgrades
+
+Upgrades vive en `/upgrades/` y tiene una entrada dedicada en el footer del sidebar para usuarios Admin y Editor.
+
+Cuando hay al menos un upgrade **Pending**, el ícono del sidebar se vuelve rojo y muestra un contador con la cantidad de upgrades pendientes en todas las cuentas.
+
+## Leer la tabla de Upgrades
+
+La lista muestra los upgrades de todas las cuentas a las que tu rol tiene acceso — ignora la cuenta seleccionada en la barra superior.
+
+| **Columna** | **Descripción** |
+|---|---|
+| **Upgrade** | Título y estado actual. Cuando el upgrade apunta a un recurso específico (Cluster, NodePool, Service), su ícono y nombre aparecen debajo del título. |
+| **Account** | La cuenta sobre la que se va a ejecutar el upgrade. |
+| **Execution Date** | Fecha programada mientras esté Pending, momento real de ejecución en los demás estados. Pasá el cursor para ver el timestamp exacto. |
+| **Actions** | Ver detalle, Ejecutar y (cuando aplica) Revisar instrucciones. |
+
+Filtrá la tabla por **State** (Pending, In Progress, Completed, Error), **Account** o **Model** desde la barra superior. Los deep-links desde otras secciones (por ejemplo, desde un Cluster específico) llegan con el filtro aplicado.
+
+## Estados
+
+| **Estado** | **Significado** |
+|---|---|
+| **Pending** | Agendado pero no iniciado. Lo podés ejecutar ahora o mover su fecha. |
+| **Running** | Ejecución en curso. El upgrade no se puede cancelar ni reprogramar. |
+| **Completed** | Terminó con éxito. |
+| **Error** | La ejecución falló. El drawer muestra el error y podés reintentar desde el panel. |
+
+Transiciones: `Pending → Running → Completed`. Desde `Running`, ante un fallo el upgrade cae a `Error`; desde `Error` podés reintentar y vuelve a `Running`.
+
+## Ejecutar un upgrade
+
+Dos maneras:
+
+1. **Desde la lista** — clic en el ícono verde de play en la columna Actions.
+2. **Desde el drawer** — abrí el upgrade y clic en **Execute** en el header. El popover deja elegir **Execute Now** o modificar la fecha programada.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./upgrades/upgrades-execute-popover.png").default}
+    alt="execute-popover"
+  />
+</Zoom>
+
+Elegir **Execute Now** abre un modal de confirmación. Cuando el upgrade tiene prerequisites, aparecen como banner de advertencia dentro del modal — completá esos pasos manuales antes de confirmar.
+
+{/* TODO: screenshot - modal de confirmación de Execute con el banner de advertencia de prerequisites. Requiere un MigrationType con prerequisites configurados. */}
+
+El botón Execute aparece deshabilitado cuando:
+
+- Tu rol no está autorizado para este tipo de upgrade.
+- El upgrade ya está Running o Completed.
+- Existe un **upgrade Pending más antiguo y de otro tipo** sobre la misma cuenta — ese tiene que terminar primero.
+- La suscripción de tu empresa no está activa.
+
+Una vez confirmado, el upgrade se encola inmediatamente y no se puede detener.
+
+## Reprogramar un upgrade
+
+Abrí el drawer, clic en **Execute** en el header y usá la sección **Schedule** del popover — o clic sobre el bloque de schedule dentro de la pestaña **Details**.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./upgrades/upgrades-drawer.png").default}
+    alt="upgrades-drawer-details"
+  />
+</Zoom>
+
+La nueva fecha debe caer dentro de `[ahora + 1 hora, deadline]`, donde el deadline es la **Limit Date** del tipo de upgrade. El picker deshabilita todo lo que esté fuera de esa ventana.
+
+Cuando tenés varios upgrades Pending de distintos tipos sobre la misma cuenta, podés reordenar libremente los upgrades del mismo tipo, pero no podés moverlo cruzando uno de otro tipo — su posición relativa queda fija.
+
+## El drawer del Upgrade
+
+Hacé clic en cualquier fila para abrir el drawer. Tiene dos pestañas:
+
+### Details
+
+Información básica (nombre de la entidad, tipo, cuenta, descripción, estado), schedule (Execution Date y Deadline, editables en línea), metadata (fecha de creación, parámetros) y el activity log — cada ejecución y cada cambio de schedule con usuario y timestamp.
+
+### Instructions
+
+Sólo aparece cuando el tipo de upgrade trae prerequisites o postrequisites — pasos numerados a completar antes de ejecutar y pasos a verificar después de que termine.
+
+Mientras el upgrade esté Pending, el label de la pestaña **Instructions** se pone naranja para recordarte que la leas antes de ejecutar. Desde la lista, un ícono de checklist al lado del botón Execute abre el drawer directamente en esa pestaña.
+
+{/* TODO: screenshot - drawer con la pestaña Instructions abierta mostrando prerequisites numerados y pasos post-ejecución. Requiere un MigrationType con prerequisites/postrequisites configurados. */}
+
+## Cuando un upgrade falla
+
+Ante un fallo, el upgrade pasa al estado **Error** y el drawer muestra el mensaje arriba de la pestaña Details. Abrí el upgrade y hacé clic en **Execute** de nuevo para reintentar — el retry corre la misma operación con los mismos parámetros.
+
+SleakOps no hace rollback automático. Si un upgrade debe deshacerse, contactá a soporte.
+
+## Preguntas frecuentes
+
+<details>
+<summary>
+### ¿Por qué no puedo crear un upgrade?
+</summary>
+SleakOps define y agenda los upgrades de forma centralizada. Vos ves los upgrades que la plataforma encola para tus cuentas y decidís **cuándo** dentro de la ventana permitida — ejecutar ya o mover la fecha dentro de `[hoy, deadline]`. La creación de tipos de upgrade queda reservada al equipo de SleakOps.
+</details>
+
+<details>
+<summary>
+### ¿Puedo cancelar un upgrade agendado?
+</summary>
+No. La cancelación no está disponible — todo upgrade encolado va a correrse eventualmente. Lo que sí podés hacer es reprogramarlo dentro de la ventana permitida o, cuando se acerca el deadline, ejecutarlo antes en un momento que se acomode a tu ventana de mantenimiento. Si un cambio puntual deja de ser relevante para tu cuenta, contactá al equipo de SleakOps.
+</details>
+
+<details>
+<summary>
+### ¿Cuál es la diferencia entre "Pending" y "Running"?
+</summary>
+**Pending** significa que el upgrade está encolado pero no arrancó — todavía controlás el timing. **Running** significa que la ejecución empezó y la plataforma toma el control; desde ese punto no se puede cancelar ni reprogramar.
+</details>
+
+<details>
+<summary>
+### Mi upgrade está bloqueado — ¿qué significa "scheduling locked"?
+</summary>
+Cuando una empresa no tiene suscripción activa de SleakOps, sus upgrades se conservan en la lista para auditoría pero no se pueden ejecutar ni reprogramar. Un banner de advertencia se muestra dentro del drawer. Reactivá la suscripción para desbloquearlos.
+</details>
+
+<details>
+<summary>
+### ¿Cómo veo quién ejecutó o reprogramó un upgrade?
+</summary>
+Abrí la pestaña **Details** del drawer y bajá hasta **Activity Logs**. Cada ejecución y cada cambio de schedule queda registrado con el usuario que lo accionó y el timestamp.
+</details>
+
+<details>
+<summary>
+### ¿Son lo mismo que las migrations de base de datos de Django?
+</summary>
+No. "Upgrades" acá se refiere a **cambios de infraestructura** que SleakOps aplica sobre tus recursos AWS/Kubernetes — actualizaciones de versión, cambios de configuración, reorganización de recursos. Las migrations de base de datos de la aplicación viven en tu código y corren como parte de tus deployments.
+</details>

@@ -1,0 +1,96 @@
+---
+title: Dockertron
+sidebar_label: Dockertron
+sidebar_position: 2
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Dockertron
+
+Dockertron analiza tu repositorio y genera todo lo necesario para correr tu aplicación en SleakOps: Dockerfiles listos para producción, una configuración de docker-compose y el modelo completo de infraestructura — sin escribir archivos de configuración ni copiar templates.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./dockertron/dockertron-executions.png").default}
+    alt="dockertron-executions-list"
+  />
+</Zoom>
+
+:::info Beta
+Dockertron está actualmente en **Beta**. El flujo central de generación es estable; la superficie de configuración y el formato de salida pueden seguir evolucionando.
+:::
+
+## Preguntas frecuentes
+
+<details>
+<summary>
+### ¿Dónde encuentro Dockertron?
+</summary>
+Dockertron es accesible desde **Projects** en la barra lateral principal. Navegá a **Projects → Dockertron Executions** (`/dockertron/`). La página lista todas las ejecuciones anteriores con su repositorio, rama, estado y fecha de creación.
+
+Hacé clic en **Dockertron IA** para iniciar una nueva ejecución.
+</details>
+
+<details>
+<summary>
+### ¿Cómo inicio una ejecución de Dockertron?
+</summary>
+1. Navegá a **Projects → Dockertron Executions** en la barra lateral.
+2. Hacé clic en **Dockertron IA**.
+3. Completá el formulario de dos pasos:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./dockertron/dockertron-ia-form.png").default}
+    alt="dockertron-ia-form"
+  />
+</Zoom>
+
+**Paso 1 — Project Source:** Seleccioná el repositorio privado y la rama a analizar.
+
+**Paso 2 — Quiz Details:** Proporcioná contexto adicional para refinar la generación (lenguaje, framework, configuraciones especiales).
+
+4. Hacé clic en **Generate projects with AI**.
+
+:::info
+Solo los repositorios privados están disponibles para ejecuciones de Dockertron.
+:::
+</details>
+
+<details>
+<summary>
+### ¿Qué genera Dockertron?
+</summary>
+Para cada repositorio que procesa, Dockertron produce:
+
+- Un **Dockerfile** por servicio detectado, optimizado para producción (imagen base, dependencias, healthchecks, comando de inicio)
+- Un **docker-compose.yml** que conecta todos los servicios
+- El **modelo de infraestructura de SleakOps** — workloads, dependencias y variables de entorno listos para importar en la consola
+- Un **README** con instrucciones para correr el proyecto localmente
+
+Todos los archivos se entregan mediante un Pull Request en tu repositorio para que puedas revisar cada cambio antes de hacer el merge.
+</details>
+
+<details>
+<summary>
+### ¿Qué lenguajes y frameworks son compatibles?
+</summary>
+Dockertron funciona con cualquier lenguaje y framework — vos proporcionás el contexto en el paso Quiz Details. Ha sido ampliamente probado con Python (Django, FastAPI, Flask), Node.js (Express, Next.js), Go, Java (Spring Boot) y Ruby on Rails.
+</details>
+
+<details>
+<summary>
+### ¿Cuánto tarda una ejecución?
+</summary>
+Generalmente entre 5 y 30 minutos dependiendo del tamaño y la complejidad del repositorio. Recibirás una notificación cuando el Pull Request esté listo.
+</details>
+
+<details>
+<summary>
+### ¿Puedo modificar los archivos generados?
+</summary>
+Sí. Todo lo que genera Dockertron llega como un Pull Request — podés revisar, editar y solicitar cambios antes de hacer el merge. Los archivos generados son configuración Docker estándar, así que podés ajustarlos como cualquier otro Dockerfile o docker-compose.
+</details>
