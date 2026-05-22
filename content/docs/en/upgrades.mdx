@@ -10,7 +10,7 @@ import { FiExternalLink } from "react-icons/fi";
 
 # Upgrades
 
-Upgrades is where SleakOps surfaces infrastructure changes the platform plans to apply to your accounts — version bumps, configuration updates, resource reorganizations. You can review what's scheduled for your company, read the manual steps each one requires, trigger an upgrade ahead of its scheduled date, or move it inside the allowed window.
+Upgrades is where SleakOps surfaces infrastructure changes the platform plans to apply to your accounts — version bumps, configuration updates, resource reorganizations. Review what's scheduled, read the manual steps each one requires, run an upgrade ahead of its date, or move it inside the allowed window.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -20,29 +20,27 @@ Upgrades is where SleakOps surfaces infrastructure changes the platform plans to
 </Zoom>
 
 :::info
-Upgrades are created by SleakOps. Customers cannot create upgrade types or schedule new upgrades from the panel — you act on the ones SleakOps queues for your accounts.
+Upgrades are created by SleakOps. You act on the ones queued for your accounts — you can't create or cancel them from the panel.
 :::
 
 ## Where to find Upgrades
 
-Upgrades live at `/upgrades/` and have a dedicated entry in the sidebar footer, next to the notifications button. The entry is visible to **Admin** and **Editor** users; Viewers can still reach the page directly via URL when their company has the feature enabled.
+Upgrades live at `/upgrades/`, with a dedicated entry in the sidebar footer for Admin and Editor users.
 
-When at least one upgrade is **Pending** for your company, the sidebar icon turns red, animates briefly, and displays a counter with the number of pending upgrades across every account.
+When at least one upgrade is **Pending**, the sidebar icon turns red and shows a counter with the number of pending upgrades across every account.
 
 ## Reading the Upgrades list
 
-The list always shows upgrades across **every account you can access**, regardless of the account currently selected in the top bar. Admins see the whole company; Editors and Viewers see the upgrades for the accounts they've been assigned to.
+The list shows upgrades across every account your role can access — it ignores the account selected in the top bar.
 
 | **Column** | **Description** |
 |---|---|
-| **Upgrade** | The upgrade title and its current state. When the upgrade targets a specific resource (a Cluster, a NodePool, a Service), its model icon and name are shown directly under the title. |
+| **Upgrade** | Title and current state. When the upgrade targets a specific resource (Cluster, NodePool, Service), its icon and name appear under the title. |
 | **Account** | The account the upgrade will run against. |
-| **Execution Date** | Relative time — **scheduled date** while the upgrade is Pending, **actual execution time** for every other state. Hover the value to see the exact timestamp. |
+| **Execution Date** | Scheduled date while Pending, actual execution time otherwise. Hover for the exact timestamp. |
 | **Actions** | View details, Execute, and (when applicable) Review instructions. |
 
-Pending rows are tinted a subtle red to make outstanding work easier to scan at a glance. The same red is reused on the state pill and the sidebar badge — it's the single visual cue SleakOps uses for "deadline-bound action required".
-
-Filter the list by **State** (Pending, In Progress, Completed, Error), **Account**, or **Model** (the type of resource the upgrade targets) from the toolbar at the top of the table. Deep links from other sections (for example, from a specific Cluster) arrive with the relevant filter pre-applied.
+Filter the list by **State** (Pending, In Progress, Completed, Error), **Account**, or **Model** from the toolbar. Deep links from other sections (e.g. from a specific Cluster) arrive with the filter pre-applied.
 
 ## States
 
@@ -50,17 +48,17 @@ Filter the list by **State** (Pending, In Progress, Completed, Error), **Account
 |---|---|
 | **Pending** | Scheduled but not yet started. You can execute it now or move its scheduled date. |
 | **Running** | Execution is in progress. The upgrade can't be cancelled or rescheduled. |
-| **Completed** | Finished successfully. No further action needed. |
-| **Error** | Execution failed. The error is shown in the drawer and you can retry from the panel without waiting for SleakOps. |
+| **Completed** | Finished successfully. |
+| **Error** | Execution failed. The drawer shows the error, and you can retry from the panel. |
 
-Transitions: `Pending → Running → Completed`. From `Running`, on failure, the upgrade lands in `Error`; from `Error` you can retry, which moves it back to `Running`.
+Transitions: `Pending → Running → Completed`. From `Running`, on failure the upgrade lands in `Error`; from `Error` you can retry, which moves it back to `Running`.
 
 ## Executing an upgrade
 
-You can execute a Pending or Error upgrade in two ways:
+Two ways:
 
 1. **From the list** — click the green play icon in the row's Actions column.
-2. **From the drawer** — open the upgrade and click the **Execute** button in the header. A popover lets you pick **Execute Now** or update the schedule.
+2. **From the drawer** — open the upgrade and click **Execute** in the header. A popover lets you pick **Execute Now** or update the schedule.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -73,18 +71,18 @@ Choosing **Execute Now** opens a confirmation modal. When the upgrade has prereq
 
 {/* TODO: screenshot - execute confirmation modal with the prerequisites warning banner. Requires a MigrationType with prerequisites set. */}
 
-The Execute button is disabled when any of the following applies:
+The Execute button is disabled when:
 
 - Your role isn't authorized for this upgrade type.
 - The upgrade is already Running or Completed.
 - An **older Pending upgrade of a different type** exists on the same account — that one needs to clear first.
-- Your company's subscription is not active (the upgrade is locked).
+- Your company's subscription isn't active.
 
-Once Execute Now is confirmed, the upgrade is queued immediately and can't be stopped.
+Once confirmed, the upgrade is queued immediately and can't be stopped.
 
 ## Rescheduling an upgrade
 
-Admins and Editors can move the scheduled date for a Pending or Error upgrade. Open the drawer, click **Execute** in the header, and use the **Schedule** section of the popover — or click the schedule block inside the **Details** tab.
+Open the drawer, click **Execute** in the header, and use the **Schedule** section of the popover — or click the schedule block inside the **Details** tab.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -93,14 +91,9 @@ Admins and Editors can move the scheduled date for a Pending or Error upgrade. O
   />
 </Zoom>
 
-The new date must fall inside `[now + 1 hour, deadline]`. The deadline is the **Limit Date** of the upgrade type — the day after which SleakOps considers the upgrade overdue. The picker disables anything outside that window.
+The new date must fall inside `[now + 1 hour, deadline]`, where the deadline is the upgrade type's **Limit Date**. The picker disables anything outside that window.
 
-Cross-type ordering is enforced when you reschedule:
-
-- You can't push the date **before** another older Pending upgrade of a different type on the same account.
-- You can't push the date **after** a newer Pending upgrade of a different type on the same account.
-
-Upgrades **of the same type** on the same account don't constrain each other — you can reorder them freely.
+When you have several Pending upgrades of different types on the same account, you can reorder upgrades of the same type freely, but you can't move one across a different-type upgrade — its relative position is fixed.
 
 ## The Upgrade drawer
 
@@ -108,37 +101,19 @@ Click any row to open the drawer. It has two tabs:
 
 ### Details
 
-- **Basic Information** — entity name (when the upgrade targets a specific resource), upgrade type, account, description, state.
-- **Schedule** — Execution Date and Deadline (Limit Date). Click the section to edit the schedule inline when your role allows it.
-- **Metadata** — creation date and any parameters attached to the upgrade.
-- **Activity Logs** — the audit trail for this upgrade (executions, schedule changes), with the user and timestamp of each action.
+Basic information (entity name, type, account, description, state), schedule (Execution Date and Deadline, editable inline), metadata (creation date, parameters), and the activity log — every execution and every schedule change with user and timestamp.
 
 ### Instructions
 
-Only present when the upgrade type ships prerequisites or postrequisites:
+Only present when the upgrade type ships prerequisites or postrequisites — numbered steps to complete before executing and steps to verify after it completes.
 
-- **Prerequisites** — numbered steps to complete before executing.
-- **Post-Execution Steps** — steps to verify after the upgrade completes.
-
-While the upgrade is Pending, the **Instructions** tab label turns orange to remind you to read it before clicking Execute. From the list, a list icon next to the Execute button in the Actions column jumps straight into this tab.
+While the upgrade is Pending, the **Instructions** tab label turns orange to remind you to read it before clicking Execute. From the list, a list icon next to the Execute button jumps straight into this tab.
 
 {/* TODO: screenshot - drawer with Instructions tab open showing numbered prerequisites and post-execution steps. Requires a MigrationType with prerequisites/postrequisites set. */}
 
-## Permissions
-
-| **Action** | **Admin** | **Editor** (assigned accounts) | **Viewer** (assigned accounts) |
-|---|---|---|---|
-| See upgrades | Yes | Yes | Yes |
-| Execute an upgrade | Yes | Yes | No |
-| Reschedule an upgrade | Yes | Yes | No |
-
-Each upgrade type can further restrict who's allowed to execute or reschedule it — Viewers are never permitted. When your role isn't authorized for a given upgrade, the action controls are disabled and a tooltip explains why.
-
 ## When an upgrade fails
 
-When the SleakOps team rolls out an upgrade, every notable event — start, completion, failure — drops a notification in your in-app inbox. On failure, the upgrade enters the **Error** state, the drawer shows the error message at the top of the Details tab, and the SleakOps team is paged automatically.
-
-You don't have to wait for SleakOps to act. Open the upgrade, read the error, and click **Execute** again from the drawer. The retry runs the same upgrade with the same parameters. Once the underlying issue is fixed, the retry will succeed.
+On failure the upgrade enters the **Error** state and the drawer shows the message at the top of the Details tab. Open the upgrade and click **Execute** again to retry — the retry runs the same operation with the same parameters.
 
 SleakOps doesn't perform automatic rollbacks. If an upgrade needs to be undone, contact support.
 
@@ -170,13 +145,6 @@ No. Cancellation isn't available — every queued upgrade will eventually run. W
 ### My upgrade is locked — what does "scheduling locked" mean?
 </summary>
 When a company doesn't have an active SleakOps subscription, its upgrades are kept in the list for audit but cannot be executed or rescheduled. A warning banner is shown inside the drawer. Reactivate the subscription to unlock them.
-</details>
-
-<details>
-<summary>
-### Why is Execute disabled even though the upgrade is Pending?
-</summary>
-A few reasons can disable the Execute button: your role isn't authorized for this upgrade type, the company subscription isn't active, or there's an **older Pending upgrade of a different type** on the same account that needs to complete first. Hover the button to see which case applies.
 </details>
 
 <details>
