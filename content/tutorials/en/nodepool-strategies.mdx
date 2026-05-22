@@ -1,0 +1,155 @@
+---
+title: Nodepool Strategies in SleakOps
+sidebar_label: Nodepool Strategies
+sidebar_position: 47
+description: Learn how to configure nodepools in SleakOps to optimize costs, improve performance, and choose the right instance types for each workload.
+tags:
+  - kubernetes
+  - aws
+  - cost-optimization
+  - scaling
+  - performance
+image: /img/tutorials/nodepool-strategies/nodepool-strategies.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Learn how to configure nodepools in SleakOps to optimize costs, improve performance, and choose the right instance types for each workload.
+
+## What Is a nodepool?
+
+In SleakOps, a **nodepool** is a group of EC2 nodes within your Kubernetes cluster that share the same configuration — architecture, instance type, billing model, and resource limits. Karpenter manages autoscaling within each pool automatically.
+
+When you create a Cluster, SleakOps provisions a set of default nodepools:
+
+| **nodepool** | **Purpose** |
+|---|---|
+| `sleakops-build-arm64` / `sleakops-build-amd64` | Dedicated to project builds. Cannot be edited or deleted. |
+| `sleakops-core` | Runs SleakOps internal components and cluster addons. |
+| `ondemand-arm` / `ondemand-amd` | Ready-to-use On-Demand pools for your workloads. |
+| `spot-arm` / `spot-amd` | Ready-to-use Spot pools for your workloads. |
+
+Each Project Environment is assigned to one nodepool. The assignment can be changed at any time from the environment settings.
+
+---
+
+## Cost Optimization Strategies
+
+### 1. Spot with On-Demand Fallback
+
+The most effective way to reduce compute costs is to run workloads on **Spot instances** while keeping **On-Demand as an automatic fallback**. In SleakOps, configure this by selecting both `Spot` and `On-Demand` as Node Types when creating or editing a nodepool. The system prioritizes them in this order: **Reserved → Spot → On-Demand**.
+
+:::tip
+It is recommended to always combine Spot with On-Demand. This way, if Spot capacity is unavailable, your workloads continue running on On-Demand nodes with no downtime.
+:::
+
+**Best for:** stateless web services, background workers that can be safely restarted, dev and staging environments.
+
+### 2. ARM Architecture (Graviton)
+
+AWS Graviton (ARM64) instances are **20–30% cheaper** than equivalent x86 instances and deliver comparable or better performance for most containerized workloads.
+
+To use ARM in SleakOps, three conditions must be met:
+
+1. **Your application must be ARM-compatible** — verify that all dependencies and native binaries have ARM builds available.
+2. **Your Docker image must be built for ARM** — in SleakOps, each project runs on a single architecture. The image must target `linux/arm64` specifically. Configure the build in your project settings.
+3. **Your project must be configured to use an ARM nodepool** — you can check and update the nodepool assigned to a project from the project detail view in SleakOps.
+
+**Best for:** services written in Go, Python, or Node.js without native x86-only dependencies.
+
+---
+
+## Performance Strategies
+
+### On-Demand for Critical Workers
+
+Workers that run long-running or non-interruptible processes should always run on **On-Demand** nodes. Spot instances can be reclaimed with only 2 minutes of notice — a process that cannot resume safely from mid-execution must never run on Spot.
+
+Common examples:
+- Background job workers with non-idempotent operations
+- Scheduled task runners processing large data volumes
+- ETL pipelines that run for hours and cannot be safely restarted mid-execution
+
+Create a dedicated On-Demand nodepool and assign these Project Environments to it to isolate critical workers from Spot-based pools.
+
+---
+
+## Spot vs On-Demand
+
+| | **Spot** | **On-Demand** |
+|---|---|---|
+| **Cost** | Up to 90% cheaper | Fixed, higher price |
+| **Availability** | Variable, can be interrupted | Guaranteed |
+| **Interruption notice** | 2 minutes | None |
+| **Best for** | Stateless services, batch jobs, dev/staging | Critical workers, long-running processes |
+
+**Recommended setup:** select `[Spot, On-Demand]` so your pool always has a fallback. See [What are the different kinds of nodepools?](/docs/cluster/nodepools) for the full priority order.
+
+---
+
+## ARM vs AMD (x86)
+
+| | **ARM64 (Graviton)** | **AMD64 (x86)** |
+|---|---|---|
+| **Cost** | Lower (20–30%) | Higher |
+| **Compatibility** | Requires ARM-compatible app + ARM image | Universal |
+| **Best for** | Greenfield services, pure Go/Python/Node workloads | Legacy apps, x86-only native binaries |
+
+:::info
+Changing a Project Environment from one architecture to another triggers an **automatic rebuild** in SleakOps. Once the build completes, the new version is deployed automatically.
+:::
+
+---
+
+## Choosing Instance Types
+
+When creating a nodepool in SleakOps (**Cluster → Settings → nodepools → Create**), you control which EC2 instances Karpenter can provision in two ways:
+
+### By Instance Category (Recommended)
+
+Leave the **Instance Type** field empty. Karpenter will automatically pick the most cost-effective available instance from the default categories (`t`, `c`, `m`, `r`) based on current demand and spot prices.
+
+| **Category** | **Family examples** | **Best for** |
+|---|---|---|
+| `t` | t3, t4g (burstable) | Variable workloads, dev/staging |
+| `c` | c5, c6i (compute-optimized) | CPU-intensive processing |
+| `m` | m5, m6i (general purpose) | Balanced workloads |
+| `r` | r5, r6i (memory-optimized) | Memory-intensive workloads |
+
+### By Specific Instance Type
+
+Select one or more explicit instance types when your workload has strict hardware requirements. The most common case is **GPU workloads** — machine learning inference, image/video processing, or scientific computing.
+
+```
+Examples: g4dn.xlarge, g5.2xlarge, p3.2xlarge
+```
+
+:::info
+GPU instances (`g` and `p` families) are not enabled by default in AWS accounts. Before adding a GPU instance type to a nodepool, request a service quota increase from the [AWS Service Quotas console <FiExternalLink/>](https://console.aws.amazon.com/servicequotas/) for the relevant instance family in your target region.
+:::
+
+---
+
+## All Available Configuration Parameters
+
+The following fields are available when creating or editing a nodepool in SleakOps (**Cluster → Settings → nodepools**):
+
+| **Field** | **Description** |
+|---|---|
+| **Name** | Unique identifier within the cluster (lowercase, hyphens allowed) |
+| **Architecture** | `ARM64` or `AMD64` — cannot be changed after creation |
+| **Node Type** | `Spot`, `On-Demand`, `Reserved` — select multiple for priority-based fallback |
+| **Instance Type** | Specific EC2 types, or leave empty for category-based flexible selection |
+| **CPU Limit** | Maximum total CPU cores the pool can use (autoscaler ceiling) |
+| **Memory Limit** | Maximum total memory the pool can use (autoscaler ceiling) |
+| **Per-Node Min CPU** | Minimum CPU per individual node |
+| **Per-Node Min Memory** | Minimum memory per individual node |
+| **Storage** | Root volume size per node (default 20 GB) |
+
+### What if I need a parameter SleakOps doesn't expose?
+
+Karpenter's `NodePool` spec supports additional fields — consolidation policies, expiration, custom taints, topology spread, and more. If your use case requires a configuration not available in the SleakOps console, contact support or open a ticket describing your requirement.
+
+Full Karpenter NodePool spec reference: [Karpenter NodePool documentation <FiExternalLink/>](https://karpenter.sh/docs/concepts/nodepools/).
