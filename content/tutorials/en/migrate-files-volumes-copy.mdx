@@ -61,6 +61,14 @@ TARGET_PATH="/path/in/target-pod"
 
 TEMP_LOCAL_DIR="/tmp/k8s-transfer"
 
+# Validate both contexts exist
+for ctx in "$SOURCE_CONTEXT" "$TARGET_CONTEXT"; do
+  if ! kubectl config get-contexts "$ctx" &>/dev/null; then
+    echo "Error: kubectl context '$ctx' not found" >&2
+    exit 1
+  fi
+done
+
 # Copy from source pod to local machine
 echo "Copying files from $SOURCE_POD..."
 mkdir -p $TEMP_LOCAL_DIR

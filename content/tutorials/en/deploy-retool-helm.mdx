@@ -53,15 +53,15 @@ config:
     google:
       clientId: xxxxxxxxxxxxxxxxx.apps.googleusercontent.com
       clientSecret: xxxxxxxxxxxxxxxxxxxxxxx
-  encryption-key: privateprivateprivateprivateprivateprivate
-  jwt-secret: privateprivateprivateprivateprivateprivate
+  encryption-key: <output of: openssl rand -hex 32>
+  jwt-secret: <output of: openssl rand -hex 32>
   licenseKeySecretName: retool-keys
-  useInsecureCookies: true
+  useInsecureCookies: true   # required when TLS is terminated at the load balancer
 
 env:
   ALLOW_SAME_ORIGIN_OPTION: "true"
   BASE_DOMAIN: https://retool.{domain}.com
-  COOKIE_INSECURE: "true"
+  COOKIE_INSECURE: "true"   # required when TLS is terminated at the load balancer
   DOMAINS: https://retool.{domain}.com
   HOST_HEADER_NAME: x-forwarded-host
   SANDBOX_DOMAIN: https://retool.{domain}.com

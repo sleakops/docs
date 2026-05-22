@@ -128,11 +128,9 @@ pod_volume_ids=(
 for entry in "${pod_volume_ids[@]}"; do
   pod_name=$(echo "$entry" | awk '{print $1}')
   volume_id=$(echo "$entry" | awk '{print $2}')
-  description="Snapshot of $volume_id from Pod $pod_name"
-
   snapshot_id=$(aws ec2 describe-snapshots \
     --restorable-by-user-ids self \
-    --filters "Name=description,Values=$description" \
+    --filters "Name=tag:Name,Values=Snapshot-$volume_id" "Name=tag:Pod,Values=$pod_name" \
     --query "Snapshots[0].SnapshotId" \
     --output text \
     --region "$source_region")
@@ -140,7 +138,7 @@ for entry in "${pod_volume_ids[@]}"; do
   new_snapshot_id=$(aws ec2 copy-snapshot \
     --source-region "$source_region" \
     --source-snapshot-id "$snapshot_id" \
-    --description "Copy of $description" \
+    --description "Copy of Snapshot-$volume_id from Pod $pod_name" \
     --tag-specifications "ResourceType=snapshot,Tags=[{Key=Name,Value=Copied-$volume_id},{Key=Pod,Value=$pod_name},{Key=OriginalVolumeId,Value=$volume_id}]" \
     --query SnapshotId --output text \
     --region "$destination_region")

@@ -82,7 +82,7 @@ name: Deploy Lambda
 
 on:
   push:
-    branches: [main, staging]
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -144,8 +144,9 @@ jobs:
             --function-name ${{ env.LAMBDA_FUNCTION_NAME }} \
             --payload '{"id": "health-check"}' \
             response.json
-          if ! grep -q '"statusCode": 200' response.json; then
-            echo "Health check falló"
+          status=$(jq -r '.statusCode' response.json)
+          if [ "$status" != "200" ]; then
+            echo "Health check falló (status: $status)"
             exit 1
           fi
 ```
