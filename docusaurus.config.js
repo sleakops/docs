@@ -46,6 +46,11 @@ const config = {
   // Eliminamos el tema easyops-cn/docusaurus-search-local
   themes: ["@docusaurus/theme-mermaid"],
 
+  clientModules: [
+    require.resolve("./src/clientModules/languageDetect.js"),
+    require.resolve("./src/clientModules/hashOpen.js"),
+  ],
+
   presets: [
     [
       "classic",
