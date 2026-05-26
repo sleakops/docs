@@ -1,0 +1,83 @@
+---
+title: Estrategias de Optimización de Costos en AWS
+sidebar_label: Optimizar Costos AWS
+sidebar_position: 36
+description: Técnicas prácticas de optimización de costos en AWS — Spot Instances, S3 Intelligent-Tiering, procesadores Graviton, Savings Plans, CloudFront y Compute Optimizer.
+tags:
+  - aws
+  - cost-optimization
+image: /img/tutorials/optimize-aws-costs/optimize-aws-costs.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Técnicas prácticas para reducir costos en AWS sin sacrificar confiabilidad — cubriendo cómputo, almacenamiento, CDN y estrategias de right-sizing.
+
+## 1. Spot Instances con Auto Scaling — Reducir Costos EC2 Significativamente
+
+Correr todos los workloads en instancias EC2 On-Demand es caro. Mover workloads sin estado o tolerantes a fallos a **Spot Instances** respaldadas por un **Auto Scaling Group (ASG)** con fallback a On-Demand puede reducir esos costos sustancialmente.
+
+**Cuándo usarlo:** Jobs batch, workers en segundo plano, agentes de CI/CD, web services sin estado.
+
+```yaml
+# Ejemplo de política de instancias mixtas en ASG
+MixedInstancesPolicy:
+  InstancesDistribution:
+    OnDemandPercentageAboveBaseCapacity: 20
+    SpotAllocationStrategy: capacity-optimized
+```
+
+## 2. S3 Intelligent-Tiering — Dejar de Pagar por Datos Fríos
+
+Pagar tarifas de S3 Standard por logs, reportes y backups que casi no se acceden es innecesario. **S3 Intelligent-Tiering** mueve automáticamente los objetos a clases de almacenamiento más baratas cuando no se acceden con frecuencia.
+
+**Habilitarlo desde la consola de SleakOps:** navegá a la configuración de la Dependency S3 del bucket, abrí la configuración de almacenamiento y activá Intelligent-Tiering. También podés configurarlo directamente en la consola de AWS S3 en **Bucket → Properties → Intelligent-Tiering**.
+
+El costo de almacenamiento puede reducirse **20–30%** para buckets de datos fríos.
+
+## 3. AWS Graviton — EC2 Más Barato y Más Rápido
+
+Las instancias Graviton2/3 (basadas en ARM) son **20–30% más baratas** que las equivalentes x86 y a menudo más rápidas para muchos workloads. La migración solo requiere recompilar las imágenes Docker para ARM64:
+
+```dockerfile
+FROM --platform=linux/arm64 node:20-alpine
+```
+
+```bash
+docker buildx build --platform linux/arm64 -t tu-imagen:latest .
+```
+
+Familias de instancias compatibles: `m7g`, `c7g`, `r7g`.
+
+:::warning
+Antes de migrar workloads de producción a ARM64, verificá que tu aplicación y todas sus dependencias compilen y funcionen correctamente en arquitectura ARM64. Algunas librerías nativas y binarios pueden no tener builds disponibles para ARM64.
+:::
+
+## 4. AWS Savings Plans — Descuentos para Cargas Predecibles
+
+Para workloads que siempre corren, comprometerse a un **Compute Savings Plan de 1 año** reduce los costos EC2 **hasta un 40%** comparado con precios On-Demand.
+
+Comprar en: **Consola AWS → Cost Explorer → Savings Plans → Comprar un Savings Plan**.
+
+## 5. CloudFront — Reducir Costos de Egreso en S3
+
+Servir activos estáticos directamente desde S3 genera altos costos de egreso. Poner **CloudFront** delante de S3 reduce tanto las solicitudes GET como los costos de transferencia de datos, mientras mejora los tiempos de carga mediante el caché en los edge nodes.
+
+## 6. Compute Optimizer — Encontrar Oportunidades de Right-Sizing
+
+**AWS Compute Optimizer** analiza métricas de uso y recomienda tipos de instancias del tamaño correcto. Frecuentemente encuentra workloads corriendo en instancias sobredimensionadas que pueden reducirse sin impacto en el rendimiento.
+
+Habilitarlo en: **Consola AWS → Compute Optimizer → Get started**.
+
+## Resumen
+
+| Técnica | Ahorro típico | Mejor para |
+| --- | --- | --- |
+| Spot Instances + ASG | 50–70% en cómputo | Workloads sin estado, tolerantes a fallos |
+| S3 Intelligent-Tiering | 20–30% en almacenamiento | Logs, backups, datos poco accedidos |
+| Instancias Graviton | 20–30% en cómputo | Cualquier workload containerizado |
+| Savings Plans | Hasta 40% en cómputo | Servidores always-on |
+| CloudFront | Reduce egreso + GET | Activos estáticos, media |
+| Compute Optimizer | Variable | Instancias sobredimensionadas |

@@ -1,0 +1,154 @@
+---
+title: Desplegar Datadog Operator y DatadogAgent en SleakOps
+sidebar_label: Desplegar Datadog Operator
+sidebar_position: 33
+description: Instalá el Datadog Operator (v2.8.0) y desplegá un DatadogAgent (v7.63.3) en un cluster EKS de SleakOps con toleraciones de NodePool Karpenter, APM, recolección de logs y admission controller.
+tags:
+  - kubernetes
+  - monitoring
+  - deployment
+  - helm
+image: /img/tutorials/deploy-datadog-operator/deploy-datadog-operator.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Instalá el [Datadog Operator <FiExternalLink/>](https://docs.datadoghq.com/containers/datadog_operator/) y desplegá un custom resource `DatadogAgent` en un cluster EKS de SleakOps para habilitar APM, recolección de logs y monitoreo de eventos de Kubernetes.
+
+:::info
+Esta guía fue probada con **DatadogOperator v2.8.0** y **DatadogAgent v7.63.3**.
+:::
+
+## Prerrequisitos
+
+**En el cluster:**
+
+- Crear el namespace `datadog`
+- Crear el Secret `datadog-secret` con tu API key de Datadog:
+
+```bash
+kubectl create secret generic datadog-secret \
+  --from-literal=api-key=<TU_DATADOG_API_KEY> \
+  -n datadog
+```
+
+**Opcional pero recomendado:** Crear un NodePool dedicado para Datadog (ej. `datadog-app`). Si usás un NodePool dedicado, los workloads que querés monitorear también deben correr en ese NodePool.
+
+## Paso 1 — Desplegar el Datadog Operator
+
+```bash
+helm upgrade -i datadog datadog/datadog-operator \
+  --namespace datadog \
+  --create-namespace \
+  --set "tolerations[0].key=karpenter.sh/nodepool" \
+  --set "tolerations[0].operator=Equal" \
+  --set "tolerations[0].value=<NOMBRE-NODEPOOL>"
+```
+
+Reemplazá `<NOMBRE-NODEPOOL>` con el nombre de tu NodePool (ej. `datadog-app-amd`).
+
+## Paso 2 — Preparar Workloads para Instrumentación
+
+Agregá estas annotations/labels al spec del **Deployment** de cada workload que querés que Datadog instrumente:
+
+```yaml
+spec:
+  template:
+    metadata:
+      labels:
+        admission.datadoghq.com/enabled: "true"
+      annotations:
+        admission.datadoghq.com/js-lib.version: v5.45.0
+```
+
+En el **Var Group** del workload, agregá:
+
+```
+DD_LOGS_ENABLED=true
+DD_LOGS_INJECTION=true
+DD_ENV=<tu-entorno>
+DD_SERVICE=<nombre-del-servicio>
+```
+
+## Paso 3 — Desplegar el DatadogAgent
+
+Creá `datadogagent.yaml`:
+
+```yaml
+apiVersion: datadoghq.com/v2alpha1
+kind: DatadogAgent
+metadata:
+  name: datadog
+  namespace: datadog
+spec:
+  global:
+    clusterName: <NOMBRE-CLUSTER>
+    site: datadoghq.com    # ver https://docs.datadoghq.com/getting_started/site/
+    credentials:
+      apiSecret:
+        secretName: datadog-secret
+        keyName: api-key
+  features:
+    admissionController:
+      enabled: true
+      mutateUnlabelled: false
+    apm:
+      enabled: true
+      hostPortConfig:
+        enabled: true
+        hostPort: 8126
+      instrumentation:
+        enabled: false
+    logCollection:
+      enabled: true
+      containerCollectAll: true
+    eventCollection:
+      collectKubernetesEvents: true
+  override:
+    clusterAgent:
+      tolerations:
+        - key: karpenter.sh/nodepool
+          operator: Equal
+          value: <NOMBRE-NODEPOOL>
+    nodeAgent:
+      env:
+        - name: DD_LOGS_CONFIG_AUTO_MULTI_LINE_DETECTION
+          value: "true"
+        - name: DD_PROFILING_ENABLED
+          value: "true"
+        - name: DD_TRACE_ENABLED
+          value: "true"
+        - name: DD_LOGS_ENABLED
+          value: "true"
+        - name: DD_LOGS_INJECTION
+          value: "true"
+        - name: DD_CONTAINER_EXCLUDE
+          value: "name:.*"
+        - name: DD_CONTAINER_INCLUDE
+          value: "name:<nombre-contenedor>"    # corresponde a spec.template.spec.containers.name
+      tolerations:
+        - key: karpenter.sh/nodepool
+          operator: Equal
+          value: <NOMBRE-NODEPOOL>
+```
+
+Aplicarlo:
+
+```bash
+kubectl apply -f datadogagent.yaml -n datadog
+```
+
+## Paso 4 — Verificar el Despliegue
+
+```bash
+kubectl get datadogagent -n datadog
+kubectl get pods -n datadog
+```
+
+Todos los pods deberían estar en estado `Running` en pocos minutos.
+
+:::tip
+Esta es una configuración de referencia que podés ajustar para tu entorno — expandí `DD_CONTAINER_INCLUDE` para cubrir más workloads o modificá los feature flags según necesites.
+:::

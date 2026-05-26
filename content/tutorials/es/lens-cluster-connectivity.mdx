@@ -1,0 +1,79 @@
+---
+title: Solucionar problemas de conectividad al clúster con Lens
+sidebar_label: Conectividad con Lens
+sidebar_position: 25
+description: Diagnosticá y resolvé problemas de conexión entre Lens y un cluster de Kubernetes de SleakOps — verificación de VPN, configuración de DNS en Linux, macOS y Windows.
+tags:
+  - kubernetes
+  - lens
+  - vpn
+  - networking
+  - dns
+image: /img/tutorials/lens-cluster-connectivity/lens-cluster-connectivity.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Diagnosticá y resolvé problemas de conexión entre Lens y un cluster de Kubernetes de SleakOps, típicamente causados por configuración de VPN o resolución de DNS.
+
+## Prerrequisitos
+
+- Lens instalado y configurado con el kubeconfig del cluster
+- Cliente Pritunl instalado y un perfil de VPN configurado
+
+## Diagnóstico y soluciones
+
+### Paso 1 — Verificar el estado de la VPN
+
+- Asegurarse de no tener otras VPNs conectadas simultáneamente.
+- Verificar que la conexión VPN de Pritunl esté activa.
+- **Lens no maneja bien los cambios de red** — si conectás o desconectás una VPN mientras Lens está abierto, reiniciá Lens.
+- Probar los botones de reset en Pritunl:
+  - **Reset del servicio local de DNS**
+  - **Reset del servicio completo de Networking**
+
+### Paso 2 — Corregir la resolución DNS
+
+La causa más común de fallas de conectividad en Lens es que la máquina intente resolver el hostname del cluster usando servidores DNS públicos en lugar del resolvedor DNS privado de la VPC de AWS.
+
+**Linux y macOS — actualizar `/etc/resolv.conf`:**
+
+```bash
+sudo nano /etc/resolv.conf
+```
+
+Agregar los nameservers para tus entornos:
+
+```
+nameserver 10.110.0.2  # DNS VPC DEV
+nameserver 10.120.0.2  # DNS VPC MGT
+nameserver 10.130.0.2  # DNS VPC PRD
+```
+
+:::warning
+`/etc/resolv.conf` se regenera automáticamente cuando hay cambios en la red. Es posible que necesites re-aplicar esta configuración mientras estés conectado a la VPN, y después de reinicios o cambios de red.
+:::
+
+**Windows — actualizar configuración de DNS:**
+
+1. Abrir **Panel de Control → Centro de redes y recursos compartidos**.
+2. Hacer clic en **Cambiar configuración del adaptador** (columna izquierda).
+3. Clic derecho sobre la conexión activa (Ethernet o Wi-Fi) → **Propiedades**.
+4. Seleccionar **Protocolo de Internet versión 4 (TCP/IPv4)** → **Propiedades**.
+5. Elegir **Usar las siguientes direcciones de servidor DNS**.
+6. Ingresar el DNS de VPC para tu entorno (ej. `10.130.0.2`) como servidor preferido y `8.8.8.8` como alternativo público.
+7. Aceptar los cambios.
+
+### Paso 3 — Activar "Force DNS" en Pritunl
+
+En el perfil de conexión de Pritunl, activar la opción **Forzar configuración de DNS**. Esto asegura que Pritunl sobreescriba el DNS del sistema con los servidores DNS de la VPN al conectarse.
+
+## Referencia de DNS por ambiente
+
+| Ambiente | DNS VPC |
+| --- | --- |
+| DEV | `10.110.0.2` |
+| MGT | `10.120.0.2` |
+| PRD | `10.130.0.2` |

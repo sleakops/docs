@@ -1,0 +1,138 @@
+---
+title: Migrate an Amazon RDS Snapshot Between Accounts
+sidebar_label: Migrate RDS Snapshot
+sidebar_position: 12
+description: Step-by-step guide to share and restore an Amazon RDS snapshot across AWS accounts, including encrypted and cross-region scenarios.
+tags:
+  - aws
+  - rds
+  - database
+  - migration
+  - snapshot
+  - kms
+image: /img/tutorials/migrate-rds-snapshot-between-accounts/migrate-rds-snapshot-between-accounts.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Share and restore an Amazon RDS snapshot across AWS accounts, covering unencrypted, default-KMS-encrypted, and custom-KMS-encrypted databases, as well as cross-region scenarios.
+
+## Prerequisites
+
+- Access to the AWS Console in both source and destination accounts
+- A Cluster configured in SleakOps ([Cluster docs](/docs/cluster))
+- An Environment configured ([Environment docs](/docs/environment))
+- The destination account ID (12-digit format)
+
+## Let's Start
+
+### Case 1 — Unencrypted RDS
+
+**In the source account:**
+
+1. Go to **RDS → Snapshots**.
+2. Select the snapshot → **Actions → Share snapshot**.
+3. Enter the **destination account ID** (format: `123456789012`).
+4. Confirm.
+
+**In the destination account:**
+
+1. Go to **SleakOps → Dependencies → Create**.
+2. Select **Create an RDS from a snapshot**.
+3. Enter the identifier of the shared snapshot.
+
+---
+
+### Case 2 — RDS Encrypted with the Default AWS KMS Key (`aws/rds`)
+
+:::warning
+Default AWS-managed KMS keys (`aws/rds`) **cannot be shared directly** across accounts. You must first re-encrypt the snapshot with a customer-managed key (CMK).
+:::
+
+**In the source account:**
+
+1. Create a custom KMS key with the policy described in [Case 3](#case-3--rds-encrypted-with-a-custom-kms-key-cmk).
+2. Go to **RDS → Snapshots**.
+3. Select the encrypted snapshot → **Actions → Copy snapshot**, choosing the newly created KMS key.
+4. Wait for the copy to finish.
+5. On the new snapshot → **Actions → Share snapshot**.
+6. Enter the destination account ID.
+
+**In the destination account:**
+
+1. Go to **SleakOps → Dependencies → Create**.
+2. Select **Create an RDS from a snapshot**.
+3. Enter the identifier of the shared snapshot.
+
+:::info
+Unencrypted snapshots can be shared directly between accounts. If your RDS uses encryption, see Case 3 below for CMK key sharing.
+:::
+
+---
+
+### Case 3 — RDS Encrypted with a Custom KMS Key (CMK)
+
+**In the source account — share the KMS key:**
+
+1. Go to **KMS → Customer managed keys**.
+2. Select the key used to encrypt the RDS.
+3. Under **Key policy**, add the following statement to the permissions section:
+
+```json
+{
+  "Sid": "Allow use of the key from destination account",
+  "Effect": "Allow",
+  "Principal": {
+    "AWS": "arn:aws:iam::<<DESTINATION_ACCOUNT_ID>>:root"
+  },
+  "Action": [
+    "kms:Encrypt",
+    "kms:Decrypt",
+    "kms:ReEncrypt*",
+    "kms:GenerateDataKey*",
+    "kms:DescribeKey",
+    "kms:CreateGrant"
+  ],
+  "Resource": "*"
+}
+```
+
+**In the source account — share the snapshot:**
+
+1. Go to **RDS → Snapshots**.
+2. Select the snapshot → **Actions → Share snapshot**.
+3. Enter the destination account ID.
+
+**In the destination account — copy with its own KMS key:**
+
+1. Go to **RDS → Snapshots → Shared with me**.
+2. Select the snapshot → **Actions → Copy snapshot**.
+3. Select a KMS key that belongs to the destination account (required).
+4. Wait for the copy to finish.
+
+**In the destination account — restore:**
+
+1. Go to **SleakOps → Dependencies → Create**.
+2. Select **Create an RDS from a snapshot**.
+3. Enter the identifier of the copied snapshot.
+
+---
+
+### Special Case — Cross-Region Snapshots
+
+If the snapshot is in a different region from where you want to restore it:
+
+**In the source account:**
+
+1. Go to **RDS → Snapshots**.
+2. Select the snapshot → **Actions → Copy snapshot**.
+3. Set the **Destination Region** to the target region.
+4. If encrypted with a CMK, select a valid KMS key in the destination region.
+5. Wait for the cross-region copy to finish.
+6. Follow the normal sharing process for the applicable case (1, 2, or 3).
+
+:::info
+KMS keys are region-specific. When copying across regions, always use a KMS key from the destination region. Cross-region copies can take hours depending on the snapshot size.
+:::
