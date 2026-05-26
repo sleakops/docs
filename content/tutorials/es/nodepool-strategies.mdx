@@ -1,0 +1,155 @@
+---
+title: Estrategias de Nodepools en SleakOps
+sidebar_label: Estrategias de Nodepools
+sidebar_position: 47
+description: Aprendé a configurar nodepools en SleakOps para optimizar costos, mejorar el rendimiento y elegir los tipos de instancia correctos para cada workload.
+tags:
+  - kubernetes
+  - aws
+  - cost-optimization
+  - scaling
+  - performance
+image: /img/tutorials/nodepool-strategies/nodepool-strategies.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Aprendé a configurar nodepools en SleakOps para optimizar costos, mejorar el rendimiento y elegir los tipos de instancia correctos para cada workload.
+
+## ¿Qué es un nodepool?
+
+En SleakOps, un **nodepool** es un grupo de nodos EC2 dentro de tu cluster de Kubernetes que comparten la misma configuración — arquitectura, tipo de instancia, modelo de facturación y límites de recursos. Karpenter gestiona el autoscaling dentro de cada pool automáticamente.
+
+Cuando creás un Cluster, SleakOps aprovisiona un conjunto de nodepools por defecto:
+
+| **nodepool** | **Propósito** |
+|---|---|
+| `sleakops-build-arm64` / `sleakops-build-amd64` | Dedicados a los builds de proyectos. No se pueden editar ni eliminar. |
+| `sleakops-core` | Ejecuta los componentes internos de SleakOps y los addons del cluster. |
+| `ondemand-arm` / `ondemand-amd` | Pools On-Demand listos para usar con tus workloads. |
+| `spot-arm` / `spot-amd` | Pools Spot listos para usar con tus workloads. |
+
+Cada Project Environment se asigna a un nodepool. El cambio de asignación es posible en cualquier momento desde la configuración del environment.
+
+---
+
+## Estrategias de Optimización de Costos
+
+### 1. Spot con Fallback On-Demand
+
+La forma más efectiva de reducir costos de cómputo es correr workloads en **instancias Spot** manteniendo **On-Demand como fallback automático**. En SleakOps, configurá esto seleccionando tanto `Spot` como `On-Demand` como Node Types al crear o editar un nodepool. El sistema los prioriza en este orden: **Reserved → Spot → On-Demand**.
+
+:::tip
+Se recomienda siempre combinar Spot con On-Demand. Así, si la capacidad Spot no está disponible, tus workloads continúan corriendo en nodos On-Demand sin downtime.
+:::
+
+**Ideal para:** web services stateless, workers que pueden reiniciarse de forma segura, entornos de dev y staging.
+
+### 2. Arquitectura ARM (Graviton)
+
+Las instancias AWS Graviton (ARM64) son **20–30% más baratas** que sus equivalentes x86 y entregan rendimiento comparable o superior para la mayoría de los workloads en contenedores.
+
+Para usar ARM en SleakOps, se deben cumplir tres condiciones:
+
+1. **Tu aplicación debe ser compatible con ARM** — verificá que todas las dependencias y binarios nativos tengan builds disponibles para ARM.
+2. **Tu imagen Docker debe estar construida para ARM** — en SleakOps, cada proyecto corre en una única arquitectura. La imagen debe apuntar a `linux/arm64` específicamente. Configurá el build en la configuración de tu proyecto.
+3. **Tu proyecto debe estar configurado para usar un nodepool ARM** — podés consultar y actualizar el nodepool asignado a un proyecto desde el detalle del proyecto en SleakOps.
+
+**Ideal para:** servicios escritos en Go, Python o Node.js sin dependencias nativas exclusivas de x86.
+
+---
+
+## Estrategias de Rendimiento
+
+### On-Demand para Workers Críticos
+
+Los workers que ejecutan procesos de larga duración o no interrumpibles siempre deben correr en nodos **On-Demand**. Las instancias Spot pueden ser reclamadas con solo 2 minutos de aviso — un proceso que no puede resumirse de forma segura desde la mitad de su ejecución no debe correr en Spot.
+
+Ejemplos comunes:
+- Workers de background jobs con operaciones no idempotentes
+- Ejecutores de tareas programadas que procesan grandes volúmenes de datos
+- Pipelines ETL que corren durante horas y no pueden reiniciarse de forma segura a mitad de ejecución
+
+Creá un nodepool On-Demand dedicado y asigná estos Project Environments a él para aislar los workers críticos de los pools Spot.
+
+---
+
+## Spot vs On-Demand
+
+| | **Spot** | **On-Demand** |
+|---|---|---|
+| **Costo** | Hasta 90% más barato | Precio fijo, más alto |
+| **Disponibilidad** | Variable, puede interrumpirse | Garantizada |
+| **Aviso de interrupción** | 2 minutos | Sin interrupción |
+| **Ideal para** | Servicios stateless, batch jobs, dev/staging | Workers críticos, procesos de larga duración |
+
+**Configuración recomendada:** seleccioná `[Spot, On-Demand]` para que el pool siempre tenga fallback. Ver [¿Cuáles son los diferentes tipos de nodepools?](/docs/cluster/nodepools) para la explicación completa del orden de prioridad.
+
+---
+
+## ARM vs AMD (x86)
+
+| | **ARM64 (Graviton)** | **AMD64 (x86)** |
+|---|---|---|
+| **Costo** | Menor (20–30%) | Mayor |
+| **Compatibilidad** | Requiere app compatible con ARM + imagen ARM | Universal |
+| **Ideal para** | Servicios nuevos, workloads puros en Go/Python/Node | Apps legacy, binarios nativos solo x86 |
+
+:::info
+Cambiar el Project Environment de una arquitectura a otra dispara un **rebuild automático** en SleakOps. Una vez que el build termina, la nueva versión se despliega automáticamente.
+:::
+
+---
+
+## Elegir Tipos de Instancia
+
+Al crear un nodepool en SleakOps (**Cluster → Settings → nodepools → Create**), podés controlar qué instancias EC2 puede aprovisionar Karpenter de dos formas:
+
+### Por Categoría de Instancia (Recomendado)
+
+Dejá el campo **Instance Type** vacío. Karpenter elegirá automáticamente la instancia más económica disponible de las categorías por defecto (`t`, `c`, `m`, `r`) según la demanda actual y los precios spot.
+
+| **Categoría** | **Familias ejemplo** | **Ideal para** |
+|---|---|---|
+| `t` | t3, t4g (burstable) | Workloads variables, dev/staging |
+| `c` | c5, c6i (compute-optimized) | Procesamiento CPU-intensivo |
+| `m` | m5, m6i (general purpose) | Workloads balanceados |
+| `r` | r5, r6i (memory-optimized) | Workloads memory-intensivos |
+
+### Por Tipo de Instancia Específico
+
+Seleccioná uno o más tipos de instancia explícitos cuando tu workload tenga requisitos de hardware estrictos. El caso más común son los **workloads con GPU** — inferencia de machine learning, procesamiento de imágenes/video o computación científica.
+
+```
+Ejemplos: g4dn.xlarge, g5.2xlarge, p3.2xlarge
+```
+
+:::info
+Las instancias GPU (familias `g` y `p`) no están habilitadas por defecto en las cuentas AWS. Antes de agregar un tipo de instancia GPU a un nodepool, solicitá un aumento de cuota desde la [consola de AWS Service Quotas <FiExternalLink/>](https://console.aws.amazon.com/servicequotas/) para la familia de instancias correspondiente en tu región.
+:::
+
+---
+
+## Todos los Parámetros de Configuración
+
+Los siguientes campos están disponibles al crear o editar un nodepool en SleakOps (**Cluster → Settings → nodepools**):
+
+| **Campo** | **Descripción** |
+|---|---|
+| **Name** | Identificador único dentro del cluster (minúsculas, guiones permitidos) |
+| **Architecture** | `ARM64` o `AMD64` — no se puede cambiar después de la creación |
+| **Node Type** | `Spot`, `On-Demand`, `Reserved` — seleccioná múltiples para fallback por prioridad |
+| **Instance Type** | Tipos EC2 específicos, o dejá vacío para selección flexible por categoría |
+| **CPU Limit** | CPU total máxima que puede usar el pool (techo del autoscaler) |
+| **Memory Limit** | Memoria total máxima que puede usar el pool (techo del autoscaler) |
+| **Per-Node Min CPU** | CPU mínima por nodo individual |
+| **Per-Node Min Memory** | Memoria mínima por nodo individual |
+| **Storage** | Tamaño del volumen raíz por nodo (20 GB por defecto) |
+
+### ¿Qué hago si necesito un parámetro que SleakOps no expone?
+
+La spec de `NodePool` de Karpenter soporta campos adicionales — políticas de consolidación, expiración, taints personalizados, topology spread y más. Si tu caso de uso requiere una configuración no disponible en la consola de SleakOps, contactá al soporte o abrí un ticket describiendo tu necesidad.
+
+Referencia completa de la spec de Karpenter NodePool: [Documentación de Karpenter NodePool <FiExternalLink/>](https://karpenter.sh/docs/concepts/nodepools/).
