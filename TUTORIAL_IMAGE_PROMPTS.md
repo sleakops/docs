@@ -141,6 +141,17 @@ The Kubernetes wheel helm rudder logo prominently in the center glowing with cya
 
 ---
 
+## openvpn-profile
+
+```
+mkdir -p /home/agustinoli/Documents/SleakOps/ia-resources/projects/docs/static/img/tutorials/openvpn-profile
+```
+**Archivo:** `static/img/tutorials/openvpn-profile/openvpn-profile.png`
+
+The OpenVPN shield logo glowing in the center, with a .ovpn configuration file icon flowing into it as a stream of glowing connection data. Around it, client device icons (a laptop, a smartphone, a tablet) connected through encrypted tunnel lines visualized as glowing dashed pathways with small padlock icons along the route. On the far side, a secure VPN gateway server rack icon receives the tunnels. Isometric tech illustration. Dark background using SleakOps dark palette (#1a202d to #0a0b10). Primary glow and highlights in SleakOps cyan (#8bcff9, light sky blue). Secondary accents in SleakOps yellow (#f2e35e, warm gold). Deep dark shadows, subtle panel surfaces (#232a35). Clean, minimal, professional. No text, no letters, no labels anywhere in the image. 16:9 aspect ratio.
+
+---
+
 ## Notas de uso
 
 - Resolución sugerida: **1200×675px** (16:9) o **1600×900px**.
