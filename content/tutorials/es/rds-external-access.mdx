@@ -1,0 +1,89 @@
+---
+title: Acceder a una instancia RDS desde fuera de tu VPC
+sidebar_label: Acceso externo a RDS
+sidebar_position: 21
+description: Opciones para acceder de forma segura a una instancia de Amazon RDS en una subnet privada desde fuera de la VPC — Bastion Host, AWS Client VPN, PrivateLink y acceso público.
+tags:
+  - aws
+  - rds
+  - database
+  - networking
+  - security
+  - vpn
+image: /img/tutorials/rds-external-access/rds-external-access.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Conectate a una instancia de Amazon RDS en una subnet privada desde fuera de la VPC, usando la opción segura que se adapte a tu patrón de acceso.
+
+:::warning
+Exponer una base de datos directamente a internet no es recomendable. Aumenta significativamente la superficie de ataque. Usá las opciones de abajo para evitar riesgos innecesarios.
+:::
+
+## Opciones
+
+| Opción | Seguridad | Facilidad de configuración |
+| --- | --- | --- |
+| **Bastion Host (EC2)** | Alta | Media |
+| **AWS Client VPN** | Muy alta | Fácil |
+| **AWS PrivateLink** | Máxima | Compleja |
+| **Acceso público directo** | No recomendado | Fácil |
+
+## Opción 1 — Bastion Host (Recomendado para acceso administrativo ocasional)
+
+Un Bastion Host es una instancia EC2 en una subnet pública que actúa como relay.
+
+1. Crear una instancia EC2 en una **subnet pública** con IP pública.
+2. Conectarse a la EC2 via SSH.
+3. Desde la EC2, conectarse al endpoint de la RDS usando el cliente de base de datos.
+
+**Ejemplo — Oracle con SQL*Plus desde la EC2:**
+
+```bash
+sqlplus $DB_USER/$DB_PASSWORD@//rds-endpoint:1521/service_name
+```
+
+**Túnel SSH para SQL Developer local:**
+
+```bash
+ssh -L 1521:rds-endpoint:1521 ec2-user@public-ip-ec2 -i "key.pem"
+```
+
+Luego conectar SQL Developer local a `localhost:1521`.
+
+## Opción 2 — AWS Client VPN (Recomendado para acceso regular desde tu laptop)
+
+Configurá un AWS Client VPN en la misma VPC que la RDS. Una vez conectado, el endpoint privado de la RDS quedará accesible desde tu máquina local.
+
+Ver la [documentación oficial de AWS Client VPN <FiExternalLink/>](https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/what-is.html) para los pasos de configuración, o seguir el [tutorial de VPN de SleakOps](/tutorial/third-party-integration-vpn).
+
+## Opción 3 — AWS PrivateLink (Para acceso seguro entre VPCs o cuentas)
+
+AWS PrivateLink expone la RDS a otras VPCs o cuentas sin pasar por internet público.
+
+1. Crear un AWS PrivateLink (VPC Endpoint Service) en la VPC donde vive la RDS.
+2. Configurar un VPC Endpoint en la otra VPC (que puede ser pública).
+3. Conectarse a la RDS a través del endpoint de PrivateLink.
+
+Ver la [documentación de PrivateLink <FiExternalLink/>](https://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/endpoint-services-overview.html).
+
+## Opción 4 — Acceso público directo (No recomendado)
+
+Si necesitás que la RDS sea accesible públicamente, seguí el tutorial [Transformar RDS de privada a pública](/tutorial/make-rds-public).
+
+:::warning
+Este proceso implica aproximadamente 20 minutos de downtime. Los pasos simplificados son:
+1. Crear una nueva VPC y un Subnet Group dentro de ella.
+2. Mover la RDS a la nueva VPC.
+3. Crear un Subnet Group público en la VPC administrada por SleakOps.
+4. Mover la RDS de vuelta a la VPC de SleakOps usando el Subnet Group público.
+5. Habilitar **Public Access** en la RDS.
+6. Crear y asociar un Security Group que restrinja el acceso solo a IPs de confianza.
+:::
+
+:::info
+**RDS Proxy no soporta acceso público.** RDS Proxy está diseñado exclusivamente para gestión de conexiones dentro de una VPC — no tiene IP pública. Usá una de las opciones anteriores.
+:::

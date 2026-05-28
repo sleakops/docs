@@ -1,0 +1,85 @@
+---
+title: Restaurar un dump de PostgreSQL usando un Job de SleakOps
+sidebar_label: Restaurar dump de PostgreSQL
+sidebar_position: 13
+description: Guía paso a paso para hacer dump y restaurar una base de datos PostgreSQL usando un Job temporal de SleakOps y una instancia RDS escalada.
+tags:
+  - aws
+  - rds
+  - postgresql
+  - database
+  - migration
+  - dump
+image: /img/tutorials/postgresql-dump-restore/postgresql-dump-restore.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Hacé dump de una base de datos PostgreSQL y restaurala en una RDS administrada por SleakOps usando un Job Pod temporal con una imagen de Postgres compatible.
+
+:::warning
+Antes de comenzar, creá un snapshot manual de la RDS. Seguí la [documentación de AWS sobre creación de snapshots <FiExternalLink/>](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_CreateSnapshot.html).
+:::
+
+## Prerrequisitos
+
+- Un Cluster configurado en SleakOps ([Documentación de Cluster](/docs/cluster))
+- Un Environment y Project ya desplegados
+- Credenciales y endpoint de la base de datos origen
+- La Dependency RDS destino creada en SleakOps
+
+## Empecemos
+
+### Paso 1 — Generar el dump de la base de datos origen
+
+Ejecutá este comando desde cualquier máquina con acceso de red a la base de datos origen. Pedirá la contraseña:
+
+```bash
+pg_dump -h POSTGRESQL_ADDRESS -U POSTGRESQL_USERNAME -W -Fc -f dump.dump
+```
+
+Para opciones detalladas, consultá la [documentación de la Dependency PostgreSQL de SleakOps](/docs/project/dependency/postgresql-aws#how-do-i-create-a-postgresql-database-dump).
+
+### Paso 2 — Escalar la instancia RDS destino
+
+Aumentá temporalmente el tipo de instancia RDS a uno de mayor tamaño. Esto reduce significativamente el tiempo de carga del dump. Hacelo al inicio para que el resize esté listo antes de comenzar la restauración.
+
+### Paso 3 — Crear un Job en SleakOps
+
+Creá un Job usando la misma versión de Postgres que tu Dependency RDS destino. Este Job crea un Pod al que te conectarás para ejecutar la restauración.
+
+:::tip
+Configuración de ejemplo:
+- **Image URL:** `docker.io/library/postgres`
+- **Image tag:** `17` (debe coincidir con la versión de tu RDS)
+:::
+
+<Zoom>
+  <img src="/img/tutorials/postgresql-dump-restore/job-creation-1.png" alt="Formulario de creación de Job en SleakOps — campos de image URL y tag" />
+</Zoom>
+
+<Zoom>
+  <img src="/img/tutorials/postgresql-dump-restore/job-creation-2.png" alt="Formulario de creación de Job en SleakOps — vista previa de configuración" />
+</Zoom>
+
+### Paso 4 — Abrir la terminal del Pod y ejecutar la restauración
+
+Conectate a la terminal del Pod creado por el Job (por ejemplo, desde Lens) y ejecutá:
+
+```bash
+pg_restore -j 8 -O -v -e --clean --if-exists --no-owner --no-privileges \
+  --exit-on-error \
+  -h POSTGRESQL_ADDRESS \
+  -U POSTGRESQL_USERNAME \
+  -W \
+  -d POSTGRESQL_DATABASE \
+  dump.dump
+```
+
+El flag `-j 8` usa 8 workers en paralelo para acelerar la restauración. Ajustá según el CPU disponible.
+
+### Paso 5 — Volver al tamaño original de la instancia RDS
+
+Una vez finalizada la restauración, revertí el tipo de instancia RDS a su tamaño original.

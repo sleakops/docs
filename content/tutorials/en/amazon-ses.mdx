@@ -1,0 +1,101 @@
+---
+title: Get Started with Amazon SES
+sidebar_label: Amazon SES
+sidebar_position: 20
+description: Configure Amazon SES to send emails from your application — verify an identity, test in sandbox mode, and request production access.
+tags:
+  - aws
+  - ses
+  - email
+image: /img/tutorials/amazon-ses/amazon-ses.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Configure Amazon Simple Email Service (SES) to send emails from your application, starting from sandbox mode and moving to production.
+
+## Prerequisites
+
+- Access to the AWS Console with permissions to manage SES
+- A domain or email address you want to send from
+- If using a domain: access to your DNS provider to add verification records
+
+## Let's Start
+
+### Step 1 — Create a verified identity
+
+All new SES accounts start in **sandbox mode**, which only allows sending to and from verified identities.
+
+1. Go to **AWS Console → Amazon SES → Identities**.
+2. Click **Create identity**.
+3. Choose one of:
+   - **Email address** — verifies a single address. AWS sends a confirmation email; click the link to verify.
+   - **Domain** — verifies the entire domain (recommended for production). AWS provides DNS records (TXT/CNAME) to add at your DNS provider.
+
+:::tip
+Verify your production domain early — you can reuse the same verified domain when you move out of sandbox.
+:::
+
+### Step 2 — Send a test email in sandbox
+
+With a verified identity you can now send emails in sandbox mode. All recipients must also be verified identities while in sandbox.
+
+Use the SES console **Send test email** button or the AWS CLI to confirm your setup works before requesting production access.
+
+### Step 3 — Request production access
+
+To send to any recipient, you need to exit sandbox mode.
+
+**Before submitting the request:**
+
+- Have at least one verified identity (preferably a domain)
+- Be able to send a test email from SES
+- Know your use case: email type, expected volume, and how you handle bounces/complaints/unsubscribes
+
+**Steps:**
+
+1. In Amazon SES, navigate to **Account dashboard → Request production access** (or **Sending limits**).
+2. Fill in the form:
+   - **Email type:** Transactional or Marketing
+   - **Website URL:** the site associated with your sends
+   - **Use case description:** what you send, to whom, and how often
+   - **Bounce/complaint/unsubscribe handling:** describe your suppression strategy
+
+AWS opens a Support Center ticket and may request additional information.
+
+### Step 4 — Write a clear use case description
+
+A clear, detailed description is the most important factor for approval. Use this template as a starting point:
+
+```
+Service: Amazon SES (Sending Limits / Production Access)
+Region: <your-region>
+
+Use case description:
+We plan to use Amazon SES to send transactional emails to our users
+(e.g., account notifications and password reset emails). Emails are
+user-triggered and sent only to customers who have registered on our platform.
+
+List management:
+We only send to recipients who are registered in our system. Users can
+unsubscribe from non-essential communications through our website.
+
+Bounce/complaint handling:
+We monitor bounces and complaints and suppress recipients when appropriate.
+
+Expected volume:
+Our expected sending volume is <X> emails per day initially, with gradual growth.
+
+Please let us know if any more information is needed.
+```
+
+:::tip
+**Tips for faster approval:**
+
+- State clearly whether emails are **transactional** (password reset, order confirmations) or **marketing**
+- Include an estimated sending volume per day/month
+- Describe how your system handles bounces, complaints, and unsubscribes
+- If possible, include an example of the email content
+:::
