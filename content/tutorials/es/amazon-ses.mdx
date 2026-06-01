@@ -1,0 +1,101 @@
+---
+title: Comenzar con Amazon SES
+sidebar_label: Amazon SES
+sidebar_position: 20
+description: Configurá Amazon SES para enviar emails desde tu aplicación — verificá una identidad, probá en modo sandbox y solicitá acceso a producción.
+tags:
+  - aws
+  - ses
+  - email
+image: /img/tutorials/amazon-ses/amazon-ses.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Configurá Amazon Simple Email Service (SES) para enviar emails desde tu aplicación, desde el modo sandbox hasta la configuración en producción.
+
+## Prerrequisitos
+
+- Acceso a la consola de AWS con permisos para administrar SES
+- Un dominio o dirección de email desde donde querés enviar
+- Si usás dominio: acceso a tu proveedor de DNS para agregar registros de verificación
+
+## Empecemos
+
+### Paso 1 — Crear una identidad verificada
+
+Todas las cuentas nuevas de SES comienzan en **modo sandbox**, que solo permite enviar hacia y desde identidades verificadas.
+
+1. Ir a **AWS Console → Amazon SES → Identities**.
+2. Hacer clic en **Create identity**.
+3. Elegir una de las opciones:
+   - **Email address** — verifica una sola dirección. AWS envía un email de confirmación; hacé clic en el enlace para verificar.
+   - **Domain** — verifica el dominio completo (recomendado para producción). AWS provee registros DNS (TXT/CNAME) para agregar en tu proveedor de DNS.
+
+:::tip
+Verificá tu dominio de producción temprano — podés reutilizar el mismo dominio verificado cuando salgas del sandbox.
+:::
+
+### Paso 2 — Enviar un email de prueba en sandbox
+
+Con una identidad verificada ya podés enviar emails en modo sandbox. Todos los destinatarios también deben ser identidades verificadas mientras estés en sandbox.
+
+Usá el botón **Send test email** en la consola de SES o el AWS CLI para confirmar que tu configuración funciona antes de solicitar acceso a producción.
+
+### Paso 3 — Solicitar acceso a producción
+
+Para enviar a cualquier destinatario, necesitás salir del modo sandbox.
+
+**Antes de enviar la solicitud:**
+
+- Tener al menos una identidad verificada (preferentemente un dominio)
+- Poder enviar un email de prueba desde SES
+- Tener claro el caso de uso: tipo de email, volumen esperado y cómo manejás rebotes/quejas/bajas
+
+**Pasos:**
+
+1. En Amazon SES, navegar a **Account dashboard → Request production access** (o **Sending limits**).
+2. Completar el formulario:
+   - **Email type:** Transactional o Marketing
+   - **Website URL:** el sitio asociado a los envíos
+   - **Use case description:** qué enviás, a quién y con qué frecuencia
+   - **Bounce/complaint/unsubscribe handling:** describí tu estrategia de supresión
+
+AWS abre un ticket en Support Center y puede solicitar información adicional.
+
+### Paso 4 — Escribir una descripción de caso de uso clara
+
+Una descripción clara y detallada es el factor más importante para la aprobación. Usá este modelo como punto de partida:
+
+```
+Service: Amazon SES (Sending Limits / Production Access)
+Region: <tu-región>
+
+Use case description:
+We plan to use Amazon SES to send transactional emails to our users
+(e.g., account notifications and password reset emails). Emails are
+user-triggered and sent only to customers who have registered on our platform.
+
+List management:
+We only send to recipients who are registered in our system. Users can
+unsubscribe from non-essential communications through our website.
+
+Bounce/complaint handling:
+We monitor bounces and complaints and suppress recipients when appropriate.
+
+Expected volume:
+Our expected sending volume is <X> emails per day initially, with gradual growth.
+
+Please let us know if any more information is needed.
+```
+
+:::tip
+**Tips para una aprobación más rápida:**
+
+- Indicá claramente si los emails son **transaccionales** (reseteo de contraseña, confirmaciones de pedido) o **marketing**
+- Incluí un volumen estimado de envíos por día/mes
+- Describí cómo tu sistema maneja rebotes, quejas y bajas
+- Si es posible, incluí un ejemplo del contenido del email
+:::

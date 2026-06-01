@@ -55,6 +55,17 @@ As previously mentioned the key might be an input here or a environment variable
 
 Also, you might mark if you want the process to **wait** the build to be finished or not.
 
+When you use **wait**, you can also set a **timeout** (in minutes) to cap how long the CLI waits for the build to finish. It defaults to **180 minutes**; pass `0` to wait indefinitely. You can also set it through the `BUILD_TIMEOUT_MINUTES` environment variable.
+
+| **Option**    | **Description**                                                              |
+| ------------- | --------------------------------------------------------------------------- |
+| **--wait**    | Wait for the build to finish before returning.                              |
+| **--timeout** | Minutes to wait when using `--wait`. Default `180`. Use `0` for no timeout.  |
+
+:::tip
+The timeout is client-side: it controls how long the CLI watches the build, not the build itself on the backend. When it expires, the CLI prints a message and exits with code `1`, so a stuck build fails your CI pipeline instead of silently passing.
+:::
+
 ### 3. Make a Deploy
 
 Once your build is ready, you can effortlessly deploy your application using the following command:

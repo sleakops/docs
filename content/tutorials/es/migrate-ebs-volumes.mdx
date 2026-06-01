@@ -1,0 +1,164 @@
+---
+title: Migrar volúmenes EBS a una nueva cuenta de AWS
+sidebar_label: Migrar volúmenes EBS
+sidebar_position: 15
+description: Guía paso a paso para crear snapshots, compartir, copiar y recrear volúmenes EBS desde una cuenta externa de AWS a una cuenta administrada por SleakOps.
+tags:
+  - aws
+  - kubernetes
+  - storage
+  - migration
+  - ebs
+image: /img/tutorials/migrate-ebs-volumes/migrate-ebs-volumes.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Mové volúmenes EBS desde una cuenta externa de AWS a una cuenta administrada por SleakOps creando snapshots, compartiéndolos, copiándolos al destino y recreando los volúmenes.
+
+## Prerrequisitos
+
+- AWS CLI configurado con perfiles para la cuenta origen y la cuenta destino
+- Acceso `kubectl` al cluster origen para identificar los IDs de volumen
+- El ID de la cuenta destino (formato de 12 dígitos)
+- Un Project de SleakOps desplegado en la cuenta destino (para adjuntar la política IAM)
+
+## Empecemos
+
+### Paso 1 — Identificar los IDs de volumen a migrar
+
+Ejecutá este comando contra el cluster origen para listar todos los pods y sus Persistent Volumes adjuntos:
+
+```bash
+kubectl get pods --all-namespaces -o json | jq -c '.items[] |
+  {
+    namespace: .metadata.namespace,
+    pod: .metadata.name,
+    pvc: (.spec.volumes[]? | select(.persistentVolumeClaim != null) | .persistentVolumeClaim.claimName)
+  } | select(.pvc != null)'
+```
+
+Construí una lista con los nombres de pods y sus IDs de volumen asociados:
+
+```bash
+pod_volume_ids=(
+  "core-stg-postgresql-0 vol-025d6ddd6af9df250"
+  "core-stg-redis-master-0 vol-0a36b5ff1809fcc49"
+  "grafana-6dfd99b599-26gz9 vol-0f851cc80d49463b5"
+)
+```
+
+### Paso 2 — Crear y compartir snapshots (cuenta origen)
+
+Este script crea una snapshot por cada volumen y la comparte con la cuenta destino. Reemplazá `target_account_id` con el ID de la cuenta destino:
+
+```bash
+pod_volume_ids=(
+  "pod_name1 vol_id1"
+  "pod_name2 vol_id2"
+)
+target_account_id="111222333444"
+
+for entry in "${pod_volume_ids[@]}"; do
+  pod_name=$(echo "$entry" | awk '{print $1}')
+  volume_id=$(echo "$entry" | awk '{print $2}')
+  snapshot_name="Snapshot-$volume_id"
+
+  snapshot_id=$(aws ec2 create-snapshot \
+    --volume-id "$volume_id" \
+    --description "Snapshot of $volume_id from Pod $pod_name" \
+    --tag-specifications "ResourceType=snapshot,Tags=[{Key=Name,Value=$snapshot_name},{Key=Pod,Value=$pod_name},{Key=DestinationAccount,Value=$target_account_id}]" \
+    --query SnapshotId --output text)
+
+  echo "Esperando que $snapshot_id se complete..."
+  aws ec2 wait snapshot-completed --snapshot-ids "$snapshot_id"
+
+  aws ec2 modify-snapshot-attribute \
+    --snapshot-id "$snapshot_id" \
+    --attribute createVolumePermission \
+    --operation-type add \
+    --user-ids "$target_account_id"
+
+  echo "Snapshot $snapshot_id compartida con cuenta $target_account_id"
+done
+```
+
+### Paso 3 — Adjuntar la política IAM requerida (cuenta destino)
+
+Adjuntá esta política al rol IAM usado por un Pod en tu Project de SleakOps destino. El nombre del rol sigue el patrón `{PROJECT_NAME}-{SHORT_UUID}-sa`:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "ec2:DescribeSnapshots",
+        "ec2:CopySnapshot",
+        "ec2:CreateVolume",
+        "ec2:CreateTags",
+        "ec2:DescribeVolumes",
+        "ec2:DescribeSnapshotAttribute",
+        "ec2:DeleteSnapshot",
+        "ec2:DeleteVolume"
+      ],
+      "Effect": "Allow",
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+### Paso 4 — Copiar snapshots y crear volúmenes (cuenta destino)
+
+Ejecutá este script desde un Pod en la cuenta destino que tenga la política del Paso 3. Ajustá las regiones y la zona de disponibilidad según corresponda:
+
+```bash
+source_region="us-east-1"
+destination_region="us-east-1"
+availability_zone="us-east-1a"
+
+pod_volume_ids=(
+  "pod_name1 vol_id1"
+  "pod_name2 vol_id2"
+)
+
+for entry in "${pod_volume_ids[@]}"; do
+  pod_name=$(echo "$entry" | awk '{print $1}')
+  volume_id=$(echo "$entry" | awk '{print $2}')
+  snapshot_id=$(aws ec2 describe-snapshots \
+    --restorable-by-user-ids self \
+    --filters "Name=tag:Name,Values=Snapshot-$volume_id" "Name=tag:Pod,Values=$pod_name" \
+    --query "Snapshots[0].SnapshotId" \
+    --output text \
+    --region "$source_region")
+
+  new_snapshot_id=$(aws ec2 copy-snapshot \
+    --source-region "$source_region" \
+    --source-snapshot-id "$snapshot_id" \
+    --description "Copy of Snapshot-$volume_id from Pod $pod_name" \
+    --tag-specifications "ResourceType=snapshot,Tags=[{Key=Name,Value=Copied-$volume_id},{Key=Pod,Value=$pod_name},{Key=OriginalVolumeId,Value=$volume_id}]" \
+    --query SnapshotId --output text \
+    --region "$destination_region")
+
+  echo "Esperando que $new_snapshot_id se complete..."
+  aws ec2 wait snapshot-completed --snapshot-ids "$new_snapshot_id" --region "$destination_region"
+
+  new_volume_id=$(aws ec2 create-volume \
+    --snapshot-id "$new_snapshot_id" \
+    --availability-zone "$availability_zone" \
+    --volume-type gp3 \
+    --tag-specifications "ResourceType=volume,Tags=[{Key=Name,Value=Volume-$volume_id},{Key=OriginalVolumeId,Value=$volume_id},{Key=Pod,Value=$pod_name}]" \
+    --query VolumeId --output text \
+    --region "$destination_region")
+
+  aws ec2 wait volume-available --volume-ids "$new_volume_id" --region "$destination_region"
+  echo "Nuevo Volume ID: $new_volume_id (Original: $volume_id)"
+done
+```
+
+:::warning
+Registrá los nuevos IDs de volumen y sus zonas de disponibilidad. Los workloads deben desplegarse en la misma AZ que su volumen.
+:::

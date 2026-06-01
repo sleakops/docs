@@ -65,6 +65,17 @@ sleakops build -p myproject -b main --docker-args "ARG1=value1,ARG2=value2"
 Esto es particularmente útil para pipelines de CI/CD donde quieres pasar diferentes argumentos basados en el entorno o contexto de construcción.
 :::
 
+Cuando usas **wait**, también puedes definir un **timeout** (en minutos) para limitar cuánto espera la CLI a que termine la compilación. El valor por defecto es **180 minutos**; pasa `0` para esperar indefinidamente. También puedes configurarlo mediante la variable de entorno `BUILD_TIMEOUT_MINUTES`.
+
+| **Opción**    | **Descripción**                                                                       |
+| ------------- | ------------------------------------------------------------------------------------- |
+| **--wait**    | Espera a que la compilación termine antes de retornar.                                |
+| **--timeout** | Minutos a esperar cuando se usa `--wait`. Por defecto `180`. Usa `0` para sin límite. |
+
+:::tip
+El timeout es del lado del cliente: controla cuánto observa la CLI a la compilación, no la compilación en sí en el backend. Cuando se agota, la CLI imprime un mensaje y sale con código `1`, de modo que una compilación colgada hace fallar tu pipeline de CI en vez de pasar silenciosamente.
+:::
+
 ### 3. Realizar un Despliegue
 
 Una vez que tu compilación esté lista, puedes desplegar tu aplicación fácilmente usando el siguiente comando:

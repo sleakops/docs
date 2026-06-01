@@ -1,0 +1,78 @@
+---
+title: Transfer a Domain to Amazon Route 53
+sidebar_label: Transfer Domain to Route 53
+sidebar_position: 22
+description: Checklist and step-by-step guide to transfer a domain from your current registrar to Amazon Route 53 without downtime.
+tags:
+  - aws
+  - route53
+  - dns
+  - domain
+  - networking
+image: /img/tutorials/transfer-domain-route53/transfer-domain-route53.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Transfer a domain from your current registrar to Amazon Route 53 following this preparation checklist, DNS migration, and transfer request steps to avoid downtime.
+
+:::info
+Verify that your domain's TLD (e.g., `.com`, `.net`, `.mx`) is supported by Route 53 before starting: [Supported TLD list <FiExternalLink/>](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/registrar-tld-list.html).
+:::
+
+## Prerequisites
+
+- Access to your current domain registrar account
+- Access to the registrant email address listed in WHOIS (authorization emails will be sent there)
+- The domain must be at least 60 days old since registration or last transfer
+- If DNSSEC is enabled, you must disable it at the current registrar before transferring
+
+## Let's Start
+
+### Stage 1 — Pre-transfer checklist
+
+Complete all of these before touching the AWS Console:
+
+- [ ] **Confirm TLD support** — verify your domain extension is in the [supported TLD list <FiExternalLink/>](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/registrar-tld-list.html)
+- [ ] **Verify access to registrant email** — you will receive authorization emails there
+- [ ] **Unlock the domain** — disable the "Transfer Lock" or "Domain Lock" at your current registrar
+- [ ] **Confirm domain age** — at least 60 days since registration or last transfer
+- [ ] **Get the Auth Code (EPP Code)** — request it from your current registrar; required for most TLDs
+- [ ] **Disable DNSSEC** — if enabled, disable it at the current registrar before transferring
+- [ ] **Check domain status in WHOIS** — status must be `ok`. Domains with any of these statuses cannot be transferred:
+  - `clientTransferProhibited`
+  - `pendingDelete`
+  - `pendingTransfer`
+  - `redemptionPeriod`
+  - `serverTransferProhibited`
+
+:::warning
+If your domain expires in less than 7 days, renew it at the current registrar before attempting the transfer.
+:::
+
+### Stage 2 — Migrate DNS records first (recommended)
+
+AWS recommends migrating your DNS service before transferring the domain registration to avoid downtime.
+
+1. **Create a hosted zone in Route 53** with the same name as your domain. SleakOps can create this for you.
+2. **Copy all DNS records** (A, MX, CNAME, TXT) from your current provider to the new Route 53 hosted zone.
+3. (Optional) **Update name servers** at your current registrar to the Route 53 name servers to test resolution before the transfer.
+
+### Stage 3 — Submit the transfer request in Route 53
+
+1. Go to **Route 53 → Registered domains → Transfer in**.
+2. Enter the domain name and click **Check** to confirm it is transferable.
+3. Enter the **Auth Code** from Stage 1.
+4. Configure DNS: select your Route 53 hosted zone (recommended) or keep your current name servers.
+5. Review and complete the **registrant contact information** — it should match your current registrar to avoid ownership-change blocks.
+6. Review the cost (typically includes a 1-year renewal) and confirm the order.
+
+### Stage 4 — Complete the transfer
+
+- Watch your registrant email for an authorization link.
+- Monitor progress at **Route 53 → Pending requests**.
+- Depending on the TLD, transfers take anywhere from a few minutes to 10 days.
+- Once complete, AWS sends a confirmation email.
+- (If applicable) **Re-enable DNSSEC** after the transfer is complete and DNS is working correctly.

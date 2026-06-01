@@ -1,0 +1,144 @@
+---
+title: Conectarse a recursos de AWS desde tu aplicación
+sidebar_label: Conectarse a AWS
+sidebar_position: 31
+description: Aprendé cómo autenticarte en AWS y conectarte a recursos como S3 desde desarrollo local o pipelines CI/CD — creación de usuario IAM, gestión de access keys y ejemplos con el SDK de Node.js.
+tags:
+  - aws
+  - security
+  - node
+image: /img/tutorials/connect-aws-resources/connect-aws-resources.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Aprendé las formas recomendadas de autenticarte en AWS y conectarte a recursos como S3 desde desarrollo local, pipelines CI/CD o integraciones estáticas — incluyendo creación de usuario IAM y ejemplos con el SDK de Node.js.
+
+## Cuándo Usar Cada Enfoque
+
+| Escenario | Enfoque recomendado |
+| --- | --- |
+| Acceso por usuario con trazabilidad | [Configurar credenciales AWS personales](/tutorial/aws-local-authentication) |
+| Pipeline CI/CD o integración estática | Usuario IAM dedicado con permisos acotados (esta guía) |
+| Workloads en producción en EKS/EC2 | IAM Role con STS (sin keys permanentes) |
+
+Esta guía cubre el enfoque de **integración estática** — crear un usuario IAM dedicado para un recurso específico como S3.
+
+## Paso 1 — Crear un Usuario IAM Dedicado
+
+1. Iniciá sesión en la [consola de AWS <FiExternalLink/>](https://console.aws.amazon.com/) y navegá a **IAM**.
+2. Hacé clic en **Users → Create user**.
+3. Ingresá un nombre descriptivo (ej. `s3-app-user`).
+4. Seleccioná **Programmatic access**.
+5. Hacé clic en **Next: Permissions**.
+
+## Paso 2 — Adjuntar una Política para S3
+
+**Opción A — Política predefinida (simple):**
+- Seleccioná `AmazonS3FullAccess` o `AmazonS3ReadOnlyAccess`.
+
+**Opción B — Política personalizada (recomendado para producción):**
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:GetObjectVersion"],
+      "Resource": "arn:aws:s3:::tu-bucket-name/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["s3:ListBucket", "s3:GetBucketLocation"],
+      "Resource": "arn:aws:s3:::tu-bucket-name"
+    }
+  ]
+}
+```
+
+Reemplazá `tu-bucket-name` con el nombre real del bucket.
+
+## Paso 3 — Descargar las Access Keys
+
+Después de crear el usuario, descargá el archivo `.csv` o copiá el **Access Key ID** y el **Secret Access Key**. Esta es la única oportunidad de ver el Secret Access Key.
+
+:::warning
+Nunca committees credenciales en un repositorio. Guardalas en un gestor de secretos o en variables de entorno.
+:::
+
+## Paso 4 — Configurar Credenciales en tu Entorno
+
+**Archivo `.env` (recomendado para desarrollo local):**
+
+```bash
+AWS_ACCESS_KEY_ID=tu_access_key_id
+AWS_SECRET_ACCESS_KEY=tu_secret_access_key
+AWS_REGION=us-east-1
+S3_BUCKET_NAME=tu-bucket-name
+```
+
+Agregá `.env` al `.gitignore`.
+
+**AWS CLI (alternativo):**
+
+```bash
+aws configure
+```
+
+## Paso 5 — Usar el SDK en Node.js
+
+**Instalar dependencias:**
+
+```bash
+npm install @aws-sdk/client-s3 dotenv
+```
+
+**Ejemplo con AWS SDK v3:**
+
+```javascript
+require('dotenv').config();
+const { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
+
+const s3 = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+});
+
+const bucket = process.env.S3_BUCKET_NAME;
+
+async function subirArchivo(key, body) {
+  await s3.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: body }));
+}
+
+async function descargarArchivo(key) {
+  const res = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+  return res.Body.transformToString();
+}
+
+async function listarArchivos() {
+  const res = await s3.send(new ListObjectsV2Command({ Bucket: bucket }));
+  return res.Contents ?? [];
+}
+```
+
+## Buenas Prácticas de Seguridad
+
+- **Nunca hardcodees credenciales** en el código fuente.
+- **Rotá las access keys** cada 90 días.
+- **Usá los permisos mínimos necesarios** — evitá `Resource: "*"` genérico.
+- **Monitoreá el uso** mediante AWS CloudTrail.
+- **Preferí IAM Roles** sobre access keys permanentes para workloads que corren en EKS, EC2 o ECS.
+
+## Solución de Problemas
+
+| Error | Causa | Solución |
+| --- | --- | --- |
+| **Access Denied** | Permisos IAM faltantes o credenciales incorrectas | Verificar la política IAM y que las claves correctas estén configuradas |
+| **Region not specified** | `AWS_REGION` no definida | Configurar la región en tu config o `.env` |
+| **Bucket does not exist** | Nombre de bucket incorrecto o región equivocada | Confirmar el nombre del bucket y la región |

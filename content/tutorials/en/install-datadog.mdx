@@ -1,0 +1,89 @@
+---
+title: Install Datadog on a SleakOps EKS Cluster
+sidebar_label: Install Datadog
+sidebar_position: 34
+description: Install the Datadog monitoring agent on an Amazon EKS cluster managed by SleakOps using Helm, with a values.yaml and recommended best practices.
+tags:
+  - kubernetes
+  - monitoring
+  - helm
+  - aws
+image: /img/tutorials/install-datadog/install-datadog.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Install the [Datadog <FiExternalLink/>](https://www.datadoghq.com/) monitoring agent on a SleakOps EKS cluster using Helm to gain full visibility into application performance and infrastructure health.
+
+## Prerequisites
+
+- A SleakOps EKS cluster with `kubectl` configured
+- A Datadog account and API key
+
+## Step 1 — Configure AWS CLI and kubectl
+
+Verify your environment is ready:
+
+```bash
+aws --version
+kubectl version --short
+```
+
+## Step 2 — Add the Datadog Helm Repository
+
+```bash
+helm repo add datadog https://helm.datadoghq.com
+helm repo update
+```
+
+## Step 3 — Create `values.yaml`
+
+```yaml
+datadog:
+  apiKey: <YOUR_DATADOG_API_KEY>
+  clusterName: <YOUR_CLUSTER_NAME>
+  logs:
+    enabled: true
+    containerCollectAll: true
+  apm:
+    portEnabled: true
+  processAgent:
+    enabled: true
+```
+
+:::warning
+Do not commit `values.yaml` with the API key to a repository. Use a Kubernetes Secret or pass `--set datadog.apiKey=...` directly.
+:::
+
+## Step 4 — Install the Datadog Agent
+
+```bash
+helm install datadog-agent datadog/datadog \
+  --namespace datadog \
+  --create-namespace \
+  -f values.yaml
+```
+
+## Step 5 — Verify the Installation
+
+```bash
+kubectl get pods -n datadog
+```
+
+All `datadog-agent-*` pods should reach `Running` state within a few minutes.
+
+## Installation Options Comparison
+
+| Method | Advantages | Disadvantages |
+| --- | --- | --- |
+| **Helm (this guide)** | Flexible, configurable, standard | Requires Helm knowledge |
+| **Datadog Operator** | Lifecycle management, CRD-based | More complex to set up |
+| **Fargate Logging** | No node management | Works only for specific workloads |
+
+## Best Practices
+
+- **Secure the API key:** Store it in a Kubernetes Secret rather than directly in `values.yaml`.
+- **Configure alerts:** Set up Datadog monitors to get notified when infrastructure problems are detected.
+- **Keep versions updated:** Maintain both the Datadog agent and EKS cluster updated to avoid compatibility issues.

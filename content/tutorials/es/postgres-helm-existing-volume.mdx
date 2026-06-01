@@ -1,0 +1,129 @@
+---
+title: Desplegar un Helm Chart de PostgreSQL con un volumen EBS existente
+sidebar_label: Postgres Helm con volumen existente
+sidebar_position: 16
+description: Desplegá el Helm chart de Bitnami PostgreSQL en SleakOps apuntando a un volumen EBS pre-existente creando recursos PV y PVC con el node affinity correcto.
+tags:
+  - kubernetes
+  - helm
+  - postgresql
+  - storage
+  - ebs
+image: /img/tutorials/postgres-helm-existing-volume/postgres-helm-existing-volume.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Desplegá el Helm chart de Bitnami PostgreSQL dentro de un cluster de SleakOps apuntando a un volumen EBS pre-existente, creando los recursos PersistentVolume y PersistentVolumeClaim requeridos.
+
+:::info
+Este tutorial asume que ya seguiste [Migrar volúmenes EBS a una nueva cuenta](/tutorial/migrate-ebs-volumes) y tenés disponible un ID de volumen migrado.
+:::
+
+## Prerrequisitos
+
+- Un Cluster configurado en SleakOps con EBS CSI Driver instalado
+- Un Environment y Project desplegados
+- El ID del volumen EBS y su zona de disponibilidad
+- `kubectl` y `helm` instalados localmente
+- El nombre del NodePool del cluster de SleakOps
+
+## Empecemos
+
+### Paso 1 — (Opcional) Identificar el ID del volumen
+
+Si migraste el volumen usando la guía de migración de EBS, ejecutá este comando desde un Pod con los permisos IAM necesarios para listar los volúmenes migrados:
+
+```bash
+aws ec2 describe-volumes \
+  --filters Name=status,Values=available \
+  --query "Volumes[?Tags[?Key=='Name'] && Tags[?Key=='Pod'] && Tags[?Key=='OriginalVolumeId']].[{VolumeId: VolumeId, Name: Tags[?Key=='Name']|[0].Value, Pod: Tags[?Key=='Pod']|[0].Value, OriginalVolumeId: Tags[?Key=='OriginalVolumeId']|[0].Value, Size: Size}]" \
+  --output table
+```
+
+Copiá el `VolumeId` del volumen objetivo.
+
+### Paso 2 — Crear el PV, PVC y desplegar con Helm
+
+Configurá las variables y ejecutá el script para crear los recursos de Kubernetes y desplegar el chart:
+
+```bash
+volume_id="vol-111aaa222ddd3333fff44"
+pv_name="your-pv-name"
+storage_size="8Gi"
+availability_zone="us-east-1a"
+nodepool_name="your-nodepool-name"
+
+pvc_name="${pv_name}-claim"
+
+# Crear PV y PVC
+kubectl apply -f - <<EOF
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: $pv_name
+spec:
+  capacity:
+    storage: $storage_size
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ebs-csi-default-sc
+  csi:
+    driver: ebs.csi.aws.com
+    volumeHandle: $volume_id
+    fsType: ext4
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: $pvc_name
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: $storage_size
+  storageClassName: ebs-csi-default-sc
+  volumeName: $pv_name
+EOF
+
+# Crear archivo de valores Helm
+cat > values.yaml <<EOF
+primary:
+  persistence:
+    existingClaim: $pvc_name
+
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: topology.kubernetes.io/zone
+                operator: In
+                values:
+                  - $availability_zone
+
+  tolerations:
+    - key: "karpenter.sh/nodepool"
+      operator: "Equal"
+      value: $nodepool_name
+EOF
+
+# Desplegar chart
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
+helm install my-postgres bitnami/postgresql -f values.yaml
+```
+
+:::warning
+**El node affinity es obligatorio.** Si omitís la configuración de `nodeAffinity`, Kubernetes puede programar el Pod en una zona de disponibilidad diferente a la del volumen, dejando el Pod en estado `Pending` indefinidamente.
+:::
+
+:::warning
+**Las tolerations son obligatorias.** Los clusters de SleakOps usan node pools de Karpenter. El bloque `tolerations` asegura que el Pod se programe en los nodos correctos.
+:::

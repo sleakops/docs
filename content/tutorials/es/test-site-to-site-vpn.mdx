@@ -1,0 +1,100 @@
+---
+title: Probar una VPN Site to Site creada con SleakOps
+sidebar_label: Probar VPN Site to Site
+sidebar_position: 32
+description: Verificá la conectividad a través de una VPN site-to-site de SleakOps usando Nmap desde un pod de Kubernetes — paso a paso con resultados esperados y diagrama de flujo de paquetes.
+tags:
+  - vpn
+  - networking
+  - kubernetes
+image: /img/tutorials/test-site-to-site-vpn/test-site-to-site-vpn.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Verificá que una VPN site-to-site de SleakOps funciona correctamente ejecutando tests de conectividad con Nmap desde un pod de Kubernetes dentro del cluster.
+
+## Prerrequisitos
+
+- Una VPN site-to-site ya creada y configurada en SleakOps
+- Acceso al cluster destino mediante Lens o `kubectl`
+
+## Paso 1 — Crear un Pod de Prueba
+
+Usando Lens o `kubectl`, creá el siguiente pod en el namespace correspondiente:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: vpn-test
+  namespace: <tu-namespace>
+spec:
+  containers:
+  - name: tools
+    image: nicolaka/netshoot:latest
+    command: ["sleep", "3600"]
+```
+
+Aplicarlo:
+
+```bash
+kubectl apply -f vpn-test-pod.yaml
+```
+
+## Paso 2 — Acceder a la Shell del Pod
+
+Abrí una shell dentro del pod via Lens (clic derecho → Shell) o:
+
+```bash
+kubectl exec -it vpn-test -n <tu-namespace> -- bash
+```
+
+## Paso 3 — Ejecutar Tests con Nmap
+
+Necesitás:
+- **NAT_IP**: IP de la instancia NAT (ej. `10.100.0.10`)
+- **REMOTE_IP**: IP del servidor remoto al otro lado de la VPN (ej. `192.168.0.100`)
+- **PUERTO**: Puerto a probar (ej. `443`)
+
+```bash
+NAT_IP="10.100.0.10"
+REMOTE_IP="192.168.0.100"
+PUERTO="443"
+nmap -p $PUERTO $REMOTE_IP
+```
+
+**Resultado esperado:**
+
+```
+PORT    STATE SERVICE
+443/tcp open  https
+```
+
+Si el estado es `filtered` o `closed`, revisá el estado del túnel VPN y el firewall en el lado remoto.
+
+## Paso 4 — Limpiar
+
+Una vez confirmada la conectividad, eliminá el pod de prueba:
+
+```bash
+kubectl delete pod vpn-test -n <tu-namespace>
+```
+
+## Referencia del Flujo de Paquetes
+
+El siguiente diagrama muestra cómo viajan los paquetes a través de la VPN:
+
+```
+Request del cliente → Ruta al NAT via Peering → NAT Instance (IP forwarding)
+→ MASQUERADE → VPN Gateway → Túnel IPSec → Customer Gateway
+→ Descifrar → Verificación de firewall → Servidor remoto
+```
+
+Puntos de falla clave a verificar en cada paso:
+1. **Sin ruta a la subred remota** — Verificar route tables de la VPC
+2. **IP forwarding deshabilitado** en la instancia NAT — Habilitar con `sysctl net.ipv4.ip_forward=1`
+3. **Túnel VPN DOWN** — Verificar el estado de la conexión VPN en la consola AWS
+4. **Firewall remoto bloqueando** — Verificar security group / reglas de firewall en el lado remoto

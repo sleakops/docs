@@ -1,0 +1,211 @@
+---
+title: Use AWS CodeArtifact with Java/Maven Projects
+sidebar_label: AWS CodeArtifact for Java
+sidebar_position: 28
+description: Configure a Java Maven project to use AWS CodeArtifact as a private artifact repository inside Docker, with CI/CD pipeline examples for GitHub Actions, GitLab, and Bitbucket.
+tags:
+  - aws
+  - ci-cd
+  - docker
+  - deployment
+image: /img/tutorials/aws-codeartifact-java/aws-codeartifact-java.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+Configure a Java Maven project to pull dependencies from [AWS CodeArtifact <FiExternalLink/>](https://aws.amazon.com/codeartifact/) — a private artifact repository — inside a Dockerized build with CI/CD pipeline examples.
+
+## Prerequisites
+
+- An AWS CodeArtifact domain and repository created
+- IAM credentials with `codeartifact:GetAuthorizationToken` and `codeartifact:ReadFromRepository` permissions
+- Docker and Maven installed
+
+## Step 1 — Create `codeartifact_settings.xml`
+
+This file configures Maven to authenticate against CodeArtifact using a token injected via environment variable:
+
+```xml
+<settings>
+  <servers>
+    <server>
+      <id>codeartifact</id>
+      <username>aws</username>
+      <password>${env.CODEARTIFACT_AUTH_TOKEN}</password>
+    </server>
+  </servers>
+  <mirrors>
+    <mirror>
+      <id>codeartifact</id>
+      <url>${env.CODEARTIFACT_REPOSITORY}</url>
+      <mirrorOf>*</mirrorOf>
+    </mirror>
+  </mirrors>
+</settings>
+```
+
+## Step 2 — Dockerfile with CodeArtifact Authentication
+
+Use a multi-stage build so the authentication token never ends up in the final image:
+
+```dockerfile
+# Build stage
+FROM maven:3.9-eclipse-temurin-21 AS build
+
+# Install AWS CLI
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
+    && unzip awscliv2.zip \
+    && ./aws/install
+
+# Accept AWS credentials as build args (not stored in final image)
+ARG CODEARTIFACT_ACCESS_KEY_ID
+ARG CODEARTIFACT_SECRET_ACCESS_KEY
+ARG CODEARTIFACT_REGION
+ARG CODEARTIFACT_ACCOUNT_ID
+ARG CODEARTIFACT_REPOSITORY
+ARG CODEARTIFACT_DOMAIN
+
+# Set working directory and copy source code
+WORKDIR /app
+COPY . .
+
+# Copy Maven settings pointing to CodeArtifact
+COPY codeartifact_settings.xml /root/.m2/settings.xml
+
+# Generate token and build
+RUN export AWS_ACCESS_KEY_ID=$CODEARTIFACT_ACCESS_KEY_ID \
+    && export AWS_SECRET_ACCESS_KEY=$CODEARTIFACT_SECRET_ACCESS_KEY \
+    && export CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token \
+        --domain $CODEARTIFACT_DOMAIN \
+        --domain-owner $CODEARTIFACT_ACCOUNT_ID \
+        --region $CODEARTIFACT_REGION \
+        --query authorizationToken --output text) \
+    && mvn clean install -s /root/.m2/settings.xml
+
+# Runtime stage — no credentials here
+FROM eclipse-temurin:21-jre
+COPY --from=build /app/target/app.jar /app.jar
+ENTRYPOINT ["java", "-jar", "/app.jar"]
+```
+
+## Step 3 — Docker Compose (build args)
+
+```yaml
+build:
+  args:
+    CODEARTIFACT_ACCESS_KEY_ID: $CODEARTIFACT_ACCESS_KEY_ID
+    CODEARTIFACT_SECRET_ACCESS_KEY: $CODEARTIFACT_SECRET_ACCESS_KEY
+    CODEARTIFACT_REGION: $CODEARTIFACT_REGION
+    CODEARTIFACT_ACCOUNT_ID: $CODEARTIFACT_ACCOUNT_ID
+    CODEARTIFACT_REPOSITORY: $CODEARTIFACT_REPOSITORY
+    CODEARTIFACT_DOMAIN: $CODEARTIFACT_DOMAIN
+```
+
+## Step 4 — CI/CD Pipeline Configuration
+
+<Tabs>
+  <TabItem value="github" label="GitHub Actions">
+
+```yaml
+# .github/workflows/maven.yml
+name: Build and Deploy to CodeArtifact
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Get CodeArtifact Token
+        run: |
+          echo "CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token \
+            --domain ${{ secrets.CODEARTIFACT_DOMAIN }} \
+            --domain-owner ${{ secrets.CODEARTIFACT_ACCOUNT }} \
+            --query authorizationToken --output text)" >> $GITHUB_ENV
+
+      - name: Build and Deploy
+        run: mvn -s codeartifact_settings.xml clean package deploy
+```
+
+  </TabItem>
+  <TabItem value="gitlab" label="GitLab CI">
+
+```yaml
+# gitlab-ci.yml
+variables:
+  MAVEN_DOCKER_IMAGE: "maven:3.9.6-eclipse-temurin-21"
+
+stages:
+  - build
+
+build_artifacts:
+  stage: build
+  image: $MAVEN_DOCKER_IMAGE
+  before_script:
+    - pip3 install awscli
+  script:
+    - export CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token
+        --domain ${CODEARTIFACT_DOMAIN}
+        --domain-owner ${CODEARTIFACT_ACCOUNT}
+        --query authorizationToken --output text)
+    - mvn -s settings.xml clean package deploy
+  only:
+    - develop
+```
+
+  </TabItem>
+  <TabItem value="bitbucket" label="Bitbucket Pipelines">
+
+```yaml
+# bitbucket-pipelines.yml
+- step:
+    name: Build and Upload to AWS CodeArtifact
+    image: maven:3.8.6-openjdk-8
+    caches:
+      - maven
+    script:
+      - export CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token
+          --domain ${CODEARTIFACT_DOMAIN}
+          --domain-owner ${CODEARTIFACT_ACCOUNT_ID}
+          --region ${CODEARTIFACT_REGION}
+          --query authorizationToken --output text)
+      - mvn -B clean install deploy -DskipTests
+```
+
+  </TabItem>
+</Tabs>
+
+## Best Practices
+
+- **Avoid credentials in final images**: Use multi-stage builds so tokens are only present during the build stage.
+- **Use IAM Roles in AWS**: On EC2, ECS, or EKS, replace access keys with IAM roles for automatic credential management.
+- **Local Maven cache**: Mount `.m2` as a volume (`-./.m2:/root/.m2`) to speed up subsequent builds.
+
+## Troubleshooting
+
+| Error | Cause | Fix |
+| --- | --- | --- |
+| **Token Expired** | CodeArtifact tokens are valid for 12 hours | Ensure the build doesn't exceed this window |
+| **Insufficient Permissions** | Missing IAM policy | Verify `codeartifact:GetAuthorizationToken` and `codeartifact:ReadFromRepository` are granted |
+| **Incorrect URL** | Wrong repository format | Use `https://<domain>-<account>.d.codeartifact.<region>.amazonaws.com/maven/<repo>/` |

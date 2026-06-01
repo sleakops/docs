@@ -166,6 +166,97 @@ For the full catalogue of triggers (Kafka, Redis, Prometheus, cron, NATS, MongoD
 
 <details>
 <summary>
+### How do I deploy `ScaledObject` manifests through SleakOps?
+</summary>
+You can deliver `ScaledObject` (and `TriggerAuthentication`) manifests to your Cluster without leaving the SleakOps console. Two paths are available — pick based on where the manifest needs to live.
+
+**Option 1 — KEDA addon Custom Values (`extraObjects`, cluster-scoped)**
+
+The upstream KEDA chart exposes an `extraObjects` list that ships any K8s manifest alongside the operator. Open the KEDA addon's detail drawer, toggle **Enable Custom Values**, and paste the YAML:
+
+```yaml
+extraObjects:
+  - apiVersion: keda.sh/v1alpha1
+    kind: ClusterTriggerAuthentication
+    metadata:
+      name: aws-irsa
+    spec:
+      podIdentity:
+        provider: aws
+  - apiVersion: keda.sh/v1alpha1
+    kind: ScaledObject
+    metadata:
+      name: order-worker-scaler
+      namespace: my-app
+    spec:
+      scaleTargetRef:
+        name: order-worker
+      minReplicaCount: 0
+      maxReplicaCount: 20
+      triggers:
+        - type: aws-sqs-queue
+          authenticationRef:
+            kind: ClusterTriggerAuthentication
+            name: aws-irsa
+          metadata:
+            queueURL: https://sqs.us-east-1.amazonaws.com/123456789012/orders
+            queueLength: "10"
+            awsRegion: us-east-1
+```
+
+These resources are owned by the KEDA addon release, which makes this the right path for **cluster-scoped resources** (`ClusterTriggerAuthentication`) and for any `ScaledObject` whose target namespace you set explicitly. Editing the YAML and clicking **Update** re-applies the set in place.
+
+**Option 2 — Project Chart Configuration (namespace-scoped, per-Project)**
+
+When the `ScaledObject` should live in the same namespace as the Workload it scales, deliver it through `Project > Settings > Chart Configuration`. The **Templates** field accepts raw Helm template YAML rendered as part of the Project's release, so `{{ .Values.global.namespace }}` resolves to the right Environment automatically:
+
+```yaml
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: order-worker-scaler
+  namespace: {{ .Values.global.namespace }}
+spec:
+  scaleTargetRef:
+    name: order-worker-deployment
+  minReplicaCount: 0
+  maxReplicaCount: 20
+  pollingInterval: 30
+  cooldownPeriod: 300
+  triggers:
+    - type: aws-sqs-queue
+      authenticationRef:
+        name: keda-aws-trigger-auth
+      metadata:
+        queueURL: https://sqs.us-east-1.amazonaws.com/123456789012/orders
+        queueLength: "10"
+        awsRegion: us-east-1
+        identityOwner: operator
+---
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: keda-aws-trigger-auth
+  namespace: {{ .Values.global.namespace }}
+spec:
+  podIdentity:
+    provider: aws
+```
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./keda/keda-chartconfig-scaledobject.png").default}
+    alt="keda-chartconfig-scaledobject"
+  />
+</Zoom>
+
+With **Deploy?** toggled on, clicking **Apply changes** rolls out a new deployment that applies the manifest to the Project's namespace — the right path for app-specific scaling rules that should follow the Project across Environments.
+
+For a worked walk-through, see the [Install KEDA tutorial](/tutorial/install-keda).
+</details>
+
+<details>
+<summary>
 ### Can I customize the KEDA deployment?
 </summary>
 Yes. The addon configuration exposes an **Enable Custom Values** switch. When toggled on, a YAML editor appears where you can override any value supported by the upstream KEDA Helm chart (replica count, resource requests, log level, watch namespaces, …).
