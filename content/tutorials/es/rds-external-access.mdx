@@ -1,0 +1,35 @@
+---
+title: Encontrar el endpoint público de tu RDS
+sidebar_label: Endpoint público de RDS
+sidebar_position: 21
+description: Ubicá el endpoint de conexión de una réplica de lectura pública de RDS configurada desde SleakOps.
+tags:
+  - aws
+  - rds
+  - database
+  - networking
+image: /img/tutorials/rds-external-access/rds-external-access.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+SleakOps te permite crear una réplica de lectura pública de tu instancia de RDS directamente desde la plataforma. Una vez configurada, el endpoint de conexión está disponible en los ajustes de la Dependency.
+
+## Encontrar el endpoint
+
+1. En SleakOps, navegá a tu **Proyecto**.
+2. Abrí la pestaña de **Dependencies**.
+3. Seleccioná tu Dependency de RDS.
+4. El endpoint público (host y puerto) se muestra en los detalles de conexión.
+
+El endpoint sigue el formato estándar de AWS RDS:
+
+```
+<identificador>.<región>.rds.amazonaws.com
+```
+
+:::warning
+Las instancias de RDS públicas son accesibles desde internet. Siempre restringí el acceso entrante mediante security groups — permitiendo solo los rangos de IP que realmente lo necesiten.
+:::
