@@ -16,9 +16,17 @@ import { FiExternalLink } from "react-icons/fi";
 
 Configure Amazon Simple Email Service (SES) to send emails from your application, starting from sandbox mode and moving to production.
 
+:::info
+**Amazon SES is configured per AWS account.** If your SleakOps environments run across multiple AWS accounts, each account needs its own SES setup.
+
+**Recommendation:** keep your development account in sandbox mode — if you use a staging environment, it should share that same development account. Only your production account should request production access.
+
+Verify your organization's own domain (e.g., `mycompany.com`) in the development account so your team can send test emails without affecting the production sending reputation.
+:::
+
 ## Prerequisites
 
-- Access to the AWS Console with permissions to manage SES
+- Access to the AWS account where you want to configure SES
 - A domain or email address you want to send from
 - If using a domain: access to your DNS provider to add verification records
 
@@ -35,7 +43,7 @@ All new SES accounts start in **sandbox mode**, which only allows sending to and
    - **Domain** — verifies the entire domain (recommended for production). AWS provides DNS records (TXT/CNAME) to add at your DNS provider.
 
 :::tip
-Verify your production domain early — you can reuse the same verified domain when you move out of sandbox.
+In development, verify your organization's own domain early. This lets your team send test emails to any address within that domain without needing individual verifications.
 :::
 
 ### Step 2 — Send a test email in sandbox
@@ -46,7 +54,7 @@ Use the SES console **Send test email** button or the AWS CLI to confirm your se
 
 ### Step 3 — Request production access
 
-To send to any recipient, you need to exit sandbox mode.
+To send to any recipient, you need to exit sandbox mode. **Only do this in your production account.**
 
 **Before submitting the request:**
 
