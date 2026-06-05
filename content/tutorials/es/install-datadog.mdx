@@ -17,6 +17,20 @@ import { FiExternalLink } from "react-icons/fi";
 
 Instalá el agente de monitoreo [Datadog <FiExternalLink/>](https://www.datadoghq.com/) en un cluster EKS de SleakOps usando Helm para obtener visibilidad completa del rendimiento de las aplicaciones y la salud de la infraestructura.
 
+## Helm vs. Datadog Operator — ¿cuál guía usar?
+
+SleakOps tiene dos tutoriales para instalar Datadog. Cubren enfoques distintos y **no se combinan** — elegí uno según tus necesidades:
+
+| | **Esta guía (Helm)** | **[Datadog Operator](/tutorial/deploy-datadog-operator)** |
+|---|---|---|
+| **Complejidad de setup** | Baja | Alta |
+| **Gestión del ciclo de vida** | Manual (upgrades con Helm) | Automática (el Operator gestiona el agente) |
+| **Auto-instrumentación** | No | Sí (admission controller) |
+| **Toleraciones de NodePool Karpenter** | Manual | Integradas |
+| **Ideal para** | Monitoreo rápido, clusters simples | Clusters multi-workload, auto-instrumentación, Karpenter |
+
+Si no sabés cuál usar, comenzá por acá.
+
 ## Prerrequisitos
 
 - Un cluster EKS de SleakOps con `kubectl` configurado
