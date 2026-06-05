@@ -2,7 +2,7 @@
 title: Encontrar el endpoint público de tu RDS
 sidebar_label: Endpoint público de RDS
 sidebar_position: 21
-description: Ubicá el endpoint de conexión de una réplica de lectura pública de RDS configurada desde SleakOps.
+description: Ubicá el endpoint de conexión de una réplica de lectura pública de RDS desde la consola de AWS.
 tags:
   - aws
   - rds
@@ -15,14 +15,15 @@ import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
 
-SleakOps te permite crear una réplica de lectura pública de tu instancia de RDS directamente desde la plataforma. Una vez configurada, el endpoint de conexión está disponible en los ajustes de la Dependency.
+Una vez que SleakOps configuró una réplica de lectura pública para tu instancia de RDS, podés encontrar su endpoint de conexión directamente en la consola de AWS.
 
 ## Encontrar el endpoint
 
-1. En SleakOps, navegá a tu **Proyecto**.
-2. Abrí la pestaña de **Dependencies**.
-3. Seleccioná tu Dependency de RDS.
-4. El endpoint público (host y puerto) se muestra en los detalles de conexión.
+1. Abrí la [consola de AWS <FiExternalLink/>](https://console.aws.amazon.com/) y navegá a **RDS**.
+2. En la barra lateral izquierda, hacé clic en **Databases**.
+3. Buscá y hacé clic en tu instancia de DB o réplica de lectura. Las réplicas públicas suelen tener un sufijo como `-replica` o similar.
+4. Abrí la pestaña **Connectivity & security**.
+5. Copiá el valor de **Endpoint** — este es el hostname al que se conectará tu aplicación o cliente.
 
 El endpoint sigue el formato estándar de AWS RDS:
 
@@ -30,6 +31,8 @@ El endpoint sigue el formato estándar de AWS RDS:
 <identificador>.<región>.rds.amazonaws.com
 ```
 
+Usalo junto con el puerto (por defecto `5432` para PostgreSQL, `3306` para MySQL) para configurar tu cliente de base de datos o cadena de conexión.
+
 :::warning
-Las instancias de RDS públicas son accesibles desde internet. Siempre restringí el acceso entrante mediante security groups — permitiendo solo los rangos de IP que realmente lo necesiten.
+Las instancias de RDS públicas son accesibles desde internet. Verificá siempre que el Security Group asociado restrinja el acceso entrante únicamente a los rangos de IP que lo necesiten.
 :::
