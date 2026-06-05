@@ -8,11 +8,8 @@ tags:
   - rds
   - database
   - networking
-image: /img/tutorials/rds-external-access/rds-external-access.png
 ---
 
-import Zoom from "react-medium-image-zoom";
-import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
 
 Una vez que SleakOps configuró una réplica de lectura pública para tu instancia de RDS, podés encontrar su endpoint de conexión directamente en la consola de AWS.
@@ -31,7 +28,7 @@ El endpoint sigue el formato estándar de AWS RDS:
 <identificador>.<región>.rds.amazonaws.com
 ```
 
-Usalo junto con el puerto (por defecto `5432` para PostgreSQL, `3306` para MySQL) para configurar tu cliente de base de datos o cadena de conexión.
+Usalo junto con el puerto de tu motor (por defecto `5432` para PostgreSQL, `3306` para MySQL y MariaDB, `1521` para Oracle, `1433` para SQL Server; Aurora usa `5432` o `3306` según el motor compatible) para configurar tu cliente de base de datos o cadena de conexión.
 
 :::warning
 Las instancias de RDS públicas son accesibles desde internet. Verificá siempre que el Security Group asociado restrinja el acceso entrante únicamente a los rangos de IP que lo necesiten.
