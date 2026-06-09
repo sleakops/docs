@@ -59,6 +59,18 @@ To use ARM in SleakOps, three conditions must be met:
 
 **Best for:** services written in Go, Python, or Node.js without native x86-only dependencies.
 
+### 3. Cost Segmentation per Project
+
+A dedicated nodepool per Project is an organizational strategy where each Project Environment runs in its own isolated compute pool. Resource limits, instance types, and billing models are configured independently for each project.
+
+**Advantage:** fine-grained control. Each project has its own compute boundary — there is no resource contention between projects, and you can tune settings precisely for each workload profile.
+
+**Disadvantage:** nodes cannot be shared across projects. When one project's pool is underutilized, that spare capacity is not available to other projects, resulting in higher overall infrastructure costs compared to a shared pool approach.
+
+:::tip
+This pattern is best suited to scenarios where strict isolation is a business or compliance requirement, or when projects have significantly different resource profiles. For most workloads, a smaller set of shared pools delivers better cost efficiency.
+:::
+
 ---
 
 ## Performance Strategies
@@ -73,20 +85,6 @@ Common examples:
 - ETL pipelines that run for hours and cannot be safely restarted mid-execution
 
 Create a dedicated On-Demand nodepool and assign these Project Environments to it to isolate critical workers from Spot-based pools.
-
----
-
-## Cost Segmentation per Project
-
-A dedicated nodepool per Project is an organizational strategy where each Project Environment runs in its own isolated compute pool. Resource limits, instance types, and billing models are configured independently for each project.
-
-**Advantage:** fine-grained control. Each project has its own compute boundary — there is no resource contention between projects, and you can tune settings precisely for each workload profile.
-
-**Disadvantage:** nodes cannot be shared across projects. When one project's pool is underutilized, that spare capacity is not available to other projects, resulting in higher overall infrastructure costs compared to a shared pool approach.
-
-:::tip
-This pattern is best suited to scenarios where strict isolation is a business or compliance requirement, or when projects have significantly different resource profiles. For most workloads, a smaller set of shared pools delivers better cost efficiency.
-:::
 
 ---
 
