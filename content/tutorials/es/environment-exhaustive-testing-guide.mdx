@@ -18,6 +18,14 @@ import { FiExternalLink } from "react-icons/fi";
 
 Un checklist completo de pruebas para validar que tu aplicación funciona correctamente después de migrar a una nueva infraestructura en SleakOps.
 
+## Antes de correr cualquier test: costo vs. riesgo
+
+Cada sección de esta guía tiene un costo: tiempo de preparación, overhead de infraestructura y esfuerzo de desarrollo. Antes de ejecutar una sección, evaluá si el riesgo que cubre es real para tu aplicación y si la inversión es proporcional.
+
+A veces el mismo riesgo se puede mitigar de forma más económica. En lugar de montar un stack completo de load testing, por ejemplo, podés configurar alertas de latencia y tasa de errores en Grafana que te avisen antes de que el rendimiento degradado llegue a tus usuarios. La observabilidad y las alertas se cubren en la [Sección 6 — Observabilidad](#sección-6-observabilidad).
+
+Pensá en esta guía como un menú. Elegí las secciones que correspondan a tu tolerancia al riesgo y la criticidad de tu aplicación — no tenés que correrlo todo.
+
 :::info
 No todas las secciones aplican a todas las aplicaciones. Ejecutá las secciones que correspondan a tu setup — si tu aplicación no usa Spot nodes o workers en background, podés saltear esas secciones. Lo importante es cubrir todo lo que sí aplica.
 :::
@@ -55,7 +63,7 @@ Para cada Web Service del checklist:
 
 Para cada Worker del checklist:
 
-1. Disparé una acción en tu aplicación que encole un job en background (por ejemplo: enviar un email, procesar una subida de archivo, ejecutar un reporte)
+1. Dispará una acción en tu aplicación que encole un job en background (por ejemplo: enviar un email, procesar una subida de archivo, ejecutar un reporte)
 2. Confirmá que el job se completa exitosamente — revisá el panel de estado de jobs de tu aplicación, los logs, o el resultado esperado
 
 ### Cron Jobs
@@ -70,7 +78,7 @@ Para cada Cron Job del checklist:
 
 Para cada Hook del checklist:
 
-1. Disparé un deploy desde la Console de SleakOps
+1. Dispará un deploy desde la Console de SleakOps
 2. Una vez completado el deploy, revisá los logs del deployment en la Console para confirmar que cada Hook se ejecutó y terminó exitosamente (código de salida 0)
 
 ### Dependencias
@@ -228,7 +236,7 @@ Para un análisis automatizado más profundo, herramientas como [OWASP ZAP <FiEx
 El objetivo es confirmar que tu aplicación degrada de forma controlada cuando Redis no está disponible, en lugar de caerse completamente.
 
 1. En la Console de SleakOps, andá a **Var Groups** y cambiá temporalmente la URL de conexión de Redis a un host inalcanzable (por ejemplo, `redis://invalid-host:6379`)
-2. Disparé un deploy — la aplicación levantará apuntando a un Redis inexistente
+2. Dispará un deploy — la aplicación levantará apuntando a un Redis inexistente
 3. Recorré los flujos principales de tu aplicación
 4. Tomá nota de qué funcionalidades fallan o se degradan — esto es comportamiento esperado, no un pass/fail en sí mismo
 5. **Pasa:** La aplicación devuelve mensajes de error controlados o hace fallback de forma elegante; no lanza errores 500 no controlados ni crashea
@@ -270,7 +278,7 @@ Este escenario es específico de tu aplicación. El comportamiento exacto (reint
 
 1. Identificá un tipo de tarea que procesen los workers de tu aplicación
 2. Enviá esa tarea con datos intencionalmente inválidos o malformados (campo requerido faltante, ID inválido, payload corrupto)
-3. **Pasa:** El worker loguea el error, mueve la tarea a la Dead Letter Queue (DLQ) después de los reintentos configurados, y continúa procesando otras tareas normalmente
+3. **Pasa:** El worker registra el error, mueve la tarea a la Dead Letter Queue (DLQ) después de los reintentos configurados, y continúa procesando otras tareas normalmente
 4. **Falla:** El worker crashea, deja de procesar todas las tareas, o descarta el error silenciosamente sin enrutarlo al DLQ
 
 #### Escenario 2: Saturación de cola
@@ -306,7 +314,7 @@ Si tu instancia de RDS está configurada como Multi-AZ:
 #### Redis
 
 1. En la Console de SleakOps, andá a **Var Groups** y cambiá temporalmente la URL de conexión de Redis a un host inalcanzable
-2. Disparé un deploy — la aplicación no podrá conectarse a Redis
+2. Dispará un deploy — la aplicación no podrá conectarse a Redis
 3. Revertí el Var Group a la URL original y desplegá nuevamente
 4. **Pasa:** La aplicación se reconecta a Redis automáticamente sin necesitar un reinicio manual
 5. **Falla:** La aplicación requiere reinicio para reconectarse a Redis
@@ -316,7 +324,7 @@ Si tu instancia de RDS está configurada como Multi-AZ:
 Para cada API externa con la que tu aplicación se integra:
 
 1. Bloqueá temporalmente el dominio de la API a nivel de red, o usá un mock que devuelva errores
-2. Disparé el flujo de la aplicación que llama a esa API
+2. Dispará el flujo de la aplicación que llama a esa API
 3. **Pasa:** La aplicación maneja el fallo de forma elegante — muestra un mensaje de error amigable al usuario, usa un fallback, o encola el request para reintento
 4. **Falla:** El error de la API externa se propaga como un 500 no controlado al usuario
 
@@ -375,7 +383,7 @@ La observabilidad no es opcional — si algo falla después de la migración, ne
 
 ### Visibilidad de errores
 
-1. Disparé intencionalmente un error 500 en tu aplicación (por ejemplo, llamá a un endpoint con parámetros inválidos que cause una excepción no manejada)
+1. Dispará intencionalmente un error 500 en tu aplicación (por ejemplo, llamá a un endpoint con parámetros inválidos que cause una excepción no manejada)
 2. Verificá que el error aparece en tu herramienta de tracking de errores (Grafana, Loki, Sentry, CloudWatch, etc.)
 3. **Pasa:** El error es visible en 1–2 minutos con suficiente contexto para diagnosticar (stack trace, parámetros del request)
 4. **Falla:** El error es silencioso — no hay visibilidad sobre qué salió mal
@@ -402,7 +410,7 @@ Para que los deploys sin downtime funcionen correctamente, tus Web Services debe
 ### Actualización de Var Group
 
 1. Hacé un cambio pequeño en uno de tus Var Groups (por ejemplo, cambiá una variable de entorno no crítica)
-2. Disparé un deploy
+2. Dispará un deploy
 3. Después del deploy, verificá en tu aplicación o en los logs que el nuevo valor está activo
 4. **Pasa:** El nuevo valor se aplica sin problemas
 5. **Falla:** La aplicación sigue usando el valor anterior, o el deploy falla por el cambio
