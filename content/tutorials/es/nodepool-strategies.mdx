@@ -20,9 +20,13 @@ Aprendé a configurar nodepools en SleakOps para optimizar costos, mejorar el re
 
 ## ¿Qué es un nodepool?
 
-En SleakOps, un **nodepool** es un grupo de nodos EC2 dentro de tu cluster de Kubernetes que comparten la misma configuración — arquitectura, tipo de instancia, modelo de facturación y límites de recursos. Karpenter gestiona el autoscaling dentro de cada pool automáticamente.
+En SleakOps, un **nodepool** no es un grupo de máquinas EC2 que ya están corriendo: es la **definición** de un grupo de nodos EC2 que Karpenter puede aprovisionar a demanda. Cada nodepool especifica qué tipo de nodos se pueden crear — arquitectura, tipo de instancia, modelo de facturación y límites de recursos — y Karpenter levanta y elimina nodos que cumplen esa definición automáticamente según la carga, incluso escalando a cero cuando no hay workloads.
 
-Cuando creás un Cluster, SleakOps aprovisiona un conjunto de nodepools por defecto:
+:::tip
+No confundas el nodepool con las EC2 en sí. El nodepool es la **plantilla**; los nodos EC2 reales aparecen y desaparecen a demanda.
+:::
+
+Cuando creás un Cluster, SleakOps configura un conjunto de nodepools por defecto:
 
 | **nodepool** | **Propósito** |
 |---|---|
