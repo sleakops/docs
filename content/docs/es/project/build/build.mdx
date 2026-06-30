@@ -45,7 +45,7 @@ sleakops build --project my-app --branch main --timeout 30
 | ------------------------ | --------------------------------------------------------------------------------------------- |
 | **Omitido**              | Se aplica el valor por defecto de 180 minutos.                                                |
 | **Un número positivo**   | El build se detiene y se marca como fallido luego de esa cantidad de minutos.                 |
-| **`0`**                  | Quita el límite de espera de la CLI (ver abajo). El build igual queda acotado por el default. |
+| **`0`**                  | El build igual queda acotado por el valor por defecto de la plataforma. Con `--wait`, además quita el límite de espera de la CLI, que entonces espera hasta que el build termine; sin `--wait` se comporta como omitir `--timeout`. |
 
 Combinado con `--wait`, `--timeout` también limita cuánto espera la CLI a que el build termine antes de salir con error. Esto es útil en pipelines de CI/CD, donde un build trabado bloquearía el job indefinidamente:
 
@@ -59,7 +59,7 @@ Si el build no termina dentro del timeout, la CLI sale con un código distinto d
 Para CI/CD, configurá `--timeout` con un valor un poco mayor a la duración normal de tu build. Así un build realmente trabado se detecta rápido, mientras que los builds sanos siempre tienen margen para terminar.
 :::
 
-## FAQs
+## Preguntas frecuentes
 
 <details>
 <summary>

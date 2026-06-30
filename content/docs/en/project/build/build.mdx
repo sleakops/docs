@@ -45,7 +45,7 @@ sleakops build --project my-app --branch main --timeout 30
 | --------------------- | --------------------------------------------------------------------------------------- |
 | **Omitted**           | The platform default of 180 minutes applies.                                            |
 | **A positive number** | The build is stopped and marked as failed after that many minutes.                      |
-| **`0`**               | Lifts the CLI wait limit (see below). The build itself is still bounded by the default. |
+| **`0`**               | The build is still bounded by the platform default. With `--wait`, it also removes the CLI's wait cap, so the CLI polls until the build finishes; without `--wait` it behaves like omitting `--timeout`. |
 
 When combined with `--wait`, `--timeout` also caps how long the CLI waits for the build to finish before exiting with an error. This is useful in CI/CD pipelines, where a stuck build would otherwise block the job indefinitely:
 
