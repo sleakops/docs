@@ -31,6 +31,34 @@ SleakOps has its own CLI Tool that you can use to automate Builds and Deployment
 
 :::
 
+## Build timeout
+
+Every build runs with a maximum lifetime. If a build gets stuck — waiting on a lock, pulling an image that never becomes available, or looping inside a build step — SleakOps stops it automatically and marks it as failed instead of letting it run forever. When you don't set a limit, a platform default of 180 minutes applies, so every build is always bounded.
+
+Set the limit per build from the [SleakOps CLI](/docs/cli) with the `--timeout` flag, in minutes:
+
+```bash
+sleakops build --project my-app --branch main --timeout 30
+```
+
+| **`--timeout` value** | **Effect**                                                                              |
+| --------------------- | --------------------------------------------------------------------------------------- |
+| **Omitted**           | The platform default of 180 minutes applies.                                            |
+| **A positive number** | The build is stopped and marked as failed after that many minutes.                      |
+| **`0`**               | Lifts the CLI wait limit (see below). The build itself is still bounded by the default. |
+
+When combined with `--wait`, `--timeout` also caps how long the CLI waits for the build to finish before exiting with an error. This is useful in CI/CD pipelines, where a stuck build would otherwise block the job indefinitely:
+
+```bash
+sleakops build --project my-app --branch main --wait --timeout 30
+```
+
+If the build hasn't finished within the timeout, the CLI exits with a non-zero status so the pipeline step fails fast.
+
+:::tip
+For CI/CD, set `--timeout` to a value slightly above your normal build duration. That way a genuinely stuck build is caught quickly, while healthy builds always have room to finish.
+:::
+
 ## FAQs
 
 <details>
