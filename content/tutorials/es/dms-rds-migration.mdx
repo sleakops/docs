@@ -1,0 +1,236 @@
+---
+title: Usar AWS DMS para sincronizar o migrar bases de datos RDS
+sidebar_label: Migración RDS con DMS
+sidebar_position: 19
+description: Guía paso a paso para migrar o sincronizar continuamente bases de datos RDS entre cuentas de AWS usando AWS Database Migration Service (DMS).
+tags:
+  - aws
+  - rds
+  - database
+  - dms
+  - migration
+image: /img/tutorials/dms-rds-migration/dms-rds-migration.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Migrá o sincronizá continuamente una base de datos RDS origen hacia una RDS administrada por SleakOps usando AWS Database Migration Service (DMS), incluyendo networking cross-account y prerrequisitos por motor de base de datos.
+
+## Prerrequisitos
+
+- AWS CLI configurado con perfiles para las cuentas origen y destino
+- Instancias RDS origen y destino corriendo y accesibles
+- Recursos suficientes: la Replication Instance de DMS debe igualar o superar las specs de la base de datos origen
+- La base de datos origen debe tener CDC (Change Data Capture) habilitado — ver los pasos por motor más abajo
+
+## Empecemos
+
+### Paso 1 — Crear la Replication Instance de DMS
+
+Ejecutá esto en la **cuenta origen**. Configurá `allocated_storage`, `replication_instance`, `availability_zone`, `source_db_name` y `subnet_ids` (deben coincidir con las subnets de la DB origen):
+
+```bash
+allocated_storage="25"
+replication_instance="dms.r5.large"
+availability_zone="us-east-1a"
+source_db_name="sourcedatabase"
+subnet_ids="subnet-0123456789abcdef0,subnet-0fedcba9876543210"
+
+replication_instance_id="replication-${source_db_name}"
+subnet_group_name="dms-subnet-group-${source_db_name}"
+
+aws dms create-replication-subnet-group \
+  --replication-subnet-group-identifier "$subnet_group_name" \
+  --replication-subnet-group-description "Subnet group for DMS replication of $source_db_name" \
+  --subnet-ids ${subnet_ids//,/ }
+
+latest_engine_version=$(aws dms describe-orderable-replication-instances \
+  --query 'OrderableReplicationInstances[*].[EngineVersion]' --output text | sort -V | tail -n 1)
+
+aws dms create-replication-instance \
+  --replication-instance-identifier "$replication_instance_id" \
+  --replication-instance-class "$replication_instance" \
+  --allocated-storage "$allocated_storage" \
+  --availability-zone "$availability_zone" \
+  --replication-subnet-group-identifier "$subnet_group_name" \
+  --engine-version "$latest_engine_version" \
+  --no-publicly-accessible \
+  --tags Key=SourceDB,Value="$source_db_name"
+```
+
+### Paso 2 — Crear endpoints de origen y destino
+
+**Endpoint origen:**
+
+```bash
+source_db_name="sourcedatabase"
+source_engine="postgres"
+source_username="mydbuser"
+source_password="mypassword"
+source_server_name="mydb.c1234567890.us-east-1.rds.amazonaws.com"
+source_database_name="mydatabase"
+source_port="5432"
+
+aws dms create-endpoint \
+  --endpoint-identifier "source-endpoint-${source_db_name}" \
+  --endpoint-type "source" \
+  --engine-name "$source_engine" \
+  --username "$source_username" \
+  --password "$source_password" \
+  --server-name "$source_server_name" \
+  --database-name "$source_database_name" \
+  --port "$source_port"
+```
+
+**Endpoint destino:**
+
+```bash
+target_db_name="targetdatabase"
+target_engine="postgres"
+target_username="targetdbuser"
+target_password="targetpassword"
+target_server_name="targetdb.c1234567890.us-east-1.rds.amazonaws.com"
+target_database_name="targetdb"
+target_port="5432"
+
+aws dms create-endpoint \
+  --endpoint-identifier "target-endpoint-${target_db_name}" \
+  --endpoint-type "target" \
+  --engine-name "$target_engine" \
+  --username "$target_username" \
+  --password "$target_password" \
+  --server-name "$target_server_name" \
+  --database-name "$target_database_name" \
+  --port "$target_port"
+```
+
+### Paso 3 — Configurar el networking cross-account
+
+Ambas cuentas necesitan VPC Peering y reglas de Security Group para que la Replication Instance pueda alcanzar ambas bases de datos.
+
+**Cuenta origen (script completo):**
+
+```bash
+REGION="us-east-1"
+SOURCE_PROFILE="source-profile"
+SOURCE_VPC_ID="<source-vpc-id>"
+TARGET_VPC_ID="<target-vpc-id>"
+TARGET_ACCOUNT_ID="<target-account-id>"
+SOURCE_RDS_SECURITY_GROUP="<source-rds-security-group-id>"
+TARGET_RDS_CIDR_BLOCK="<target-vpc-cidr-block>"
+
+peering_connection_id=$(aws ec2 create-vpc-peering-connection \
+  --vpc-id "$SOURCE_VPC_ID" \
+  --peer-vpc-id "$TARGET_VPC_ID" \
+  --peer-owner-id "$TARGET_ACCOUNT_ID" \
+  --region "$REGION" --profile "$SOURCE_PROFILE" \
+  --query "VpcPeeringConnection.VpcPeeringConnectionId" --output text)
+
+SOURCE_ROUTE_TABLE_ID=$(aws ec2 describe-route-tables \
+  --filters "Name=vpc-id,Values=$SOURCE_VPC_ID" \
+  --profile "$SOURCE_PROFILE" \
+  --query "RouteTables[0].RouteTableId" --output text)
+
+aws ec2 create-route \
+  --route-table-id "$SOURCE_ROUTE_TABLE_ID" \
+  --destination-cidr-block "$TARGET_RDS_CIDR_BLOCK" \
+  --vpc-peering-connection-id "$peering_connection_id" \
+  --profile "$SOURCE_PROFILE"
+
+aws ec2 authorize-security-group-ingress \
+  --group-id "$SOURCE_RDS_SECURITY_GROUP" \
+  --protocol tcp --port 5432 \
+  --cidr "$TARGET_RDS_CIDR_BLOCK" \
+  --profile "$SOURCE_PROFILE"
+
+aws iam create-role \
+  --role-name "dms-access-role" \
+  --profile "$SOURCE_PROFILE" \
+  --assume-role-policy-document '{"Version":"2012-10-17","Statement":{"Effect":"Allow","Principal":{"Service":"dms.amazonaws.com"},"Action":"sts:AssumeRole"}}'
+
+aws iam attach-role-policy \
+  --role-name "dms-access-role" --profile "$SOURCE_PROFILE" \
+  --policy-arn arn:aws:iam::aws:policy/service-role/AmazonDMSVPCManagementRole
+```
+
+**Cuenta destino:** Aceptar el VPC peering, actualizar las tablas de rutas y crear un rol IAM cross-account — replicar los pasos de la cuenta origen con credenciales de la cuenta destino.
+
+### Paso 4 — Prerrequisitos por motor de base de datos
+
+Antes de ejecutar la tarea de migración, la base de datos origen debe tener CDC habilitado.
+
+**PostgreSQL — actualizar `pg_hba.conf` y `postgresql.conf`:**
+
+```
+# pg_hba.conf — permitir la Replication Instance de DMS
+host all all <dms-instance-ip>/32 md5
+host replication dms <dms-instance-ip>/32 md5
+```
+
+```
+# postgresql.conf
+wal_level = logical
+max_replication_slots = 2
+max_wal_senders = 2
+wal_sender_timeout = 0
+```
+
+Recargar: `SELECT pg_reload_conf();`
+
+**Oracle — habilitar archive log y supplemental logging:**
+
+```sql
+-- Habilitar Archive Log Mode (si no está ya habilitado)
+SHUTDOWN TRANSACTIONAL;
+STARTUP MOUNT;
+ALTER DATABASE ARCHIVELOG;
+ALTER DATABASE OPEN;
+
+ALTER DATABASE FORCE LOGGING;
+ALTER DATABASE ADD SUPPLEMENTAL LOG DATA;
+ALTER DATABASE ADD SUPPLEMENTAL LOG DATA (PRIMARY KEY, UNIQUE, FOREIGN KEY) COLUMNS;
+```
+
+### Paso 5 — Ejecutar la evaluación previa y arrancar la tarea
+
+**Evaluación pre-migración:**
+
+```bash
+source_db_name="sourcedatabase"
+target_db_name="targetdatabase"
+
+aws dms start-replication-task-assessment-run \
+  --replication-task-assessment-run-name "premigration-${source_db_name}-to-${target_db_name}" \
+  --replication-instance-arn "$(aws dms describe-replication-instances \
+    --filters "Name=replication-instance-id,Values=replication-${source_db_name}" \
+    --query "ReplicationInstances[0].ReplicationInstanceArn" --output text)" \
+  --source-endpoint-arn "$(aws dms describe-endpoints \
+    --filters "Name=endpoint-id,Values=source-endpoint-${source_db_name}" \
+    --query "Endpoints[0].EndpointArn" --output text)" \
+  --target-endpoint-arn "$(aws dms describe-endpoints \
+    --filters "Name=endpoint-id,Values=target-endpoint-${target_db_name}" \
+    --query "Endpoints[0].EndpointArn" --output text)" \
+  --migration-type "full-load-and-cdc" \
+  --table-mappings '{"rules":[{"rule-type":"selection","rule-id":"1","rule-name":"include-all","object-locator":{"schema-name":"%","table-name":"%"},"rule-action":"include"}]}'
+```
+
+**Iniciar la tarea de migración** (una vez que la evaluación pase):
+
+```bash
+aws dms create-replication-task \
+  --replication-task-identifier "migration-task-${source_db_name}-to-${target_db_name}" \
+  --source-endpoint-arn "$(aws dms describe-endpoints \
+    --filters "Name=endpoint-id,Values=source-endpoint-${source_db_name}" \
+    --query "Endpoints[0].EndpointArn" --output text)" \
+  --target-endpoint-arn "$(aws dms describe-endpoints \
+    --filters "Name=endpoint-id,Values=target-endpoint-${target_db_name}" \
+    --query "Endpoints[0].EndpointArn" --output text)" \
+  --replication-instance-arn "$(aws dms describe-replication-instances \
+    --filters "Name=replication-instance-id,Values=replication-${source_db_name}" \
+    --query "ReplicationInstances[0].ReplicationInstanceArn" --output text)" \
+  --migration-type "full-load-and-cdc" \
+  --table-mappings '{"rules":[{"rule-type":"selection","rule-id":"1","rule-name":"include-all","object-locator":{"schema-name":"%","table-name":"%"},"rule-action":"include"}]}'
+```
+

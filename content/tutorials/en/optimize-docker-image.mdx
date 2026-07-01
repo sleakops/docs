@@ -1,0 +1,119 @@
+---
+title: How to Optimize Your Docker Image Size
+sidebar_label: Optimize Docker Images
+sidebar_position: 42
+description: Reduce Docker image size and improve build times using Alpine base images, multi-stage builds, and .dockerignore — practical techniques for production-ready images.
+tags:
+  - docker
+  - deployment
+  - performance
+image: /img/tutorials/optimize-docker-image/optimize-docker-image.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Reduce Docker image size and improve build times using Alpine base images, multi-stage builds, and `.dockerignore` — making your images faster to pull, deploy, and more secure.
+
+## Why Image Size Matters
+
+Smaller images mean faster pull times, faster deployments, reduced registry storage costs, and a smaller attack surface with fewer installed packages.
+
+## Technique 1 — Use Alpine or Slim Base Images
+
+Instead of a full OS base image, use a minimal alternative:
+
+```dockerfile
+# Before — large image
+FROM node:20
+
+# After — much smaller
+FROM node:20-alpine
+```
+
+Common minimal base images:
+| Runtime | Minimal image |
+| --- | --- |
+| Node.js | `node:20-alpine` |
+| Python | `python:3.12-slim` |
+| Java | `eclipse-temurin:21-jre-alpine` |
+| Go | `scratch` or `gcr.io/distroless/static` |
+
+:::warning
+Alpine uses `musl libc` instead of `glibc`. Some packages behave differently. Test your application thoroughly when switching.
+:::
+
+## Technique 2 — Multi-Stage Builds
+
+Use one stage to build and a separate minimal stage for the runtime:
+
+```dockerfile
+# Build stage — has all build tools
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# Runtime stage — only what's needed to run
+FROM node:20-alpine
+WORKDIR /app
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/node_modules ./node_modules
+CMD ["node", "dist/index.js"]
+```
+
+This keeps build tools, source code, and intermediate files out of the final image.
+
+## Technique 3 — Use `.dockerignore`
+
+Prevent unnecessary files from being sent to the build context:
+
+```
+# .dockerignore
+node_modules
+.git
+.env
+*.log
+dist
+coverage
+.DS_Store
+README.md
+```
+
+A smaller build context speeds up every `docker build`.
+
+## Technique 4 — Order Layers for Cache Efficiency
+
+Docker caches layers. Put frequently-changing layers last to maximize cache hits:
+
+```dockerfile
+# Good — dependencies cached separately from source code
+COPY package*.json ./
+RUN npm ci
+COPY . .        # source changes don't bust the npm ci cache
+
+# Bad — npm ci re-runs on every source change
+COPY . .
+RUN npm ci
+```
+
+## Technique 5 — Remove Unnecessary Files After Installation
+
+```dockerfile
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    some-package \
+    && rm -rf /var/lib/apt/lists/*
+```
+
+## Summary
+
+| Technique | Impact |
+| --- | --- |
+| Alpine/slim base images | 3–10x size reduction |
+| Multi-stage builds | Removes build tools and source from final image |
+| `.dockerignore` | Faster builds, no accidental secret leaks |
+| Layer ordering | Faster incremental builds via cache reuse |
+| Cleanup after installs | Removes package manager caches |

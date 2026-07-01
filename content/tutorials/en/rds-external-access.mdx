@@ -1,0 +1,35 @@
+---
+title: Find Your Public RDS Endpoint
+sidebar_label: RDS Public Endpoint
+sidebar_position: 21
+description: Locate the connection endpoint of a public RDS read replica from the AWS Console.
+tags:
+  - aws
+  - rds
+  - database
+  - networking
+---
+
+import { FiExternalLink } from "react-icons/fi";
+
+Once SleakOps has configured a public read replica for your RDS instance, you can find its connection endpoint directly in the AWS Console.
+
+## Finding the Endpoint
+
+1. Open the [AWS Console <FiExternalLink/>](https://console.aws.amazon.com/) and navigate to **RDS**.
+2. In the left sidebar, click **Databases**.
+3. Find and click on your DB instance or read replica. Public replicas are typically named with a `-replica` or similar suffix.
+4. Open the **Connectivity & security** tab.
+5. Copy the **Endpoint** value — this is the hostname your application or client will connect to.
+
+The endpoint follows the standard AWS RDS format:
+
+```
+<identifier>.<region>.rds.amazonaws.com
+```
+
+Use it along with the port for your engine (default `5432` for PostgreSQL, `3306` for MySQL and MariaDB, `1521` for Oracle, `1433` for SQL Server; Aurora uses `5432` or `3306` depending on the compatible engine) to configure your database client or connection string.
+
+:::warning
+Public RDS instances are reachable from the internet. Always verify that the associated Security Group restricts inbound access to only the IP ranges that need it.
+:::

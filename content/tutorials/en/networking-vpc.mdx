@@ -1,0 +1,73 @@
+---
+title: Networking and Network Resources in SleakOps
+sidebar_label: Networking & VPC
+sidebar_position: 29
+description: Understand how SleakOps structures network architecture — VPCs, subnets, Security Groups, External-DNS, and VPC Peering between environments.
+tags:
+  - networking
+  - aws
+  - kubernetes
+  - vpn
+image: /img/tutorials/networking-vpc/networking-vpc.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Understand the network architecture that SleakOps deploys in customer environments — how it is organized, how resources are protected, and how internal and external communication is enabled.
+
+:::info
+The network is designed to guarantee security, scalability, and high availability. It separates environments, protects sensitive data, and exposes services in a controlled and secure way.
+:::
+
+## 1. Architecture Overview
+
+SleakOps network infrastructure is built around these core components:
+
+- **VPC (Virtual Private Cloud):** Segments the network by environment (management, production, development).
+- **Subnets:** Separate traffic by function — public (internet-facing), private (restricted access, internet via NAT Gateway), and persistence (databases, storage).
+- **Internet Gateway:** Enables communication between the VPC and the internet.
+- **Route Tables:** Define traffic routes between subnets and to/from the internet.
+- **Security Groups:** Virtual firewalls that control inbound and outbound traffic for resources.
+- **Internal DNS:** Allows resources to communicate using names instead of IPs.
+- **External-DNS:** A service running inside each EKS cluster that automatically manages public DNS records in Route53 for services exposed from the cluster.
+
+## 2. Typical Communication Flow
+
+1. **Access from the internet:** A user accesses an exposed service (e.g., an API). Traffic reaches the Internet Gateway and is directed to the public subnet.
+2. **Access control:** The Security Group associated with the resource validates whether the connection is allowed.
+3. **Internal communication:** Internal services (in private or persistence subnets) communicate with each other using internal DNS, always governed by Security Group rules.
+4. **Service exposure:** If a service inside the Kubernetes cluster must be accessible from the internet, it is exposed through an Application Load Balancer — External-DNS then automatically registers the name in Route53.
+
+This segmentation ensures that only necessary services are exposed and that sensitive data remains protected.
+
+<Zoom>
+  <img src="/img/tutorials/networking-vpc/network-architecture.png" alt="SleakOps network architecture — VPCs, subnets, Internet Gateway, and traffic flow" />
+</Zoom>
+
+## 3. External-DNS and Route53
+
+An automated solution manages public DNS records for deployed services, integrating the infrastructure with Route53. This makes services securely and simply accessible from the internet. External-DNS does not expose services directly — it automates the management of public DNS records for resources that are already exposed (for example, via an Application Load Balancer).
+
+## 4. Inter-Environment Connectivity via VPC Peering
+
+To allow controlled communication between environments (for example, between management and production), SleakOps explicitly configures **VPC Peering connections** between the VPCs of each environment.
+
+A VPC Peering allows two VPCs to exchange internal traffic as if they were on the same network, without passing through the internet, NAT Gateway, or a VPN. It is a direct connection between two networks.
+
+<Zoom>
+  <img src="/img/tutorials/networking-vpc/vpc-peering.svg" alt="VPC Peering connections between management, development, and production environments" />
+</Zoom>
+
+:::tip
+In addition to Internet Gateway access, SleakOps supports other connectivity mechanisms such as **Pritunl VPN**, **NAT Gateway**, and **Transit Gateway**, depending on the use case and the required level of isolation.
+:::
+
+## DNS Reference by Environment
+
+| Environment | VPC DNS |
+| --- | --- |
+| DEV | `10.110.0.2` |
+| MGT | `10.120.0.2` |
+| PRD | `10.130.0.2` |

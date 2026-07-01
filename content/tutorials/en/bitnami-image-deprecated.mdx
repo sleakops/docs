@@ -1,0 +1,69 @@
+---
+title: Bitnami Image Deprecation — What to Do
+sidebar_label: Bitnami Image Deprecation
+sidebar_position: 37
+description: Understand the Bitnami image deprecation effective August 28, 2025, and how to update your SleakOps chart dependencies to avoid ImagePullBackOff errors.
+tags:
+  - kubernetes
+  - helm
+  - deployment
+image: /img/tutorials/bitnami-image-deprecated/bitnami-image-deprecated.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Starting August 28, 2025, Bitnami changed how it distributes Docker images and Helm charts. This article explains what changed, what breaks if you don't act, and what to do in SleakOps.
+
+## What Changed
+
+On **August 28, 2025**, Bitnami made the following changes to its image catalog:
+
+- **Existing images** (all tags/versions) were migrated from `docker.io/bitnami` to a **"Bitnami Legacy"** repository (`docker.io/bitnamilegacy`), which no longer receives updates or security patches.
+- The main `docker.io/bitnami` repository now only maintains a **limited set of "hardened" images** with only a `latest` tag, under the new **Bitnami Secure Images (BSI)** program — intended for development use.
+- **Helm charts** remain available as OCI artifacts but without image updates, unless you override the image references.
+
+## What Breaks Without Action
+
+If your Helm charts reference Bitnami versioned images (e.g., `postgresql:13.7.0`), your cluster will fail to pull those images after August 28 with errors such as:
+
+```
+ImagePullBackOff
+ErrImagePull
+```
+
+## Immediate Fix (Stop the Bleeding)
+
+The fastest fix is to update your chart dependencies to pull from `bitnamilegacy` and set the security flag that allows legacy images:
+
+1. In SleakOps, navigate to the **Chart Configuration** screen for the affected workload.
+2. Update the `image.repository` to use `docker.io/bitnamilegacy/<image-name>` instead of `docker.io/bitnami/<image-name>`.
+3. Add `global.security.allowInsecureImages: true` to your chart values.
+4. Click **Apply changes** to deploy.
+
+SleakOps has already updated your chart values — `image.repository` is set to `docker.io/bitnamilegacy/<image-name>` and `global.security.allowInsecureImages: true` is added. You only need to trigger the apply from the chart configuration screen.
+
+<Zoom>
+  <img src="/img/tutorials/bitnami-image-deprecated/chart-configuration.png" alt="SleakOps Chart Configuration screen" />
+</Zoom>
+
+<Zoom>
+  <img src="/img/tutorials/bitnami-image-deprecated/apply-changes.png" alt="SleakOps Apply changes confirmation" />
+</Zoom>
+
+:::warning
+Using `bitnamilegacy` images is a **temporary workaround**. These images will not receive security patches. Plan a migration to alternative images (e.g., official upstream images or BSI-compliant images) as a follow-up action.
+:::
+
+## Long-Term Migration Path
+
+1. Identify all Bitnami images in use across your deployments.
+2. For each image, find the equivalent upstream or BSI image.
+3. Test the replacement image in a staging environment.
+4. Update chart values to reference the new image and remove the `allowInsecureImages` flag.
+
+## References
+
+- [Bitnami containers deprecation announcement <FiExternalLink/>](https://github.com/bitnami/containers/issues/83267)
+- [Bitnami Secure Images program <FiExternalLink/>](https://bitnami.com/secure-images)

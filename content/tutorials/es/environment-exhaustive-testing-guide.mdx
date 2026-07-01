@@ -1,10 +1,457 @@
 ---
-title: ¿Cómo probar exhaustivametne mi aplicación para validar un ambiente?
-sidebar_label: ''
-sidebar_position: null
-description: test
-tags: []
-image: ''
+title: Guía de pruebas exhaustivas para validar un ambiente
+sidebar_label: Guía de pruebas exhaustivas
+sidebar_position: 4
+description: Un checklist completo de pruebas para validar que tu aplicación funciona correctamente después de migrar a una nueva infraestructura en SleakOps.
+tags:
+  - kubernetes
+  - aws
+  - performance
+  - security
+  - monitoring
+  - deployment
 ---
 
-test
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Un checklist completo de pruebas para validar que tu aplicación funciona correctamente después de migrar a una nueva infraestructura en SleakOps.
+
+## Antes de correr cualquier test: costo vs. riesgo
+
+Cada sección de esta guía tiene un costo: tiempo de preparación, overhead de infraestructura y esfuerzo de desarrollo. Antes de ejecutar una sección, evaluá si el riesgo que cubre es real para tu aplicación y si la inversión es proporcional.
+
+A veces el mismo riesgo se puede mitigar de forma más económica. En lugar de montar un stack completo de load testing, por ejemplo, podés configurar alertas de latencia y tasa de errores en Grafana que te avisen antes de que el rendimiento degradado llegue a tus usuarios. La observabilidad y las alertas se cubren en la [Sección 6 — Observabilidad](#sección-6-observabilidad).
+
+Pensá en esta guía como un menú. Elegí las secciones que correspondan a tu tolerancia al riesgo y la criticidad de tu aplicación — no tenés que correrlo todo.
+
+:::info
+No todas las secciones aplican a todas las aplicaciones. Ejecutá las secciones que correspondan a tu setup — si tu aplicación no usa Spot nodes o workers en background, podés saltear esas secciones. Lo importante es cubrir todo lo que sí aplica.
+:::
+
+## Prerrequisitos
+
+- Tu aplicación está desplegada en un Ambiente de SleakOps con al menos un Proyecto
+- Tu Ambiente terminó de desplegarse (todos los workloads en estado `CREATED`)
+- Tenés acceso a la Console de SleakOps
+
+## Paso 0: Descargá el checklist de tu Ambiente
+
+Antes de ejecutar cualquier prueba, descargá el checklist de tu Ambiente desde la Console de SleakOps. Lista todos los componentes configurados — Web Services, Workers, Cron Jobs, Hooks, Dependencias y Var Groups — para que puedas usarlo como inventario mientras recorrés las secciones siguientes.
+
+Navegá a tu Ambiente en la Console y hacé clic en el botón **Descargar checklist**. Abrí el archivo Markdown descargado y mantenelo abierto junto a esta guía.
+
+{/* TODO: screenshot - Página del Ambiente con el botón "Descargar checklist" resaltado */}
+
+## Sección 1: Pruebas funcionales
+
+**Aplica a:** todas las aplicaciones.
+
+Estas son las verificaciones de base. Si algo falla acá, corregilo antes de continuar.
+
+### Web Services
+
+Para cada Web Service del checklist:
+
+1. Abrí la URL del servicio y verificá que responde correctamente (sin páginas de error ni pantalla en blanco)
+2. Iniciá y cerrá sesión — verificá que la autenticación y el manejo de sesiones funcionan como se espera
+3. Recorré los flujos principales de tu aplicación (los que tus usuarios utilizan con más frecuencia)
+4. Verificá que la aplicación está leyendo la configuración del nuevo ambiente — que no apunta a bases de datos o servicios externos de un deploy anterior
+
+### Workers
+
+Para cada Worker del checklist:
+
+1. Dispará una acción en tu aplicación que encole un job en background (por ejemplo: enviar un email, procesar una subida de archivo, ejecutar un reporte)
+2. Confirmá que el job se completa exitosamente — revisá el panel de estado de jobs de tu aplicación, los logs, o el resultado esperado
+
+### Cron Jobs
+
+Para cada Cron Job del checklist:
+
+1. En [Headlamp <FiExternalLink/>](https://headlamp.dev/) (disponible como addon en tu Cluster de SleakOps), navegá a **Workloads → CronJobs** en el namespace de tu Ambiente
+2. Verificá que el timestamp de **Last Schedule** es reciente y que el de **Last Successful** coincide
+3. Si la próxima ejecución programada está lejos, podés disparar un job manual desde Headlamp para verificar que se ejecuta sin errores
+
+### Hooks
+
+Para cada Hook del checklist:
+
+1. Dispará un deploy desde la Console de SleakOps
+2. Una vez completado el deploy, revisá los logs del deployment en la Console para confirmar que cada Hook se ejecutó y terminó exitosamente (código de salida 0)
+
+### Dependencias
+
+Para cada Dependencia del checklist (PostgreSQL, Redis, S3, RabbitMQ, etc.):
+
+1. Usá una funcionalidad de tu aplicación que utilice esa dependencia — por ejemplo, creá un registro (PostgreSQL), cacheá algo (Redis), subí un archivo (S3)
+2. Confirmá que la operación se completa sin errores
+
+---
+
+## Sección 2: Pruebas de performance y stress
+
+**Aplica a:** todas las aplicaciones expuestas a tráfico real de usuarios.
+
+El objetivo es establecer un baseline de performance y confirmar que la nueva infraestructura soporta la carga esperada.
+
+:::tip
+Si tenés métricas de performance de tu infraestructura anterior (tiempos de respuesta, throughput), comparalos con los resultados de estas pruebas.
+:::
+
+### Herramientas recomendadas
+
+| Herramienta | Licencia | Para qué sirve |
+| --- | --- | --- |
+| [k6 <FiExternalLink/>](https://k6.io/docs/) | AGPL-3.0 | Tests de carga con scripts en JavaScript — load, stress, spike, endurance |
+| [Locust <FiExternalLink/>](https://docs.locust.io/) | MIT | Tests de carga en Python con UI web incluida |
+| [Artillery <FiExternalLink/>](https://www.artillery.io/docs/) | MPL-2.0 | Escenarios de stress y spike configurados en YAML |
+
+Monitoreá CPU, memoria, requests/seg y latencia en tiempo real con **Grafana**, disponible como addon en tu Cluster de SleakOps.
+
+### Load test — verificar el tráfico normal
+
+Ejecutá un test que simule tu volumen de tráfico normal durante al menos 10 minutos.
+
+- **Pasa:** El tiempo de respuesta p95 está dentro del umbral aceptable; la tasa de errores está por debajo del 1%
+- **Falla:** La latencia se dispara, la tasa de errores sube, o los pods se reinician bajo carga normal
+
+### Stress test — encontrar el punto de quiebre
+
+Aumentá la carga gradualmente más allá del tráfico normal hasta que el sistema se degrade. Esto te dice cuánto margen tenés.
+
+- **Pasa:** El sistema degrada de forma controlada (respuestas más lentas, no crashes ni errores 500)
+- **Falla:** Los pods crashean, las colas se desbordan, o la aplicación devuelve errores no controlados
+
+### Spike test — verificar el auto-escalado
+
+:::tip
+Esta prueba solo produce resultados significativos si el **Autoscaling (HPA)** está habilitado en tus Web Services. Consultá la [documentación de Web Service](/docs/project/workload/webservice) para aprender cómo configurarlo.
+:::
+
+Enviá una ráfaga repentina de tráfico (5–10× lo normal) durante 2–3 minutos y luego volvé a la normalidad.
+
+- **Pasa:** Karpenter y HPA crean nuevos pods; el pico es absorbido; el sistema vuelve a escalar hacia abajo después del burst
+- **Falla:** Los pods se saturan antes de que aparezcan nuevos; se pierden requests
+
+### Endurance test — detectar memory leaks
+
+Ejecutá una carga moderada sostenida durante 2–4 horas. Monitoreá el uso de memoria durante toda la prueba en **Grafana** ([instalalo como addon en tu Cluster](/docs/cluster/addons/grafana)) — una tendencia sostenida hacia arriba a lo largo del tiempo es la principal señal de un memory leak.
+
+- **Pasa:** El uso de memoria es estable; no hay reinicios de pods; los tiempos de respuesta se mantienen constantes
+- **Falla:** La memoria crece progresivamente; los pods terminan siendo eliminados por OOM; la latencia se degrada con el tiempo
+
+---
+
+## Sección 3: Pruebas de seguridad
+
+**Aplica a:** todas las aplicaciones con endpoints públicos.
+
+### TLS y HTTPS
+
+1. Analizá tu dominio principal con [SSL Labs <FiExternalLink/>](https://www.ssllabs.com/ssltest/)
+2. **Pasa:** Grado A o A+, certificado que no expira en los próximos 30 días, cadena de certificados completa y válida
+3. **Falla:** Grado B o inferior, certificado expirado o próximo a expirar, cadena rota
+
+### Headers de seguridad HTTP
+
+1. Analizá tu dominio principal con [securityheaders.com <FiExternalLink/>](https://securityheaders.com/)
+2. **Pasa:** Grado A — HSTS, X-Content-Type-Options, X-Frame-Options y Content-Security-Policy presentes
+3. **Falla:** Grado C o inferior, o HSTS ausente
+
+### Política CORS
+
+Ejecutá el siguiente comando reemplazando `TU_DOMINIO` con la URL de tu aplicación:
+
+```bash
+curl -I -H "Origin: https://sitio-malicioso.example.com" https://TU_DOMINIO/api/
+```
+
+- **Pasa:** La respuesta no incluye `Access-Control-Allow-Origin: https://sitio-malicioso.example.com`
+- **Falla:** La respuesta refleja el origen — la política CORS es demasiado permisiva
+
+### Rate limiting
+
+Si tu aplicación tiene rate limiting configurado, verificá que funciona:
+
+```bash
+for i in {1..100}; do curl -s -o /dev/null -w "%{http_code}\n" https://TU_DOMINIO/login; done
+```
+
+- **Pasa:** Después de N requests, las respuestas empiezan a devolver `429 Too Many Requests`
+- **Falla:** Los 100 requests devuelven `200` — el rate limiting no está activo
+
+### Rutas sensibles
+
+Verificá que las rutas comunes sensibles no son públicamente accesibles:
+
+```bash
+curl -I https://TU_DOMINIO/.env
+curl -I https://TU_DOMINIO/admin/
+curl -I https://TU_DOMINIO/.git/config
+```
+
+- **Pasa:** Todos devuelven `404` o `403`
+- **Falla:** Alguno devuelve `200` — esos archivos están expuestos públicamente
+
+### Autenticación en endpoints protegidos
+
+Elegí un endpoint de API que requiera autenticación y probalo sin credenciales:
+
+```bash
+curl -I https://TU_DOMINIO/api/recurso-protegido/
+```
+
+- **Pasa:** Devuelve `401 Unauthorized` o `403 Forbidden`
+- **Falla:** Devuelve `200` — el endpoint no tiene autenticación
+
+### Auditoría de dependencias
+
+Ejecutá un análisis de vulnerabilidades en las dependencias de tu aplicación:
+
+```bash
+# Node.js
+npm audit --audit-level=high
+
+# Python
+pip-audit
+```
+
+- **Pasa:** Sin vulnerabilidades altas o críticas
+- **Falla:** Se encontraron CVEs altos o críticos — revisá y actualizá los paquetes afectados antes de ir a producción
+
+:::info
+Para un análisis automatizado más profundo, herramientas como [OWASP ZAP <FiExternalLink/>](https://www.zaproxy.org/docs/) (DAST) y [Trivy <FiExternalLink/>](https://trivy.dev/latest/docs/) (escaneo de contenedores y dependencias) pueden dar mayor cobertura.
+:::
+
+---
+
+## Sección 4: Resiliencia de infraestructura
+
+### 4a — Aplicación sin cache
+
+**Aplica a:** aplicaciones que usan Redis para caching, sesiones o rate limiting.
+
+El objetivo es confirmar que tu aplicación degrada de forma controlada cuando Redis no está disponible, en lugar de caerse completamente.
+
+1. En la Console de SleakOps, andá a **Var Groups** y cambiá temporalmente la URL de conexión de Redis a un host inalcanzable (por ejemplo, `redis://invalid-host:6379`)
+2. Dispará un deploy — la aplicación levantará apuntando a un Redis inexistente
+3. Recorré los flujos principales de tu aplicación
+4. Tomá nota de qué funcionalidades fallan o se degradan — esto es comportamiento esperado, no un pass/fail en sí mismo
+5. **Pasa:** La aplicación devuelve mensajes de error controlados o hace fallback de forma elegante; no lanza errores 500 no controlados ni crashea
+6. **Falla:** Toda la aplicación queda inaccesible, o se exponen excepciones no manejadas a los usuarios
+7. Revertí el Var Group a la URL de Redis original, disparé otro deploy, y verificá que la aplicación vuelve a funcionar normalmente
+
+:::info
+Monitoreá también la carga de la base de datos en Grafana durante esta prueba. Si Redis cachea queries, sacarlo puede disparar las conexiones a la DB — verificá que la base de datos pueda absorber la carga adicional.
+:::
+
+### 4b — Interrupción de nodos Spot
+
+**Aplica a:** ambientes donde algún workload corre en un Spot Node Pool.
+
+AWS puede recuperar instancias Spot en cualquier momento con un aviso de 2 minutos. Esta prueba verifica que Karpenter reprogramó tus workloads correctamente y que no se pierden requests durante la transición.
+
+1. Abrí la [consola de AWS Fault Injection Service (FIS) <FiExternalLink/>](https://console.aws.amazon.com/fis/home)
+2. Creá un nuevo template de experimento con la acción **`aws:ec2:send-spot-instance-interruptions`**
+3. Configurá como target las instancias Spot del node group Spot de tu cluster EKS
+4. Iniciá el experimento — AWS envía el aviso de interrupción de 2 minutos a la instancia seleccionada
+5. En [Headlamp <FiExternalLink/>](https://headlamp.dev/) (disponible como addon en tu Cluster), observá cómo los pods afectados se reprograman en nodos on-demand
+6. Monitoreá la tasa de errores en Grafana durante la interrupción — debe mantenerse dentro del umbral de tu SLA
+7. **Pasa:** Los pods se reprograman en menos de 5 minutos; la tasa de errores se mantiene dentro del umbral; no se requiere intervención manual
+8. **Falla:** Los pods quedan en estado `Pending`, la tasa de errores se dispara y no se recupera, o la aplicación requiere reinicio manual
+
+Referencia: [AWS FIS — Interrupciones de Spot Instances <FiExternalLink/>](https://docs.aws.amazon.com/fis/latest/userguide/actions-reference.html)
+
+### 4c — Resiliencia de workers
+
+**Aplica a:** aplicaciones con Workers en background.
+
+#### Escenario 1: Poison pill (tarea malformada)
+
+Una poison pill es una tarea que no puede procesarse — datos malformados, un campo requerido faltante, o una referencia inválida. Es uno de los modos de falla más comunes en producción.
+
+:::info
+Este escenario es específico de tu aplicación. El comportamiento exacto (reintentos, enrutamiento al DLQ, logging de errores) depende de cómo tu aplicación maneja los errores en su stack de procesamiento de tareas (Celery, Sidekiq, BullMQ, etc.). Revisá la documentación de tu framework antes de ejecutar esta prueba.
+:::
+
+1. Identificá un tipo de tarea que procesen los workers de tu aplicación
+2. Enviá esa tarea con datos intencionalmente inválidos o malformados (campo requerido faltante, ID inválido, payload corrupto)
+3. **Pasa:** El worker registra el error, mueve la tarea a la Dead Letter Queue (DLQ) después de los reintentos configurados, y continúa procesando otras tareas normalmente
+4. **Falla:** El worker crashea, deja de procesar todas las tareas, o descarta el error silenciosamente sin enrutarlo al DLQ
+
+#### Escenario 2: Saturación de cola
+
+Verifica que no se pierden tareas bajo alta carga y que el auto-escalado funciona como se espera.
+
+1. Enviá una ráfaga de tareas — apuntá a 5–10× el volumen típico
+2. Monitoreá la profundidad de la cola en Grafana o el panel de administración de tu message broker (RabbitMQ, SQS, etc.)
+3. Si KEDA está configurado para tus workers ([consultá la documentación del addon KEDA](/docs/cluster/addons/keda)), observá cómo escala pods adicionales automáticamente a medida que crece la cola
+4. Esperá a que todas las tareas se completen y verificá que el total procesado coincide con el total enviado
+5. **Pasa:** Todas las tareas se procesan eventualmente; ninguna se pierde; la profundidad de la cola vuelve a cero
+6. **Falla:** Se pierden tareas, la cola crece indefinidamente, o los pods de workers crashean bajo carga
+
+### 4d — Dependencias externas
+
+#### PostgreSQL (RDS)
+
+Si tu instancia de RDS está configurada como Multi-AZ:
+
+1. Desde la consola de AWS RDS, iniciá un **Reboot with failover** en tu instancia de DB
+2. Monitoreá tu aplicación — debe reconectarse automáticamente en 30–60 segundos
+3. **Pasa:** La aplicación se reconecta sin reinicio; sin pérdida de datos; los usuarios pueden ver un breve error durante la ventana de failover
+4. **Falla:** La aplicación requiere reinicio manual para reconectarse, o ocurre corrupción de datos
+
+#### Amazon S3
+
+1. Desde tu aplicación, subí un archivo de prueba a S3
+2. Leé el archivo de vuelta y verificá su contenido
+3. Eliminá el archivo de prueba
+4. **Pasa:** Las tres operaciones se completan exitosamente con los permisos configurados en SleakOps
+5. **Falla:** Alguna operación falla — revisá la configuración de IAM Role for Service Account (IRSA) en SleakOps
+
+#### Redis
+
+1. En la Console de SleakOps, andá a **Var Groups** y cambiá temporalmente la URL de conexión de Redis a un host inalcanzable
+2. Dispará un deploy — la aplicación no podrá conectarse a Redis
+3. Revertí el Var Group a la URL original y desplegá nuevamente
+4. **Pasa:** La aplicación se reconecta a Redis automáticamente sin necesitar un reinicio manual
+5. **Falla:** La aplicación requiere reinicio para reconectarse a Redis
+
+#### APIs de terceros
+
+Para cada API externa con la que tu aplicación se integra:
+
+1. Bloqueá temporalmente el dominio de la API a nivel de red, o usá un mock que devuelva errores
+2. Dispará el flujo de la aplicación que llama a esa API
+3. **Pasa:** La aplicación maneja el fallo de forma elegante — muestra un mensaje de error amigable al usuario, usa un fallback, o encola el request para reintento
+4. **Falla:** El error de la API externa se propaga como un 500 no controlado al usuario
+
+---
+
+## Sección 5: Escalabilidad horizontal
+
+**Aplica a:** aplicaciones donde se espera que corran múltiples réplicas simultáneamente.
+
+### Comportamiento con múltiples réplicas
+
+1. Escalá tu Web Service principal a 3 réplicas desde la Console de SleakOps
+2. Enviá una serie de requests y verificá que todas las réplicas los manejan correctamente (revisá los logs en Headlamp — deberías ver requests distribuidos entre distintos nombres de pods)
+3. **Pasa:** Todas las réplicas sirven requests correctamente; sin errores relacionados al estado compartido
+4. **Falla:** Aparecen errores cuando un request llega a una réplica diferente a la que inició la sesión (problema de sticky sessions)
+
+### Estado compartido entre réplicas
+
+Si tu aplicación almacena estado en memoria (sesiones de usuario, archivos subidos, locks), verificá que ese estado se guarda en un backend compartido — no en la memoria local del pod.
+
+1. Iniciá una sesión en tu aplicación (por ejemplo, iniciá sesión)
+2. Escalá hacia abajo el pod que manejó tu request (usá Headlamp para identificar cuál fue)
+3. Hacé otro request — un pod diferente debería manejarlo
+4. **Pasa:** La sesión se mantiene; el nuevo pod puede leer el estado desde Redis/DB
+5. **Falla:** La sesión se pierde; te cerraron la sesión o recibís un error
+
+### Auto-escalado bajo carga
+
+Si HPA o KEDA está configurado para tus workloads:
+
+1. Ejecutá un load test (ver Sección 2) y observá el conteo de pods en Headlamp
+2. **Pasa:** Se crean nuevos pods a medida que aumenta la carga y se eliminan cuando disminuye; la aplicación maneja la transición sin errores
+3. **Falla:** Los pods no se crean a tiempo y la aplicación se satura, o los nuevos pods fallan sus readiness probes
+
+---
+
+## Sección 6: Observabilidad y alertas
+
+**Aplica a:** todas las aplicaciones en producción.
+
+La observabilidad no es opcional — si algo falla después de la migración, necesitás poder detectarlo y diagnosticarlo rápidamente.
+
+### Logs
+
+1. Realizá una acción en tu aplicación que genere una entrada de log (por ejemplo, iniciá sesión, disparé un error)
+2. Abrí **Loki** (disponible como addon en tu Cluster) y buscá los logs de tu aplicación
+3. **Pasa:** La entrada de log aparece en Loki en pocos segundos
+4. **Falla:** No aparecen logs — verificá que tu aplicación escriba a stdout/stderr, no a un archivo dentro del contenedor
+
+### Métricas en Grafana
+
+1. Abrí **Grafana** (disponible como addon en tu Cluster)
+2. Verificá que existan dashboards para tu aplicación mostrando como mínimo: uso de CPU, uso de memoria, requests/seg, tasa de errores, y latencia de respuesta
+3. **Pasa:** Todas las métricas están pobladas con datos recientes
+4. **Falla:** Faltan métricas o muestran "No data" — verificá que Prometheus esté scrapeando el endpoint de métricas de tu aplicación
+
+### Visibilidad de errores
+
+1. Dispará intencionalmente un error 500 en tu aplicación (por ejemplo, llamá a un endpoint con parámetros inválidos que cause una excepción no manejada)
+2. Verificá que el error aparece en tu herramienta de tracking de errores (Grafana, Loki, Sentry, CloudWatch, etc.)
+3. **Pasa:** El error es visible en 1–2 minutos con suficiente contexto para diagnosticar (stack trace, parámetros del request)
+4. **Falla:** El error es silencioso — no hay visibilidad sobre qué salió mal
+
+---
+
+## Sección 7: Deploy y rollback
+
+**Aplica a:** todas las aplicaciones.
+
+El ciclo de deploy y rollback es una de las cosas más críticas para validar antes de confiar en un nuevo ambiente.
+
+### Deploy sin downtime
+
+:::warning
+Para que los deploys sin downtime funcionen correctamente, tus Web Services deben tener las **readiness probes** y el **`terminationGracePeriod`** bien configurados. Kubernetes usa la readiness probe para saber cuándo un nuevo pod está listo para recibir tráfico, y el termination grace period para permitir que los requests en vuelo se completen antes de detener el pod viejo. Consultá la [documentación de Web Service](/docs/project/workload/webservice) para aprender cómo configurarlos.
+:::
+
+1. Mientras enviás tráfico continuo a tu aplicación (podés usar un `watch curl` simple o un load test liviano), disparé un nuevo deploy desde la Console de SleakOps
+2. Monitoreá la tasa de errores durante el deploy
+3. **Pasa:** La tasa de errores se mantiene en 0% (o dentro de límites aceptables) durante todo el deploy; no se pierden requests
+4. **Falla:** La tasa de errores se dispara durante el deploy — verificá que las readiness probes y el termination grace period estén correctamente configurados en tus workloads
+
+### Actualización de Var Group
+
+1. Hacé un cambio pequeño en uno de tus Var Groups (por ejemplo, cambiá una variable de entorno no crítica)
+2. Dispará un deploy
+3. Después del deploy, verificá en tu aplicación o en los logs que el nuevo valor está activo
+4. **Pasa:** El nuevo valor se aplica sin problemas
+5. **Falla:** La aplicación sigue usando el valor anterior, o el deploy falla por el cambio
+
+### Prueba de rollback
+
+Esta es la prueba más importante de esta sección. Verificá que podés recuperarte de un deploy fallido antes de necesitarlo.
+
+1. Anotá la versión actual de tu aplicación
+2. Desplegá una nueva versión (puede ser un cambio trivial — un mensaje de log, un comentario)
+3. Desde la Console de SleakOps, hacé rollback a la versión anterior
+4. Verificá que la aplicación está corriendo la versión anterior y que funciona correctamente (ejecutá las pruebas funcionales de la Sección 1)
+5. **Pasa:** El rollback se completa en minutos; la versión anterior funciona correctamente
+6. **Falla:** El rollback falla, tarda demasiado, o la versión anterior no funciona después del rollback
+
+### Migraciones de base de datos (si aplica)
+
+Si tu aplicación ejecuta migraciones de base de datos como parte del deploy:
+
+1. Verificá que la última migración se ejecutó exitosamente revisando los logs del deployment en la Console
+2. Verificá que la migración es backward-compatible — si necesitaras hacer rollback de la aplicación, la versión anterior debería seguir funcionando con el schema actual de la base de datos
+3. **Pasa:** La migración se ejecutó exitosamente y es backward-compatible
+4. **Falla:** La migración falló, o hacer rollback de la app rompería con el nuevo schema
+
+---
+
+## Referencia de herramientas
+
+| Categoría | Herramienta | Licencia | Docs |
+| --- | --- | --- | --- |
+| Load testing | [k6 <FiExternalLink/>](https://k6.io/docs/) | AGPL-3.0 | https://k6.io/docs/ |
+| Load testing | [Locust <FiExternalLink/>](https://docs.locust.io/) | MIT | https://docs.locust.io/ |
+| Load testing | [Artillery <FiExternalLink/>](https://www.artillery.io/docs/) | MPL-2.0 | https://www.artillery.io/docs/ |
+| Auditoría TLS | [SSL Labs <FiExternalLink/>](https://www.ssllabs.com/ssltest/) | Gratuito (online) | https://www.ssllabs.com/ssltest/ |
+| Headers de seguridad | [securityheaders.com <FiExternalLink/>](https://securityheaders.com/) | Gratuito (online) | https://securityheaders.com/ |
+| Scanner DAST | [OWASP ZAP <FiExternalLink/>](https://www.zaproxy.org/docs/) | Apache-2.0 | https://www.zaproxy.org/docs/ |
+| Scan contenedores/deps | [Trivy <FiExternalLink/>](https://trivy.dev/latest/docs/) | Apache-2.0 | https://trivy.dev/latest/docs/ |
+| Auditoría deps | `npm audit` | Built-in | https://docs.npmjs.com/cli/v10/commands/npm-audit |
+| Auditoría deps | [pip-audit <FiExternalLink/>](https://pypi.org/project/pip-audit/) | Apache-2.0 | https://pypi.org/project/pip-audit/ |
+| Chaos (Spot) | [AWS FIS <FiExternalLink/>](https://docs.aws.amazon.com/fis/latest/userguide/) | Managed (free tier) | https://docs.aws.amazon.com/fis/latest/userguide/ |
+| UI del Cluster | [Headlamp <FiExternalLink/>](https://headlamp.dev/) | Apache-2.0 | Addon de SleakOps |
+| Métricas | Grafana | AGPL-3.0 | Addon de SleakOps |
+| Logs | Loki | AGPL-3.0 | Addon de SleakOps |
+| Métricas | Prometheus | Apache-2.0 | Addon de SleakOps |

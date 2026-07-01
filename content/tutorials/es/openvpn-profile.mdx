@@ -1,0 +1,98 @@
+---
+title: Conectarse a la VPN con OpenVPN
+sidebar_label: Conectarse con OpenVPN
+sidebar_position: 11
+description: Aprende cómo exportar tu perfil de VPN como un archivo OpenVPN (.ovpn) y conectarte usando cualquier cliente compatible con OpenVPN, incluidas apps móviles.
+tags:
+  - vpn
+  - networking
+  - security
+image: /img/tutorials/openvpn-profile/openvpn-profile.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Aprende cómo exportar tu perfil de VPN como un archivo OpenVPN `.ovpn` y conectarte usando cualquier cliente compatible con OpenVPN, incluidas apps móviles.
+
+## Prerrequisitos
+
+- Cuenta en SleakOps con acceso VPN configurado
+- VPN del Cluster habilitada ([Documentación de VPN](/docs/user/vpn))
+
+## Empecemos
+
+### Obtener el archivo .ovpn
+
+Seguí la [guía de conexión a la VPN](/docs/user/vpn) para obtener tu link de Pritunl. El link tiene esta forma:
+
+```
+pritunl://127.0.0.176/ku/bURgBN8W
+```
+
+Para acceder a la página de descarga, modificá la URL de la siguiente manera:
+
+- Reemplazá `pritunl://` por `https://`
+- Reemplazá `/ku/` por `/k/`
+
+El resultado debe quedar así:
+
+```
+https://127.0.0.176/k/bURgBN8W
+```
+
+Abrí esa URL en el navegador. Verás una página con opciones de descarga:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/tutorials/openvpn-profile/pritunl-download-page.png"
+    alt="Página de descarga de Pritunl con las opciones Download Profiles"
+  />
+</Zoom>
+
+Hacé clic en **Download Profiles (tar)** o **Download Profiles (zip)**, luego extraé el archivo para obtener el `.ovpn`.
+
+### Configurar OpenVPN en el teléfono
+
+Descargá la app [OpenVPN Connect <FiExternalLink/>](https://openvpn.net/client/) o cualquier cliente compatible con OpenVPN para tu dispositivo móvil.
+
+Abrí la app y agregá un nuevo perfil:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/tutorials/openvpn-profile/openvpn-add-profile.png"
+    alt="App de OpenVPN mostrando la opción para agregar un nuevo perfil"
+  />
+</Zoom>
+
+Buscá el archivo `.ovpn` en tu dispositivo:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/tutorials/openvpn-profile/openvpn-file-picker.png"
+    alt="Selector de archivos en la app de OpenVPN"
+  />
+</Zoom>
+
+Asigná un nombre al perfil:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/tutorials/openvpn-profile/openvpn-name-profile.png"
+    alt="Pantalla para nombrar el perfil en OpenVPN"
+  />
+</Zoom>
+
+Usá el toggle para conectarte a la VPN:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/tutorials/openvpn-profile/openvpn-connect-toggle.png"
+    alt="Toggle de conexión en la app de OpenVPN"
+  />
+</Zoom>
+
+## Próximos pasos
+
+- [Integración VPN con terceros](/tutorial/third-party-integration-vpn)

@@ -46,6 +46,11 @@ const config = {
   // Eliminamos el tema easyops-cn/docusaurus-search-local
   themes: ["@docusaurus/theme-mermaid"],
 
+  clientModules: [
+    require.resolve("./src/clientModules/languageDetect.js"),
+    require.resolve("./src/clientModules/hashOpen.js"),
+  ],
+
   presets: [
     [
       "classic",
@@ -248,11 +253,11 @@ const config = {
           items: [
             {
               label: "Terms & Conditions",
-              href: "https://craftech.notion.site/Terms-Conditions-efb8d9a980654625af456732ed44b197",
+              to: "/legal/terms-and-conditions",
             },
             {
               label: "Privacy Policy",
-              href: "https://craftech.notion.site/Privacy-Policy-of-SleakOps-55b977da50d84871809879d065b16b3b",
+              to: "/legal/privacy-policy",
             },
           ],
         },
@@ -262,6 +267,7 @@ const config = {
     prism: {
       theme: lightCodeTheme,
       darkTheme: darkCodeTheme,
+      additionalLanguages: ['powershell', 'bash', 'docker', 'yaml'],
     },
   },
 };
