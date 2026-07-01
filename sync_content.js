@@ -57,6 +57,11 @@ const SYNC_MAP = [
     dest: "i18n/es/docusaurus-plugin-content-blog-changelog",
     description: "Spanish changelog",
   },
+  {
+    source: "content/pages/es",
+    dest: "i18n/es/docusaurus-plugin-content-pages",
+    description: "Spanish standalone pages",
+  },
 ];
 
 /**
