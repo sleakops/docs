@@ -65,15 +65,15 @@ sleakops build -p myproject -b main --docker-args "ARG1=value1,ARG2=value2"
 Esto es particularmente útil para pipelines de CI/CD donde quieres pasar diferentes argumentos basados en el entorno o contexto de construcción.
 :::
 
-Cuando usas **wait**, también puedes definir un **timeout** (en minutos) para limitar cuánto espera la CLI a que termine la compilación. El valor por defecto es **180 minutos**; pasa `0` para esperar indefinidamente. También puedes configurarlo mediante la variable de entorno `BUILD_TIMEOUT_MINUTES`.
+Puedes definir un **timeout** (en minutos) para un build. Este es el tiempo de vida máximo del build en el backend: si el build tarda más, SleakOps lo detiene y lo marca como fallido, de modo que un build colgado no se queda corriendo para siempre. El valor por defecto es **180 minutos**, y todo build queda acotado aunque no lo pases. Cuando además usas **wait**, `--timeout` también limita cuánto observa la CLI al build. El valor por defecto de la CLI se puede configurar mediante la variable de entorno `BUILD_TIMEOUT_MINUTES`.
 
 | **Opción**    | **Descripción**                                                                       |
 | ------------- | ------------------------------------------------------------------------------------- |
 | **--wait**    | Espera a que la compilación termine antes de retornar.                                |
-| **--timeout** | Minutos a esperar cuando se usa `--wait`. Por defecto `180`. Usa `0` para sin límite. |
+| **--timeout** | Tiempo de vida máximo del build en minutos; también limita cuánto observa la CLI con `--wait`. Por defecto `180`. `0` mantiene el valor por defecto de la plataforma y deja que `--wait` observe indefinidamente. |
 
 :::tip
-El timeout es del lado del cliente: controla cuánto observa la CLI a la compilación, no la compilación en sí en el backend. Cuando se agota, la CLI imprime un mensaje y sale con código `1`, de modo que una compilación colgada hace fallar tu pipeline de CI en vez de pasar silenciosamente.
+`--timeout` funciona en dos niveles: el backend detiene el build cuando supera el límite (esto ocurre para todo build, incluso sin `--wait`), y — cuando pasás `--wait` — la CLI también deja de observar pasado ese tiempo y sale con código `1`, de modo que un build colgado hace fallar tu pipeline de CI en vez de quedarse colgado.
 :::
 
 ### 3. Realizar un Despliegue

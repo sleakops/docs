@@ -55,15 +55,15 @@ As previously mentioned the key might be an input here or a environment variable
 
 Also, you might mark if you want the process to **wait** the build to be finished or not.
 
-When you use **wait**, you can also set a **timeout** (in minutes) to cap how long the CLI waits for the build to finish. It defaults to **180 minutes**; pass `0` to wait indefinitely. You can also set it through the `BUILD_TIMEOUT_MINUTES` environment variable.
+You can set a **timeout** (in minutes) for a build. This is the build's maximum lifetime on the backend: if the build runs longer, SleakOps stops it and marks it as failed, so a stuck build can't hang forever. It defaults to **180 minutes**, and every build is bounded even if you don't pass it. When you also use **wait**, `--timeout` caps how long the CLI watches the build too. The CLI's default can be set through the `BUILD_TIMEOUT_MINUTES` environment variable.
 
 | **Option**    | **Description**                                                              |
 | ------------- | --------------------------------------------------------------------------- |
 | **--wait**    | Wait for the build to finish before returning.                              |
-| **--timeout** | Minutes to wait when using `--wait`. Default `180`. Use `0` for no timeout.  |
+| **--timeout** | Maximum build lifetime in minutes; also caps how long the CLI watches with `--wait`. Default `180`. `0` keeps the platform default and lets `--wait` watch indefinitely.  |
 
 :::tip
-The timeout is client-side: it controls how long the CLI watches the build, not the build itself on the backend. When it expires, the CLI prints a message and exits with code `1`, so a stuck build fails your CI pipeline instead of silently passing.
+`--timeout` works on two levels: the backend stops the build once it exceeds the limit (this happens for every build, even without `--wait`), and — when you pass `--wait` — the CLI also stops watching after the same time and exits with code `1`, so a stuck build fails your CI pipeline instead of hanging.
 :::
 
 ### 3. Make a Deploy
