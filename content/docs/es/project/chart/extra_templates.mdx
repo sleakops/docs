@@ -20,6 +20,10 @@ Los Extra Templates te permiten desplegar recursos personalizados de Kubernetes 
 Dado que SleakOps utiliza NodePools para la ubicación de recursos, todos los recursos personalizados deben incluir la configuración adecuada de `tolerations` apuntando a un NodePool existente.
 :::
 
+:::info Requisito de Namespace
+Cada plantilla debe establecer explícitamente `metadata.namespace` con el namespace de tu Proyecto, como en el ejemplo de abajo. Un namespace faltante o distinto hace que la plantilla se rechace, igual que un recurso cluster-scoped.
+:::
+
 ## Desplegando un Ingress Personalizado
 
 Para desplegar un Ingress personalizado, agrega tu configuración YAML de Kubernetes en la sección **Templates**. Aquí tienes un ejemplo completo que puedes usar como punto de partida:

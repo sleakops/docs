@@ -7,11 +7,15 @@ import Zoom from "react-medium-image-zoom";
 
 # Deleting a Provider
 
-- This feature allows you to delete a Provider and all that was created under it.
-- Only Providers *Successfully Created* and in *Error* can be deleted. So, if you do not see the feature, probably it is in other status.
+- This feature allows you to delete a Provider and all that was created under it. Only Admins can do it.
+- Only Providers in *Initial*, *Successfully Created*, or *Error* status can be deleted — not while a provisioning, update, or deletion task is in progress. Deleting a Provider still in *Initial* (before finishing the AWS connection) is immediate, since nothing was created on AWS yet.
 
 :::warning
 The created *Organization* and its accounts (management, development, production, and security) will not be automatically deleted. While keeping these accounts under your AWS Root Account does not incur any costs, **we recommend removing** them manually.
+:::
+
+:::note
+If a dependency (e.g. a database) has deletion protection enabled, the delete request will fail until you disable it.
 :::
 
 ## How to delete a Provider

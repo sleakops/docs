@@ -43,6 +43,10 @@ Update the parameters into the modal and click on *Save*.
   />
 </Zoom>
 
+:::warning
+Changing a node pool's compute settings can trigger a rolling replacement of its nodes, which may briefly restart the workloads scheduled on it. If the workloads currently running on the pool already use more CPU or memory than the new limits you're setting, the update is rejected — free up capacity or scale down those workloads first.
+:::
+
 ## Deleting a node pool
 
 ### 1. Click the bin button at the top right of the node pool card
@@ -53,3 +57,7 @@ Update the parameters into the modal and click on *Save*.
     <p>Click on Delete to confirm and trigger the action on SleakOps.</p>
   </div>
 </div>
+
+:::info
+You can't delete an internal/build node pool, the last non-build node pool in the cluster, or a node pool currently assigned to a Project Environment — reassign or remove the environment first. The cluster must also be powered on to delete a node pool.
+:::

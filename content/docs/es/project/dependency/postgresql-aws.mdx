@@ -5,7 +5,7 @@ import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
 
-# AWS PosgreSQL
+# AWS PostgreSQL
 
 SleakOps ofrece una integración fluida con Amazon RDS para PostgreSQL, un servicio de base de datos relacional completamente administrado. PostgreSQL es conocido por sus características avanzadas, escalabilidad y rendimiento robusto, lo que lo convierte en una opción preferida para aplicaciones complejas y operaciones intensivas en datos. Al integrar PostgreSQL a través de SleakOps, puedes gestionar eficientemente tus implementaciones de bases de datos y aprovechar el poder del servicio administrado de AWS.
 
@@ -29,7 +29,7 @@ La implementación Multi-AZ (Zona de Disponibilidad) garantiza alta disponibilid
 <summary>
 ### ¿Puedo cambiar la versión de PostgreSQL después de que la base de datos esté implementada?
 </summary>
-No, la versión del motor de base de datos no puede cambiarse después de la implementación. Necesitarías crear una nueva instancia de PostgreSQL con la versión deseada y migrar tus datos. O bien cambiarla manualmente en la consola de AWS.
+Sí, editá la dependencia y elegí una nueva **Versión del Motor de Base de Datos**. Actualizar a una nueva versión mayor se trata como un cambio potencialmente destructivo: SleakOps lo retiene en "Awaiting Approval" para que lo confirmes antes de aplicarlo.
 </details>
 
 <details>
@@ -129,7 +129,14 @@ En SleakOps, cuando creas una réplica de lectura para tu base de datos RDS, nec
 <summary>
 ### ¿Puedo eliminar una réplica?
 </summary>
-Por el momento, la única forma es eliminar la dependencia. 
+Sí, editá la dependencia y quitala de la lista **Definición de Réplicas de Lectura de RDS**.
+</details>
+
+<details>
+<summary>
+### ¿SleakOps puede restaurar un dump automáticamente?
+</summary>
+Sí. Desde el menú **Actions** de la dependencia, ejecutá **Restore Database**: indicá un archivo de dump en S3 y elegí la base de datos PostgreSQL de destino (cualquier dependencia del mismo Project-Environment que esté en estado `created`, incluso una distinta de la que abriste el menú). SleakOps corre la restauración como un Job y podés seguir su progreso desde *Jobs*.
 </details>
 
 :::info
@@ -157,21 +164,23 @@ Estos son los parámetros que SleakOps te permite personalizar durante la creaci
 
 | **Atributo** | **Descripción** |
 | --- | --- |
-| **Versión del Motor de Base de Datos** | Selecciona la versión específica del motor de base de datos PostgreSQL que deseas usar. Esto asegura la compatibilidad con los requisitos de tu aplicación. Ejemplo: `PostgreSQL 14.9`, `PostgreSQL 16.5`. |
+| **Nombre de Base de Datos** | Nombre de la base de datos por defecto creada dentro de la instancia. No puede ser `db` ni `database`. |
+| **Versión del Motor de Base de Datos** | Selecciona la versión específica del motor de base de datos PostgreSQL que deseas usar. Esto asegura la compatibilidad con los requisitos de tu aplicación. Ejemplo: `PostgreSQL 16`, `PostgreSQL 18`. |
 | **Clase de Instancia de Base de Datos** | Define la clase de instancia que especifica la configuración de hardware para tu base de datos PostgreSQL. Esto controla el rendimiento de CPU, memoria y red. Ejemplo: `db.m6g.large`, `db.t3.medium`. Consulta [detalles de AWS](https://aws.amazon.com/es/rds/instance-types/). |
-| **Almacenamiento de Base de Datos** | Especifica la cantidad de almacenamiento asignado para la base de datos. Ejemplo: 100 GB, 500 GB. |
+| **Almacenamiento de Base de Datos** | Especifica la cantidad de almacenamiento asignado para la base de datos, en GiB. |
+| **Storage Autoscaling Enabled** | Permite que AWS aumente el almacenamiento automáticamente a medida que se llena, hasta un **Maximum Allocated Storage** que definas. |
 | **Nombre de Usuario** | Proporciona el nombre de usuario principal para la base de datos PostgreSQL. Este es el usuario principal con privilegios administrativos. Ejemplo: admin, root. |
-| **Contraseña** | Contraseña para el usuario principal para acceder a la base de datos. |
+| **Contraseña** | Contraseña para el usuario principal para acceder a la base de datos, o generala automáticamente. |
 | **Zona de Disponibilidad Múltiple (Multi-AZ)** | Habilita o deshabilita la implementación Multi-AZ. Esto asegura alta disponibilidad y soporte de conmutación por error al replicar la base de datos en múltiples zonas de disponibilidad. Se recomienda para entornos de producción. |
 | **Respaldo Automático** | Configura respaldos automáticos para la base de datos PostgreSQL. Esto asegura la protección de datos al habilitar instantáneas diarias y respaldos de registros de transacciones. Configura el _Periodo de Retención de Respaldo_ y la _Ventana de Respaldo_. Se recomienda para entornos de producción. |
 | **Periodo de Retención de Respaldo** | Establece el número de días para retener los respaldos automáticos. |
 | **Ventana de Respaldo** | Período de tiempo durante el cual se realizarán los respaldos. |
+| **Parameter Group Mode** | Deja el default del motor, definí parámetros de motor personalizados gestionados por SleakOps, o adjuntá un parameter group existente por nombre. |
+| **Restore From Point In Time** | Crea la base de datos restaurada a un momento específico (o al punto restaurable más reciente) de una base de datos origen, en vez de arrancar vacía. |
+| **Create a RDS from a snapshot** | Restaura la nueva base de datos desde un snapshot de RDS existente en vez de arrancar vacía. |
+| **Deletion Protection** | Bloquea el borrado accidental — mientras está habilitada, la dependencia no puede eliminarse hasta que la desactives. |
 
-:::warning
-SleakOps permite la creación de réplicas solo durante la creación de la dependencia.
-:::
-
-Después de estos datos básicos, necesitarás decidir si se creará una réplica. Para hacerlo:
+Después de estos datos básicos, necesitarás decidir si se creará una réplica. Las réplicas también se pueden agregar, editar o quitar más adelante desde el formulario de edición. Para hacerlo:
 1. En el formulario, busca la sección **Definición de Réplicas de Lectura de RDS** y haz clic en + _Añadir Elemento_.
 2. Completa los siguientes datos: 
 

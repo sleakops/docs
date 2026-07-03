@@ -29,7 +29,7 @@ Antes de crear un Entorno, lee [Diseñando tu Infraestructura: Esquema Simple vs
 <summary>
 ### ¿Puedo editar un Entorno?
 </summary>
-No. Debes eliminarlo y crear uno nuevo.
+Solo su dominio, usando la acción Cambiar Dominio descrita más abajo. El resto de la configuración queda fija después de la creación — para cambiar el nombre o el clúster, elimina el Entorno y crea uno nuevo.
 </details>
 
 <details>
@@ -44,7 +44,7 @@ Accede a la Lista de Entornos, en la columna de Acciones, haz clic en el ícono 
 ### ¿Cómo puedo delegar un dominio?
 </summary>
 Sigue: [Delegar Dominios](/docs/domain/setup).
-</details >
+</details>
 
 :::warning Configuración DNS Requerida
 
@@ -80,6 +80,43 @@ Con tu [Account](/docs/provider/accounts) seleccionada, accederás al siguiente 
 | --- | --- |
 | **Nombre** | Define un nombre para tu Entorno utilizando letras en minúscula y guiones medios. |
 | **Cluster** | Selecciona uno de los clústeres disponibles para alojar el nuevo Entorno. |
-| **Dominio** | Especifica el dominio para tu Entorno. |
+| **Dominio** | Especifica el dominio para tu Entorno. Se autocompleta como `{nombre}.{tudominio.com}` mientras no lo edites a mano. |
+
+:::info Entorno raíz
+Ingresa el dominio base de tu cuenta en lugar de un subdominio (por ejemplo, `tudominio.com` en vez de `qa.tudominio.com`) para que este sea el entorno raíz: sirve ese dominio directamente, sin subdominio. Un proveedor solo puede tener un entorno raíz, y debe pertenecer a tu cuenta de Producción.
+:::
 
 Una vez que hayas completado el formulario, haz clic en *Crear* para iniciar la creación del Entorno en el clúster seleccionado.
+
+## Clona un Entorno
+
+Clonar duplica un Entorno — sus proyectos y, opcionalmente, sus servicios, dependencias y grupos de variables — en un Entorno nuevo, en otro clúster o cuenta. Úsalo para levantar una copia de un Entorno existente sin reconstruirlo desde cero.
+
+{/* TODO: screenshot - Formulario de Clonado de Entorno */}
+
+Desde la Lista de Entornos, usa la acción Clone (disponible para Admins y Editors con acceso a clonado) para abrir el formulario de clonado:
+
+| **Configuración** | **Descripción** |
+| --- | --- |
+| **Nombre / Dominio** | Mismas reglas que al crear un Entorno; el dominio se autocompleta desde el nombre. |
+| **Cluster** | Clúster destino del clon — puede pertenecer a una cuenta distinta a la del Entorno origen. |
+| **Nodepool** | Nodepool por defecto opcional para los proyectos clonados; se puede sobrescribir por proyecto. |
+| **Proyectos** | Elige qué proyectos clonar. Para cada uno, clona todo o selecciona servicios, dependencias y grupos de variables puntuales. |
+
+Si no personalizas la selección de un proyecto, se clona completo. El clonado corre en segundo plano: el Entorno nuevo aparece de inmediato, y cada proyecto clonado llega a su estado final a medida que se completa la copia.
+
+## Cambia el Dominio
+
+Desde la Lista de Entornos, abre el menú de dominio de un Entorno ya creado por completo (no mientras sigue en aprovisionamiento) y selecciona Change Domain. Ingresa el dominio nuevo y confirma.
+
+Cambiar el dominio crea la zona DNS y el certificado del dominio nuevo, actualiza todas las URLs de servicios que apuntaban al dominio viejo, y redespliega todos los proyectos del Entorno. El Entorno no funcionará correctamente hasta delegar su DNS al dominio nuevo — mirá [Delegar un Dominio](/docs/domain/setup). Si el dominio anterior tenía alias o subdominios apuntando a él, SleakOps te notifica para que los actualices a mano; no se migran automáticamente.
+
+## Descarga el Checklist de Validación
+
+Desde la Lista de Entornos o el panel de detalle del Entorno, selecciona View Validation Checklist para generar un reporte en Markdown del estado actual del Entorno — un checklist para el go-live. Por cada proyecto, lista ítems a verificar (rama, build, CI/CD) más una sección por tipo de recurso presente — servicios web (con su URL), workers, cronjobs (con su horario), hooks (con su trigger) y grupos de variables — con links de vuelta al panel, y un link a la [Guía de Pruebas Exhaustivas de Entornos](/tutorial/environment-exhaustive-testing-guide). Podés previsualizarlo en un diálogo o descargarlo como archivo `.md`.
+
+## Exporta un Entorno
+
+Desde el panel de detalle del Entorno, usa Export para descargar un archivo `.json` con todos los proyectos del Entorno y sus recursos (servicios, dependencias, grupos de variables), en un formato reutilizable para recrear la misma configuración en otra cuenta, empresa o Entorno — a diferencia de Clone, el export no está limitado a la misma empresa.
+
+Los valores de las variables no se incluyen en el export (deberás volver a completarlos al reutilizar el archivo), y los grupos de variables de tipo `file` se omiten; un mensaje al finalizar la descarga lista lo que quedó afuera. Export está deshabilitado para Viewers y solo disponible cuando el Entorno está Created (o en estado Error).

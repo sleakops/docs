@@ -9,12 +9,14 @@ We have repeteadly talked about Build in both [Project documentation ](/docs/pro
 
 ### Build creation
 
-To create a Build you only need four parameters, only the Project field is required as the other three are, if not set, wait until this access is automatically enabled are chosen by default:
+To create a Build you only need to choose a **Project** — the other fields default automatically if you leave them blank:
 
-- Project: Refers to what we call ProjectEnv, here you choose which ProjectEnv you want to build.
-- Branch: Lets you choose any branch of the repository that you've chosen as Project. Defaults to Environment name.
-- Commit hash: You can also choose the commit has to build a specific commit and not the last one as we do by default. Defaults to last commit.
-- Tag: Just a tag to differentiate builds. Defaults to 'latest'.
+- **Project**: refers to what we call ProjectEnv — the Project + Environment combination you want to build.
+- **Branch**: any branch of the Project's repository. Defaults to the branch configured on the Project.
+- **Commit hash**: build a specific commit instead of the latest one. Defaults to the latest commit on the branch.
+- **Tag**: a label for this build's image. Defaults to the commit hash — SleakOps also always pushes the image tagged `latest`, regardless of this value.
+- **Cache**: reuse cached layers from a previous build to speed it up. On by default.
+- **Deploy?**: deploy the resulting image automatically once the build finishes. On by default.
 
 ## Why do we need to Build a Docker image?
 
@@ -47,7 +49,7 @@ sleakops build --project my-app --branch main --timeout 30
 | **A positive number** | The build is stopped and marked as failed after that many minutes.                      |
 | **`0`**               | The build is still bounded by the platform default. With `--wait`, it also removes the CLI's wait cap, so the CLI polls until the build finishes; without `--wait` it behaves like omitting `--timeout`. |
 
-When combined with `--wait`, `--timeout` also caps how long the CLI waits for the build to finish before exiting with an error. This is useful in CI/CD pipelines, where a stuck build would otherwise block the job indefinitely:
+When combined with `--wait`, `--timeout` also caps how long the CLI waits for the build to finish before exiting with an error — even if you omit `--timeout`, `--wait` still gives up after 180 minutes by default, independently of the server-side cutoff above. This is useful in CI/CD pipelines, where a stuck build would otherwise block the job indefinitely:
 
 ```bash
 sleakops build --project my-app --branch main --wait --timeout 30
@@ -78,5 +80,5 @@ If your build process is failing unexpectedly or being terminated, it's often du
 - Build is extremely slow or appears frozen
 
 **Solution:**
-Increase the build resources in **Project** → **Settings** → **Deploy Build Resources**. See the [Deploy Build Resources](/docs/project/build_resources) documentation for detailed instructions on how to adjust CPU and memory allocations.
+Increase the build resources in **Project** → **Settings** → **Deploy and Build Resources**. See the [Deploy Build Resources](/docs/project/build_resources) documentation for detailed instructions on how to adjust CPU and memory allocations.
 </details>

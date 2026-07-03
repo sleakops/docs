@@ -9,40 +9,40 @@ import { FiExternalLink } from "react-icons/fi";
 
 # Open Telemetry
 
-In Sleakops [Opentelemetry <FiExternalLink/>](https://opentelemetry.io/) is an addon that enables you to understand the internal state of a system by examining its telemetry data, which includes traces and metrics. Opentelemetry is installed alongside [Prometheus <FiExternalLink/>](https://prometheus.io/docs/introduction/overview/) to store valuable metrics about the system and  [Grafana <FiExternalLink/>](https://grafana.com/docs/) to visualize the data.
+En SleakOps, [OpenTelemetry <FiExternalLink/>](https://opentelemetry.io/) es un addon que te permite entender el estado interno de un sistema examinando su telemetría, que incluye trazas y métricas. OpenTelemetry se instala junto con [Prometheus <FiExternalLink/>](https://prometheus.io/docs/introduction/overview/) para almacenar métricas valiosas del sistema y [Grafana <FiExternalLink/>](https://grafana.com/docs/) para visualizar los datos.
 
-All OpenTelemetry data is accesible through Grafana. Check [our Grafana documentation](/docs/cluster/addons/grafana) to learn more about our implementation.
+Todos los datos de OpenTelemetry son accesibles a través de Grafana. Consulta [nuestra documentación de Grafana](/docs/cluster/addons/grafana) para conocer más sobre nuestra implementación.
 
 
-## FAQs
+## Preguntas Frecuentes
 <details>
 <summary>
- ### **How it works**
+ ### **Cómo funciona**
 </summary>
-In order to use OpenTelemetry, you need to have a project instrumented with OpenTelemetry. Sleakops will deploy the necessary resources to collect and store the data.
-Instrumentation is the process of adding code to your application to collect telemetry data. OpenTelemetry provides libraries to instrument your application in a variety of languages.
-Also Sleakops offers Autoinstrumentation for some languages, learn more about it in the section Autoinstrumentation.
+Para usar OpenTelemetry, necesitas tener un proyecto instrumentado con OpenTelemetry. SleakOps despliega los recursos necesarios para recolectar y almacenar los datos.
+La instrumentación es el proceso de agregar código a tu aplicación para recolectar datos de telemetría. OpenTelemetry provee librerías para instrumentar tu aplicación en varios lenguajes.
+SleakOps también ofrece autoinstrumentación para algunos lenguajes; aprende más en la sección Autoinstrumentación.
 </details>
 
 <details>
 <summary>
- ### **Traces and Metrics**
+ ### **Trazas y Métricas**
 </summary>
-Telemetry data consist of three main components: traces, metrics and logs. For logs Sleakops offers [Loki](/docs/cluster/addons/loki). Traces are the path of a request through the system, while metrics are the values of the system at a given time. 
+La telemetría se compone de tres elementos principales: trazas, métricas y logs. Para logs, SleakOps ofrece [Loki](/docs/cluster/addons/loki). Las trazas son el recorrido de una request a través del sistema, mientras que las métricas son los valores del sistema en un momento dado.
 
-The OpenTelemetry addon collects traces from the pods running your project and sends them to the OpenTelemetry collector. The collector stores the traces throw [Tempo <FiExternalLink/>](https://grafana.com/oss/tempo/). Traces could be visualized in Grafana.
-Also the collector generates metrics via the [SpanMetrics Connector <FiExternalLink/>](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/connector/spanmetricsconnector/README.md) and stores them in Prometheus.
+El addon de OpenTelemetry recolecta trazas de los pods que ejecutan tu proyecto y las envía al collector de OpenTelemetry. El collector almacena las trazas mediante [Tempo <FiExternalLink/>](https://grafana.com/oss/tempo/). Las trazas pueden visualizarse en Grafana.
+Además, el collector genera métricas mediante el [SpanMetrics Connector <FiExternalLink/>](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/connector/spanmetricsconnector/README.md) y las almacena en Prometheus.
 
-A dashboard is available in Grafana for every project that gets instrumented.
+Hay un dashboard disponible en Grafana para cada proyecto que se instrumenta.
 </details>
 
 
 <details>
 <summary>
- ### Using the Addon
+ ### Usando el Addon
 </summary>
-Let's dive in with a view of the OpenTelemetry dashboard. First three metrics are Request rates, Error rates and Durations, or RED metrics. These metrics are the most important to monitor the health of your application.
-Then we see a table that list Top operations (endpoints) and their error rate as well.
+Veamos el dashboard de OpenTelemetry. Las primeras tres métricas son tasas de requests, tasas de errores y duraciones (métricas RED). Estas métricas son las más importantes para monitorear la salud de tu aplicación.
+Luego hay una tabla que lista las operaciones principales (endpoints) junto con su tasa de errores.
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
     src="/img/cluster/addons/otel/otel-dashboard.png"
@@ -55,57 +55,57 @@ Then we see a table that list Top operations (endpoints) and their error rate as
     alt="otel-dashboard-p2"
   />
 </Zoom>
-Tipically the dashboard gives a quick look to problematic endpoints, application performance bottlenecks, as well as the overall health of the application.
+Típicamente el dashboard da una vista rápida de los endpoints problemáticos, los cuellos de botella de rendimiento y la salud general de la aplicación.
 </details>
 
 <details id="autoinstrumentation">
 <summary>
- ### Autoinstrumentation
+ ### Autoinstrumentación
 </summary>
-Sleakops offers autoinstrumentation for some languages. This means that Sleakops will automatically instrument your project with OpenTelemetry. This is done by deploying an init container alongside your project. The sidecar container will collect the telemetry data and send it to the OpenTelemetry collector.
+SleakOps ofrece autoinstrumentación para algunos lenguajes. Esto significa que SleakOps instrumenta automáticamente tu proyecto con OpenTelemetry, desplegando un init container junto a tu proyecto. Este contenedor recolecta la telemetría y la envía al collector de OpenTelemetry.
 </details>
 
 <details id="manual-instrumentation">
 <summary>
- ### Manual instrumentation
+ ### Instrumentación manual
 </summary>
-Manual instrumentation resolves the implementation through code of OpenTelemetry in your project. This is done by adding the OpenTelemetry libraries to your project and adding the necessary code to collect the telemetry data. Sleakops presents the endpoint where the telemetry data should be sent. 
+La instrumentación manual resuelve la implementación de OpenTelemetry mediante código en tu proyecto. Consiste en agregar las librerías de OpenTelemetry a tu proyecto y el código necesario para recolectar la telemetría. SleakOps expone el endpoint al que debe enviarse la telemetría.
 </details>
 
 <details>
 <summary>
- ### What does Sleakops install when installing OpenTelemetry
+ ### Qué instala SleakOps al instalar OpenTelemetry
 </summary>
-The stack deployed when the addon is installed is the following:
+El stack desplegado cuando se instala el addon es el siguiente:
 - [OpenTelemetry Operator <FiExternalLink/>](https://opentelemetry.io/docs/kubernetes/operator/)
 - [OpenTelemetry Collector <FiExternalLink/>](https://opentelemetry.io/docs/collector/) Custom resource (CRD)
-- [OpenTelemetry Instrumentation <FiExternalLink/>](https://opentelemetry.io/docs/kubernetes/operator/automatic/) Custom resource (CRD) for every autoinstrumentated project
-- [Tempo <FiExternalLink/>](https://grafana.com/oss/tempo/) with a frontend, and caching enabled
-- S3 Bucket as Tempo Backend
+- [OpenTelemetry Instrumentation <FiExternalLink/>](https://opentelemetry.io/docs/kubernetes/operator/automatic/) Custom resource (CRD) por cada proyecto autoinstrumentado
+- [Tempo <FiExternalLink/>](https://grafana.com/oss/tempo/) con un frontend y caching habilitado
+- Un bucket S3 como backend de Tempo
 
 </details>
 
 
- ## Start using OpenTelemetry
+ ## Empieza a usar OpenTelemetry
 
-To start using OpenTelemetry, you need to install the addon. Then go to the Project list page, activate the project Instrumentation using the small white icon at the left of the name of the project.
+Para empezar a usar OpenTelemetry, instala el addon. Luego ve a la página de listado de Proyectos y activa la instrumentación del proyecto usando el pequeño ícono blanco a la izquierda del nombre del proyecto.
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
     src="/img/cluster/addons/otel/instrumentation-options.png"
     alt="instrumentation-options"
   />
 </Zoom>
-These are the options you can choose from:
-| Option | Description |
+Estas son las opciones disponibles:
+| Opción | Descripción |
 | ------ | ----------- |
-| Enabled | Enable or disable instrumentation on this proyect. |
-| Autoinstrumentation | Opt for autoinstrumentation. Read more on <a href="#autoinstrumentation"> Autoinstrumentation </a> and <a href="#manual-instrumentation"> Manual Instrumentation </a> |
-| Language | If autoinstrumentation is enabled, this option marks the language of the project. Currently GO, Java, NodeJS, Python and DotNet are available. |
-| Sample Rate | If autoinstrumentation is enabled, this option marks the sampling rate, where 0 is none and 1 is all the traces. |
+| Enabled | Habilita o deshabilita la instrumentación en este proyecto. |
+| Autoinstrumentation | Opta por la autoinstrumentación. Lee más en <a href="#autoinstrumentation"> Autoinstrumentación </a> e <a href="#manual-instrumentation"> Instrumentación manual </a> |
+| Language | Si la autoinstrumentación está habilitada, indica el lenguaje del proyecto. Actualmente están disponibles GO, Java, NodeJS, Python y DotNet. |
+| Sample Rate | Si la autoinstrumentación está habilitada, indica la tasa de muestreo, donde 0 es ninguna traza y 1 son todas. |
 
 
 
-Projects that are instrumented are visible in the Project list page. Marked with a green icon, as in the image:
+Los proyectos instrumentados se ven en la página de listado de Proyectos, marcados con un ícono verde, como en la imagen:
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
     src="/img/cluster/addons/otel/project-list-with-instrumented-app.png"

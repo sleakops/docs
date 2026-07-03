@@ -67,7 +67,7 @@ Sleakops has three fundamental fields of user permissions:
 
 </summary>
 
-Only administrators can delete users. To delete a user, access the User List, in the Action column, click on the bin icon. Then confirm the action.
+Only administrators can delete users. To delete a user, access the User List, in the Action column, click on the bin icon. Then confirm the action. An admin cannot delete their own account.
 
 SleakOps automatically handles the complete deletion process across all systems (IAM user, Pritunl VPN server user, and SleakOps console user). No additional manual steps are required outside the SleakOps console.
 
@@ -83,28 +83,23 @@ Deleted users cannot be recovered. However, deleting a user never removes any re
   <img src="/img/users/USER-creation-form.png" alt="USER-creation-form" />
 </Zoom>
 
-For access into the AWS accounts SleakOps initially sets a random password and sends it to the email of the created user. The user can login with that password but it will be obligated to change its password on the first login. For SleakOps platform access we use the password that was set on the User form.
+For access into the AWS accounts SleakOps initially sets a random password and sends it to the email of the created user. The user can login with that password but it will be obligated to change its password on the first login. For SleakOps platform access, the user gets a separate email with a link to set their own password.
 
 After this user creation an AWS User will be created on the 'security' Account, this account is where we control acesses to all the SleakOps AWS accounts. We will also create, depending on the configuration, users on the VPN servers, read how to use them on the corresponding [documentation ](/docs/user/vpn) and on the SleakOps user.
 
-## Users Without SleakOps Access
+## AWS/VPN-Only Members
 
-Some users in your organization may not have direct access to the SleakOps platform but still interact with the infrastructure:
+Turning off console access is only available for the Viewer role. It creates a member with no SleakOps login who still gets AWS IAM and/or VPN access provisioned for the accounts you assign — useful for external collaborators, auditors, or teammates who only need infrastructure access, not a console seat. At least one AWS or VPN account is required in this case.
 
-### External Collaborators
+## Managing Members
 
-- **Scenario**: Third-party contractors or consultants who need temporary access to specific AWS resources
-- **Access Method**: Direct AWS console access with limited IAM permissions
-- **Management**: Handled through AWS IAM directly, not through SleakOps user management
+Admins can act on any member from the Members list or its detail drawer:
 
-### Read-Only Observers
+- **Reset AWS Password**: pick the provider and confirm — SleakOps generates a new IAM password and emails it to the member.
+- **Get Pritunl Credentials**: for members without SleakOps console access, who can't fetch their own VPN URI (see the [VPN documentation](/docs/user/vpn)), an admin retrieves it for any account where the member already has a provisioned VPN profile.
 
-- **Scenario**: Stakeholders who need visibility into infrastructure costs and usage without operational access
-- **Access Method**: AWS Cost Explorer, CloudWatch dashboards, or custom reporting tools
-- **Management**: AWS billing and monitoring permissions only
+Editing a member only lets you change their role and account access; name, email, and console access are fixed at creation.
 
-### VPN-Only Consumers
-
-- **Scenario**: Users who need to consume workloads and applications within the VPN but don't require infrastructure administration or monitoring capabilities
-- **Access Method**: VPN access only, with limited permissions to access specific applications and services
-- **Management**: VPN user accounts with restricted access to designated workloads and environments
+:::info
+Changing a member's role re-provisions their AWS and VPN access automatically. If the member uses `kubectl`, they need to regenerate their kubeconfig to pick up the new permissions.
+:::

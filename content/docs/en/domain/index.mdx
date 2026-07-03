@@ -111,10 +111,10 @@ Zero-configuration domain setup. Each service automatically gets a predictable, 
 **What Sleakops does:**
 
 ### Scenario A: Domain matches an existing hosted zone
-If `external-domain.com` is already a Provider or Environment in Sleakops:
-- ✅ Provides DNS records for SSL certificate validation
+If the alias is a direct subdomain of a domain already managed by Sleakops as a Provider or Environment (e.g. `api.external-domain.com` under `external-domain.com`):
+- ✅ Reuses that domain's certificate automatically — no separate SSL validation needed
 - ✅ Provides ALB name for DNS configuration
-- ⚠️ You configure the DNS records yourself
+- ⚠️ You still create the CNAME (or A/ALIAS record for a root domain) pointing to the ALB yourself
 
 ### Scenario B: Domain doesn't match any hosted zone
 If `anything.com` is completely external:

@@ -130,10 +130,11 @@ Here the parameters that SleakOps allows you to customize during the creation:
 | **Attribute** | **Description** |
 | --- | --- |
 | **Deployment Mode** | Choose between **Provisioned** (fixed capacity, full control over configuration) or **Serverless** (auto-scaling, pay-per-use for variable workloads). Provisioned mode is ideal for consistent workloads with specific performance requirements, while Serverless is perfect for development and variable traffic patterns. |
-| **Kafka Version** | *(Required for Provisioned mode)* Select the specific version of Apache Kafka for your MSK cluster. Choose from versions 2.8.1, 3.2.0, 3.3.2, 3.4.0, or 3.5.1. Each version includes specific Kafka features, performance improvements, and security updates. |
+| **Kafka Version** | *(Required for Provisioned mode)* Select the specific version of Apache Kafka for your MSK cluster. Choose from versions 3.6.0, 3.7.x, 3.8.x, or 3.9.x. Each version includes specific Kafka features, performance improvements, and security updates. |
 | **Instance Type** | *(Required for Provisioned mode)* Define the instance type that specifies the hardware configuration for your Kafka brokers. Choose from t3 (burstable performance) or m5 (general purpose) instance types. This controls CPU, memory, and network performance for your streaming workloads. |
 | **Broker Nodes** | *(Required for Provisioned mode)* Number of broker nodes in your MSK cluster (2-15 nodes). Use 2 nodes for development environments. For production, use 3 or more nodes (must be multiple of 3) to ensure high availability and fault tolerance. More nodes provide better performance and availability. |
-| **Storage Size (GB)** | *(Required for Provisioned mode)* Storage size in GB per broker node (1-16384 GB). This determines how much data each broker can store locally. Consider your data retention requirements and throughput needs when setting this value. |
+| **Storage Size (GB)** | *(Required for Provisioned mode)* Storage size in GB per broker node (1-16384 GB). This determines how much data each broker can store locally. Consider your data retention requirements and throughput needs when setting this value. Can only be increased later. |
+| **Client Authentication** | *(Required for Provisioned mode)* How clients authenticate to the cluster: `Unauthorized` (TLS encryption only), `IAM` (SASL/IAM using AWS IAM roles), or `SCRAM` (SASL/SCRAM-SHA-512 with a username and password). |
 
 ### 3. Customize your variable's name for your MSK cluster.
 

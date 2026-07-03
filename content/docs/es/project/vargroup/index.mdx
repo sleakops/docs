@@ -46,7 +46,16 @@ SleakOps almacena de forma segura los Vargroups como secretos de Kubernetes dent
 ### ¿Puedo eliminar un Variable Group?
 
 </summary>
-Sí, los Vargroups se pueden eliminar o actualizar según sea necesario. Sin embargo, ten cuidado al eliminarlos, ya que puede interrumpir tu aplicación.
+Sí. La eliminación muestra el mismo switch de deploy que las ediciones — activalo para redesplegar de inmediato — y te avisa cuántos entornos replicados se verán afectados. Los Variable Groups creados automáticamente para una Dependency (por ejemplo, credenciales de base de datos) no se pueden eliminar directamente; eliminá la Dependency en su lugar.
+</details>
+
+<details>
+<summary>
+
+### ¿Quién puede revelar los valores de un Variable Group?
+
+</summary>
+Cualquier usuario autenticado con acceso al proyecto puede revelar los valores de un Vargroup, incluidos los Viewers. Crear, editar y eliminar Vargroups está restringido a Admins y Editors.
 </details>
 
 <details>
@@ -61,11 +70,11 @@ Sí, es posible. Aunque las variables de entorno globales afectan a todos los de
 <details>
 <summary>
 
- ### ¿Cuál es la diferencia entre un Vargroup Global y uno con Ámbito de Servicio?
+ ### ¿Cuál es la diferencia entre un Vargroup Global y uno con Ámbito de Workload?
 </summary>
 
-- **Global**: Disponible para todos los servicios dentro del namespace. Se crea sin seleccionar un servicio específico. Para crearlos selecciona "global".
-- **Variable Group con Ámbito de Servicio**: Solo aplica al servicio seleccionado dentro del proyecto y el entorno. Sobrescribe los valores del Vargroup global si tienen la misma clave.
+- **Global**: Disponible para todos los workloads dentro del namespace. Se crea sin seleccionar un workload específico. Para crearlos selecciona "global".
+- **Variable Group con Ámbito de Workload**: Solo aplica al workload seleccionado dentro del proyecto y el entorno. Sobrescribe los valores del Vargroup global si tienen la misma clave.
 </details>
 
 <details>
@@ -76,8 +85,9 @@ Sí, es posible. Aunque las variables de entorno globales afectan a todos los de
 </summary>
 Si existen claves duplicadas en diferentes Vargroups:
 
-- Si la clave existe tanto en un Vargroup global como en uno con Ámbito de Servicio, el valor del Vargroup con Ámbito de Servicio tiene prioridad.
+- Si la clave existe tanto en un Vargroup global como en uno con Ámbito de Workload, el valor del Vargroup con Ámbito de Workload tiene prioridad.
 - Si dos Vargroups globales tienen la misma clave, se usará el más recientemente creado.
+- Crear o editar un Vargroup de tipo ENV con una clave que ya existe en otro Vargroup del mismo ámbito (global, o el mismo workload) muestra una confirmación antes de poder sobrescribirla.
 </details>
 
 <details>
@@ -123,10 +133,10 @@ Completa los siguientes atributos para crear un nuevo Vargroup:
 | **Atributo** | **Descripción** |
 | --- | --- |
 | **Proyecto** | La aplicación o carga de trabajo específica dentro de SleakOps. Determina el alcance del grupo de variables. |
-| **Servicio** | Un microservicio o componente dentro del proyecto. Si se selecciona, el Vargroup está limitado a él; si no, al seleccionar global estará accesible dentro del namespace. |
+| **Servicio** | Un microservicio o componente dentro del proyecto. Si se selecciona, el Vargroup está limitado a él — cada workload puede tener un único Vargroup dedicado; si no, al seleccionar global estará accesible dentro del namespace. |
 | **Nombre** | Un identificador único para el Vargroup, utilizado para diferenciarlo dentro del proyecto. Debe ser descriptivo del propósito del grupo. |
 | **Desplegar** | Habilita esta opción si deseas que SleakOps publique y despliegue automáticamente tu servicio en el proyecto. |
-| **Replicar en** | Opcional. Selecciona entornos de proyecto adicionales donde también se creará el Secret de Kubernetes de este Vargroup, haciendo que sus variables estén disponibles en múltiples namespaces. |
+| **Replicar en** | Opcional. Selecciona entornos de proyecto adicionales donde también se creará el Secret de Kubernetes de este Vargroup, haciendo que sus variables estén disponibles en múltiples namespaces (solo se muestran entornos del mismo clúster). |
 
 :::info
 Si eliges agregar el argumento usando la opción de texto: Cada argumento debe agregarse en una nueva línea, separada por un signo de igual (`=`), sin espacios adicionales.
@@ -163,7 +173,7 @@ Selecciona **ENV** para inyectar las variables como variables de entorno en los 
 
 #### FILE — Archivos de Configuración Montados
 
-Selecciona **FILE** para montar las variables como archivos dentro de los contenedores de tu workload. Al usar este tipo, también debes proporcionar un **Mount Path** — el directorio donde se montarán los archivos.
+Selecciona **FILE** para montar las variables como archivos dentro de los contenedores de tu workload. Al usar este tipo, también debes proporcionar un **Mount Path** — el directorio donde se montarán los archivos (una ruta absoluta, única entre los Vargroups del mismo entorno).
 
 Cada par clave-valor crea un archivo siguiendo esta estructura:
 

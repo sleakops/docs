@@ -35,11 +35,22 @@ Instead of manually correlating logs, Kubernetes events, and infrastructure stat
 </summary>
 The **Diagnose** action appears on individual resource detail pages when there is an issue to analyze:
 
-- Deployments and releases
-- Projects and services
+- Clusters
+- Services
 - Dependencies
+- Deployments and releases
+- Builds
 
 Once triggered, the diagnosis opens as a conversation in the **Support** section (`/support/`) where you can review the root cause analysis and follow-up with the AI.
+</details>
+
+<details>
+<summary>
+### Does Autodiagnostics check for Kubernetes upgrade compatibility?
+</summary>
+Yes, for **EKS Cluster Upgrade** migrations (see [Upgrades](/docs/upgrades)). Their detail view includes an **Unmanaged Manifests Readiness** check: it reviews resources you deployed outside SleakOps — custom Helm releases and extra manifests — against the Kubernetes version you're upgrading to, and flags anything relying on deprecated or removed APIs, with a recommended action for each.
+
+This check is specific to EKS Cluster Upgrade migrations — other migration types don't include it.
 </details>
 
 <details>

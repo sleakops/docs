@@ -30,7 +30,7 @@ En este caso, mantienes el control total sobre tu dominio y subdominios sin dele
 
 Si deseas usar un dominio diferente al principal o tener múltiples dominios apuntando al mismo servicio, necesitarás crear un ALIAS:
 
-- Si el ALIAS pertenece a un dominio gestionado por SleakOps, se gestionará automáticamente.
+- Si el ALIAS es un subdominio directo de un dominio ya gestionado por SleakOps, reutiliza el certificado de ese dominio automáticamente — de todas formas debes crear el registro CNAME que apunte al load balancer.
 - Si no, deberás crear manualmente:
   - Un registro CNAME para validar el certificado SSL.
   - Un registro adicional para cada ALIAS.
@@ -70,7 +70,7 @@ Para acceder a ella, hay diferentes maneras según lo que necesites hacer:
   a. Accede a la lista de Workloads y luego a la sección Web Services.  
   b. Selecciona una ejecución y haz clic en el botón de tres puntos.  
   c. Elige la opción Detalle.  
-  d. Crea el Alias si no existe haciendo clic en Asociar Nuevo Dominio y completa el formulario.  
+  d. Crea el Alias si no existe haciendo clic en Asociar Nuevo Dominio y completa el formulario (el formulario incluye una opción de deploy, marcada por defecto, que redespliega el servicio de inmediato para empezar a servir el dominio nuevo — desmárcala para dejar el cambio pendiente de aprobación).  
   e. Haz clic en el dominio del Alias para mostrar el detalle.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
@@ -102,3 +102,33 @@ Para acceder a ella, hay diferentes maneras según lo que necesites hacer:
     alt="domain-info-check-delegation-and-certificate"
 />
 </Zoom>
+
+## FAQs
+
+<details>
+<summary>
+### ¿Puedo renombrar un dominio alias?
+</summary>
+No — los nombres de dominio son inmutables una vez creados. Elimina el alias y crea uno nuevo con el nombre correcto.
+</details>
+
+<details>
+<summary>
+### ¿Puedo eliminar un dominio de Environment o Provider desde el panel de Domains?
+</summary>
+Solo los dominios alias pueden eliminarse directamente desde el panel. Los dominios de Environment y Provider se eliminan automáticamente al eliminar el Environment o Provider correspondiente.
+</details>
+
+<details>
+<summary>
+### Mi alias muestra "Cert. Pending" aunque esperaba que estuviera activo
+</summary>
+Si tu alias es un subdominio directo de un dominio ya gestionado por SleakOps, reutiliza el certificado de ese dominio en lugar de emitir uno propio — el panel muestra esto como "Cert. Pending" sin importar si el certificado del padre ya está activo. Revisa el estado del dominio padre para confirmar que el certificado es válido.
+</details>
+
+<details>
+<summary>
+### Terminé la configuración DNS pero el dominio todavía no sirve tráfico
+</summary>
+Una vez emitido el certificado de tu dominio, SleakOps encola un deployment para aplicarlo a tu Environment o servicio. Revisa la sección de Deployments por una aprobación pendiente — aprobarla (o crear el alias con la opción de deploy activada) es lo que hace que el dominio quede realmente activo.
+</details>

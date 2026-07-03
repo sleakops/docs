@@ -29,7 +29,7 @@ Before creating an environment, read  [Designing your Infra: Single Schema Vs. M
 <summary>
 ### Can I edit an environment?
 </summary>
-No. You must delete it and create a new one. 
+Only its domain, using the Change Domain action described below. Every other setting is fixed after creation — to change the name or cluster, delete the environment and create a new one.
 </details>
 
 <details>
@@ -44,7 +44,7 @@ Access the Environment List, on the Action column, click on the bin icon. Then c
 ### How can I delegate a domain?
 </summary>
 Follow: [Delegate Domains](/docs/domain/setup) 
-</details >
+</details>
 
 :::warning
 Your DNS service must be delegated to the Primary Route53 of SleakOps manually. Follow the steps described on this [link <FiExternalLink/>](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/MigratingDNS.html).
@@ -76,6 +76,43 @@ With your [Account](/docs/provider/accounts) selected, you will access the follo
 | --- | --- |
 | **Name** | Define a name for your environment using down case letters and middle dashes. |
 | **Cluster** | Select one of the available clusters to host the new environment. |
-| **Domain** | Specify the domain for your environment.  |
+| **Domain** | Specify the domain for your environment. It autofills as `{name}.{yourdomain.com}` until you edit it manually. |
 
-Once you’ve completed the form, click on Create in order to trigger the environment creation into the selected cluster. 
+:::info Root environment
+Enter your account's base domain instead of a subdomain (e.g. `yourdomain.com` instead of `qa.yourdomain.com`) to make this the root environment: it serves that domain directly, with no subdomain. A provider can only have one root environment, and it must belong to your Production account.
+:::
+
+Once you’ve completed the form, click on Create in order to trigger the environment creation into the selected cluster.
+
+## Clone an Environment
+
+Cloning duplicates an environment — its projects and, optionally, their services, dependencies, and variable groups — into a new environment on a different cluster or account. Use it to spin up a copy of an existing environment without rebuilding it from scratch.
+
+{/* TODO: screenshot - Clone Environment form */}
+
+From the Environment List, use the Clone action (available to Admins and Editors with access to cloning) to open the clone form:
+
+| **Setting** | **Description** |
+| --- | --- |
+| **Name / Domain** | Same rules as creating an environment; the domain autofills from the name. |
+| **Cluster** | Destination cluster for the clone — it can belong to a different account than the source environment. |
+| **Nodepool** | Optional default nodepool for the cloned projects; you can override it per project. |
+| **Projects** | Choose which projects to clone. For each one, clone everything or pick individual services, dependencies, and variable groups. |
+
+If you don't customize a project's selection, it's cloned in full. Cloning runs in the background: the new environment appears right away, and each cloned project reaches its final state as the copy completes.
+
+## Change the Domain
+
+From the Environment List, open the domain menu for an environment that's fully created (not while it's still provisioning) and select Change Domain. Enter the new domain and confirm.
+
+Changing the domain creates the new domain's DNS zone and certificate, updates every service URL that pointed at the old one, and redeploys all of the environment's projects. The environment won't work correctly until its DNS is delegated to the new domain — see [Delegate a Domain](/docs/domain/setup). If the previous domain had aliases or subdomains pointing to it, SleakOps notifies you to update them manually; they aren't migrated automatically.
+
+## Download the Validation Checklist
+
+From the Environment List or the environment's detail panel, select View Validation Checklist to generate a Markdown report of the environment's current state — a go-live checklist. For each project, it lists items to verify (branch, build, CI/CD) plus a section per resource type present — web services (with their URL), workers, cronjobs (with their schedule), hooks (with their trigger), dependencies, and variable groups — with links back to the panel, and a link to the [Exhaustive Environment Testing Guide](/tutorial/environment-exhaustive-testing-guide). You can preview it in a dialog or download it as a `.md` file.
+
+## Export an Environment
+
+From the environment's detail panel, use Export to download a `.json` file with every project in the environment and its resources (services, dependencies, variable groups), in a format you can reuse to recreate the same setup in another account, company, or environment — unlike Clone, export isn't limited to the same company.
+
+Variable values aren't included in the export (you'll re-enter them when reusing the file), and `file`-type variable groups are skipped; a message after the download lists anything left out. Export is disabled for Viewers and only available once the environment is Created (or in an Error state).

@@ -38,7 +38,7 @@ The list shows upgrades across every account your role can access — it ignores
 | **Upgrade** | Title and current state. When the upgrade targets a specific resource (Cluster, NodePool, Service), its icon and name appear under the title. |
 | **Account** | The account the upgrade will run against. |
 | **Execution Date** | Scheduled date while Pending, actual execution time otherwise. Hover for the exact timestamp. |
-| **Actions** | View details, Execute, and (when applicable) Review instructions. |
+| **Actions** | View details, Execute, and (when applicable) Review instructions. EKS Cluster Upgrade rows replace Execute with **Review upgrade plan**, which opens the drawer's Upgrade tab. |
 
 Filter the list by **State** (Pending, In Progress, Completed, Error), **Account**, or **Model** from the toolbar. Deep links from other sections (e.g. from a specific Cluster) arrive with the filter pre-applied.
 
@@ -57,7 +57,7 @@ Transitions: `Pending → Running → Completed`. From `Running`, on failure the
 
 Two ways:
 
-1. **From the list** — click the green play icon in the row's Actions column.
+1. **From the list** — click the green play icon in the row's Actions column. EKS Cluster Upgrade rows don't have this shortcut — click **Review upgrade plan** to open the drawer's Upgrade tab, then execute from there.
 2. **From the drawer** — open the upgrade and click **Execute** in the header. A popover lets you pick **Execute Now** or update the schedule.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
@@ -97,11 +97,17 @@ When you have several Pending upgrades of different types on the same account, y
 
 ## The Upgrade drawer
 
-Click any row to open the drawer. It has two tabs:
+Click any row to open the drawer. It has up to three tabs, depending on the upgrade type:
 
 ### Details
 
 Basic information (entity name, type, account, description, state), schedule (Execution Date and Deadline, editable inline), metadata (creation date, parameters), and the activity log — every execution and every schedule change with user and timestamp.
+
+### Upgrade
+
+Present only for the **EKS Cluster Upgrade** type. Read-only summary of the change: the target Kubernetes version and its AWS support window, a notice when the scheduled time falls outside business hours, a downtime report for affected services, and the version's changelog. A dedicated section lets you request a compatibility readiness report for manifests you manage outside SleakOps — this opens as a support ticket (see [Autodiagnostics](/docs/powered-ai/autodiagnostic)). Execute and reschedule stay in the header.
+
+{/* TODO: screenshot - drawer with the Upgrade tab open, showing target version, support window, downtime report and changelog. Requires an EKS Cluster Upgrade Migration. */}
 
 ### Instructions
 

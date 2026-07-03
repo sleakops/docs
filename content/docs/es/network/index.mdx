@@ -16,7 +16,7 @@ Esta documentación tiene como objetivo brindar una visión clara y sencilla de 
 
 La infraestructura de red en SleakOps se basa en los siguientes componentes principales:
 
-- **VPC (Virtual Private Cloud):** Segmenta la red por entorno (Management, Production, Development).
+- **VPC (Virtual Private Cloud):** Segmenta la red por entorno (Management, Production, Development), cada uno en su propia cuenta de AWS dedicada con un rango de IP fijo por defecto.
 - **Subredes:**
   - *Públicas:* expuestas a Internet.
   - *Privadas:* acceso restringido, acceden a Internet a través de un NAT Gateway.
@@ -26,6 +26,14 @@ La infraestructura de red en SleakOps se basa en los siguientes componentes prin
 - **Security Groups:** Firewalls virtuales que controlan el tráfico de entrada y salida de los recursos.
 - **DNS Interno:** Permite que los recursos se comuniquen usando nombres en vez de IPs.
 - **External-DNS:** Servicio que corre dentro de cada clúster Kubernetes (EKS), encargado de gestionar automáticamente los registros DNS públicos en Route53 para los servicios expuestos desde el clúster.
+
+Cada VPC de entorno usa un bloque CIDR fijo por defecto:
+
+| **Entorno** | **CIDR por defecto** |
+| --- | --- |
+| Management | `10.120.0.0/16` |
+| Development | `10.110.0.0/16` |
+| Production | `10.130.0.0/16` |
 
 ## 2. Flujo típico de comunicación
 
@@ -61,11 +69,11 @@ Se utiliza una solución automatizada para gestionar los registros DNS públicos
 
 ## 4. Conectividad entre entornos mediante VPC Peering
 
-Para permitir la comunicación controlada entre entornos (por ejemplo, entre Management y Production), SleakOps configura **conexiones VPC Peering** de manera explícita entre las VPCs de los distintos entornos.
+SleakOps configura **conexiones VPC Peering** en una topología hub-and-spoke centrada en la cuenta de Management: Management se conecta directamente con Development y con Production, pero Development y Production no están conectadas entre sí.
 
 - Un **VPC Peering** permite que dos VPCs puedan intercambiar tráfico interno como si estuvieran en la misma red.
 - **No requiere** pasar por Internet, NAT Gateway ni VPN.
 - Es una conexión directa entre dos redes.
 
-> 💡 Además del acceso mediante Internet Gateway, SleakOps contempla otros mecanismos de conectividad como **Pritunl VPN**, **NAT Gateway** y **Transit Gateway**, dependiendo del caso de uso y el nivel de aislamiento requerido.
+> 💡 Además del acceso mediante Internet Gateway, SleakOps contempla otros mecanismos de conectividad como [**Pritunl VPN**](/docs/user/vpn) (se aprovisiona por cuenta de AWS junto con su primer cluster, para dar acceso administrativo a recursos privados) y **NAT Gateway**, dependiendo del caso de uso y el nivel de aislamiento requerido.
 

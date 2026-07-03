@@ -99,9 +99,13 @@ When adding an S3 bucket as a dependency in SleakOps, you will be required to co
 
 | **Attribute** | **Description** |
 | --- | --- |
+| **S3 Bucket Name** | Global bucket name. It's checked live against S3 for availability as you type; names containing dots are rejected by this check. |
 | **S3 Access Control List (ACL)** | Specifies the level of access for the S3 bucket and its contents. Options:  `private`, `public-read`, `public-read-write`, `aws-exec-read`, `authenticated-read`, `log-delivery-write` |
+| **Enable Versioning** | Keep every previous version of an object. Can't be changed after the bucket is created. |
+| **Enable KMS Encryption** | Encrypt objects server-side with a KMS key, automatically created for you. |
+| **Enable Intelligent-Tiering** | Automatically move objects to cheaper storage classes based on access patterns. Set the **Archive Tier Days** and **Deep Archive Tier Days** — how long before objects move to each tier. |
 | **Enable CloudFront** | Allows you to enable Amazon CloudFront, a CDN for delivering S3 bucket content globally. |
-| **Alias** | The alias for the S3 bucket or CloudFront distribution (e.g., `cdn.mydomain.com`). |
+| **Alias** | The alias for the S3 bucket or CloudFront distribution (e.g., `cdn.mydomain.com`). Only available when the account's provider region is `us-east-1`. |
 | **Price Class** | Defines the set of global CloudFront edge locations used to serve content. Options: `Use all edge locations (best performance)`, `Use North America`, `Europe`, `Asia`, `Middle East`, and `Africa`, `Use only North America and Europe`.  Check [AWS Price Class <FiExternalLink/>](https://aws.amazon.com/cloudfront/pricing/). |
 | **Custom Headers** | Custom headers that CloudFront includes in all requests sent to the S3 bucket. - Key: The header key, such as `X-Custom-Header`. - Value: The value you wish to assign to the header, like `MyCustomValue`. |
 | **Override** | Specify whether CloudFront should override existing headers in requests from the origin. |
@@ -140,3 +144,14 @@ As explained, when a dependency is created, SleakOps generates a vargroup to hol
 
 In this step you can change the name of the attributes in case it is needed but SleakOps completes the values automatically.  
 After this step, your dependency is created.
+
+## Importing existing data into your bucket
+
+Once the dependency is `created`, its **Actions** menu offers two ways to bring data from an existing bucket into it:
+
+| **Action** | **Description** |
+| --- | --- |
+| **Import Bucket** | Copies objects with `aws s3 sync` from a source bucket you specify. The source bucket's owner must first grant access to your project's service-account role — SleakOps gives you the exact bucket policy and a CloudFormation quick-create link to apply it. |
+| **AWS DataSync** | Transfers data using AWS DataSync, better suited for large datasets. Requires a dedicated IAM role, which SleakOps also provisions for you via a CloudFormation quick-create link. |
+
+Both actions run as a Job in your cluster and are followed from the *Jobs* section.
