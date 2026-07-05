@@ -29,14 +29,14 @@ El despliegue Multi-AZ (Zona de Disponibilidad) garantiza alta disponibilidad y 
 <summary>
 ### ¿Puedo cambiar la versión de MySQL después de desplegar la base de datos?
 </summary>
-No, la versión del motor de la base de datos no puede cambiarse después del despliegue. Necesitarías crear una nueva instancia de MySQL con la versión deseada y migrar tus datos. O cambiarlo manualmente en la Consola de AWS.
+Sí, editá la dependencia y elegí una nueva **Versión del Motor de Base de Datos**. Actualizar a una nueva versión mayor se trata como un cambio potencialmente destructivo: SleakOps lo retiene en "Awaiting Approval" para que lo confirmes antes de aplicarlo.
 </details>
 
 <details>
 <summary>
 ### ¿Qué hago si necesito más almacenamiento para mi base de datos MySQL?
 </summary>
-Puedes ajustar el tamaño de almacenamiento al configurar tu base de datos. Si necesitas más almacenamiento después del despliegue, puedes escalar modificando la configuración en AWS, ya que por el momento SleakOps no lo permite.
+Puedes ajustar el tamaño de almacenamiento al configurar tu base de datos, y aumentarlo más adelante desde el formulario de edición. También podés habilitar **Storage Autoscaling** para que AWS aumente el almacenamiento automáticamente hasta un máximo que definas.
 </details>
 
 <details>
@@ -129,7 +129,7 @@ En SleakOps, al crear una réplica de lectura para tu base de datos RDS, necesit
 <summary>  
 **¿Puedo eliminar una réplica?**  
 </summary>  
-Actualmente, la única forma de hacerlo es eliminando la dependencia.  
+Sí, editá la dependencia y quitala de la lista **Definición de Réplicas de Lectura RDS**.
 </details> 
 
 :::info
@@ -157,21 +157,22 @@ Aquí están los parámetros que SleakOps te permite personalizar durante la cre
 
 | **Atributo** | **Descripción** |
 | --- | --- |
-| **Versión del Motor de Base de Datos** | Selecciona la versión específica del motor de base de datos MySQL que deseas usar. Esto asegura compatibilidad con los requerimientos de tu aplicación. Ejemplo: `MySQL 8.0.2`, `MySQL 5.7.1`. |
+| **Versión del Motor de Base de Datos** | Selecciona la versión específica del motor de base de datos MySQL que deseas usar. Esto asegura compatibilidad con los requerimientos de tu aplicación. |
 | **Clase de Instancia de Base de Datos** | Define la clase de instancia que especifica la configuración de hardware para tu base de datos MySQL. Esto controla el rendimiento de CPU, memoria y red. Ejemplo: `db.m6g.large`, `db.t3.medium`. Consulta más detalles en [AWS](https://aws.amazon.com/es/rds/instance-types/). |
-| **Almacenamiento de Base de Datos** | Especifica la cantidad de almacenamiento asignado para la base de datos. Ejemplo: 100 GB, 500 GB. |
+| **Almacenamiento de Base de Datos** | Especifica la cantidad de almacenamiento asignado para la base de datos, en GiB. |
+| **Storage Autoscaling Enabled** | Permite que AWS aumente el almacenamiento automáticamente a medida que se llena, hasta un **Maximum Allocated Storage** que definas. |
 | **Nombre de Usuario** | Proporciona el nombre de usuario maestro para la base de datos MySQL. Este es el usuario principal con privilegios administrativos. Ejemplo: admin, root. |
-| **Contraseña** | Contraseña para que el usuario maestro acceda a la base de datos. |
+| **Contraseña** | Contraseña para que el usuario maestro acceda a la base de datos, o generala automáticamente. |
 | **Zona de Disponibilidad Múltiple** | Activa o desactiva la implementación Multi-AZ. Esto asegura alta disponibilidad y soporte de conmutación por error replicando la base de datos en múltiples zonas de disponibilidad. Recomendado para entornos de producción. |
 | **Copia de Seguridad Automática** | Configura copias de seguridad automáticas para la base de datos MySQL. Esto asegura la protección de los datos activando instantáneas diarias y copias de seguridad del registro de transacciones. Configura el _Periodo de Retención de Copias de Seguridad_ y la _Ventana de Copias de Seguridad_. Recomendado para entornos de producción. |
 | **Periodo de Retención de Copias de Seguridad** | Define el número de días para retener copias de seguridad automáticas. |
 | **Ventana de Copias de Seguridad** | Periodo de tiempo en el que se realizarán las copias de seguridad. |
+| **Parameter Group Mode** | Deja el default del motor, definí parámetros de motor personalizados gestionados por SleakOps, o adjuntá un parameter group existente por nombre. |
+| **Restore From Point In Time** | Crea la base de datos restaurada a un momento específico (o al punto restaurable más reciente) de una base de datos origen, en vez de arrancar vacía. Mutuamente excluyente con restaurar desde un snapshot. |
+| **Create a RDS from a snapshot** | Restaura la nueva base de datos desde un snapshot de RDS existente en vez de arrancar vacía. |
+| **Deletion Protection** | Bloquea el borrado accidental — mientras está habilitada, la dependencia no puede eliminarse hasta que la desactives. |
 
-:::warning
-SleakOps solo permite la creación de réplicas durante la creación de la dependencia.
-:::
-
-Después de ingresar los datos básicos, necesitas decidir si se creará una réplica. Para hacerlo:  
+Después de ingresar los datos básicos, necesitas decidir si se creará una réplica. Las réplicas también se pueden agregar, editar o quitar más adelante desde el formulario de edición. Para hacerlo:  
 1. En el formulario, busca la sección **Definición de Réplicas de Lectura RDS** y haz clic en + _Añadir Elemento_.  
 2. Completa los siguientes datos:
 

@@ -41,7 +41,7 @@ Comienza con la información básica, completa estos atributos y haz clic en Sig
 | --- | --- |
 | **Nombre** | Identifica tu Cronjob. |
 | **Proyecto** | Selecciona entre los proyectos existentes. |
-| **Comando** | El comando que ejecuta el servicio. |
+| **Comando** | El comando que ejecuta el cronjob. |
 
 Una vez completados estos atributos, haz clic en el botón _Siguiente_ para continuar. 
 
@@ -53,11 +53,12 @@ Una vez completados estos atributos, haz clic en el botón _Siguiente_ para cont
 </Zoom>
 
 ### 3. Define la periodicidad
-Select the schedule and click _Next_.
+Selecciona el horario y haz clic en _Siguiente_.
 
 | **Atributo** | **Descripción** |
 | --- | --- |
-| **Crontab** | Expresión cron para determinar el horario de ejecución del cronjob  |
+| **Crontab** | Expresión cron para determinar el horario de ejecución del cronjob. Todos los horarios se interpretan en UTC.  |
+| **Concurrency Policy** | Cómo se manejan las ejecuciones concurrentes: `Allow` permite ejecuciones simultáneas, `Forbid` omite una nueva ejecución si la anterior sigue activa y `Replace` cancela el job en ejecución en favor del nuevo. Predeterminado: `Allow`.  |
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
@@ -65,6 +66,13 @@ Select the schedule and click _Next_.
     alt="cronjob-create-2"
 />
 </Zoom>
+
+### 4. Especifica los ajustes de tu Cronjob
+Configura el comportamiento del cronjob y haz clic en _Siguiente_.
+
+| **Atributo** | **Descripción** |
+| --- | --- |
+| **Grace Period** | Tiempo en segundos que Kubernetes espera para el apagado ordenado antes de terminar forzosamente el pod. Predeterminado: `120`. |
 
 ### 5. Finalizar la configuración
 Este paso describe los atributos clave para configurar los recursos de un Cronjob en SleakOps, permitiendo una gestión flexible de CPU, memoria y comportamientos de escalado.
@@ -83,4 +91,4 @@ Este paso describe los atributos clave para configurar los recursos de un Cronjo
 />
 </Zoom>
 
-Submit to create and Deploy your cronjob.
+Envía para crear y desplegar tu cronjob.

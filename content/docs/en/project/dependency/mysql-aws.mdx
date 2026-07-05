@@ -30,14 +30,14 @@ Multi-AZ (Availability Zone) deployment ensures high availability and failover s
 <summary>
 ### Can I change the MySQL version after the database is deployed?
 </summary>
-No, the database engine version cannot be changed after deployment. You would need to create a new MySQL instance with the desired version and migrate your data. Or change it manually into the AWS Console.
+Yes, edit the dependency and pick a new **Database Engine Version**. Upgrading to a new major version is treated as a potentially destructive change: SleakOps holds it under "Awaiting Approval" for you to confirm before it's applied.
 </details>
 
 <details>
 <summary>
 ### What happens if I need more storage for my MySQL database?
 </summary>
-You can adjust the storage size when configuring your database. If you need more storage after deployment, you can scale modifying the settings in AWS as at the moment SleakOps does not support it. 
+You can adjust the storage size when configuring your database, and increase it later from the Edit form. You can also enable **Storage Autoscaling** so AWS grows the storage automatically up to a maximum you set.
 </details>
 
 <details>
@@ -130,7 +130,7 @@ In SleakOps, when creating a read replica for your RDS database, you will need t
 <summary>
 ### Can I delete a replica? 
 </summary>
-At the moment, the only way is to delete the dependency. 
+Yes, edit the dependency and remove it from the **Definition of RDS Read Replicas** list.
 </details>
 
 :::info
@@ -158,21 +158,22 @@ Here the parameters that SleakOps allows you to customize during the creation:
 
 | **Attribute** | **Description** |
 | --- | --- |
-| **Database Engine Version** | Select the specific version of the MySQL database engine you wish to use. This ensures compatibility with your application requirements. Example: `MySQL 8.0.2`, `MySQL 5.7.1` |
+| **Database Engine Version** | Select the specific version of the MySQL database engine you wish to use. This ensures compatibility with your application requirements. |
 | **Database Instance Class** | Define the instance class that specifies the hardware configuration for your MySQL database. This controls CPU, memory, and network performance.  Example: `db.m6g.large`, `db.t3.medium`. See [AWS detail](https://aws.amazon.com/es/rds/instance-types/). |
-| **Database Storage** | Specify the amount of storage allocated for the database. Example: 100 GB, 500 GB. |
+| **Database Storage** | Specify the amount of storage allocated for the database, in GiB. |
+| **Storage Autoscaling Enabled** | Let AWS automatically increase storage as it fills up, up to a **Maximum Allocated Storage** you set. |
 | **Username** | Provide the master username for the MySQL database. This is the main user with administrative privileges. Example: admin, root. |
-| **Password** | Password for the master user to access the database. |
+| **Password** | Password for the master user to access the database, or auto-generate one. |
 | **Multi-Availability Zone** | Enable or disable Multi-AZ deployment. This ensures high availability and failover support by replicating the database across multiple availability zones. Recommended for production environments. |
 | **Automated Backup** | Configure automated backups for the MySQL database. This ensures data protection by enabling daily snapshots and transaction log backups.  Set up the _Backup Retention Period_ and the _Backup Window_. Recommended for production environments. |
 | **Backup Retention Period** | Set the number of days to retain automated backups. |
 | **Backup Window** | Period of time while the backup will be done.  |
+| **Parameter Group Mode** | Leave the engine default, define custom engine parameters managed by SleakOps, or attach an existing parameter group by name. |
+| **Restore From Point In Time** | Create the database restored to a specific moment (or the latest restorable point) of a source database, instead of starting empty. Mutually exclusive with restoring from a snapshot. |
+| **Create a RDS from a snapshot** | Restore the new database from an existing RDS snapshot identifier instead of starting empty. |
+| **Deletion Protection** | Block accidental deletion — while enabled, the dependency can't be deleted until you turn it off. |
 
-:::warning
-SleakOps allow the creation of replicas only during the creation of the dependency.
-:::
-
-After that basic data, you need to decide if a replica will be created. To do that: 
+After that basic data, you need to decide if a replica will be created. Replicas can also be added, edited, or removed later from the Edit form. To do that: 
 1. Into the form, look for the section **Definition of RDS Read Replicas** and click on + _Add Item_.
 2. Complete the following data: 
 

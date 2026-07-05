@@ -7,11 +7,15 @@ import Zoom from "react-medium-image-zoom";
 
 # Eliminar un Provider
 
-- Esta función te permite eliminar un Provider y todo lo que fue creado bajo él.
-- Solo los Providers *creados exitosamente* y aquellos con *error* pueden ser eliminados. Si no ves la opción, probablemente el Provider está en otro estado.
+- Esta función te permite eliminar un Provider y todo lo que fue creado bajo él. Solo los Admins pueden hacerlo.
+- Solo los Providers en estado *Initial*, *creados exitosamente* o con *error* pueden ser eliminados — no mientras hay una tarea de aprovisionamiento, actualización o eliminación en curso. Eliminar un Provider que sigue en *Initial* (antes de terminar la conexión con AWS) es inmediato, ya que todavía no se creó nada en AWS.
 
 :::warning
 La *Organización* creada y sus cuentas (gestión, desarrollo, producción y seguridad) no se eliminarán automáticamente. Aunque mantener estas cuentas bajo tu Cuenta Root de AWS no genera costos, **recomendamos eliminarlas** manualmente.
+:::
+
+:::note
+Si una dependencia (por ejemplo, una base de datos) tiene la protección contra eliminación habilitada, la solicitud de eliminación fallará hasta que la deshabilites.
 :::
 
 ## Cómo eliminar un Provider

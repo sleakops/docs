@@ -33,6 +33,7 @@ Para agregar una nueva Dependencia de Chart, haz clic en el botón **Crear** en 
 1. **Buscar y Seleccionar**: Usa los primeros dos campos para buscar el nombre del chart y seleccionar la versión deseada
 2. **Configurar Valores**: Modifica la sección de valores abajo para personalizar el despliegue
 3. **Establecer Tolerations**: **Crítico** - Actualiza todos los campos `tolerations` en los valores del chart para apuntar a tu NodePool
+4. **Deploy**: dejá **Deploy?** activado para desplegar el cambio de inmediato, o desactivalo para guardarlo como cambio pendiente
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
@@ -44,6 +45,14 @@ Para agregar una nueva Dependencia de Chart, haz clic en el botón **Crear** en 
 :::tip Importante
 Asegúrate de que cada campo `tolerations` en los valores del chart esté configurado correctamente para usar un NodePool. Sin esta configuración, Kubernetes no puede determinar dónde programar los pods, lo que lleva a fallas en el despliegue.
 :::
+
+## Validación de una Dependencia
+
+Agregar, editar o eliminar una dependencia dispara una validación en segundo plano del chart de tu proyecto (eliminar la última se saltea la validación). Si falla, tu proyecto pasa a estado Error y recibís una notificación con el error específico — abrí **Chart Configuration** desde la notificación para corregir los values de la dependencia, o eliminarla (y volver a agregarla con otra versión si hace falta). El proyecto se recupera automáticamente en cuanto el chart valida correctamente.
+
+## Editar y Eliminar una Dependencia
+
+Usá la acción **Edit** de una dependencia para actualizar sus values (el nombre del chart, el repositorio y la versión no se pueden cambiar después de crearla — para cambiar la versión, eliminá la dependencia y agregala de nuevo). **Delete** la elimina y dispara un nuevo deploy para sacarla del clúster.
 
 ## Preguntas Frecuentes
 

@@ -35,11 +35,22 @@ En lugar de correlacionar manualmente logs, eventos de Kubernetes y estado de in
 </summary>
 La acción **Diagnosticar** aparece en las páginas de detalle de recursos individuales cuando hay un problema que analizar:
 
-- Deployments y releases
-- Proyectos y servicios
+- Clusters
+- Servicios y Workers
 - Dependencias
+- Deployments y releases
+- Builds
 
 Una vez activado, el diagnóstico se abre como una conversación en la sección **Support** (`/support/`), donde podés revisar el análisis de causa raíz y hacer preguntas de seguimiento a la IA.
+</details>
+
+<details>
+<summary>
+### ¿Los Autodiagnósticos verifican la compatibilidad antes de un upgrade de Kubernetes?
+</summary>
+Sí, para las migraciones de **EKS Cluster Upgrade** (ver [Upgrades](/docs/upgrades)). Su vista de detalle incluye un chequeo de **Unmanaged Manifests Readiness**: revisa los recursos que desplegaste por fuera de SleakOps — Helm releases propias y manifiestos extra — contra la versión de Kubernetes a la que estás actualizando, y marca todo lo que dependa de APIs deprecadas o removidas, con una acción recomendada para cada caso.
+
+Este chequeo es específico de las migraciones EKS Cluster Upgrade — el resto de los tipos de migración no lo incluye.
 </details>
 
 <details>

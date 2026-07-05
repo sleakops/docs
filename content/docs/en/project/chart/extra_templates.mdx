@@ -20,6 +20,10 @@ Extra Templates enable you to deploy custom Kubernetes resources beyond SleakOps
 Since SleakOps uses NodePools for resource placement, all custom resources must include proper `tolerations` configuration targeting an existing NodePool.
 :::
 
+:::info Namespace Requirement
+Every template must explicitly set `metadata.namespace` to your Project's namespace, as in the example below. A missing or different namespace gets the template rejected, the same as a cluster-scoped resource.
+:::
+
 ## Deploying a Custom Ingress
 
 To deploy a custom Ingress, add your Kubernetes YAML configuration in the **Templates** section. Here's a complete example you can use as a starting point:

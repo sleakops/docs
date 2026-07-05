@@ -7,6 +7,8 @@ import Zoom from "react-medium-image-zoom";
 
 En SleakOps, los Add-ons mejoran la funcionalidad de tu clúster EKS al proporcionar componentes esenciales y opcionales que optimizan operaciones, mejoran el rendimiento y aumentan la visibilidad. Los Add-ons esenciales incluyen herramientas para monitoreo, gestión de DNS, balanceo de carga y aprovisionamiento inteligente de nodos, asegurando que tu clúster sea robusto y eficiente.
 
+Cuando un Add-on depende de otro (por ejemplo, Grafana necesita Prometheus y el EBS CSI Driver), instalarlo instala automáticamente las dependencias que falten, en el orden correcto.
+
 
 ## Preguntas Frecuentes
 
@@ -27,12 +29,16 @@ Por defecto, SleakOps incluye en tu infraestructura:
 ### ¿Qué Add-ons opcionales están disponibles?
 </summary>
 - **Grafana**: Visualiza y analiza datos con los tableros de Grafana, facilitando el monitoreo del rendimiento del sistema y la resolución de problemas. Ideal para rastrear el uso de memoria y CPU de las aplicaciones.
-- **LOKI**: Usa Loki para la agregación de logs rentable. Simplifica la gestión de logs etiquetando flujos de logs sin indexar el contenido, ideal para navegar y monitorear logs de aplicaciones.
+- **LOKI**: Usa Loki para la agregación de logs rentable. Simplifica la gestión de logs etiquetando flujos de logs sin indexar el contenido, ideal para navegar y monitorear logs de aplicaciones. Este Add-on está **deprecado** — consultá la [documentación de Loki](/docs/cluster/addons/loki) para más detalles.
 - **Kubecost**: Obtén información en tiempo real sobre los costos de la nube en Kubernetes con Kubecost. Este Add-on te ayuda a monitorear y reducir gastos en los proyectos de tu clúster.
 - **Prometheus**: SleakOps implementa Prometheus para monitoreo y alertas, proporcionando información detallada sobre el rendimiento del clúster y la utilización de recursos.
 - **OTEL**: Usa OpenTelemetry para recolectar y analizar trazas distribuidas, permitiéndote monitorear y optimizar el rendimiento de aplicaciones en tu clúster.
+- [**KEDA**](/docs/cluster/addons/keda): Escala tus workloads en base a señales externas — profundidad de cola, lag de consumers, métricas de CloudWatch y más — incluso hasta cero réplicas.
+- [**Headlamp**](/docs/cluster/addons/headlamp): Una interfaz desde el navegador para explorar y administrar los recursos de Kubernetes de tu clúster, sin necesidad de `kubectl`.
 - [**EFS Controller**](./addons/efs): El EFS Controller permite gestionar volúmenes de EFS dentro de tu clúster EKS, proporcionando almacenamiento escalable y compartido para tus aplicaciones. Para más detalles, consulta la [documentación de EFS](/docs/cluster/addons/efs).
 - [**EBS Controller**](./addons/ebs): El EBS Controller permite gestionar volúmenes de EBS dentro de tu clúster EKS, proporcionando almacenamiento de bloques persistente para tus aplicaciones. Para más detalles, consulta la [documentación de EBS](/docs/cluster/addons/ebs).
+
+Los Add-ons en Beta o Deprecados muestran la insignia correspondiente en el catálogo.
 </details>
 
 <details>
@@ -40,10 +46,36 @@ Por defecto, SleakOps incluye en tu infraestructura:
 ### ¿Cómo configuro un Add-on?
 </summary>
 Para configurar un Add-on, sigue estos pasos:
-1. Ve a la sección Add-ons en la sección [Cluster](../cluster).
+1. Ve a la sección **Clusters**, selecciona tu clúster y hacé clic en **Manage Addons**.
 2. Selecciona el Add-on deseado de la lista de opciones disponibles.
 3. Configura los ajustes del Add-on según sea necesario.
-4. Haz clic en "Deploy" para instalar el Add-on en tu clúster EKS.
+4. Hacé clic en **Install** para desplegar el Add-on en tu clúster EKS.
 
 Para instrucciones más detalladas, consulta la [guía de configuración de Add-ons](/docs/cluster/addons).
+</details>
+
+<details>
+<summary>
+### ¿Puedo desplegar un Helm chart propio como Add-on?
+</summary>
+Sí. Hacé clic en **Add custom addon**, arriba de la grilla de Add-ons, para desplegar cualquier Helm chart definiendo su release name, chart, repositorio, versión, namespace y values. Los Add-ons custom se muestran con la etiqueta **Custom** en el listado y, a diferencia de los tipos del catálogo, podés instalar más de uno por clúster. SleakOps no gestiona ingress ni dominio para ellos.
+</details>
+
+<details>
+<summary>
+### ¿Puedo importar la configuración de un Add-on o un Helm release existente?
+</summary>
+Sí, de dos maneras:
+
+- **Import from JSON** pega la configuración de un Add-on previamente exportado y precarga el formulario de instalación del tipo correspondiente.
+- **Import from cluster** lista los Helm releases que ya corren en tu clúster y que SleakOps todavía no gestiona, para que puedas adoptar uno como Add-on custom. Desde ese momento, SleakOps pasa a ser la fuente de verdad: cualquier cambio que hagas manualmente en el clúster se sobrescribe en el próximo sync.
+
+Cada Add-on instalado también tiene una acción **Export** que genera un JSON portable que podés volver a importar en otro clúster.
+</details>
+
+<details>
+<summary>
+### ¿Qué pasa cuando desinstalo un Add-on?
+</summary>
+Desinstalar un Add-on elimina su Helm release y todos los recursos que creó en el clúster — esto aplica también a los Add-ons importados desde un release existente. SleakOps te lo confirma antes de continuar.
 </details>

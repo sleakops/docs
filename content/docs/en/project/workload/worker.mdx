@@ -59,7 +59,14 @@ Once those attributes are completed, click the _Next_ button to move forward.
 />
 </Zoom>
 
-### 3. Finish the set up
+### 3. Specify your worker settings
+Configure how the worker behaves and click _Next_.
+
+| **Attribute** | **Description** |
+| --- | --- |
+| **Grace Period** | Time in seconds that Kubernetes waits for graceful shutdown before forcefully terminating the pod. Default: `120`. |
+
+### 4. Finish the set up
 This step outlines the key attributes for configuring the resources of a Worker in SleakOps, allowing for flexible management of CPU, memory, and scaling behaviors.
 
 | **Attribute** | **Description** |
@@ -68,10 +75,11 @@ This step outlines the key attributes for configuring the resources of a Worker 
 | **CPU Limit** | The maximum CPU resources that each instance in the cluster can use. This cap helps prevent any single instance from consuming too much CPU.  |
 | **Memory Request** | The minimum amount of memory allocated for each instance in the cluster. This guarantees that the instance has enough memory to operate efficiently.  |
 | **Memory Limit** | The maximum amount of memory each instance in the cluster can utilize. It limits the memory usage to prevent any single instance from overconsuming resources.  |
+| **Replicas** | The number of replicas to run when auto-scaling is disabled. Default: `1`.  |
 | **Autoscaling** | Toggle to enable or disable auto-scaling. When enabled, it allows the workload to adjust the number of replicas based on demand and resource usage.  |
 | **CPU Target** | The CPU usage percentage target that initiates auto-scaling. If usage exceeds this target, additional replicas may be deployed to balance the load.  |
 | **Memory Target** | The memory usage percentage target that triggers auto-scaling adjustments. When instances exceed this target, the system scales up to accommodate demand. |
-| **Replicas Min** | The minimum number of replicas to maintain when auto-scaling is active. A minimum of 2 replicas ensures high availability and prevents downtime.|
+| **Replicas Min** | The minimum number of replicas to maintain when auto-scaling is active. |
 | **Replicas Max** | The maximum number of replicas that can be deployed when auto-scaling is enabled. It sets an upper limit on the number of instances to avoid over-provisioning.  |
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">

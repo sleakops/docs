@@ -40,7 +40,7 @@ For production environments, SleakOps recommends using 3 dedicated master nodes 
 ### 1. Add AWS OpenSearch as a Dependency
 To integrate OpenSearch with SleakOps:
 1. In the SleakOps console, go to the "Dependencies" section
-2. Choose "SQS" from the list of available dependency types. 
+2. Choose "OpenSearch" from the list of available dependency types. 
 For more detail see [Dependencies: Integrating Databases, Caching, and Messaging Services](/docs/project/dependency).
 
 ### 2. Set up your OpenSearch.
@@ -55,16 +55,15 @@ When adding OpenSearch as a dependency in SleakOps, you need to configure severa
 
 | **Attribute** | **Description** |
 | --- | --- | 
-| **FIFO Queue** | Specifies the type of SQS queue. Where `Standard Queue` (for most use cases) or `FIFO Queue` (if message ordering is required)` |
-| **FIFO Deduplication** | Only for FIFO Queues, in order to avoid duplicates. |
-| **Message Retention Period** | Specifies the amount of time a message will be retained in the queue if it hasn't been consumed. | 1 minute to 14 days (Default: 4 days) |
-| **Maximum Message Size** | The maximum size of a message that can be sent to the SQS queue. | Up to 256 KB (Default: 256 KB) |
-| **Delivery Delay in Seconds** | The delay between the message being sent to SQS and it being visible in the queue. No delay by default. | 0 to 15 minutes (Default: 0 seconds) |
-| **Receive Message Wait Time** | Determines how long a `ReceiveMessage` call waits if no messages are available in the queue. | 0 to 20 seconds (Default: 0 seconds) |
-| **Visibility Timeout** | The duration that a message remains invisible after a receiving component reads it from the queue. | From 0 to 12 hours (Default: 30 seconds) |
-| **Dead-Letter Queue (DLQ)** | Add a queue where messages that fail to be processed multiple times are sent for additional analysis. | Configure DLQ with max receive count |
+| **Domain Name** | Name of the OpenSearch domain. |
+| **Engine Version** | Version of OpenSearch to run on the domain. |
+| **Number Of Availability Zones** | How many Availability Zones the domain spreads its data nodes across. |
+| **Instance Type** | Instance type used for the data nodes. Determines CPU, memory, and network performance. |
+| **Nodes Per Availability Zone** | Number of data nodes to run in each Availability Zone. |
+| **EBS Storage Size Per Node** | Storage size per data node, in GiB (10-2048 GiB). |
+| **Dedicated Master Enabled** | Adds dedicated master nodes that handle cluster management separately from data nodes, improving stability. Recommended for production. When enabled, set the **Dedicated Master Count** (3 or 5 — 3 recommended for production) and the **Dedicated Master Type**. |
 
-### 3. Customize your variable names for your SQS.
+### 3. Customize your variable names for your OpenSearch.
 
 As explained, when a dependency is created, SleakOps generates a vargroup to hold all the needed attributes. 
 In this step you can change the name of the attributes in case it is needed. 
@@ -73,7 +72,7 @@ After this step, your dependency is created.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
-    src="/img/dependency/sqs/sqs-create-outputs.png"
-    alt="sqs-create-outputs"
+    src="/img/dependency/opensearch/opensearch-create-outputs.png"
+    alt="opensearch-create-outputs"
 />
 </Zoom>

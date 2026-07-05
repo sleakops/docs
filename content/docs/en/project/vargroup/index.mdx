@@ -46,7 +46,16 @@ SleakOps securely stores vargroups as Kubernetes secrets inside your EKS cluster
 ### Can I delete a Variable Group?
 
 </summary>
-Yes, they can be deleted or updated as needed. However, be cautious when deleting them, as it may disrupt your application.
+Yes. Deleting a Variable Group always redeploys every project that uses it — the confirmation warns you that the main project and all replicated projects will be affected. Variable Groups created automatically for a Dependency (e.g., database credentials) can't be deleted directly; delete the Dependency instead.
+</details>
+
+<details>
+<summary>
+
+### Who can reveal the values of a Variable Group?
+
+</summary>
+Any authenticated user with access to the account can reveal Vargroup values, including Viewers. Creating, editing, and deleting Vargroups is restricted to Admins and Editors.
 </details>
 
 <details>
@@ -81,6 +90,7 @@ If duplicate keys exist across different var groups:
 
 - If the key exists in both a global and a workload-scoped var group, the workload-scoped value takes precedence.
 - If two global vargroups have the same key, the most recently created one will be used.
+- Creating or editing an ENV-type Vargroup with a key that already exists in another Vargroup with the same scope (global, or the same workload) prompts a confirmation before you can overwrite it.
 </details>
 
 <details>
@@ -126,10 +136,10 @@ Complete the following attributes to create a new vargroup:
 | **Attribute** | **Description** |
 | --- | --- |
 | **Project** | The specific application or workload within SleakOps. Determines the scope of the variable group. |
-| **Workload** | A microservice or component within the project. If selected, the vargroup is limited to it; otherwise, by selecting global it'll be accessible into the namespace. |
+| **Workload** | A microservice or component within the project. If selected, the vargroup is limited to it — each workload can have only one dedicated Vargroup; otherwise, by selecting global it'll be accessible into the namespace. |
 | **Name** | A unique identifier for the var group, used to differentiate it within the project. Should be descriptive of the group's purpose. |
 | **Deploy** | Enable this option if you want SleakOps to automatically publish and deploy your workloads into the project. |
-| **Replicate To** | Optional. Select additional project environments where this Vargroup's Kubernetes Secret will also be created, making its variables available across multiple namespaces. |
+| **Replicate To** | Optional. Select additional project environments where this Vargroup's Kubernetes Secret will also be created, making its variables available across multiple namespaces (only environments in the same cluster are shown). |
 
 :::info
 If you choose to add the argument using the text option: Each argument should be added on a new line, separated by an equal sign (`=`), with no extra spaces.
@@ -166,7 +176,7 @@ Select **ENV** to inject variables as environment variables into your workload c
 
 #### FILE — Mounted Configuration Files
 
-Select **FILE** to mount variables as files inside your workload containers. When using this type, you must also provide a **Mount Path** — the directory where the files will be mounted.
+Select **FILE** to mount variables as files inside your workload containers. When using this type, you must also provide a **Mount Path** — the directory where the files will be mounted (an absolute path, unique across the project's Vargroups).
 
 Each key-value pair creates one file following this structure:
 

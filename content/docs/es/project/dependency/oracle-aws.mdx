@@ -40,19 +40,28 @@ SleakOps facilita la integración de bases de datos Oracle a través de Amazon R
   <summary>
     ### ¿Puedo cambiar la versión de Oracle después de que la base de datos esté desplegada?
   </summary>
-  No, la versión del motor de base de datos no puede cambiarse después del
-  despliegue. Necesitarías crear una nueva instancia de Oracle con la versión
-  deseada y migrar tus datos, o cambiarlo manualmente desde la Consola de AWS.
+  Sí, edita la dependencia y elige una nueva **Database Engine Version**.
+  Actualizar a una nueva versión mayor se trata como un cambio potencialmente
+  destructivo: SleakOps lo retiene en "Awaiting Approval" para que lo
+  confirmes antes de aplicarlo.
 </details>
 
 <details>
   <summary>
     ### ¿Qué sucede si necesito más almacenamiento para mi base de datos Oracle?
   </summary>
-  Puedes ajustar el tamaño del almacenamiento al configurar tu base de datos. Si
-  necesitas más almacenamiento después del despliegue, puedes escalarlo
-  modificando la configuración en AWS, ya que SleakOps no lo admite por el
-  momento.
+  Puedes ajustar el tamaño del almacenamiento al configurar tu base de datos, y
+  aumentarlo más adelante desde el formulario de edición. A diferencia de los
+  demás motores RDS, Oracle no ofrece autoescalado automático de almacenamiento.
+</details>
+
+<details>
+  <summary>
+    ### ¿Puedo crear una base de datos Oracle desde un snapshot?
+  </summary>
+  Todavía no — a diferencia de los demás motores RDS, Oracle no admite
+  restaurar desde un snapshot. Sí es posible restaurar a un punto en el tiempo
+  (PITR) desde una base de datos origen.
 </details>
 
 <details>
@@ -135,15 +144,19 @@ Aquí los parámetros que SleakOps te permite personalizar durante la creación:
 
 | **Atributo**                  | **Descripción**                                                                                                                                                                                                                                                         |
 | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Database Engine Version**   | Selecciona la versión específica del motor de base de datos Oracle que deseas usar. Esto garantiza compatibilidad con los requisitos de tu aplicación. Ejemplo: `19.0.0.0.ru-2024-01.rur-2024-01.r1`                                                                     |
+| **Database Name**             | Nombre de la base de datos por defecto creada dentro de la instancia. No puede ser `db` ni `database`.                                                                                                                                                                    |
+| **Database Engine Version**   | Selecciona la versión específica del motor de base de datos Oracle que deseas usar. Esto garantiza compatibilidad con los requisitos de tu aplicación.                                                                     |
 | **Database Instance Class**   | Define la clase de instancia que especifica la configuración de hardware para tu base de datos Oracle. Esto controla CPU, memoria y rendimiento de red. Ejemplo: `db.m6g.large`, `db.t3.medium`. Ver [detalle en AWS](https://aws.amazon.com/es/rds/instance-types/). |
-| **Database Storage**          | Especifica la cantidad de almacenamiento asignado para la base de datos. Ejemplo: 100 GB, 500 GB.                                                                                                                                                                        |
+| **Database Storage**          | Especifica la cantidad de almacenamiento asignado para la base de datos, en GiB.                                                                                                                                                                        |
 | **Username**                  | Proporciona el nombre de usuario maestro para la base de datos Oracle. Este es el usuario principal con privilegios administrativos. Ejemplo: admin, root.                                                                                                               |
-| **Password**                  | Contraseña del usuario maestro para acceder a la base de datos.                                                                                                                                                                                                          |
+| **Password**                  | Contraseña del usuario maestro para acceder a la base de datos, o generala automáticamente.                                                                                                                                                                                                          |
 | **Multi-Availability Zone**   | Habilita o deshabilita el despliegue Multi-AZ. Esto garantiza alta disponibilidad y soporte de failover replicando la base de datos en múltiples zonas de disponibilidad. Recomendado para entornos de producción.                                                       |
 | **Automated Backup**          | Configura copias de seguridad automáticas para la base de datos Oracle. Esto garantiza la protección de datos habilitando snapshots diarios y copias de seguridad de logs de transacciones. Configura el _Backup Retention Period_ y la _Backup Window_. Recomendado para entornos de producción. |
 | **Backup Retention Period**   | Establece el número de días para retener las copias de seguridad automáticas.                                                                                                                                                                                            |
 | **Backup Window**             | Período de tiempo durante el cual se realizará la copia de seguridad.                                                                                                                                                                                                   |
+| **Restore From Point In Time** | Crea la base de datos restaurada a un momento específico (o al punto restaurable más reciente) de una base de datos origen, en vez de arrancar vacía. |
+| **Parameter Group Mode**      | Deja el default del motor, define parámetros de motor personalizados gestionados por SleakOps, o adjunta un parameter group existente por nombre. |
+| **Deletion Protection**       | Bloquea el borrado accidental — mientras está habilitada, la dependencia no puede eliminarse hasta que la desactives. |
 
 ### 3. Personaliza el nombre de las variables para tu base de datos Oracle.
 

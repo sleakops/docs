@@ -25,10 +25,19 @@ You can configure the _CPU Request_ and _CPU Limit_ values to set the minimum an
 <details>
 <summary>
 
-### How can I configure memory and CPU settings for my Job?
+### Can I delete or edit a Job after creating it?
 
 </summary>
-You can configure the _CPU Request_ and _CPU Limit_ values to set the minimum and maximum CPU resources each instance in your cluster can use. Similarly, you set **Memory Request** and **Memory Limit** for memory allocation per instance.
+Jobs cannot be deleted or edited from the console once created. Use **Rerun** on a job in the list to launch a new run pre-filled with its configuration, changing whatever you need first.
+</details>
+
+<details>
+<summary>
+
+### Why hasn't my Job started running?
+
+</summary>
+A Job waits for its Project to be fully created and for a successful build to exist before it runs. If the project has never built successfully, create a build first.
 </details>
 
 <details>
@@ -37,7 +46,7 @@ You can configure the _CPU Request_ and _CPU Limit_ values to set the minimum an
 ### **Why does a Timeout message appear on my Job?**
 
 </summary>
-The timeout you see in SleakOps corresponds to a platform monitoring limit (approximately 30 minutes). After that time, SleakOps stops monitoring the Job but does not kill it — the Job keeps running normally in your infrastructure.
+The timeout you see in SleakOps corresponds to a platform monitoring limit (24 hours). After that time, SleakOps marks the Job as failed and stops monitoring it, but does not kill it — the Job keeps running normally in your infrastructure.
 
 **How can I verify if my Job completed successfully?**
 
@@ -74,8 +83,8 @@ Start with the basic information, complete these attributes and click Next to co
 | **Name** | Identify your job. |
 | **Project** | Select between the existent projects. |
 | **Command** | The command that runs the job. |
-| **Image** | By default the job usage the image of your project, but you can override that with another |
-| **Image tag** | You can specify the tag of image. |
+| **Image URL** | By default the job uses the image of your project, but you can override that with another (e.g. `docker.io/library/postgres`). |
+| **Image Tag** | You can specify the tag of the image. If not defined, the `latest` tag is used. |
 
 Once those attributes are completed, click the _Next_ button to move forward.
 
@@ -86,7 +95,15 @@ Once those attributes are completed, click the _Next_ button to move forward.
 />
 </Zoom>
 
-### 3. Finish the set up
+### 3. Specify your job settings
+
+Configure how the job behaves and click _Next_.
+
+| **Attribute** | **Description** |
+| --- | --- |
+| **Grace Period** | Time in seconds that Kubernetes waits for graceful shutdown before forcefully terminating the pod. Default: `120`. |
+
+### 4. Finish the set up
 
 This step outlines the key attributes for configuring the resources of a Job in SleakOps, allowing for flexible management of CPU, memory, and scaling behaviors.
 
@@ -104,4 +121,4 @@ This step outlines the key attributes for configuring the resources of a Job in 
 />
 </Zoom>
 
-Submit to create and Deploy your job.
+Submit to create and run your job.

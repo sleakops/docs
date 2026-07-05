@@ -41,11 +41,11 @@ Podés preguntar cualquier cosa sobre los recursos que administra SleakOps:
 
 - "¿Por qué falló el último deployment?"
 - "¿Qué servicios están consumiendo más memoria ahora mismo?"
-- "Mostrame todas las variables de entorno del entorno de producción"
-- "¿Qué cambió en el cluster en las últimas 24 horas?"
+- "¿Qué pods están fallando en el cluster de producción?"
+- "¿Qué eventos hubo recientemente en el cluster?"
 - "Generá un reporte de salud para el entorno de staging"
 
-La IA obtiene datos en tiempo real de tu cuenta de SleakOps para responder, así que las respuestas reflejan el estado real de tu infraestructura.
+Cuando el acceso a la infraestructura en vivo está habilitado para tu compañía — se está habilitando progresivamente durante la Alpha — la IA obtiene datos de solo lectura de tu cuenta de AWS y tus clusters de Kubernetes, así que las respuestas reflejan el estado real de tu infraestructura. En caso contrario, responde desde la base de conocimiento de SleakOps.
 </details>
 
 <details>
@@ -61,12 +61,12 @@ Pensá en los Reportes como resúmenes estructurados y reutilizables, y en el Ch
 <summary>
 ### ¿La IA ejecuta acciones por mí?
 </summary>
-No. El Chat de Infraestructura es de solo lectura. Recupera información, genera diagnósticos y hace recomendaciones, pero no ejecuta comandos ni modifica tu infraestructura. Todas las acciones son explícitas y requieren tu confirmación a través de los flujos estándar de SleakOps.
+No. El Chat de Infraestructura es de solo lectura. Recupera información, genera diagnósticos y hace recomendaciones, pero no puede modificar tu infraestructura — el rol de AWS y el acceso a Kubernetes que utiliza solo permiten operaciones de lectura. Cualquier cambio en tu infraestructura sigue pasando por los flujos estándar de SleakOps.
 </details>
 
 <details>
 <summary>
 ### ¿Qué contexto tiene la IA?
 </summary>
-La IA tiene acceso al estado de la infraestructura visible para tu usuario de SleakOps: recursos, configuraciones, logs, eventos e historial de deployments. No tiene acceso al código fuente de tu aplicación ni a los datos almacenados en tus dependencias (bases de datos, S3, etc.) — solo a la capa de infraestructura que administra SleakOps.
+La IA tiene acceso de solo lectura al estado de la infraestructura de tu cuenta de AWS: recursos, configuraciones, logs, eventos e historial de deployments. No puede leer tus secretos — los Secrets de Kubernetes, AWS Secrets Manager, KMS y los parámetros de SSM están explícitamente bloqueados — y no tiene acceso al código fuente de tu aplicación ni al contenido de tus bases de datos. Solo ve la capa de infraestructura que administra SleakOps.
 </details>

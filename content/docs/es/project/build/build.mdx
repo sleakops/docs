@@ -10,11 +10,14 @@ Ya hablamos del Build tanto en la [documentación de Proyecto](/docs/project) co
 
 ### Creación de un Build
 
-Para crear un Build solo el campo Project es obligatorio; los otros tres son opcionales y toman un valor por defecto si no los completás:
-- Project: hace referencia a lo que llamamos ProjectEnv; acá elegís qué ProjectEnv querés buildear.
-- Branch: te permite elegir cualquier branch del repositorio que hayas elegido como Project. Por defecto, el nombre del Environment.
-- Commit hash: también podés elegir el commit para buildear un commit específico en lugar del último, que es lo que hacemos por defecto. Por defecto, el último commit.
-- Tag: simplemente un tag para diferenciar builds. Por defecto, 'latest'.
+Para crear un Build solo necesitás elegir un **Project** — el resto de los campos toma un valor por defecto si los dejás vacíos:
+
+- **Project**: hace referencia a lo que llamamos ProjectEnv — la combinación de Project + Environment que querés buildear.
+- **Branch**: cualquier branch del repositorio del Project. Por defecto, el branch configurado en el Project.
+- **Commit hash**: buildea un commit específico en lugar del último. Por defecto, el último commit del branch.
+- **Tag**: una etiqueta para identificar la imagen de este build. Por defecto, el hash del commit — SleakOps además siempre pushea la imagen con el tag `latest`, sin importar este valor.
+- **Cache**: reutiliza las capas cacheadas de un build anterior para acelerarlo. Activado por defecto.
+- **Deploy?**: despliega la imagen resultante automáticamente al terminar el build. Activado por defecto.
 
 ## ¿Por qué necesitamos buildear una imagen de Docker?
 
@@ -47,7 +50,7 @@ sleakops build --project my-app --branch main --timeout 30
 | **Un número positivo**   | El build se detiene y se marca como fallido luego de esa cantidad de minutos.                 |
 | **`0`**                  | El build igual queda acotado por el valor por defecto de la plataforma. Con `--wait`, además quita el límite de espera de la CLI, que entonces espera hasta que el build termine; sin `--wait` se comporta como omitir `--timeout`. |
 
-Combinado con `--wait`, `--timeout` también limita cuánto espera la CLI a que el build termine antes de salir con error. Esto es útil en pipelines de CI/CD, donde un build trabado bloquearía el job indefinidamente:
+Combinado con `--wait`, `--timeout` también limita cuánto espera la CLI a que el build termine antes de salir con error — incluso si omitís `--timeout`, `--wait` igual se rinde después de 180 minutos por defecto, de forma independiente al corte del lado servidor de arriba. Esto es útil en pipelines de CI/CD, donde un build trabado bloquearía el job indefinidamente:
 
 ```bash
 sleakops build --project my-app --branch main --wait --timeout 30
@@ -78,5 +81,5 @@ Si tu proceso de build está fallando inesperadamente o siendo terminado, a menu
 - El build es extremadamente lento o parece congelado
 
 **Solución:**
-Aumenta los recursos de build en **Proyecto** → **Configuración** → **Deploy Build Resources**. Consulta la documentación de [Recursos de Deploy Build](/docs/project/build_resources) para instrucciones detalladas sobre cómo ajustar las asignaciones de CPU y memoria.
+Aumenta los recursos de build en **Proyecto** → **Configuración** → **Deploy and Build Resources**. Consulta la documentación de [Recursos de Deploy Build](/docs/project/build_resources) para instrucciones detalladas sobre cómo ajustar las asignaciones de CPU y memoria.
 </details>

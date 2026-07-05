@@ -29,14 +29,15 @@ To create a new volume for your project:
 
 1. **Click on "Create Volumes"** in the Project settings
 2. **Add the mount path** - Specify the directory path where the volume will be mounted in your containers
-3. **Set storage capacity** - Define the amount of storage space allocated to the volume
-4. **Choose retention policy** - Select between:
+3. **Set storage capacity** - Define the amount of storage space allocated to the volume (1–1000 GB)
+4. **Choose a filesystem** - Select which EFS filesystem, from the ones configured on the cluster's EFS addon, backs the volume
+5. **Choose retention policy** - Select between:
    - **Delete**: Volume will be removed when deleted from SleakOps
    - **Retain**: Volume will persist in AWS even if removed from SleakOps
 
 :::tip Volume Configuration
 - Mount paths should be absolute paths (e.g., `/app/data`, `/var/logs`)
-- Storage capacity is specified in GB
+- Storage capacity is specified in GB, from 1 to 1000
 - The retain policy determines data persistence when volumes are removed
 :::
 
@@ -53,6 +54,8 @@ To remove a volume from your project:
 
 1. **Click the "X" button** next to the volume you want to delete
 2. **Confirm the deletion** when prompted
+
+Deleting a volume triggers a redeploy that detaches it from your project's pods (the delete dialog's Deploy switch is on by default); if you turn the switch off, the volume detaches on the project's next deploy instead.
 
 :::warning Data Loss Warning
 Deleting a volume will permanently remove all data stored in it. Make sure to backup any important data before deletion.

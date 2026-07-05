@@ -228,40 +228,25 @@ sequenceDiagram
     participant ALB as AWS ALB
     
     U->>S: Create Alias: api.external.com
-    S-->>U: Provide Certificate Validation Records
-    U->>DNS: Add Validation CNAME Records
-    DNS-->>S: Certificate Validated ✅
+    S-->>U: Reuses external.com's certificate (no validation needed)
     S-->>U: Provide ALB Endpoint
     U->>DNS: Add CNAME to ALB
     DNS->>ALB: Traffic Routed
     ALB-->>U: Service Accessible
 ```
 
-#### For SSL Certificate Validation
-
-1. **Sleakops provides validation records**
-   - You'll see CNAME records for certificate validation
-   - Example:
-
-```
-_acme-challenge.api.external.com → _validation123.acme.aws.com
-```
-
-2. **Add validation records to your DNS**
-   - Go to the hosted zone for `external.com` (in Sleakops or wherever it's managed)
-   - Add the CNAME records exactly as shown
-   - Wait for certificate validation (usually 5-15 minutes)
+Since `api.external.com` is a direct subdomain of a domain Sleakops already manages in the same account, it reuses that domain's certificate — there's no separate SSL validation step. If the parent domain belongs to a different account, the alias gets its own certificate with manual validation records instead.
 
 #### For Traffic Routing
 
-3. **Sleakops provides ALB endpoint**
+1. **Sleakops provides ALB endpoint**
    - You'll see the ALB DNS name:
 
 ```
 ALB: my-alb-123456.us-east-1.elb.amazonaws.com
 ```
 
-4. **Create CNAME record**
+2. **Create CNAME record**
    - Go to your DNS management for `external.com`
    - Create a CNAME record:
 
@@ -272,7 +257,7 @@ Value: my-alb-123456.us-east-1.elb.amazonaws.com
 TTL: 300
 ```
 
-5. **Verify**
+3. **Verify**
    - Test the domain: `curl https://api.external.com`
    - Should return your service response
 
@@ -419,6 +404,17 @@ graph TD
 3. Remove any conflicting DNS records
 4. Wait 15-30 minutes for DNS propagation
 5. Check DNS: `dig _acme-challenge.yourdomain.com`
+6. If validation fails because of a CAA policy, Sleakops shows the exact CAA record to add (e.g. `0 issue "amazon.com"`) in the domain's Certificate section — add it and check again
+
+---
+
+### Alias domain rejected when creating it
+
+**Issue:** Creating an alias fails with a domain format error
+
+**Solutions:**
+1. Use a top-level domain of 6 characters or fewer (e.g. `.com`, `.io`, `.dev`) — longer TLDs aren't currently supported for aliases
+2. Wildcard aliases (`*.domain.com`) aren't supported from the panel — create explicit subdomains instead
 
 ---
 

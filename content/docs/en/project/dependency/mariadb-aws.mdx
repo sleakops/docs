@@ -130,6 +130,8 @@ Here the parameters that SleakOps allows you to customize during the creation:
 | **Database Master Password** | Password for the master user. Required if auto-generate is disabled. Must be at least 8 characters long and cannot contain @, ', ", or / characters. |
 | **Create a RDS from a snapshot** | Mark this if restoring from a database snapshot. When enabled, you'll need to provide the snapshot identifier and some fields become read-only. |
 | **Snapshot Identifier** | *(Required if restoring from snapshot)* RDS snapshot identifier to restore from. This allows you to restore your database from a previous backup point. |
+| **Restore From Point In Time** | Create the database restored to a specific moment (or the latest restorable point) of a source database, instead of starting empty. Mutually exclusive with restoring from a snapshot. |
+| **Parameter Group Mode** | Leave the engine default, define custom engine parameters managed by SleakOps, or attach an existing parameter group by name. |
 | **Database Instance Class** | Define the instance class that specifies the hardware configuration for your MariaDB database. Choose from t4g/t3 (burstable performance) or m7i/m8g (memory optimized) instance types. This controls CPU, memory, and network performance. |
 | **Database Storage** | Specify the amount of storage allocated for the database in GiB (20-6144 GB). MariaDB uses General Purpose SSD storage by default. This is the initial storage allocation for your database. |
 | **Storage Autoscaling Enabled** | Enable automatic storage scaling for the RDS instance. When enabled, AWS will automatically increase storage when needed, up to the maximum allocated storage limit. |
@@ -138,7 +140,8 @@ Here the parameters that SleakOps allows you to customize during the creation:
 | **Automated Backup** | Enable automatic backups for the RDS instance. When enabled, MariaDB will perform daily snapshots and transaction log backups, providing point-in-time recovery capabilities. |
 | **Backup Retention Period** | *(Required if automated backup is enabled)* Number of days (1-35) for which automatic backups are kept. Longer retention periods provide more recovery options but increase storage costs. |
 | **Backup Window** | *(Required if automated backup is enabled)* Time period for automated backups in HH:MM-HH:MM format (UTC). Choose a time when your database activity is typically low to minimize performance impact. |
-| **Read Replicas** | *(Required if automated backup is enabled)* Configuration for database read replicas to improve read performance and provide additional availability. Each replica requires a name, instance class, and publicly accessible setting. |
+| **Read Replicas** | *(Required if automated backup is enabled)* Configuration for database read replicas to improve read performance and provide additional availability. Each replica requires a name, instance class, and publicly accessible setting. Replicas can be added, edited, or removed later from the Edit form too. |
+| **Deletion Protection** | Block accidental deletion — while enabled, the dependency can't be deleted until you turn it off. |
 
 ### 3. Customize your variable's name for your MariaDB database.
 

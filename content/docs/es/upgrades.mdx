@@ -38,7 +38,7 @@ La lista muestra los upgrades de todas las cuentas a las que tu rol tiene acceso
 | **Upgrade** | Título y estado actual. Cuando el upgrade apunta a un recurso específico (Cluster, NodePool, Service), su ícono y nombre aparecen debajo del título. |
 | **Account** | La cuenta sobre la que se va a ejecutar el upgrade. |
 | **Execution Date** | Fecha programada mientras esté Pending, momento real de ejecución en los demás estados. Pasá el cursor para ver el timestamp exacto. |
-| **Actions** | Ver detalle, Ejecutar y (cuando aplica) Revisar instrucciones. |
+| **Actions** | Ver detalle, Ejecutar y (cuando aplica) Revisar instrucciones. Las filas de EKS Cluster Upgrade reemplazan Ejecutar por **Review upgrade plan**, que abre la pestaña Upgrade del drawer. |
 
 Filtrá la tabla por **State** (Pending, In Progress, Completed, Error), **Account** o **Model** desde la barra superior. Los deep-links desde otras secciones (por ejemplo, desde un Cluster específico) llegan con el filtro aplicado.
 
@@ -57,7 +57,7 @@ Transiciones: `Pending → Running → Completed`. Desde `Running`, ante un fall
 
 Dos maneras:
 
-1. **Desde la lista** — clic en el ícono verde de play en la columna Actions.
+1. **Desde la lista** — clic en el ícono verde de play en la columna Actions. Las filas de EKS Cluster Upgrade no tienen este atajo — hacé clic en **Review upgrade plan** para abrir la pestaña Upgrade del drawer y ejecutar desde ahí.
 2. **Desde el drawer** — abrí el upgrade y clic en **Execute** en el header. El popover deja elegir **Execute Now** o modificar la fecha programada.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
@@ -97,11 +97,17 @@ Cuando tenés varios upgrades Pending de distintos tipos sobre la misma cuenta, 
 
 ## El drawer del Upgrade
 
-Hacé clic en cualquier fila para abrir el drawer. Tiene dos pestañas:
+Hacé clic en cualquier fila para abrir el drawer. Tiene hasta tres pestañas, según el tipo de upgrade:
 
 ### Details
 
 Información básica (nombre de la entidad, tipo, cuenta, descripción, estado), schedule (Execution Date y Deadline, editables en línea), metadata (fecha de creación, parámetros) y el activity log — cada ejecución y cada cambio de schedule con usuario y timestamp.
+
+### Upgrade
+
+Sólo aparece para el tipo **EKS Cluster Upgrade**. Resumen de sólo lectura del cambio: la versión target de Kubernetes y su ventana de soporte de AWS, un aviso cuando la fecha programada cae fuera del horario laboral, un reporte de downtime de los servicios afectados, y el changelog de la versión. Una sección dedicada te permite pedir un reporte de compatibilidad (readiness) para los manifiestos que administrás fuera de SleakOps — esto abre un ticket de soporte (ver [Autodiagnósticos](/docs/powered-ai/autodiagnostic)). Execute y reprogramar siguen en el header.
+
+{/* TODO: screenshot - drawer con la pestaña Upgrade abierta, mostrando versión target, ventana de soporte, reporte de downtime y changelog. Requiere una Migration de tipo EKS Cluster Upgrade. */}
 
 ### Instructions
 

@@ -41,6 +41,10 @@ Actualiza los parámetros en el modal y haz clic en *Guardar*.
   />
 </Zoom>
 
+:::warning
+Cambiar la configuración de cómputo de un Node Pool puede disparar un reemplazo progresivo (rolling) de sus nodos, lo que puede reiniciar brevemente los workloads que corren en él. Si los workloads que ya corren en el pool usan más CPU o memoria que los nuevos límites que estás definiendo, la actualización se rechaza — libera capacidad o reduce esos workloads primero.
+:::
+
 ## Eliminar un Node Pool
 
 ### 1. Haz clic en el botón de papelera en la parte superior derecha de la tarjeta del Node Pool
@@ -51,3 +55,7 @@ Actualiza los parámetros en el modal y haz clic en *Guardar*.
     <p>Haz clic en Eliminar para confirmar y activar la acción en SleakOps.</p>
   </div>
 </div>
+
+:::info
+No puedes eliminar los Node Pools internos (incluido el de build), el último Node Pool no interno (de cliente) del clúster, ni uno que esté asignado a un Project Environment — reasigna o elimina el environment primero. El clúster también debe estar encendido para poder eliminar un Node Pool.
+:::

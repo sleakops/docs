@@ -40,7 +40,7 @@ Para entornos de producción, SleakOps recomienda usar 3 nodos maestros dedicado
 ### 1. Agrega AWS OpenSearch como una Dependencia
 Para integrar OpenSearch con SleakOps:
 1. En la consola de SleakOps, ve a la sección "Dependencias".
-2. Elige "SQS" de la lista de tipos de dependencias disponibles.
+2. Elige "OpenSearch" de la lista de tipos de dependencias disponibles.
 Para más detalles, consulta [Dependencias: Integrando Bases de Datos, Caché y Servicios de Mensajería](/docs/project/dependency).
 
 ### 2. Configura tu OpenSearch.
@@ -55,16 +55,15 @@ Al agregar OpenSearch como una dependencia en SleakOps, necesitas configurar var
 
 | **Atributo** | **Descripción** |
 | --- | --- | 
-| **Cola FIFO** | Especifica el tipo de cola SQS: `Standard Queue` (para la mayoría de los casos) o `FIFO Queue` (si se requiere orden de mensajes). |
-| **Desduplicación FIFO** | Solo para Colas FIFO, para evitar duplicados. |
-| **Periodo de Retención de Mensajes** | Especifica la cantidad de tiempo que un mensaje será retenido en la cola si no ha sido consumido. | De 1 minuto a 14 días (Por defecto: 4 días). |
-| **Tamaño Máximo de Mensaje** | El tamaño máximo de un mensaje que puede ser enviado a la cola SQS. | Hasta 256 KB (Por defecto: 256 KB). |
-| **Retraso en la Entrega en Segundos** | El retraso entre el envío de un mensaje a SQS y su visibilidad en la cola. Sin retraso por defecto. | De 0 a 15 minutos (Por defecto: 0 segundos). |
-| **Tiempo de Espera para Recibir Mensajes** | Determina cuánto tiempo esperará una llamada `ReceiveMessage` si no hay mensajes disponibles en la cola. | De 0 a 20 segundos (Por defecto: 0 segundos). |
-| **Timeout de Visibilidad** | La duración durante la cual un mensaje permanece invisible después de que un componente lo lea desde la cola. | De 0 a 12 horas (Por defecto: 30 segundos). |
-| **Cola de Mensajes Fallidos (DLQ)** | Agrega una cola donde los mensajes que fallan en ser procesados múltiples veces son enviados para análisis adicional. | Configura DLQ con un conteo máximo de intentos. |
+| **Domain Name** | Nombre del dominio de OpenSearch. |
+| **Engine Version** | Versión de OpenSearch que correrá en el dominio. |
+| **Number Of Availability Zones** | En cuántas Zonas de Disponibilidad se distribuyen los nodos de datos del dominio. |
+| **Instance Type** | Tipo de instancia usado para los nodos de datos. Determina el rendimiento de CPU, memoria y red. |
+| **Nodes Per Availability Zone** | Cantidad de nodos de datos a correr en cada Zona de Disponibilidad. |
+| **EBS Storage Size Per Node** | Tamaño de almacenamiento por nodo de datos, en GiB (10-2048 GiB). |
+| **Dedicated Master Enabled** | Agrega nodos maestros dedicados que gestionan el clúster por separado de los nodos de datos, mejorando la estabilidad. Recomendado para producción. Al habilitarlo, configurá el **Dedicated Master Count** (3 o 5 — 3 recomendado para producción) y el **Dedicated Master Type**. |
 
-### 3. Personaliza los nombres de tus variables para tu SQS.
+### 3. Personaliza los nombres de tus variables para tu OpenSearch.
 
 Como se explicó, cuando se crea una dependencia, SleakOps genera un grupo de variables (vargroup) para contener todos los atributos necesarios.  
 En este paso, puedes cambiar el nombre de los atributos si es necesario.  
@@ -73,7 +72,7 @@ Después de este paso, tu dependencia está creada.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
-    src="/img/dependency/sqs/sqs-create-outputs.png"
-    alt="sqs-create-outputs"
+    src="/img/dependency/opensearch/opensearch-create-outputs.png"
+    alt="opensearch-create-outputs"
 />
 </Zoom>

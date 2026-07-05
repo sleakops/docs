@@ -67,7 +67,7 @@ Sleakops tiene tres campos fundamentales de permisos de usuario:
 
 </summary>
 
-Solo los administradores pueden eliminar usuarios. Para eliminar un usuario, accede a la Lista de Usuarios, en la columna Acción, haz clic en el ícono de la papelera. Luego confirma la acción.
+Solo los administradores pueden eliminar usuarios. Para eliminar un usuario, accede a la Lista de Usuarios, en la columna Acción, haz clic en el ícono de la papelera. Luego confirma la acción. Un administrador no puede eliminar su propia cuenta.
 
 SleakOps maneja automáticamente el proceso completo de eliminación en todos los sistemas (usuario IAM, usuario del servidor Pritunl VPN y usuario de la consola de SleakOps). No se requieren pasos manuales adicionales fuera de la consola de SleakOps.
 
@@ -83,28 +83,23 @@ Los usuarios eliminados no se pueden recuperar. Sin embargo, eliminar un usuario
   <img src="/img/users/USER-creation-form.png" alt="USER-creation-form" />
 </Zoom>
 
-Para el acceso a las cuentas de AWS, SleakOps inicialmente establece una contraseña aleatoria y la envía al correo electrónico del usuario creado. El usuario puede iniciar sesión con esa contraseña, pero se le obligará a cambiarla en su primer inicio de sesión. Para el acceso a la plataforma SleakOps, utilizamos la contraseña configurada en el formulario de usuario.
+Para el acceso a las cuentas de AWS, SleakOps inicialmente establece una contraseña aleatoria y la envía al correo electrónico del usuario creado. El usuario puede iniciar sesión con esa contraseña, pero se le obligará a cambiarla en su primer inicio de sesión. Para el acceso a la plataforma SleakOps, el usuario recibe un correo aparte con un enlace para definir su propia contraseña.
 
 Después de la creación de este usuario, se creará un Usuario de AWS en la cuenta 'security', que es donde controlamos los accesos a todas las cuentas de AWS de SleakOps. También crearemos, dependiendo de la configuración, usuarios en los servidores VPN; consulta cómo usarlos en la correspondiente [documentación](/docs/user/vpn) y en la sección de usuarios de SleakOps.
 
-## Usuarios Sin Acceso a SleakOps
+## Miembros Solo AWS/VPN
 
-Algunos usuarios en tu organización pueden no tener acceso directo a la plataforma SleakOps pero aún interactúan con la infraestructura:
+Desactivar el acceso a la consola solo está disponible para el rol Viewer. Esto crea un miembro sin login a SleakOps que igualmente recibe acceso IAM de AWS y/o VPN aprovisionado para las cuentas que le asignes — útil para colaboradores externos, auditores o compañeros de equipo que solo necesitan acceso a la infraestructura, no un puesto en la consola. En este caso se exige al menos una cuenta AWS o VPN.
 
-### Colaboradores Externos
+## Gestión de Members
 
-- **Escenario**: Contratistas o consultores externos que necesitan acceso temporal a recursos específicos de AWS
-- **Método de Acceso**: Acceso directo a la consola de AWS con permisos IAM limitados
-- **Gestión**: Manejado a través de AWS IAM directamente, no a través de la gestión de usuarios de SleakOps
+Los admins pueden actuar sobre cualquier miembro desde la Lista de Usuarios o su drawer de detalle:
 
-### Observadores de Solo Lectura
+- **Reset AWS Password**: elige el provider y confirma — SleakOps genera una contraseña IAM nueva y la envía por correo al miembro.
+- **Get Pritunl Credentials**: para miembros sin acceso a la consola de SleakOps, que no pueden obtener su propio URI de VPN (ver la [documentación de VPN](/docs/user/vpn)), un admin lo obtiene para cualquier cuenta donde el miembro ya tenga un perfil de VPN aprovisionado.
 
-- **Escenario**: Stakeholders que necesitan visibilidad de costos y uso de infraestructura sin acceso operacional
-- **Método de Acceso**: AWS Cost Explorer, dashboards de CloudWatch o herramientas de reportes personalizadas
-- **Gestión**: Solo permisos de facturación y monitoreo de AWS
+Editar un miembro solo permite cambiar su rol y el acceso a cuentas; el nombre, el email y el acceso a la consola quedan fijos desde la creación.
 
-### Consumidores solo de VPN
-
-- **Escenario**: Usuarios que necesitan consumir cargas de trabajo y aplicaciones dentro de la VPN, pero no requieren capacidades de administración ni monitorización de la infraestructura.
-- **Método de acceso**: Solo acceso a la VPN, con permisos limitados para acceder a aplicaciones y servicios específicos.
-- **Gestión**: Cuentas de usuario de VPN con acceso restringido a cargas de trabajo y entornos designados.
+:::info
+Cambiar el rol de un miembro reaprovisiona automáticamente su acceso a AWS y VPN. Si el miembro usa `kubectl`, debe regenerar su kubeconfig para aplicar los nuevos permisos.
+:::

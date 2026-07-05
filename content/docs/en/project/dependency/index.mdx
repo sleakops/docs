@@ -20,7 +20,9 @@ A Dependency in the context of SleakOps refers to any external infrastructure or
 </summary>
 Here’s the updated list of dependencies included in SleakOps:
   1. **Databases**
-    - **Amazon RDS**: Managed relational databases such as MySQL, PostgreSQL, and others.
+    - **Amazon RDS**: Managed relational databases — PostgreSQL, MySQL, MariaDB, and Oracle.
+    - **Amazon Aurora**: PostgreSQL- and MySQL-compatible clusters with automatic storage scaling.
+    - **Amazon DocumentDB**: MongoDB-compatible managed document database.
   2. **Caching Services**
     - **Amazon ElastiCache for Redis**: In-memory data store for caching frequently accessed data.
     - **Amazon ElastiCache for Memcached**: In-memory caching service for improved performance and reduced database load.
@@ -31,6 +33,7 @@ Here’s the updated list of dependencies included in SleakOps:
   5. **Message Queuing**
     - **Amazon SQS**: Fully managed message queuing service that enables you to decouple components and enhance application scalability and reliability.
     - **RabbitMQ**: A widely used open-source message broker that facilitates reliable messaging and integration between application components.
+    - **Amazon MSK**: Managed Apache Kafka for streaming data pipelines.
 
 These dependencies integrate seamlessly with SleakOps, providing a comprehensive suite of AWS and open-source services to enhance your application's functionality, performance, and scalability.
 
@@ -60,7 +63,9 @@ These dependencies integrate seamlessly with SleakOps, providing a comprehensive
   it and all what is related to it will stop working. To solve that SleakOps
   create a Deployment in PENDING_APPROVAL status, that must be run manually ASAP
   to stop the downtime. In case you delete a database, SleakOps will generate a
-  final snapshot before its deletion.
+  final snapshot before its deletion. If the dependency has *Deletion
+  Protection* enabled, disable it first — SleakOps blocks the delete until you
+  do.
 </details>
 
 ## Lets add a Dependency for your Project
@@ -82,7 +87,7 @@ Into the _Left Pane_, access _Dependencies_ option and then, at the top right co
   />
 </Zoom>
 
-### 3. Select the kind of dependency you want to create
+### 3. Enter the basic details
 
 In Sleakops all dependecies start with the same step. So, complete these attributes and click _Next_ to continue.
 
@@ -102,7 +107,12 @@ To move forward choose between the following guides.
 [S3 Bucket](/docs/project/dependency/s3bucket-aws).
 [MySQL](/docs/project/dependency/mysql-aws).
 [PostgreSQL](/docs/project/dependency/postgresql-aws).
+[MariaDB](/docs/project/dependency/mariadb-aws).
+[Oracle](/docs/project/dependency/oracle-aws).
+[Aurora MySQL](/docs/project/dependency/aurora-mysql-aws).
+[Aurora PostgreSQL](/docs/project/dependency/aurora-postgresql-aws).
 [Redis](/docs/project/dependency/redis-aws).
 [Memcached](/docs/project/dependency/memcached-aws).
 [OpenSearch](/docs/project/dependency/opensearch-aws).
 [SQS](/docs/project/dependency/sqs-aws).
+[MSK](/docs/project/dependency/msk-aws).
