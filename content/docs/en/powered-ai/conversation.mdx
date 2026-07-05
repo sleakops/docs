@@ -41,11 +41,11 @@ You can ask anything about the resources SleakOps manages:
 
 - "Why did the last deployment fail?"
 - "Which services are consuming the most memory right now?"
-- "Show me all environment variables for the production environment"
-- "What changed in the cluster in the last 24 hours?"
+- "Which pods are failing in the production cluster?"
+- "What events happened recently in the cluster?"
 - "Generate a health report for the staging environment"
 
-The AI pulls live data from your SleakOps account to answer, so responses reflect your actual infrastructure state.
+When live infrastructure access is enabled for your company — it is being rolled out progressively during the Alpha — the AI pulls read-only data from your AWS account and Kubernetes clusters, so responses reflect your actual infrastructure state. Otherwise, it answers from the SleakOps knowledge base.
 </details>
 
 <details>
@@ -61,12 +61,12 @@ Think of Reports as structured, reusable summaries and Chat as your always-on in
 <summary>
 ### Does the AI take actions on my behalf?
 </summary>
-No. Infrastructure Chat is read-only. It retrieves information, generates diagnostics, and makes recommendations, but it does not execute commands or change your infrastructure. All actions remain explicit and require your confirmation through the standard SleakOps workflows.
+No. Infrastructure Chat is read-only. It retrieves information, generates diagnostics, and makes recommendations, but it cannot modify your infrastructure — the AWS role and Kubernetes access it uses only allow read operations. Any change to your infrastructure still goes through the standard SleakOps workflows.
 </details>
 
 <details>
 <summary>
 ### What context does the AI have?
 </summary>
-The AI has access to the infrastructure state visible to your SleakOps user: resources, configurations, logs, events, and deployment history. It does not have access to your application source code or data stored in your dependencies (databases, S3, etc.) — only the infrastructure layer that SleakOps manages.
+The AI has read-only access to the infrastructure state of your AWS account: resources, configurations, logs, events, and deployment history. It cannot read your secrets — Kubernetes Secrets, AWS Secrets Manager, KMS, and SSM parameters are explicitly blocked — and it does not have access to your application source code or the contents of your databases. It only sees the infrastructure layer that SleakOps manages.
 </details>

@@ -40,7 +40,7 @@ El código de éxito predeterminado es el 200, que indica que el servicio está 
 <summary>
 ### ¿Qué pasa si mi verificación de salud falla repetidamente?
 </summary>
-Si la verificación de salud falla de manera consecutiva y alcanza el umbral de fallos (el valor predeterminado es 60), el servicio se marcará como no saludable, y Kubernetes podría reiniciar o terminar la instancia del servicio para intentar una recuperación.
+Si la verificación de salud falla de manera consecutiva y alcanza el umbral de fallos (el valor predeterminado es 60), la instancia se marca como no lista y Kubernetes deja de enviarle tráfico. El tráfico se reanuda automáticamente cuando la verificación vuelve a pasar.
 </details>
 
 <details>
@@ -60,7 +60,7 @@ Si especificas valores de **Request** pero dejas los campos de **Limit** vacíos
 
 Por ejemplo:
 - **CPU Request** = `1000m` → **CPU Limit** se convierte automáticamente en `1300m`
-- **Memory Request** = `512Mi` → **Memory Limit** se convierte automáticamente en `665Mi`
+- **Memory Request** = `512Mi` → **Memory Limit** se convierte automáticamente en `666Mi`
 
 Para sobrescribir este valor predeterminado y establecer límites personalizados, simplemente especifica tus propios valores de **CPU Limit** y **Memory Limit** en el formulario de configuración. Se usarán tus valores personalizados en lugar del cálculo automático del 130%.
 </details>
@@ -90,7 +90,7 @@ El **terminationGracePeriod** es una configuración de Kubernetes que define cu�
 
 **Cómo funciona:** Cuando Kubernetes necesita detener tu contenedor (durante un despliegue, un evento de escalado o un apagado), primero envía una señal **SIGTERM** a tu proceso y luego espera la cantidad de segundos definida por `terminationGracePeriod` antes de matar forzosamente el contenedor. La mayoría de los frameworks con los que construimos aplicaciones manejan SIGTERM automáticamente, pero si tenés algo personalizado, asegurate de que tu aplicación escuche SIGTERM y cierre correctamente todas sus conexiones y procesos en curso — de lo contrario, Kubernetes puede matar el contenedor mientras una operación está a medias.
 
-**Valor predeterminado:** 30 segundos
+**Valor predeterminado:** 120 segundos
 
 **Cuándo ajustarlo:**
 - Auméntalo si tu servicio necesita más tiempo para completar tareas de larga duración durante el apagado.
@@ -237,11 +237,11 @@ Verás los siguientes atributos para especificar las condiciones.
 | **Ruta** | La ruta donde Kubernetes verifica si el Web Service está operativo. Predeterminado: `/` |
 | **Código de Éxito** | El código HTTP de éxito que indica la salud del servicio. Predeterminado: `200`. |
 | **Retraso Inicial en Segundos** | Número de segundos después del inicio antes de que comiencen las verificaciones de salud. Predeterminado: `10`. |
-| **Segundos de Tiempo de Espera** | Número de segundos después del inicio antes de que comiencen las verificaciones de salud. Predeterminado: `1`. |
+| **Segundos de Tiempo de Espera** | Número de segundos tras los cuales la prueba de verificación de salud expira (timeout). Predeterminado: `1`. |
 | **Segundos entre cada Verificación** | Intervalo (en segundos) entre cada prueba de verificación de salud. Predeterminado: `5`. |
 | **Umbral de Éxitos** | Número mínimo de éxitos consecutivos requeridos para que la prueba se considere exitosa después de fallar. Predeterminado: `1`. |
 | **Umbral de Fallos** | Número de fallos consecutivos antes de que la prueba se considere fallida. Predeterminado: `60`. |
-| **terminationGracePeriod** | Tiempo en segundos que Kubernetes espera para el apagado ordenado antes de terminar forzosamente el servicio. Predeterminado: `30`.  |
+| **Grace Period (terminationGracePeriod)** | Tiempo en segundos que Kubernetes espera para el apagado ordenado antes de terminar forzosamente el servicio. Predeterminado: `120`.  |
 
 Una vez completados estos atributos, haz clic en el botón Siguiente para continuar con el siguiente paso.
 
@@ -254,6 +254,7 @@ Este paso describe los atributos clave para configurar los recursos de un Servic
 | **CPU Limit** | La cantidad máxima de recursos de CPU que cada instancia en el clúster puede utilizar. Este límite ayuda a prevenir que una instancia consuma demasiada CPU. |
 | **Memory Request** | La cantidad mínima de memoria asignada para cada instancia en el clúster. Esto garantiza que la instancia tenga suficiente memoria para operar eficientemente. |
 | **Memory Limit** | La cantidad máxima de memoria que cada instancia en el clúster puede utilizar. Limita el uso de memoria para evitar que una sola instancia consuma recursos en exceso. |
+| **Replicas** | El número de réplicas a ejecutar cuando el auto-escalado está desactivado. Usamos un mínimo de 2 para evitar tiempos de inactividad. Predeterminado: `2`. |
 | **Autoscaling** | Activar o desactivar el auto-escalado. Cuando está habilitado, permite que el servicio ajuste el número de réplicas según la demanda y el uso de recursos. |
 | **CPU Target** | El porcentaje de uso de CPU que desencadena el auto-escalado. Si el uso supera este objetivo, se pueden desplegar réplicas adicionales para equilibrar la carga. |
 | **Memory Target** | El porcentaje de uso de memoria que activa el ajuste de auto-escalado. Cuando las instancias superan este objetivo, el sistema escala hacia arriba para acomodar la demanda. |

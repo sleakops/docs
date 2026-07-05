@@ -54,11 +54,12 @@ Once those attributes are completed, click the _Next_ button to move forward.
 </Zoom>
 
 ### 3. Define the periodicity
-Select how will be your connection and click on _Next_. 
+Define the schedule and click on _Next_. 
 
 | **Attribute** | **Description** |
 | --- | --- |
-| **Crontab** | Cron expresion to determine the schedule to execute the cronjob  |
+| **Crontab** | Cron expression to determine the schedule to execute the cronjob. All times are interpreted in UTC.  |
+| **Concurrency Policy** | How concurrent executions are handled: `Allow` permits concurrent runs, `Forbid` skips a new run if the previous one is still active, and `Replace` cancels the running job in favor of the new one. Default: `Allow`.  |
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
@@ -66,6 +67,13 @@ Select how will be your connection and click on _Next_.
     alt="cronjob-create-2"
 />
 </Zoom>
+
+### 4. Specify your cronjob settings
+Configure how the cronjob behaves and click _Next_.
+
+| **Attribute** | **Description** |
+| --- | --- |
+| **Grace Period** | Time in seconds that Kubernetes waits for graceful shutdown before forcefully terminating the pod. Default: `120`. |
 
 ### 5. Finish the set up
 This step outlines the key attributes for configuring the resources of a Cronjob in SleakOps, allowing for flexible management of CPU, memory, and scaling behaviors.

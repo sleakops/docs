@@ -41,7 +41,7 @@ The default success code is 200, indicating the service is healthy. You can chan
 <summary>
 ### What happens if my health check fails repeatedly?
 </summary>
-If the health check fails consecutively and reaches the Failure Threshold (default is 60), the service is marked as unhealthy, and Kubernetes might restart or terminate the service instance to attempt a recovery.
+If the health check fails consecutively and reaches the Failure Threshold (default is 60), the instance is marked as not ready and Kubernetes stops routing traffic to it. Traffic resumes automatically once the check passes again.
 </details>
 
 <details>
@@ -61,7 +61,7 @@ If you specify **Request** values but leave the **Limit** fields empty, SleakOps
 
 For example:
 - **CPU Request** = `1000m` → **CPU Limit** automatically becomes `1300m`
-- **Memory Request** = `512Mi` → **Memory Limit** automatically becomes `665Mi`
+- **Memory Request** = `512Mi` → **Memory Limit** automatically becomes `666Mi`
 
 To override this default and set custom limits, simply specify your own **CPU Limit** and **Memory Limit** values in the configuration form. Your custom values will be used instead of the automatic 130% calculation.
 </details>
@@ -91,7 +91,7 @@ The **terminationGracePeriod** is a Kubernetes setting that defines how long (in
 
 **How it works:** When Kubernetes needs to stop your container (during a deployment, scaling event, or shutdown), it first sends a **SIGTERM** signal to your process and then waits the number of seconds defined by `terminationGracePeriod` before forcefully killing the container. Most application frameworks handle SIGTERM automatically, but if you have custom processes, make sure your application listens for SIGTERM and gracefully closes all connections and ongoing work — otherwise Kubernetes may kill your container while it's still mid-operation.
 
-**Default value:** 30 seconds
+**Default value:** 120 seconds
 
 **When to adjust it:**
 - Increase it if your service needs more time to complete long-running tasks during shutdown.
@@ -236,11 +236,11 @@ You’ll see the following for to specify the conditions.
 | **Path** | The path where Kubernetes checks if the web service is operational. Default: `/` |
 | **Success Code** | The HTTP success code indicating the service's health. Default: `200`.  |
 | **Initial Delay Seconds** | Number of seconds after startup before health checks begin.  Default: `10`.  |
-| **Timeout Seconds** | Number of seconds after startup before health checks begin.  Default: `1`.  |
+| **Timeout Seconds** | Number of seconds after which the health check probe times out.  Default: `1`.  |
 | **Period Seconds** | Interval (in seconds) between each health check probe. Default: `5`.  |
 | **Success Threshold** | Minimum number of consecutive successes required for the probe to be considered successful after it has failed. Default: `1`.  |
 | **Failure Threshold** | Number of consecutive failures before the probe is considered to have failed. Default: `60`.  |
-| **terminationGracePeriod** | Time in seconds that Kubernetes waits for graceful shutdown before forcefully terminating the service. Default: `30`.  |
+| **Grace Period (terminationGracePeriod)** | Time in seconds that Kubernetes waits for graceful shutdown before forcefully terminating the service. Default: `120`.  |
 
 Once those attributes are completed, click the Next button to move to the next step. 
 
@@ -253,6 +253,7 @@ This step outlines the key attributes for configuring the resources of a Web Ser
 | **CPU Limit** | The maximum CPU resources that each instance in the cluster can use. This cap helps prevent any single instance from consuming too much CPU.  |
 | **Memory Request** | The minimum amount of memory allocated for each instance in the cluster. This guarantees that the instance has enough memory to operate efficiently.  |
 | **Memory Limit** | The maximum amount of memory each instance in the cluster can utilize. It limits the memory usage to prevent any single instance from overconsuming resources.  |
+| **Replicas** | The number of replicas to run when auto-scaling is disabled. We use a minimum of 2 to avoid downtime. Default: `2`.  |
 | **Autoscaling** | Toggle to enable or disable auto-scaling. When enabled, it allows the service to adjust the number of replicas based on demand and resource usage.  |
 | **CPU Target** | The CPU usage percentage target that initiates auto-scaling. If usage exceeds this target, additional replicas may be deployed to balance the load.  |
 | **Memory Target** | The memory usage percentage target that triggers auto-scaling adjustments. When instances exceed this target, the system scales up to accommodate demand. |

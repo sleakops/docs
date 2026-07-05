@@ -46,7 +46,7 @@ Un Job espera a que su Proyecto esté completamente creado y a que exista un bui
 ### **¿Por qué aparece un mensaje de Timeout en mi Job?**
 
 </summary>
-El timeout que ves en SleakOps corresponde a un límite de tiempo de la plataforma para monitorear el estado del Job (aproximadamente 30 minutos). Pasado ese tiempo, SleakOps deja de monitorearlo pero no mata el proceso — el Job sigue corriendo normalmente en tu infraestructura.
+El timeout que ves en SleakOps corresponde a un límite de tiempo de la plataforma para monitorear el estado del Job (24 horas). Pasado ese tiempo, SleakOps marca el Job como fallido y deja de monitorearlo, pero no mata el proceso — el Job sigue corriendo normalmente en tu infraestructura.
 
 **¿Cómo puedo verificar si mi Job terminó correctamente?**
 
@@ -83,8 +83,8 @@ Comienza con la información básica, completa estos atributos y haz clic en Sig
 | **Nombre** | Identifica tu Job. |
 | **Proyecto** | Selecciona entre los proyectos existentes. |
 | **Comando** | El comando que ejecuta el job. |
-| **Image** | Por defecto el job utiliza la imagen de tu proyecto, pero puedes reemplazarla por otra |
-| **Image tag** | Puedes especificar la etiqueta de la imagen. |
+| **Image URL** | Por defecto el job utiliza la imagen de tu proyecto, pero puedes reemplazarla por otra (p. ej. `docker.io/library/postgres`). |
+| **Image Tag** | Puedes especificar la etiqueta de la imagen. Si no la defines, se usa la etiqueta `latest`. |
 
 Una vez completados estos atributos, haz clic en el botón _Siguiente_ para continuar.
 
@@ -95,7 +95,15 @@ Una vez completados estos atributos, haz clic en el botón _Siguiente_ para cont
 />
 </Zoom>
 
-### 3. Finalizar la configuración
+### 3. Especifica los ajustes de tu Job
+
+Configura el comportamiento del job y haz clic en _Siguiente_.
+
+| **Atributo** | **Descripción** |
+| --- | --- |
+| **Grace Period** | Tiempo en segundos que Kubernetes espera para el apagado ordenado antes de terminar forzosamente el pod. Predeterminado: `120`. |
+
+### 4. Finalizar la configuración
 
 Este paso describe los atributos clave para configurar los recursos de un Job en SleakOps, permitiendo una gestión flexible de CPU, memoria y comportamientos de escalado.
 
@@ -113,4 +121,4 @@ Este paso describe los atributos clave para configurar los recursos de un Job en
 />
 </Zoom>
 
-Envía para crear y desplegar tu job.
+Envía para crear y ejecutar tu job.
