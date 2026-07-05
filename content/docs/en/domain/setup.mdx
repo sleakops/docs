@@ -31,7 +31,7 @@ In this case, you maintain full control over your domain and subdomains, without
 
 If you want to use a domain other than the principal one or have multiple domains pointing to the same service, you'll need to create an ALIAS:
 
-- If the ALIAS is a direct subdomain of a domain already managed by SleakOps, it reuses that domain's certificate automatically — you still need to create the CNAME record pointing to the load balancer.
+- If the ALIAS is a direct subdomain of a domain already managed by SleakOps **in the same account**, it reuses that domain's certificate automatically — you still need to create the CNAME record pointing to the load balancer. If the parent domain belongs to a different account, the alias gets its own certificate with manual validation records.
 - If not, you'll need to manually create:
   - A CNAME record to validate the SSL Certificate.
   - An additional record for each ALIAS.
@@ -72,7 +72,7 @@ To access it, there are are different ways, based on what you need to do:
   a. Access the Workload’s list and then, the Web services section.
   b. Select and Workload and click on the Three Dots button.
   c. Choose the Detail option
-  d. Create the Alias if it doesn’t exist by clicking the Associate new Domain and completing the form (the form includes a deploy option, checked by default, that redeploys the service immediately to start serving the new domain — uncheck it to queue the change for later approval instead).
+  d. Create the Alias if it doesn’t exist by clicking the Associate new Domain and completing the form (the form includes a deploy option, checked by default, that redeploys the service immediately to start serving the new domain — if you uncheck it, the alias is saved without deploying and you'll need to deploy the affected projects yourself for it to take effect).
   e. Click on the Alias domain to display the detail.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
@@ -125,7 +125,7 @@ Only alias domains can be deleted directly from the panel. Environment and Provi
 <summary>
 ### My alias shows "Cert. Pending" even though I expected it to be active
 </summary>
-If your alias is a direct subdomain of a domain already managed by SleakOps, it reuses that domain's certificate instead of issuing its own — the panel currently shows this as "Cert. Pending" regardless of whether the parent's certificate is already active. Check the parent domain's status to confirm the certificate is valid.
+If your alias is a direct subdomain of a domain already managed by SleakOps in the same account, it reuses that domain's certificate instead of issuing its own — the panel currently shows this as "Cert. Pending" regardless of whether the parent's certificate is already active. Check the parent domain's status to confirm the certificate is valid.
 </details>
 
 <details>

@@ -110,8 +110,8 @@ Configuración de dominio sin configuración. Cada servicio obtiene automáticam
 **Lo que hace Sleakops:**
 
 ### Escenario A: El dominio coincide con una zona alojada existente
-Si el alias es un subdominio directo de un dominio ya gestionado por Sleakops como Proveedor o Entorno (ej. `api.dominio-externo.com` bajo `dominio-externo.com`):
-- ✅ Reutiliza el certificado de ese dominio automáticamente — no necesita validación SSL propia
+Si el alias es un subdominio directo de un dominio ya gestionado por Sleakops como Proveedor o Entorno **en la misma cuenta** (ej. `api.dominio-externo.com` bajo `dominio-externo.com`):
+- ✅ Reutiliza el certificado de ese dominio automáticamente — no necesita validación SSL propia (un padre en otra cuenta no cuenta: el alias obtiene entonces su propio certificado con validación manual, como en el Escenario B)
 - ✅ Proporciona nombre ALB para configuración DNS
 - ⚠️ De todas formas debes crear el registro CNAME (o A/ALIAS para un dominio raíz) que apunte al ALB
 

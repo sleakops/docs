@@ -30,7 +30,7 @@ En este caso, mantienes el control total sobre tu dominio y subdominios sin dele
 
 Si deseas usar un dominio diferente al principal o tener múltiples dominios apuntando al mismo servicio, necesitarás crear un ALIAS:
 
-- Si el ALIAS es un subdominio directo de un dominio ya gestionado por SleakOps, reutiliza el certificado de ese dominio automáticamente — de todas formas debes crear el registro CNAME que apunte al load balancer.
+- Si el ALIAS es un subdominio directo de un dominio ya gestionado por SleakOps **en la misma cuenta**, reutiliza el certificado de ese dominio automáticamente — de todas formas debes crear el registro CNAME que apunte al load balancer. Si el dominio padre pertenece a otra cuenta, el alias obtiene su propio certificado con registros de validación manuales.
 - Si no, deberás crear manualmente:
   - Un registro CNAME para validar el certificado SSL.
   - Un registro adicional para cada ALIAS.
@@ -70,7 +70,7 @@ Para acceder a ella, hay diferentes maneras según lo que necesites hacer:
   a. Accede a la lista de Workloads y luego a la sección Web Services.  
   b. Selecciona una ejecución y haz clic en el botón de tres puntos.  
   c. Elige la opción Detalle.  
-  d. Crea el Alias si no existe haciendo clic en Asociar Nuevo Dominio y completa el formulario (el formulario incluye una opción de deploy, marcada por defecto, que redespliega el servicio de inmediato para empezar a servir el dominio nuevo — desmárcala para dejar el cambio pendiente de aprobación).  
+  d. Crea el Alias si no existe haciendo clic en Asociar Nuevo Dominio y completa el formulario (el formulario incluye una opción de deploy, marcada por defecto, que redespliega el servicio de inmediato para empezar a servir el dominio nuevo — si la desmarcas, el alias se guarda sin desplegar y tendrás que desplegar los proyectos afectados tú mismo para que tome efecto).  
   e. Haz clic en el dominio del Alias para mostrar el detalle.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
@@ -123,7 +123,7 @@ Solo los dominios alias pueden eliminarse directamente desde el panel. Los domin
 <summary>
 ### Mi alias muestra "Cert. Pending" aunque esperaba que estuviera activo
 </summary>
-Si tu alias es un subdominio directo de un dominio ya gestionado por SleakOps, reutiliza el certificado de ese dominio en lugar de emitir uno propio — el panel muestra esto como "Cert. Pending" sin importar si el certificado del padre ya está activo. Revisa el estado del dominio padre para confirmar que el certificado es válido.
+Si tu alias es un subdominio directo de un dominio ya gestionado por SleakOps en la misma cuenta, reutiliza el certificado de ese dominio en lugar de emitir uno propio — el panel muestra esto como "Cert. Pending" sin importar si el certificado del padre ya está activo. Revisa el estado del dominio padre para confirmar que el certificado es válido.
 </details>
 
 <details>

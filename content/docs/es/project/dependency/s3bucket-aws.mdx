@@ -100,7 +100,7 @@ Al agregar un cubo S3 como dependencia en SleakOps, deberás configurar los sigu
 | **Nombre del Bucket S3** | Nombre global del bucket. Se valida en vivo contra la disponibilidad en S3 mientras escribís; los nombres con puntos son rechazados por esta validación. |
 | **Lista de Control de Acceso (ACL) de S3** | Especifica el nivel de acceso para el cubo S3 y su contenido. Opciones: `private`, `public-read`, `public-read-write`, `aws-exec-read`, `authenticated-read`, `log-delivery-write` |
 | **Habilitar Versionado** | Conserva cada versión anterior de un objeto. No se puede cambiar después de crear el bucket. |
-| **Habilitar Cifrado KMS** | Cifra los objetos del lado del servidor con una clave KMS, creada automáticamente por vos. |
+| **Habilitar Cifrado KMS** | Cifra los objetos del lado del servidor con KMS, usando la clave gestionada por AWS (`aws/s3`). |
 | **Habilitar Intelligent-Tiering** | Mueve automáticamente los objetos a clases de almacenamiento más económicas según sus patrones de acceso. Configurá los **Días para Archive Tier** y **Días para Deep Archive Tier** — cuánto tiempo antes de que los objetos pasen a cada nivel. |
 | **Habilitar CloudFront** | Permite habilitar Amazon CloudFront, una CDN para entregar el contenido del cubo S3 a nivel global. |
 | **Alias** | El alias para el cubo S3 o la distribución de CloudFront (por ejemplo, `cdn.mydomain.com`). Solo disponible cuando la región del proveedor de la cuenta es `us-east-1`. |
@@ -150,6 +150,6 @@ Una vez que la dependencia está en estado `created`, su menú **Actions** ofrec
 | **Acción** | **Descripción** |
 | --- | --- |
 | **Import Bucket** | Copia objetos con `aws s3 sync` desde un bucket origen que indiques. El dueño del bucket origen debe primero otorgar acceso al service-account de tu proyecto — SleakOps te da la bucket policy exacta y un link de CloudFormation quick-create para aplicarla. |
-| **AWS DataSync** | Transfiere datos usando AWS DataSync, más adecuado para volúmenes grandes de datos. Requiere un rol IAM dedicado, que SleakOps también provisiona mediante un link de CloudFormation quick-create. |
+| **AWS DataSync** | Transfiere datos usando AWS DataSync, más adecuado para volúmenes grandes de datos. Requiere un rol IAM dedicado, que creas en tu cuenta mediante el link de CloudFormation quick-create que SleakOps te provee. |
 
 Ambas acciones corren como un Job en tu clúster y se siguen desde la sección *Jobs*.

@@ -46,7 +46,7 @@ SleakOps securely stores vargroups as Kubernetes secrets inside your EKS cluster
 ### Can I delete a Variable Group?
 
 </summary>
-Yes. Deletion shows the same deploy switch as edits — enable it to redeploy immediately, and it warns you how many replicated environments will be affected. Variable Groups created automatically for a Dependency (e.g., database credentials) can't be deleted directly; delete the Dependency instead.
+Yes. Deleting a Variable Group always redeploys every project that uses it — the confirmation warns you that the main project and all replicated projects will be affected. Variable Groups created automatically for a Dependency (e.g., database credentials) can't be deleted directly; delete the Dependency instead.
 </details>
 
 <details>
@@ -55,7 +55,7 @@ Yes. Deletion shows the same deploy switch as edits — enable it to redeploy im
 ### Who can reveal the values of a Variable Group?
 
 </summary>
-Any authenticated user with access to the project can reveal Vargroup values, including Viewers. Creating, editing, and deleting Vargroups is restricted to Admins and Editors.
+Any authenticated user with access to the account can reveal Vargroup values, including Viewers. Creating, editing, and deleting Vargroups is restricted to Admins and Editors.
 </details>
 
 <details>
@@ -176,7 +176,7 @@ Select **ENV** to inject variables as environment variables into your workload c
 
 #### FILE — Mounted Configuration Files
 
-Select **FILE** to mount variables as files inside your workload containers. When using this type, you must also provide a **Mount Path** — the directory where the files will be mounted (an absolute path, unique across Vargroups in the same environment).
+Select **FILE** to mount variables as files inside your workload containers. When using this type, you must also provide a **Mount Path** — the directory where the files will be mounted (an absolute path, unique across the project's Vargroups).
 
 Each key-value pair creates one file following this structure:
 

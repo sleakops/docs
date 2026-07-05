@@ -46,7 +46,7 @@ SleakOps almacena de forma segura los Vargroups como secretos de Kubernetes dent
 ### ¿Puedo eliminar un Variable Group?
 
 </summary>
-Sí. La eliminación muestra el mismo switch de deploy que las ediciones — activalo para redesplegar de inmediato — y te avisa cuántos entornos replicados se verán afectados. Los Variable Groups creados automáticamente para una Dependency (por ejemplo, credenciales de base de datos) no se pueden eliminar directamente; eliminá la Dependency en su lugar.
+Sí. Eliminar un Variable Group siempre redespliega todos los proyectos que lo usan — la confirmación te avisa que el proyecto principal y todos los proyectos replicados se verán afectados. Los Variable Groups creados automáticamente para una Dependency (por ejemplo, credenciales de base de datos) no se pueden eliminar directamente; eliminá la Dependency en su lugar.
 </details>
 
 <details>
@@ -55,7 +55,7 @@ Sí. La eliminación muestra el mismo switch de deploy que las ediciones — act
 ### ¿Quién puede revelar los valores de un Variable Group?
 
 </summary>
-Cualquier usuario autenticado con acceso al proyecto puede revelar los valores de un Vargroup, incluidos los Viewers. Crear, editar y eliminar Vargroups está restringido a Admins y Editors.
+Cualquier usuario autenticado con acceso a la cuenta puede revelar los valores de un Vargroup, incluidos los Viewers. Crear, editar y eliminar Vargroups está restringido a Admins y Editors.
 </details>
 
 <details>
@@ -173,7 +173,7 @@ Selecciona **ENV** para inyectar las variables como variables de entorno en los 
 
 #### FILE — Archivos de Configuración Montados
 
-Selecciona **FILE** para montar las variables como archivos dentro de los contenedores de tu workload. Al usar este tipo, también debes proporcionar un **Mount Path** — el directorio donde se montarán los archivos (una ruta absoluta, única entre los Vargroups del mismo entorno).
+Selecciona **FILE** para montar las variables como archivos dentro de los contenedores de tu workload. Al usar este tipo, también debes proporcionar un **Mount Path** — el directorio donde se montarán los archivos (una ruta absoluta, única entre los Vargroups del proyecto).
 
 Cada par clave-valor crea un archivo siguiendo esta estructura:
 
