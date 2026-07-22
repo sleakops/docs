@@ -36,7 +36,7 @@ El Cost Explorer es el lugar central para revisar el gasto en todas las cuentas 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
     src="/img/tutorials/cost-review-guide/cost-explorer-dashboard.png"
-    alt="cost-explorer-dashboard"
+    alt="Dashboard del Cost Explorer de SleakOps con las tarjetas de cuenta de AWS y el gráfico de costos agrupado por tipo de recurso"
   />
 </Zoom>
 
@@ -58,7 +58,7 @@ El Cost Explorer es el lugar central para revisar el gasto en todas las cuentas 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
     src="/img/tutorials/cost-review-guide/cost-explorer-drilldown.png"
-    alt="cost-explorer-drilldown"
+    alt="Drill-down del Cost Explorer mostrando el listado de costos por recurso después de hacer clic en una barra del gráfico"
   />
 </Zoom>
 
@@ -75,6 +75,25 @@ Cuando el **Tipo de recurso** está en **Cluster** y hay un cluster seleccionado
 - Si todavía no está instalado, el tag lleva al formulario de instalación del addon.
 
 El dashboard propio de Kubecost es donde vas a encontrar la métrica de costo `idle` — capacidad que estás pagando pero no usando — y el desglose de costos por namespace, por nodo y de storage. Mirá la [documentación de Kubecost](/docs/cluster/addons/kubecost) para saber cómo leer ese dashboard.
+
+---
+
+## El reporte de cost optimization con IA
+
+Además de la revisión manual, SleakOps puede generar por vos un informe de optimización de costos usando IA. Es un buen complemento en una cadencia más larga — trimestral o semestral — cuando querés una foto consolidada con recomendaciones en lugar de recorrer los dashboards a mano.
+
+Para generarlo:
+
+1. Andá a **Settings → Reports** y hacé clic en **Create Report**.
+2. En el drawer de soporte, elegí la tarjeta **"Informe de Costos"** y confirmá con **Generate Report**.
+3. El informe se genera dentro de una conversación de soporte — cuando está listo, aparece en el listado de Reports. Usá **Open report** para abrirlo en una pestaña nueva; desde ahí podés imprimirlo o guardarlo como PDF.
+
+El informe incluye un desglose detallado de costos de AWS por servicio, tendencias de gasto de los últimos 3 meses y recomendaciones de optimización. Si buscás puntualmente right-sizing de Kubernetes, el informe **"Análisis de Overprovisioning K8s"** del mismo catálogo compara los requests de tus workloads contra el uso real y sugiere ajustes.
+
+Dos cosas a tener en cuenta:
+
+- Generar un informe tiene un costo variable de IA según la complejidad del análisis, que consume del presupuesto mensual de IA de tu empresa (configurable en Settings).
+- La sección Reports está disponible para usuarios admin y editor con la feature habilitada — si no la ves en Settings, pedínosla a través de **Support**.
 
 ---
 
@@ -95,7 +114,7 @@ El desglose por recurso del Cost Explorer depende de que las **Cost Allocation T
 Si todavía no están activas, el Cost Explorer para esa cuenta solo va a mostrar el costo total diario de la cuenta, sin desglose por recurso. Si te pasa esto:
 
 1. Buscá una notificación titulada **"CostAllocationTags are not active in your AWS root account"** — lleva directo a la consola de AWS Cost Management.
-2. Segui ese link y activá los tags que aparecen ahí (`Model`, `Name`, `Cluster`, `ClusterId`, `Environment`, `Dependency`).
+2. Seguí ese link y activá los tags que aparecen ahí (`Model`, `Name`, `Cluster`, `ClusterId`, `Environment`, `Dependency`).
 3. El desglose queda disponible una vez que AWS termina de propagar los tags — no es instantáneo, esperá un rato.
 
 ---
