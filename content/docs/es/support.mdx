@@ -1,0 +1,37 @@
+---
+sidebar_position: 18
+---
+
+# Soporte
+
+Si tienes un problema o una pregunta, la forma más rápida de obtener ayuda es a través de **Support**, en la barra lateral principal de la consola — combina un chat con IA y tickets de soporte para tu cuenta. Antes de escribir, vale la pena buscar aquí en la documentación: la mayoría de las preguntas del día a día ya están respondidas en un tutorial o FAQ.
+
+## Qué cubre nuestro soporte
+
+- Errores propios de la plataforma SleakOps.
+- Errores en recursos de infraestructura gestionados automáticamente por SleakOps (clusters, ambientes, dependencias, addons).
+- Ayuda para actualizar recursos provisionados con SleakOps.
+- Bloqueos de estado de la infraestructura (recursos que quedan trabados en un estado).
+- Acompañamiento con workarounds para customizaciones que la plataforma no cubre.
+
+## Dónde mirar primero
+
+Para algunas preguntas frecuentes, la respuesta más rápida es una que puedes conseguir tú mismo, ahora mismo:
+
+- **Algo falla en tu aplicación o en su código** — eso lo maneja y depura tu propio equipo; SleakOps administra la infraestructura sobre la que corre tu aplicación, no la aplicación en sí.
+- **La aplicación se siente lenta** — empieza por [Kubecost](/docs/cluster/addons/kubecost) y [Prometheus](/docs/cluster/addons/prometheus) para ver qué están usando realmente tus workloads, antes de asumir que es un problema de infraestructura.
+- **Preguntas sobre tu Dockerfile o la configuración del build** — consulta [Chart Dependencies](/docs/project/chart/chart_dependencies) para ver qué está soportado de fábrica.
+- **Quieres entender o reducir tu gasto en AWS** — consulta [Estrategias de optimización de costos en AWS](/tutorial/optimize-aws-costs) para formas concretas de bajarlo.
+- **Elegir servicios de AWS o diseñar tu arquitectura** — consulta el [Modelo de Responsabilidad](/docs/responsability-model) más abajo y la [documentación propia de AWS](https://aws.amazon.com/) como guía; estas decisiones son tuyas para tu aplicación.
+
+## Responsabilidad de un vistazo
+
+| | SleakOps | Tú |
+|---|---|---|
+| **Plataforma e infraestructura** | Clusters, networking, provisión, y los recursos que SleakOps crea para ti | Configurar variables de entorno, definir requisitos de recursos y monitorear el uso. |
+| **Tu aplicación** | Proveer el entorno de ejecución, pipelines de CI/CD y herramientas de observabilidad (logs/métricas). | Tu código, sus dependencias y su rendimiento |
+| **Datos y backups** | Proveer las opciones de backup del recurso (por ejemplo, backups automatizados de RDS) y su almacenamiento seguro. | Definir y gestionar las políticas de backup y restauración de tus dependencias — RDS, S3, RabbitMQ (ver [Modelo de Responsabilidad](/docs/responsability-model)) |
+
+## ¿Todavía no estás seguro?
+
+Si no estás seguro de si algo está cubierto, simplemente pregunta — escríbenos a través de **Support** y te vamos a orientar.
