@@ -78,6 +78,31 @@ SleakOps seamlessly handles the deployment process, ensuring that your applicati
 
 Here **project** and **environment** are the required arguments. User might add a **build** or **tag** image to specify an image. Here the **wait** and **key** options are present to, the usage is the same as in the build command.
 
+### Injecting values on deploy
+
+You can inject Helm values into a single deployment, on top of everything configured in the platform (see [Values](/docs/project/values) for the override levels):
+
+```plain
+sleakops deploy -p myapp -e prod -f values.prod.yaml
+sleakops deploy -p myapp -e prod --set api_web.replicas=3
+cat values.yaml | sleakops deploy -p myapp -e prod -f -
+```
+
+| **Option**       | **Description**                                                                                          |
+| ---------------- | --------------------------------------------------------------------------------------------------------- |
+| **-f, --values** | YAML file with values for this deploy (repeatable; `-` reads stdin; later files win).                       |
+| **--set**        | Set a single value, `key.path=value` (repeatable; wins over `-f`). YAML coercion applies: `5` → int, `true` → bool. |
+| **--set-string** | Like `--set` but the value is always kept as a string (no coercion).                                        |
+
+:::warning Ephemeral by design
+Deploy-time values apply to **that deployment only** — they win over every value configured in the platform, and the next deploy without `-f`/`--set`/`--set-string` reverts to the platform values. They are the right tool for one-off tweaks, not for durable configuration: make durable changes at the project or workload level instead.
+:::
+
+Two caveats:
+
+- **For secrets prefer `-f`** (or stdin): `--set` and `--set-string` arguments stay in your shell history and CI logs.
+- **Two different list semantics**: between your own inputs (`-f` files and `--set` flags) a list replaces the previous one, exactly like Helm. But when your deploy values merge against the platform levels, lists are **combined** instead of replaced — an entry you pass is added to the generated ones, it doesn't drop them.
+
 ## CI/CD Examples
 
 With SleakOps CLI, you can integrate your CI/CD pipelines, automate the build and deployment process, and focus on delivering exceptional applications without the hassle of manual intervention.
