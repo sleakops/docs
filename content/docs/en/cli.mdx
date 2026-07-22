@@ -101,7 +101,7 @@ Deploy-time values apply to **that deployment only** — they win over every val
 Two caveats:
 
 - **For secrets prefer `-f`** (or stdin): `--set` arguments stay in your shell history and CI logs.
-- **List semantics differ from plain Helm**: the platform merge combines lists across levels instead of replacing them.
+- **Two different list semantics**: between your own inputs (`-f` files and `--set` flags) a list replaces the previous one, exactly like Helm. But when your deploy values merge against the platform levels, lists are **combined** instead of replaced — an entry you pass is added to the generated ones, it doesn't drop them.
 
 ## CI/CD Examples
 
