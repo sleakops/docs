@@ -10,7 +10,7 @@ title: Términos y Condiciones
 
 Bienvenido a [www.sleakops.com](http://www.sleakops.com/) ("Sitio Web"), un servicio proporcionado por Craftech-io, Inc. ("Empresa", "nosotros" o "nuestro"). La Empresa tiene su sede en 651 North Broad Street, Middletown, Delaware, EE.UU.
 
-Estos Términos y Condiciones ("Términos") rigen su acceso y uso de nuestro Sitio Web y sus servicios asociados (colectivamente, "Servicio"). Al acceder o utilizar cualquier parte de nuestro Servicio, usted ("Usuario", "usted") acepta estar sujeto a estos Términos y nuestra [Política de Privacidad](/es/legal/privacy-policy). Si no está de acuerdo con todos los términos y condiciones de este acuerdo, no podrá acceder al Sitio Web ni utilizar ningún servicio.
+Estos Términos y Condiciones ("Términos") rigen su acceso y uso de nuestro Sitio Web y sus servicios asociados (colectivamente, "Servicio"). Al acceder o utilizar cualquier parte de nuestro Servicio, usted ("Usuario", "usted") acepta estar sujeto a estos Términos y nuestra [Política de Privacidad](/legal/privacy-policy). Si no está de acuerdo con todos los términos y condiciones de este acuerdo, no podrá acceder al Sitio Web ni utilizar ningún servicio.
 
 Lea estos Términos detenidamente antes de acceder a nuestro Servicio. Estos Términos se aplican a todos los visitantes, usuarios y otras personas que acceden o utilizan el Servicio. Al aceptar estos Términos, declara que tiene al menos 18 años de edad o la edad legal para celebrar un contrato vinculante según las leyes aplicables. Si accede y utiliza el Servicio en nombre de una empresa, organización u otra entidad legal, declara y garantiza que tiene la autoridad para vincular dicha entidad a estos Términos.
 
