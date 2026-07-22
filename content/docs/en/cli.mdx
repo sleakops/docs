@@ -95,12 +95,12 @@ cat values.yaml | sleakops deploy -p myapp -e prod -f -
 | **--set-string** | Like `--set` but the value is always kept as a string (no coercion).                                        |
 
 :::warning Ephemeral by design
-Deploy-time values apply to **that deployment only** — they win over every value configured in the platform, and the next deploy without `-f`/`--set` reverts to the platform values. They are the right tool for one-off tweaks, not for durable configuration: make durable changes at the project or workload level instead.
+Deploy-time values apply to **that deployment only** — they win over every value configured in the platform, and the next deploy without `-f`/`--set`/`--set-string` reverts to the platform values. They are the right tool for one-off tweaks, not for durable configuration: make durable changes at the project or workload level instead.
 :::
 
 Two caveats:
 
-- **For secrets prefer `-f`** (or stdin): `--set` arguments stay in your shell history and CI logs.
+- **For secrets prefer `-f`** (or stdin): `--set` and `--set-string` arguments stay in your shell history and CI logs.
 - **Two different list semantics**: between your own inputs (`-f` files and `--set` flags) a list replaces the previous one, exactly like Helm. But when your deploy values merge against the platform levels, lists are **combined** instead of replaced — an entry you pass is added to the generated ones, it doesn't drop them.
 
 ## CI/CD Examples

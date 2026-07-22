@@ -12,7 +12,8 @@ Not every change has to hit the cluster immediately. Whenever you save an edit w
 
 Each Project environment holds **at most one pending Release and one pending Deployment**:
 
-- The first change with Deploy off creates them; every later change updates them, re-calculating the Release version and appending a line to the change list.
+- Changes that affect the chart — Workloads, manifests, chart dependencies — create or update the pending **Release**, re-calculating its version and appending a line to the change list, with a pending **Deployment** pointing to it.
+- Var Group changes only queue the pending **Deployment**: they update values, so the environment's current Release is reused instead of cutting a new chart version.
 - Versions follow the chart's semver: creating or deleting a Workload bumps the *minor*; edits to Workloads, manifests or chart dependencies bump the *patch*.
 - Publication is always manual — SleakOps never auto-approves pending changes.
 - If someone triggers a direct deployment in the meantime, it **supersedes** the pending one: the pending Release and Deployment are discarded so the environment never carries stale queued changes.

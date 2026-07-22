@@ -18,7 +18,7 @@ Los values se mergean nivel por nivel (deep merge) al momento del deploy. Cada n
 | **1**     | Generados por SleakOps            | En ningún lado — derivan de tus formularios de Workload, Dependencies y Var Groups (solo lectura). |
 | **2**     | Global del Project                | **Project → Settings → Chart Configuration**, el editor de **Values**.                   |
 | **3**     | Override del Workload             | El tab **Advanced → Values** del Workload (editor **Workload override**).                 |
-| **4**     | Values por deploy (efímeros)      | El [CLI](/docs/cli#inyectar-values-en-el-deploy): `sleakops deploy -f / --set`.           |
+| **4**     | Values por deploy (efímeros)      | El [CLI](/docs/cli#inyectar-values-en-el-deploy): `sleakops deploy -f values.yaml` o `--set clave.ruta=valor`. |
 
 Los niveles 2 y 3 son persistentes: aplican a todos los deployments siguientes hasta que los cambies. El nivel 4 aplica a **un solo deployment**.
 
@@ -108,5 +108,5 @@ La tabla <b>Effective values</b> del tab Values del Workload muestra el resultad
 <summary>
 ### ¿Debería poner secretos en los values?
 </summary>
-No. Los secretos van en los <a href="/docs/project/vargroup">Var Groups</a>, que se guardan encriptados y se inyectan como Secrets de Kubernetes. Los values son configuración del chart, no un almacén de secretos — y los flags <code>--set</code> del deploy además quedan en el historial de tu shell.
+No. Los secretos van en los <a href="/docs/project/vargroup">Var Groups</a>, que se guardan encriptados y se inyectan como Secrets de Kubernetes. Los values son configuración del chart, no un almacén de secretos — y los flags <code>--set</code>/<code>--set-string</code> del deploy además quedan en el historial de tu shell.
 </details>

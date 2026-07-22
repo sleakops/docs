@@ -12,7 +12,8 @@ No todos los cambios tienen que llegar al cluster inmediatamente. Cada vez que g
 
 Cada entorno del Project mantiene **como máximo un Release pendiente y un Deployment pendiente**:
 
-- El primer cambio con Deploy apagado los crea; cada cambio posterior los actualiza, recalculando la versión del Release y sumando una línea a la lista de cambios.
+- Los cambios que afectan al chart — Workloads, manifiestos, chart dependencies — crean o actualizan el **Release** pendiente, recalculando su versión y sumando una línea a la lista de cambios, con un **Deployment** pendiente apuntándole.
+- Los cambios de Var Groups solo encolan el **Deployment** pendiente: actualizan values, así que se reusa el Release actual del entorno en lugar de cortar una versión nueva del chart.
 - Las versiones siguen el semver del chart: crear o borrar un Workload sube el *minor*; las ediciones de Workloads, manifiestos o chart dependencies suben el *patch*.
 - La publicación es siempre manual — SleakOps nunca aprueba cambios pendientes automáticamente.
 - Si alguien dispara un deployment directo en el medio, este **reemplaza** al pendiente: el Release y el Deployment pendientes se descartan, así el entorno nunca arrastra cambios encolados viejos.

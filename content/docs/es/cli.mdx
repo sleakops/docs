@@ -105,12 +105,12 @@ cat values.yaml | sleakops deploy -p myapp -e prod -f -
 | **--set-string** | Como `--set` pero el valor se mantiene siempre como string (sin coerción).                                        |
 
 :::warning Efímeros por diseño
-Los values por deploy aplican a **ese deployment solamente** — ganan sobre todos los values configurados en la plataforma, y el próximo deploy sin `-f`/`--set` vuelve a los valores de la plataforma. Son la herramienta para ajustes puntuales, no para configuración durable: los cambios durables van a nivel Project o Workload.
+Los values por deploy aplican a **ese deployment solamente** — ganan sobre todos los values configurados en la plataforma, y el próximo deploy sin `-f`/`--set`/`--set-string` vuelve a los valores de la plataforma. Son la herramienta para ajustes puntuales, no para configuración durable: los cambios durables van a nivel Project o Workload.
 :::
 
 Dos consideraciones:
 
-- **Para secretos prefiere `-f`** (o stdin): los argumentos de `--set` quedan en el historial de tu shell y en los logs del CI.
+- **Para secretos prefiere `-f`** (o stdin): los argumentos de `--set` y `--set-string` quedan en el historial de tu shell y en los logs del CI.
 - **Dos semánticas de listas distintas**: entre tus propios inputs (archivos `-f` y flags `--set`) una lista reemplaza a la anterior, exactamente como Helm. Pero cuando tus values del deploy se mergean contra los niveles de la plataforma, las listas se **combinan** en lugar de reemplazarse — una entrada que pasás se suma a las generadas, no las descarta.
 
 ## Ejemplos de CI/CD
