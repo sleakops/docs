@@ -1,0 +1,82 @@
+---
+sidebar_position: 3
+---
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+
+# Cambios Pendientes y Publicación
+
+No todos los cambios tienen que llegar al cluster inmediatamente. Cada vez que guardas una edición con el switch **Deploy?** apagado — una edición de Workload, una personalización de [manifiestos](/docs/project/manifests), un override de [values](/docs/project/values), una actualización de Var Group — SleakOps la registra como un **cambio pendiente** en lugar de desplegarla. Los cambios pendientes se acumulan por entorno hasta que los revisas y publicas con un clic.
+
+## Cómo se acumulan los cambios
+
+Cada entorno del Project mantiene **como máximo un Release pendiente y un Deployment pendiente**:
+
+- El primer cambio con Deploy apagado los crea; cada cambio posterior los actualiza, recalculando la versión del Release y sumando una línea a la lista de cambios.
+- Las versiones siguen el semver del chart: crear o borrar un Workload sube el *minor*; las ediciones de Workloads, manifiestos o chart dependencies suben el *patch*.
+- La publicación es siempre manual — SleakOps nunca aprueba cambios pendientes automáticamente.
+- Si alguien dispara un deployment directo en el medio, este **reemplaza** al pendiente: el Release y el Deployment pendientes se descartan, así el entorno nunca arrastra cambios encolados viejos.
+
+## El badge Publish
+
+Los entornos con cambios pendientes muestran un badge rosa **Publish**:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./pending_changes/pending-publish-badge-projects.png").default}
+    alt="Lista de Projects con el badge Publish en un entorno con cambios pendientes"
+  />
+</Zoom>
+
+El badge aparece en tres lugares:
+
+- La lista de **Projects**, en cada fila de entorno con cambios pendientes.
+- El header del **dashboard del Project**.
+- La lista de **Deployments**, en el deployment cuyo estado es `Pending Approval`.
+
+## Revisar y publicar
+
+Hacer clic en el badge abre el detalle del deployment pendiente. La sección **Pending Changes** lista todos los cambios acumulados, junto con la versión del Release pendiente y hace cuánto empezó la cola:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./pending_changes/deployment-detail-pending-changes.png").default}
+    alt="Detalle del deployment con la sección Pending Changes y el botón Publish"
+  />
+</Zoom>
+
+Presiona **Publish** para lanzarlo. SleakOps publica el Release pendiente del chart (cuando lo hay) y encadena el deployment a continuación — puedes seguir su progreso en la sección de [Deployments](/docs/project/deployment). Los badges desaparecen apenas el deployment sale del estado `Pending Approval`.
+
+:::info Permisos
+Los viewers pueden abrir el detalle y leer los cambios pendientes, pero solo los editors y admins pueden publicar. El botón Publish también se oculta cuando navegas una cuenta en modo solo lectura.
+:::
+
+## FAQs
+
+<details>
+<summary>
+### ¿Qué crea un cambio pendiente?
+</summary>
+Cualquier edición guardada con el switch <b>Deploy?</b> apagado: alta/edición/baja de Workloads, personalizaciones y altas de manifiestos, overrides de values, cambios de Var Groups y actualizaciones de chart dependencies. Las ediciones guardadas con el switch prendido se despliegan al instante.
+</details>
+
+<details>
+<summary>
+### ¿Puedo descartar los cambios pendientes?
+</summary>
+No hay un descarte explícito. Disparar un deployment directo (por ejemplo desde un <a href="/docs/project/build">Build</a>, o vía el CLI) reemplaza el Release y el Deployment pendientes con el estado actual del entorno.
+</details>
+
+<details>
+<summary>
+### ¿Qué pasa si aparecen cambios nuevos después de publicar?
+</summary>
+Los cambios publicables hechos entre la publicación y el deploy real cancelan el deployment con un mensaje pidiendo publicarlos primero — el cluster nunca recibe un chart al que le falten cambios encolados.
+</details>
+
+<details>
+<summary>
+### ¿Por qué mi deployment publicado quedó encolado un rato?
+</summary>
+Los deployments esperan a que el entorno esté consistente antes de ejecutarse: que terminen los deployments anteriores, que los Var Groups se asienten, que las Dependencies lleguen a un estado final y que el cluster esté prendido. El deployment arranca apenas pasan todas las compuertas.
+</details>
