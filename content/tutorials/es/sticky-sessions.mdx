@@ -1,0 +1,131 @@
+---
+title: Configurar sticky sessions
+sidebar_label: Sticky Sessions
+sidebar_position: 49
+description: Fijá cada cliente a la misma réplica de tu Web Service habilitando stickiness por cookie en el ALB desde las anotaciones del ingress.
+tags:
+  - networking
+  - kubernetes
+  - aws
+  - scaling
+  - performance
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Fijá cada cliente a la misma réplica de tu Web Service habilitando stickiness por cookie en el ALB desde las anotaciones del ingress.
+
+## Cuándo necesitás sticky sessions (y cuándo no)
+
+Todo Web Service con más de una réplica balancea el tráfico entre sus Pods, así que dos requests consecutivos del mismo navegador pueden caer en Pods distintos. Si tu aplicación guarda estado de sesión en memoria —un login, un carrito, una subida en curso— esos requests se rompen.
+
+La stickiness hace que el load balancer devuelva al cliente al Pod que ya venía usando. Es un parche útil, pero no resuelve el estado en memoria:
+
+- La afinidad muere con el Pod. Cada deploy reemplaza todos los Pods y cada scale-in elimina algunos, así que los clientes con cookie se reasignan y pierden la sesión igual.
+- Un Pod puede quedarse con una porción desproporcionada de clientes de larga duración, lo que juega en contra del autoscaling.
+
+La solución de fondo es mover el estado de sesión a un backend compartido —una [Dependency de Redis](/docs/project/dependency/redis-aws) o tu base de datos— para que cualquier réplica pueda atender cualquier request. La [guía de testing de Environments](/tutorial/environment-exhaustive-testing-guide) incluye un test para exactamente esta falla. Usá stickiness cuando no podés cambiar la aplicación, o como puente mientras externalizás la sesión.
+
+## Prerrequisitos
+
+- Cuenta en SleakOps
+- Un Cluster configurado ([documentación de Cluster](/docs/cluster))
+- Un Environment configurado ([documentación de Environment](/docs/environment))
+- Un Web Service con service schema `public` o `private`. Los services `internal` no tienen Ingress, así que la stickiness no aplica.
+- Un rol distinto de **Viewer** — los Viewers no pueden editar la configuración de un Workload.
+
+## Empecemos
+
+SleakOps expone los Web Services a través de un Application Load Balancer de AWS, y la stickiness es un atributo del target group de ese load balancer. Se habilita agregando una anotación al Ingress que SleakOps genera para tu Web Service.
+
+### Agregá la anotación de stickiness
+
+1. Abrí tu Web Service desde **Workloads > Web Services**.
+2. En la sección **Connection Settings**, hacé clic en **Edit Ingress**.
+3. En **Extra Annotations**, agregá este par key/value:
+
+| **Campo** | **Valor**                                                                                 |
+| --------- | ----------------------------------------------------------------------------------------- |
+| **Key**   | `alb.ingress.kubernetes.io/target-group-attributes`                                        |
+| **Value** | `stickiness.enabled=true,stickiness.type=lb_cookie,stickiness.lb_cookie.duration_seconds=86400` |
+
+4. Dejá **Deploy?** activado y guardá. La anotación llega al cluster en el próximo deploy.
+
+{/* TODO: screenshot - diálogo IngressConfig con la anotación target-group-attributes cargada en la tabla de Extra Annotations */}
+
+:::warning Dejá ALB Default Annotations activado
+El mismo diálogo tiene un switch **ALB Default Annotations**. Dejalo prendido: genera las anotaciones que el Ingress necesita para funcionar —`target-type: ip`, el nombre del grupo del load balancer y la configuración de los health checks—. Tus anotaciones extra se mergean por encima de esas, así que no hay motivo para desactivarlo.
+:::
+
+El `target-type: ip` que SleakOps pone por defecto es además un requisito de la stickiness del ALB, y es lo que la hace útil acá: el load balancer registra IPs de Pod como targets, así que la cookie fija al cliente a un Pod puntual y no a un Node.
+
+### Configuralo al crear el Web Service
+
+El mismo campo está disponible en el alta. En el paso **Define the connection**, expandí la sección **Advanced** y completá **Extra Annotations** dentro de **Ingress Annotations**. La anotación se aplica a todos los hosts del Web Service: su URL por defecto y cualquier Domain propio que apunte a él.
+
+{/* TODO: screenshot - paso Define the connection con la sección Advanced expandida, mostrando Ingress Annotations */}
+
+### Ajustá la cookie
+
+El valor de la anotación es una lista de atributos del target group separados por comas. Reemplaza el conjunto completo de atributos de stickiness, así que mandá todos los pares que necesitás en un único valor.
+
+| **Atributo**                             | **Descripción**                                                                  | **Default**       |
+| ---------------------------------------- | -------------------------------------------------------------------------------- | ----------------- |
+| **stickiness.enabled**                   | Habilita la stickiness. `true` o `false`.                                          | `false`           |
+| **stickiness.type**                      | `lb_cookie` para una cookie que genera el load balancer, `app_cookie` para seguir una que setea tu aplicación. | —                 |
+| **stickiness.lb_cookie.duration_seconds** | Cuánto dura la afinidad con `lb_cookie`. De 1 segundo a 604800 (7 días).           | `86400` (1 día)   |
+| **stickiness.app_cookie.cookie_name**    | Nombre de la cookie de tu aplicación. Obligatorio con `app_cookie`.                | —                 |
+| **stickiness.app_cookie.duration_seconds** | Cuánto dura la afinidad con `app_cookie`. De 1 segundo a 604800 (7 días).          | `86400` (1 día)   |
+
+Con `app_cookie`, el nombre de la cookie no puede empezar con `AWSALB`, `AWSALBAPP` ni `AWSALBTG`: esos prefijos están reservados por el load balancer.
+
+Por ejemplo, una afinidad de dos horas manejada por tu propia cookie `JSESSIONID`:
+
+```
+stickiness.enabled=true,stickiness.type=app_cookie,stickiness.app_cookie.cookie_name=JSESSIONID,stickiness.app_cookie.duration_seconds=7200
+```
+
+Mirá la [documentación de sticky sessions del ALB <FiExternalLink/>](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/sticky-sessions.html) para el comportamiento completo de cada modo.
+
+### Verificalo
+
+Cuando termine el deploy, revisá las tres capas:
+
+**1. El load balancer setea la cookie.** Pedí tu service y mirá los headers de respuesta:
+
+```bash
+curl -sI https://myservice.myenv.sleakops.com | grep -i set-cookie
+```
+
+Con `lb_cookie` deberías ver una cookie `AWSALB` (más `AWSALBCORS` en requests cross-origin). Con `app_cookie` el load balancer agrega `AWSALBAPP` junto a tu propia cookie. Si no hay ninguna cookie, la anotación no llegó al Ingress: volvé al primer paso y confirmá que el deploy terminó.
+
+**2. Responde siempre el mismo Pod.** Guardá las cookies y reusalas:
+
+```bash
+curl -s -c cookies.txt https://myservice.myenv.sleakops.com > /dev/null
+for i in $(seq 1 10); do curl -s -b cookies.txt https://myservice.myenv.sleakops.com/tu-path-de-debug; done
+```
+
+Si tu aplicación expone su hostname en algún lado —la variable de entorno `HOSTNAME` dentro de un Pod es el nombre del Pod— todas las respuestas tendrían que reportar el mismo. Si no, abrí los logs del Web Service en [Headlamp](/docs/cluster/addons/headlamp) y confirmá que un solo Pod registra esos requests.
+
+**3. La anotación está en el objeto real.** En Headlamp, abrí el Ingress del Namespace de tu Environment y verificá que `alb.ingress.kubernetes.io/target-group-attributes` aparezca en sus anotaciones con el valor que cargaste.
+
+{/* TODO: screenshot - Headlamp mostrando las anotaciones del Ingress, incluida target-group-attributes */}
+
+## Limitaciones
+
+:::warning
+- **La afinidad no sobrevive al reemplazo de un Pod.** Los deploys, el scale-in y la consolidación de Nodes reasignan clientes. La stickiness reduce con qué frecuencia un cliente cambia de Pod; nunca garantiza que no pase.
+- **No reemplaza el estado de sesión compartido.** Si perder una sesión es inaceptable, guardala en Redis o en tu base de datos.
+- **El `sessionAffinity: ClientIP` de Kubernetes no tiene efecto acá.** El load balancer manda el tráfico directo a las IPs de los Pods, salteando el balanceo del propio Service, así que la afinidad se configura en el load balancer.
+- **`ssl-redirect` y `listen-ports` no se pueden sobrescribir** desde Extra Annotations en los hosts servidos por HTTPS: SleakOps los fija al final para los hosts con TLS.
+- **Los Web Services `internal` no tienen Ingress**, así que no hay nada que anotar.
+:::
+
+## Próximos pasos
+
+- [Configuración de Web Service](/docs/project/workload/webservice) — el resto de las opciones del Workload, incluidas réplicas y autoscaling
+- [Manifests](/docs/project/manifests) — editá directamente el YAML del Ingress generado cuando una anotación no alcanza
+- [Values](/docs/project/values) — sobrescribí cualquier value generado de Helm, incluidas las opciones de ingress por host
