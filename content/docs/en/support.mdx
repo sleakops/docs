@@ -18,19 +18,19 @@ If you run into an issue or have a question, the fastest way to get help is thro
 
 For a few common questions, the fastest answer is one you can get yourself, right now:
 
-- **Something's wrong in your application or its code** — that's owned and debugged by your own team; SleakOps manages the infrastructure your application runs on, not the application itself.
-- **The application feels slow** — start with [Kubecost](/docs/cluster/addons/kubecost) and [Prometheus](/docs/cluster/addons/prometheus) to see what your workloads are actually using, before assuming it's an infrastructure problem.
-- **Questions about your Dockerfile or build configuration** — see [Chart Dependencies](/docs/project/chart/chart_dependencies) for what's supported out of the box.
-- **You want to understand or reduce your AWS spend** — see [AWS Cost Optimization Strategies](/tutorial/optimize-aws-costs) for concrete ways to bring it down.
+- **Something's wrong in your application or its code** — that's owned and debugged by your own team; SleakOps manages the infrastructure your application runs on, not the application itself. As a first step, you can run an AI-powered [Autodiagnostic](/docs/powered-ai/autodiagnostic) on the workload to guide the investigation.
+- **The application feels slow** — start with [Grafana](/docs/cluster/addons/grafana) to see what your workloads are actually using, before assuming it's an infrastructure problem.
+- **Questions about your Dockerfile or build configuration** — see [Configure your Dockerfile](/docs/project/configure_your_dockerfile) for what's supported out of the box.
+- **You want to understand or reduce your AWS spend** — see the [Cost Review Guide](/tutorial/cost-review-guide) to read what you're already spending, and [AWS Cost Optimization Strategies](/tutorial/optimize-aws-costs) for concrete ways to bring it down.
 - **Choosing AWS services or designing your architecture** — see the [Responsibility Model](/docs/responsability-model) below and [AWS's own documentation](https://docs.aws.amazon.com/) for guidance; these decisions are yours to make for your application.
 
 ## Responsibility at a glance
 
 | | SleakOps | You |
 |---|---|---|
-| **Platform & infrastructure** | Clusters, networking, provisioning, and the resources SleakOps creates for you | Configure environment variables, define resource requirements, and monitor usage |
+| **Platform & infrastructure** | Clusters, networking, provisioning, and the resources SleakOps creates for you — as long as you don't modify them directly in AWS, outside the platform. | Configure environment variables, define resource requirements, and monitor usage |
 | **Your application** | Provide runtime environment, CI/CD pipelines capabilities, and observability tools (logs/metrics) | Your code, its dependencies, and its performance |
-| **Data & backups** | Provide the resource's backup options (e.g. automated RDS backups) and their secure storage | Define and manage backup and restoration policies for your dependencies — RDS, S3, RabbitMQ (see [Responsibility Model](/docs/responsability-model)) |
+| **Data & backups** | Expose the resource's backup settings in the dependency form (e.g. the RDS "Automated Backup" toggle and retention period) | Define and manage backup and restoration policies for your dependencies — RDS, S3, RabbitMQ — and their secure storage (see [Responsibility Model](/docs/responsability-model)) |
 
 ## Still not sure?
 
