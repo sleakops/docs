@@ -339,7 +339,7 @@ Para cada API externa con la que tu aplicación se integra:
 1. Escalá tu Web Service principal a 3 réplicas desde la Console de SleakOps
 2. Enviá una serie de requests y verificá que todas las réplicas los manejan correctamente (revisá los logs en Headlamp — deberías ver requests distribuidos entre distintos nombres de pods)
 3. **Pasa:** Todas las réplicas sirven requests correctamente; sin errores relacionados al estado compartido
-4. **Falla:** Aparecen errores cuando un request llega a una réplica diferente a la que inició la sesión (problema de sticky sessions)
+4. **Falla:** Aparecen errores cuando un request llega a una réplica diferente a la que inició la sesión (problema de sticky sessions) — la causa de fondo es estado de sesión guardado en la memoria del Pod y no en un backend compartido; las [sticky sessions](/tutorial/sticky-sessions) pueden mitigarlo mientras externalizás ese estado
 
 ### Estado compartido entre réplicas
 
