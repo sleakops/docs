@@ -9,6 +9,7 @@ tags:
   - aws
   - scaling
   - performance
+image: /img/tutorials/sticky-sessions/connection-settings-advanced.png
 ---
 
 import Zoom from "react-medium-image-zoom";
@@ -51,21 +52,33 @@ SleakOps exposes Web Services through an AWS Application Load Balancer, and stic
 | **Key**   | `alb.ingress.kubernetes.io/target-group-attributes`                                        |
 | **Value** | `stickiness.enabled=true,stickiness.type=lb_cookie,stickiness.lb_cookie.duration_seconds=86400` |
 
-4. Leave **Deploy?** enabled and save. The annotation only reaches the cluster on the next deploy.
+4. Leave **Deploy?** enabled and click **Update ingress config**. The annotation only reaches the cluster on the next deploy.
 
-{/* TODO: screenshot - IngressConfig dialog with the target-group-attributes annotation filled in the Extra Annotations table */}
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/tutorials/sticky-sessions/ingress-config-dialog.png"
+    alt="IngressConfig dialog with the target-group-attributes annotation in the Extra Annotations table, ALB default annotations enabled and Deploy? on"
+  />
+</Zoom>
 
-:::warning Leave ALB Default Annotations enabled
-The same dialog has an **ALB Default Annotations** switch. Keep it on. It generates the annotations the Ingress needs to work at all — `target-type: ip`, the load balancer group name, and the health check settings. Your extra annotations are merged on top of those, so there is no reason to disable it.
+Every other field keeps its default — you only add the annotation row.
+
+:::warning Leave ALB default annotations enabled
+The same dialog has an **ALB default annotations** switch. Keep it on. It generates the annotations the Ingress needs to work at all — `target-type: ip`, the load balancer group name, and the health check settings. Your extra annotations are merged on top of those, so there is no reason to disable it.
 :::
 
 The `target-type: ip` that SleakOps sets by default is also a hard requirement for ALB stickiness, and it is what makes stickiness useful here: the load balancer registers Pod IPs as targets, so the cookie pins a client to a specific Pod rather than to a Node.
 
-### Set it when creating the Web Service
+### Set it from the Web Service form
 
-The same field is available at creation time. In the **Connection Settings** step of the Web Service form, expand the **Advanced** section and fill in **Extra Annotations** under **Ingress Annotations**. The annotation applies to every host of the Web Service — its default URL and any custom Domain pointing at it.
+The same field is available in the Web Service form, whether you are creating the Workload or editing it. In the **Connection Settings** step, expand the **Advanced** section and fill in **Extra Annotations** under **Ingress Annotations**. The annotation applies to every host of the Web Service — its default URL and any custom Domain pointing at it.
 
-{/* TODO: screenshot - Connection Settings step with the Advanced section expanded, showing Ingress Annotations */}
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/tutorials/sticky-sessions/connection-settings-advanced.png"
+    alt="Connection Settings step of the Web Service form with the Advanced section expanded, showing the Ingress Annotations block"
+  />
+</Zoom>
 
 ### Tune the cookie
 
@@ -91,7 +104,7 @@ See the [ALB sticky sessions documentation <FiExternalLink/>](https://docs.aws.a
 
 ### Verify it
 
-Once the deploy finishes, check all three layers:
+Once the deploy finishes, verify it end to end:
 
 **1. The load balancer sets a cookie.** Request your service and look at the response headers:
 
@@ -110,9 +123,7 @@ for i in $(seq 1 10); do curl -s -b cookies.txt https://myservice.myenv.sleakops
 
 If your application exposes its hostname anywhere — the `HOSTNAME` environment variable inside a Pod is the Pod name — every response should report the same one. Otherwise, open the Web Service logs in [Headlamp](/docs/cluster/addons/headlamp) and confirm that only one Pod records those requests.
 
-**3. The annotation is on the live object.** In Headlamp, open the Ingress for your Environment's Namespace and check that `alb.ingress.kubernetes.io/target-group-attributes` appears in its annotations with the value you set.
-
-{/* TODO: screenshot - Headlamp showing the Ingress annotations including target-group-attributes */}
+**3. The annotation is on the live object.** If either check above fails, open the Ingress for your Environment's Namespace in Headlamp and confirm that `alb.ingress.kubernetes.io/target-group-attributes` appears in its annotations with the value you set. If it is missing, the deploy did not go through; if it is there, the problem is downstream — check that your Web Service has more than one replica.
 
 ## Limitations
 
