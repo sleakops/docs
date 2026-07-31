@@ -45,7 +45,7 @@ SleakOps expone los Web Services a través de un Application Load Balancer de AW
 
 1. Abrí tu Web Service desde **Workloads > Web Services**.
 2. En la sección **Connection Settings**, hacé clic en **Edit Ingress**.
-3. En **Extra Annotations**, agregá este par key/value:
+3. En la tabla Key/Value del final del diálogo, agregá este par:
 
 | **Campo** | **Valor**                                                                                 |
 | --------- | ----------------------------------------------------------------------------------------- |
@@ -114,7 +114,7 @@ curl -sI https://myservice.myenv.sleakops.com | grep -i set-cookie
 
 Con `lb_cookie` vas a ver dos cookies: `AWSALB`, y una segunda `AWSALBCORS` con la misma información más el atributo `SameSite` que algunos navegadores exigen para requests cross-origin. El load balancer manda siempre las dos, tanto en respuestas CORS como no-CORS.
 
-Con `app_cookie` también son dos: la que setea tu aplicación y `AWSALBAPP-0` que genera el load balancer. Las cookies de más de 4 KB se fragmentan en más partes (`AWSALBAPP-1`, y así).
+Con `app_cookie` también son dos: la que setea tu aplicación y `AWSALBAPP-0` que genera el load balancer. Las cookies de más de 4 KB se fragmentan en más partes —`AWSALBAPP-1` y siguientes, hasta un máximo de cuatro fragmentos y 16 KB en total.
 
 Si no aparece ninguna, la anotación no llegó al Ingress: volvé al primer paso y confirmá que el deploy terminó.
 
