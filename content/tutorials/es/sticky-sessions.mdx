@@ -112,7 +112,11 @@ Cuando termine el deploy, verificalo de punta a punta:
 curl -sI https://myservice.myenv.sleakops.com | grep -i set-cookie
 ```
 
-Con `lb_cookie` deberías ver una cookie `AWSALB` (más `AWSALBCORS` en requests cross-origin). Con `app_cookie` el load balancer agrega `AWSALBAPP` junto a tu propia cookie. Si no hay ninguna cookie, la anotación no llegó al Ingress: volvé al primer paso y confirmá que el deploy terminó.
+Con `lb_cookie` vas a ver dos cookies: `AWSALB`, y una segunda `AWSALBCORS` con la misma información más el atributo `SameSite` que algunos navegadores exigen para requests cross-origin. El load balancer manda siempre las dos, tanto en respuestas CORS como no-CORS.
+
+Con `app_cookie` también son dos: la que setea tu aplicación y `AWSALBAPP-0` que genera el load balancer. Las cookies de más de 4 KB se fragmentan en más partes (`AWSALBAPP-1`, y así).
+
+Si no aparece ninguna, la anotación no llegó al Ingress: volvé al primer paso y confirmá que el deploy terminó.
 
 **2. Responde siempre el mismo Pod.** Guardá las cookies y reusalas:
 
