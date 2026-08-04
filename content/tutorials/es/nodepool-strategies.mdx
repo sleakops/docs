@@ -20,9 +20,13 @@ Aprendé a configurar nodepools en SleakOps para optimizar costos, mejorar el re
 
 ## ¿Qué es un nodepool?
 
-En SleakOps, un **nodepool** es un grupo de nodos EC2 dentro de tu cluster de Kubernetes que comparten la misma configuración — arquitectura, tipo de instancia, modelo de facturación y límites de recursos. Karpenter gestiona el autoscaling dentro de cada pool automáticamente.
+En SleakOps, un **nodepool** no es un grupo de máquinas EC2 que ya están corriendo: es la **definición** de un grupo de nodos EC2 que Karpenter puede aprovisionar a demanda. Cada nodepool especifica qué tipo de nodos se pueden crear — arquitectura, tipo de instancia, modelo de facturación y límites de recursos — y Karpenter levanta y elimina nodos que cumplen esa definición automáticamente según la carga, incluso escalando a cero cuando no hay workloads.
 
-Cuando creás un Cluster, SleakOps aprovisiona un conjunto de nodepools por defecto:
+:::tip
+No confundas el nodepool con las EC2 en sí. El nodepool es la **plantilla**; los nodos EC2 reales aparecen y desaparecen a demanda.
+:::
+
+Cuando creás un Cluster, SleakOps configura un conjunto de nodepools por defecto:
 
 | **nodepool** | **Propósito** |
 |---|---|
@@ -36,6 +40,8 @@ Cada Project Environment se asigna a un nodepool. El cambio de asignación es po
 ---
 
 ## Estrategias de Optimización de Costos
+
+¿Todavía no sabés bien a dónde va tu gasto? Empezá por la [Guía de revisión de costos](/tutorial/cost-review-guide) para leer tus costos actuales antes de aplicar estas estrategias.
 
 ### 1. Spot con Fallback On-Demand
 
@@ -58,6 +64,18 @@ Para usar ARM en SleakOps, se deben cumplir tres condiciones:
 3. **Tu proyecto debe estar configurado para usar un nodepool ARM** — podés consultar y actualizar el nodepool asignado a un proyecto desde el detalle del proyecto en SleakOps.
 
 **Ideal para:** servicios escritos en Go, Python o Node.js sin dependencias nativas exclusivas de x86.
+
+### 3. Segmentación de costos por proyecto
+
+Un nodepool dedicado por proyecto es una estrategia organizacional en la que cada Project Environment corre en su propio pool de cómputo aislado. Los límites de recursos, tipos de instancia y modelos de facturación se configuran de forma independiente para cada proyecto.
+
+**Ventaja:** control granular. Cada proyecto tiene su propio límite de cómputo — no hay contención de recursos entre proyectos, y podés ajustar la configuración con precisión para cada perfil de workload.
+
+**Desventaja:** los nodos no se pueden compartir entre proyectos. Cuando el pool de un proyecto está subutilizado, esa capacidad disponible no puede ser aprovechada por otros proyectos, lo que resulta en costos de infraestructura más altos en comparación con un enfoque de pools compartidos.
+
+:::tip
+Este patrón es ideal cuando el aislamiento estricto es un requisito de negocio o compliance, o cuando los proyectos tienen perfiles de recursos muy distintos. Para la mayoría de los workloads, un conjunto reducido de pools compartidos es más eficiente en costos.
+:::
 
 ---
 

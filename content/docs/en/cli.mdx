@@ -55,15 +55,15 @@ As previously mentioned the key might be an input here or a environment variable
 
 Also, you might mark if you want the process to **wait** the build to be finished or not.
 
-When you use **wait**, you can also set a **timeout** (in minutes) to cap how long the CLI waits for the build to finish. It defaults to **180 minutes**; pass `0` to wait indefinitely. You can also set it through the `BUILD_TIMEOUT_MINUTES` environment variable.
+You can set a **timeout** (in minutes) for a build. This is the build's maximum lifetime on the backend: if the build runs longer, SleakOps stops it and marks it as failed, so a stuck build can't hang forever. It defaults to **180 minutes**, and every build is bounded even if you don't pass it. When you also use **wait**, `--timeout` caps how long the CLI watches the build too. The CLI's default can be set through the `BUILD_TIMEOUT_MINUTES` environment variable.
 
 | **Option**    | **Description**                                                              |
 | ------------- | --------------------------------------------------------------------------- |
 | **--wait**    | Wait for the build to finish before returning.                              |
-| **--timeout** | Minutes to wait when using `--wait`. Default `180`. Use `0` for no timeout.  |
+| **--timeout** | Maximum build lifetime in minutes; also caps how long the CLI watches with `--wait`. Default `180`. `0` keeps the platform default and lets `--wait` watch indefinitely.  |
 
 :::tip
-The timeout is client-side: it controls how long the CLI watches the build, not the build itself on the backend. When it expires, the CLI prints a message and exits with code `1`, so a stuck build fails your CI pipeline instead of silently passing.
+`--timeout` works on two levels: the backend stops the build once it exceeds the limit (this happens for every build, even without `--wait`), and — when you pass `--wait` — the CLI also stops watching after the same time and exits with code `1`, so a stuck build fails your CI pipeline instead of hanging.
 :::
 
 ### 3. Make a Deploy
@@ -77,6 +77,31 @@ sleakops deploy [options]
 SleakOps seamlessly handles the deployment process, ensuring that your application is up and running in no time. You can specify deployment options to fine-tune the process according to your requirements.
 
 Here **project** and **environment** are the required arguments. User might add a **build** or **tag** image to specify an image. Here the **wait** and **key** options are present to, the usage is the same as in the build command.
+
+### Injecting values on deploy
+
+You can inject Helm values into a single deployment, on top of everything configured in the platform (see [Values](/docs/project/values) for the override levels):
+
+```plain
+sleakops deploy -p myapp -e prod -f values.prod.yaml
+sleakops deploy -p myapp -e prod --set api_web.replicas=3
+cat values.yaml | sleakops deploy -p myapp -e prod -f -
+```
+
+| **Option**       | **Description**                                                                                          |
+| ---------------- | --------------------------------------------------------------------------------------------------------- |
+| **-f, --values** | YAML file with values for this deploy (repeatable; `-` reads stdin; later files win).                       |
+| **--set**        | Set a single value, `key.path=value` (repeatable; wins over `-f`). YAML coercion applies: `5` → int, `true` → bool. |
+| **--set-string** | Like `--set` but the value is always kept as a string (no coercion).                                        |
+
+:::warning Ephemeral by design
+Deploy-time values apply to **that deployment only** — they win over every value configured in the platform, and the next deploy without `-f`/`--set`/`--set-string` reverts to the platform values. They are the right tool for one-off tweaks, not for durable configuration: make durable changes at the project or workload level instead.
+:::
+
+Two caveats:
+
+- **For secrets prefer `-f`** (or stdin): `--set` and `--set-string` arguments stay in your shell history and CI logs.
+- **Two different list semantics**: between your own inputs (`-f` files and `--set` flags) a list replaces the previous one, exactly like Helm. But when your deploy values merge against the platform levels, lists are **combined** instead of replaced — an entry you pass is added to the generated ones, it doesn't drop them.
 
 ## CI/CD Examples
 

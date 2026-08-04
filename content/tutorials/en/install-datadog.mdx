@@ -1,7 +1,7 @@
 ---
 title: Install Datadog on a SleakOps EKS Cluster
 sidebar_label: Install Datadog
-sidebar_position: 34
+sidebar_position: 33
 description: Install the Datadog monitoring agent on an Amazon EKS cluster managed by SleakOps using Helm, with a values.yaml and recommended best practices.
 tags:
   - kubernetes
@@ -16,6 +16,20 @@ import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
 
 Install the [Datadog <FiExternalLink/>](https://www.datadoghq.com/) monitoring agent on a SleakOps EKS cluster using Helm to gain full visibility into application performance and infrastructure health.
+
+## Helm vs. Datadog Operator — which guide is right for you?
+
+SleakOps has two tutorials for installing Datadog. They cover different approaches and are **not combined** — choose one based on your needs:
+
+| | **This guide (Helm)** | **[Datadog Operator](/tutorial/deploy-datadog-operator)** |
+|---|---|---|
+| **Setup complexity** | Low | High |
+| **Lifecycle management** | Manual (Helm upgrades) | Automatic (Operator manages the agent) |
+| **Auto-instrumentation** | No | Yes (admission controller) |
+| **Karpenter NodePool tolerations** | Manual | Built-in |
+| **Best for** | Quick monitoring setup, simple clusters | Multi-workload clusters, auto-instrumentation, Karpenter |
+
+If you're not sure which to use, start here.
 
 ## Prerequisites
 
@@ -81,6 +95,10 @@ All `datadog-agent-*` pods should reach `Running` state within a few minutes.
 | **Helm (this guide)** | Flexible, configurable, standard | Requires Helm knowledge |
 | **Datadog Operator** | Lifecycle management, CRD-based | More complex to set up |
 | **Fargate Logging** | No node management | Works only for specific workloads |
+
+## Next Steps
+
+Need auto-instrumentation, admission controller, or Karpenter NodePool tolerations? See the [Deploy Datadog Operator](/tutorial/deploy-datadog-operator) guide for the advanced CRD-based setup.
 
 ## Best Practices
 

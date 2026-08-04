@@ -20,9 +20,13 @@ Learn how to configure nodepools in SleakOps to optimize costs, improve performa
 
 ## What Is a nodepool?
 
-In SleakOps, a **nodepool** is a group of EC2 nodes within your Kubernetes cluster that share the same configuration — architecture, instance type, billing model, and resource limits. Karpenter manages autoscaling within each pool automatically.
+In SleakOps, a **nodepool** is not a group of EC2 machines that are already running: it's the **definition** of a group of EC2 nodes that Karpenter can provision on demand. Each nodepool specifies which nodes can be created — architecture, instance type, billing model, and resource limits — and Karpenter launches and removes nodes matching that definition automatically based on load, even scaling to zero when there are no workloads.
 
-When you create a Cluster, SleakOps provisions a set of default nodepools:
+:::tip
+Don't confuse the nodepool with the EC2 instances themselves. The nodepool is the **template**; the actual EC2 nodes come and go on demand.
+:::
+
+When you create a Cluster, SleakOps configures a set of default nodepools:
 
 | **nodepool** | **Purpose** |
 |---|---|
@@ -36,6 +40,8 @@ Each Project Environment is assigned to one nodepool. The assignment can be chan
 ---
 
 ## Cost Optimization Strategies
+
+Not sure yet where your spend is actually going? Start with the [Cost Review Guide](/tutorial/cost-review-guide) to read your current costs before applying any of these strategies.
 
 ### 1. Spot with On-Demand Fallback
 
@@ -58,6 +64,18 @@ To use ARM in SleakOps, three conditions must be met:
 3. **Your project must be configured to use an ARM nodepool** — you can check and update the nodepool assigned to a project from the project detail view in SleakOps.
 
 **Best for:** services written in Go, Python, or Node.js without native x86-only dependencies.
+
+### 3. Cost Segmentation per Project
+
+A dedicated nodepool per Project is an organizational strategy where each Project Environment runs in its own isolated compute pool. Resource limits, instance types, and billing models are configured independently for each project.
+
+**Advantage:** fine-grained control. Each project has its own compute boundary — there is no resource contention between projects, and you can tune settings precisely for each workload profile.
+
+**Disadvantage:** nodes cannot be shared across projects. When one project's pool is underutilized, that spare capacity is not available to other projects, resulting in higher overall infrastructure costs compared to a shared pool approach.
+
+:::tip
+This pattern is best suited to scenarios where strict isolation is a business or compliance requirement, or when projects have significantly different resource profiles. For most workloads, a smaller set of shared pools delivers better cost efficiency.
+:::
 
 ---
 

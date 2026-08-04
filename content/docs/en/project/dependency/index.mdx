@@ -45,17 +45,23 @@ These dependencies integrate seamlessly with SleakOps, providing a comprehensive
 </details>
 
 <details>
-  <summary>### Can the same dependency be used for multiple Projects?</summary>
+  <summary>
+    ### Can the same dependency be used for multiple Projects?
+  </summary>
   At the moment this is not possible, you need one dependency per each project.
 </details>
 
 <details>
-  <summary>### How do I delete a Dependency?</summary>
+  <summary>
+    ### How do I delete a Dependency?
+  </summary>
   By accessing the *Dependency Listing* and clicking the delete option.
 </details>
 
 <details>
-  <summary>### What happens when I delete a dependency?</summary>
+  <summary>
+    ### What happens when I delete a dependency?
+  </summary>
   By deleting a dependency, SleakOps will remove all the information related to
   it and all what is related to it will stop working. To solve that SleakOps
   create a Deployment in PENDING_APPROVAL status, that must be run manually ASAP
@@ -106,3 +112,70 @@ To move forward choose between the following guides.
 [Memcached](/docs/project/dependency/memcached-aws).
 [OpenSearch](/docs/project/dependency/opensearch-aws).
 [SQS](/docs/project/dependency/sqs-aws).
+
+## Dependency Access
+
+Dependency access refers to the security and connectivity mechanisms that let your application's workloads interact securely with external dependencies. SleakOps automatically manages these access patterns to ensure secure communication between your services and their dependencies.
+
+### Access Management
+
+#### Automatic Service Account Configuration
+When you create a dependency, SleakOps automatically:
+- **Creates IAM roles** with appropriate permissions for the specific dependency type
+- **Configures service accounts** in your Kubernetes namespace
+- **Establishes secure connections** between your workloads and the dependency
+- **Manages credentials** through Kubernetes secrets and IAM roles
+
+#### Network Security
+- **VPC Integration**: Dependencies are created inside your project's VPC for secure network access
+- **Security Groups**: Automatically configured to allow the traffic needed between services
+- **Private Endpoints**: Dependencies use private endpoints when available to minimize exposure
+
+### Access Patterns
+
+#### Database Access
+For database dependencies (MySQL, PostgreSQL, etc.):
+- **Connection Strings**: Automatically generated and stored as Kubernetes secrets
+- **Authentication**: Managed through IAM roles and database-specific credentials
+- **SSL/TLS**: Encrypted connections are configured by default
+- **At-Rest Encryption**: Enabled by default on new dependencies
+  - You can turn it off or configure your own KMS key when you create it
+  - Aurora (PostgreSQL/MySQL) is always encrypted, with no way to opt out
+  - If the dependency was created before this improvement shipped, check the specific case: it may not be encrypted
+- **Connection Pooling**: Optimized connection management for better performance
+
+#### Cache Access
+For caching services (Redis, Memcached):
+- **Endpoint Configuration**: Automatically configured in your application's environment
+- **Authentication**: Secure access through IAM roles and service-specific credentials
+- **Network Policies**: Access restricted to authorized workloads only
+
+#### Storage Access
+For storage services (S3, etc.):
+- **Bucket Policies**: Automatically configured with least-privilege access
+- **IAM Permissions**: Service accounts receive only the permissions they need
+- **Access Keys**: Managed through AWS IAM roles for greater security
+
+### Security Best Practices
+
+#### Principle of Least Privilege
+- **Minimal Permissions**: Dependencies receive only the minimum required permissions
+- **Resource-Specific Access**: Access is scoped to specific resources whenever possible
+- **Regular Audits**: SleakOps provides tools to review and audit dependency access
+
+#### Credential Management
+- **Automatic Rotation**: Credentials are rotated automatically when possible
+- **Secure Storage**: All credentials are stored as Kubernetes secrets
+- **No Hardcoded Secrets**: Applications access dependencies through environment variables
+
+:::info Access Monitoring
+SleakOps provides monitoring and logging capabilities to track dependency access patterns, helping you identify potential security issues and optimize performance.
+:::
+
+:::tip Troubleshooting Access Issues
+If you run into access issues with dependencies:
+1. Check the dependency's status in the SleakOps console
+2. Confirm your workload has the correct service account
+3. Review the IAM role permissions for the dependency
+4. Verify network connectivity and security group configurations
+:::

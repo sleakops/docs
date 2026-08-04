@@ -65,15 +65,15 @@ sleakops build -p myproject -b main --docker-args "ARG1=value1,ARG2=value2"
 Esto es particularmente útil para pipelines de CI/CD donde quieres pasar diferentes argumentos basados en el entorno o contexto de construcción.
 :::
 
-Cuando usas **wait**, también puedes definir un **timeout** (en minutos) para limitar cuánto espera la CLI a que termine la compilación. El valor por defecto es **180 minutos**; pasa `0` para esperar indefinidamente. También puedes configurarlo mediante la variable de entorno `BUILD_TIMEOUT_MINUTES`.
+Puedes definir un **timeout** (en minutos) para un build. Este es el tiempo de vida máximo del build en el backend: si el build tarda más, SleakOps lo detiene y lo marca como fallido, de modo que un build colgado no se queda corriendo para siempre. El valor por defecto es **180 minutos**, y todo build queda acotado aunque no lo pases. Cuando además usas **wait**, `--timeout` también limita cuánto observa la CLI al build. El valor por defecto de la CLI se puede configurar mediante la variable de entorno `BUILD_TIMEOUT_MINUTES`.
 
 | **Opción**    | **Descripción**                                                                       |
 | ------------- | ------------------------------------------------------------------------------------- |
 | **--wait**    | Espera a que la compilación termine antes de retornar.                                |
-| **--timeout** | Minutos a esperar cuando se usa `--wait`. Por defecto `180`. Usa `0` para sin límite. |
+| **--timeout** | Tiempo de vida máximo del build en minutos; también limita cuánto observa la CLI con `--wait`. Por defecto `180`. `0` mantiene el valor por defecto de la plataforma y deja que `--wait` observe indefinidamente. |
 
 :::tip
-El timeout es del lado del cliente: controla cuánto observa la CLI a la compilación, no la compilación en sí en el backend. Cuando se agota, la CLI imprime un mensaje y sale con código `1`, de modo que una compilación colgada hace fallar tu pipeline de CI en vez de pasar silenciosamente.
+`--timeout` funciona en dos niveles: el backend detiene el build cuando supera el límite (esto ocurre para todo build, incluso sin `--wait`), y — cuando pasás `--wait` — la CLI también deja de observar pasado ese tiempo y sale con código `1`, de modo que un build colgado hace fallar tu pipeline de CI en vez de quedarse colgado.
 :::
 
 ### 3. Realizar un Despliegue
@@ -87,6 +87,31 @@ sleakops deploy [options]
 SleakOps gestiona de manera transparente el proceso de despliegue, asegurando que tu aplicación esté en funcionamiento en poco tiempo. Puedes especificar opciones de despliegue para ajustar el proceso según tus requisitos.
 
 Aquí, **project** y **environment** son los argumentos obligatorios. El usuario puede añadir una **build** o **tag** de imagen para especificar una imagen. Aquí también están presentes las opciones de **wait** y **key**, su uso es el mismo que en el comando de compilación.
+
+### Inyectar values en el deploy
+
+Puedes inyectar values de Helm en un deployment puntual, por encima de todo lo configurado en la plataforma (ver [Values](/docs/project/values) para los niveles de override):
+
+```plain
+sleakops deploy -p myapp -e prod -f values.prod.yaml
+sleakops deploy -p myapp -e prod --set api_web.replicas=3
+cat values.yaml | sleakops deploy -p myapp -e prod -f -
+```
+
+| **Opción**       | **Descripción**                                                                                              |
+| ---------------- | -------------------------------------------------------------------------------------------------------------- |
+| **-f, --values** | Archivo YAML con values para este deploy (repetible; `-` lee stdin; el último archivo gana).                      |
+| **--set**        | Define un valor puntual, `clave.ruta=valor` (repetible; gana sobre `-f`). Aplica coerción YAML: `5` → int, `true` → bool. |
+| **--set-string** | Como `--set` pero el valor se mantiene siempre como string (sin coerción).                                        |
+
+:::warning Efímeros por diseño
+Los values por deploy aplican a **ese deployment solamente** — ganan sobre todos los values configurados en la plataforma, y el próximo deploy sin `-f`/`--set`/`--set-string` vuelve a los valores de la plataforma. Son la herramienta para ajustes puntuales, no para configuración durable: los cambios durables van a nivel Project o Workload.
+:::
+
+Dos consideraciones:
+
+- **Para secretos prefiere `-f`** (o stdin): los argumentos de `--set` y `--set-string` quedan en el historial de tu shell y en los logs del CI.
+- **Dos semánticas de listas distintas**: entre tus propios inputs (archivos `-f` y flags `--set`) una lista reemplaza a la anterior, exactamente como Helm. Pero cuando tus values del deploy se mergean contra los niveles de la plataforma, las listas se **combinan** en lugar de reemplazarse — una entrada que pasás se suma a las generadas, no las descarta.
 
 ## Ejemplos de CI/CD
 

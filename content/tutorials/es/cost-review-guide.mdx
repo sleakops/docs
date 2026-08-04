@@ -1,0 +1,124 @@
+---
+title: Cómo revisar tus costos en SleakOps
+sidebar_label: Guía de revisión de costos
+sidebar_position: 48
+description: Un recorrido práctico por el Cost Explorer de SleakOps, Kubecost y las Cost Allocation Tags — cómo leer lo que ya estás gastando antes de decidir qué optimizar.
+tags:
+  - billing
+  - cost-analysis
+  - kubecost
+  - monitoring
+image: /img/tutorials/cost-review-guide/cost-explorer-dashboard.png
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Aprendé a leer tu gasto en AWS dentro de SleakOps — dónde mirar, cómo llegar al recurso puntual que está generando un costo, y qué revisar primero cuando un número no cierra.
+
+## Por qué revisar tus costos regularmente
+
+El gasto en AWS cambia a medida que cambia tu infraestructura: un ambiente nuevo, un workload que escaló, un nodepool corriendo más nodos On-Demand de lo esperado. Revisar el Cost Explorer con una frecuencia regular — semanal o al menos una vez al mes — te permite detectar esa variación cuando todavía es un número chico, en lugar de encontrarla a fin de mes.
+
+Esta guía cubre **cómo leer e interpretar** lo que ya estás gastando. Si buscás formas de reducir costos activamente, mirá [Estrategias de optimización de costos en AWS](/tutorial/optimize-aws-costs) y la sección [Estrategias de optimización de costos](/tutorial/nodepool-strategies#estrategias-de-optimización-de-costos) de la guía de Estrategias de Nodepools.
+
+---
+
+## El Cost Explorer (`/billing`)
+
+El Cost Explorer es el lugar central para revisar el gasto en todas las cuentas de AWS conectadas a tu empresa.
+
+**Cómo llegar** — cualquiera de estas opciones:
+- Hacé clic en **Go to Cost Explorer** en la tarjeta de costo del Dashboard principal.
+- Abrí el detalle de un **Cluster**, **Project** o **Dependency** y hacé clic en su botón **Cost Explorer** — esto abre el Cost Explorer ya filtrado a ese recurso puntual.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/tutorials/cost-review-guide/cost-explorer-dashboard.png"
+    alt="Dashboard del Cost Explorer de SleakOps con las tarjetas de cuenta de AWS y el gráfico de costos agrupado por tipo de recurso"
+  />
+</Zoom>
+
+**Tarjetas de cuenta** — una por cada cuenta de AWS (production, development, management), cada una mostrando:
+- Costo del mes actual.
+- Forecast del mes (proyección del total del mes según lo gastado hasta el momento).
+- Variación respecto al mes anterior.
+
+**Filtros:**
+
+| Filtro | Opciones |
+|---|---|
+| **Rango de fechas** | Last 7 days, Last 30 days, Last 90 days, This month, Last month, Last quarter, o un rango personalizado |
+| **Agrupar por** | día, semana, mes |
+| **Tipo de recurso** | Cluster, Environment, NodePool, Addon, ProjectEnv, Dependency |
+
+**Drill-down** — hacé clic en una barra del gráfico para bajar un nivel: cuenta → tipo de recurso → recurso individual (un cluster, dependencia o ambiente de proyecto puntual). Hacé clic en **View Resources** para abrir el listado completo y paginado de recursos detrás de la selección actual, con nombre, fecha, costo, cuenta y tipo de recurso.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src="/img/tutorials/cost-review-guide/cost-explorer-drilldown.png"
+    alt="Drill-down del Cost Explorer mostrando el listado de costos por recurso después de hacer clic en una barra del gráfico"
+  />
+</Zoom>
+
+**Exportar** — usá **Export CSV** para descargar el listado de recursos, o **Export PDF** para descargar un resumen que incluye el gráfico.
+
+---
+
+## Bajando a nivel Kubernetes con Kubecost
+
+Los filtros de "Tipo de recurso" del Cost Explorer llegan hasta el nivel de objeto de SleakOps (cluster, ambiente de proyecto, dependencia, etc.). Para desglosar costos más allá de eso — por namespace, pod, deployment o nodo de Kubernetes — instalá el addon [Kubecost](/docs/cluster/addons/kubecost) en el cluster.
+
+Cuando el **Tipo de recurso** está en **Cluster** y hay un cluster seleccionado, el Cost Explorer muestra un tag de Kubecost:
+- Si Kubecost ya está instalado, el tag abre su dashboard, filtrado a los detalles de costo de ese cluster.
+- Si todavía no está instalado, el tag lleva al formulario de instalación del addon.
+
+El dashboard propio de Kubecost es donde vas a encontrar la métrica de costo `idle` — capacidad que estás pagando pero no usando — y el desglose de costos por namespace, por nodo y de storage. Mirá la [documentación de Kubecost](/docs/cluster/addons/kubecost) para saber cómo leer ese dashboard.
+
+---
+
+## El reporte de cost optimization con IA
+
+Además de la revisión manual, SleakOps puede generar por vos un informe de optimización de costos usando IA. Es un buen complemento en una cadencia más larga — trimestral o semestral — cuando querés una foto consolidada con recomendaciones en lugar de recorrer los dashboards a mano.
+
+Para generarlo:
+
+1. Andá a **Settings → Reports** y hacé clic en **Create Report**.
+2. En el drawer de soporte, elegí la tarjeta **"Informe de Costos"** y confirmá con **Generate Report**.
+3. El informe se genera dentro de una conversación de soporte — cuando está listo, aparece en el listado de Reports. Usá **Open report** para abrirlo en una pestaña nueva; desde ahí podés imprimirlo o guardarlo como PDF.
+
+El informe incluye un desglose detallado de costos de AWS por servicio, tendencias de gasto de los últimos 3 meses y recomendaciones de optimización. Si buscás puntualmente right-sizing de Kubernetes, el informe **"Análisis de Overprovisioning K8s"** del mismo catálogo compara los requests de tus workloads contra el uso real y sugiere ajustes.
+
+Dos cosas a tener en cuenta:
+
+- Generar un informe tiene un costo variable de IA según la complejidad del análisis, que consume del presupuesto mensual de IA de tu empresa (configurable en Settings).
+- La sección Reports está disponible para usuarios admin y editor con la feature habilitada — si no la ves en Settings, pedínosla a través de **Support**.
+
+---
+
+## De dónde vienen tus costos
+
+El Cost Explorer te dice *cuánto* y *dónde*; estas páginas explican *por qué* un recurso cuesta lo que cuesta:
+
+- **Estrategia de nodepool** (Spot vs. On-Demand vs. Reserved, ARM vs. AMD) — mirá [Node Pools](/docs/cluster/nodepools) y el tutorial de [Estrategias de Nodepools](/tutorial/nodepool-strategies).
+- **Sizing del workload** (CPU/Memory requests, límites de autoscaling) — los requests de un workload son el piso de lo que reserva, y son los que más impactan el costo `idle` en Kubecost cuando quedan configurados por encima del uso real. Mirá la configuración de [Web Service](/docs/project/workload/webservice).
+- **Uptime del cluster** — si un cluster no necesita correr 24/7, un [apagado programado](/docs/cluster/shutdown-cluster) deja de generar costo durante esa ventana horaria.
+
+---
+
+## Si no ves un desglose de costos
+
+El desglose por recurso del Cost Explorer depende de que las **Cost Allocation Tags** estén activas en la cuenta de AWS. SleakOps las activa automáticamente durante el onboarding, pero AWS puede tardar unos días en propagarlas, y en algunas cuentas la activación necesita un empujón manual.
+
+Si todavía no están activas, el Cost Explorer para esa cuenta solo va a mostrar el costo total diario de la cuenta, sin desglose por recurso. Si te pasa esto:
+
+1. Buscá una notificación titulada **"CostAllocationTags are not active in your AWS root account"** — lleva directo a la consola de AWS Cost Management.
+2. Seguí ese link y activá los tags que aparecen ahí (`Model`, `Name`, `Cluster`, `ClusterId`, `Environment`, `Dependency`).
+3. El desglose queda disponible una vez que AWS termina de propagar los tags — no es instantáneo, esperá un rato.
+
+---
+
+## Siguiente paso: reducir lo que gastás
+
+Una vez que sabés a dónde va tu gasto, [Estrategias de optimización de costos en AWS](/tutorial/optimize-aws-costs) y el tutorial de [Estrategias de Nodepools](/tutorial/nodepool-strategies) recorren formas concretas de bajarlo — instancias Spot, right-sizing, Graviton, políticas de ciclo de vida de storage, y más.
