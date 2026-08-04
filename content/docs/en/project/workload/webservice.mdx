@@ -35,13 +35,43 @@ To enable auto-scaling, you can set the **Autoscaling** option to enabled and de
 ### What are the default success codes for a Web Service, and can I change them?
 </summary>
 The default success code is 200, indicating the service is healthy. You can change this code based on your application’s requirements, as some services might return different success codes based on specific actions.
+
+The success code applies to the load balancer's health check. The in-cluster readiness probe follows the standard Kubernetes HTTP rule instead: any status code greater than or equal to 200 and less than 400 counts as success.
 </details>
 
 <details>
 <summary>
 ### What happens if my health check fails repeatedly?
 </summary>
-If the health check fails consecutively and reaches the Failure Threshold (default is 60), the service is marked as unhealthy, and Kubernetes might restart or terminate the service instance to attempt a recovery.
+The health check is deployed as the pod's **readiness probe** — and, for Public and Private services, as the load balancer's target health check. If it fails consecutively and reaches the Failure Threshold (default is 60), Kubernetes marks the pod as *not ready* and stops routing traffic to it until the check passes again. The container is **not** restarted: restarting an unhealthy container is the job of a liveness probe, which SleakOps does not add by default — see the next question to configure one.
+</details>
+
+<details>
+<summary>
+### Can I add a liveness or startup probe to my Web Service?
+</summary>
+Yes. The workload settings form manages the readiness probe only, but the Deployment template also renders a `livenessProbe` and a `startupProbe` when you define them in your [values](/docs/project/values). Add them in **Project → Settings → Chart Configuration**, in the **Values** editor, nested under the Workload's key — see [Project global values](/docs/project/values#project-global-values):
+
+```yaml
+backoffice: # your Workload's key, as shown in the generated values
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: 8000
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 30
+  startupProbe:
+    httpGet:
+      path: /healthz
+      port: 8000
+    periodSeconds: 5
+    failureThreshold: 60
+```
+
+If the Workload's **Advanced → Values** tab is available on your account, you can set the same blocks there as a [workload override](/docs/project/values#the-workload-values-tab), without the wrapping key. Either way they are passed to the Deployment exactly as written, so any field of the Kubernetes probe spec is accepted (`httpGet`, `tcpSocket`, `exec`, `grpc`, timings and thresholds).
+
+**Warning:** a failing liveness probe **restarts the container**. Point it at a lightweight endpoint that reflects only the process itself — if it also checks external dependencies such as your database, an outage of that dependency will restart every replica in a loop. Prefer tolerant settings (a long period and a high failure threshold), and use a startup probe instead of a large initial delay for slow-starting applications.
 </details>
 
 <details>
@@ -91,7 +121,7 @@ The **terminationGracePeriod** is a Kubernetes setting that defines how long (in
 
 **How it works:** When Kubernetes needs to stop your container (during a deployment, scaling event, or shutdown), it first sends a **SIGTERM** signal to your process and then waits the number of seconds defined by `terminationGracePeriod` before forcefully killing the container. Most application frameworks handle SIGTERM automatically, but if you have custom processes, make sure your application listens for SIGTERM and gracefully closes all connections and ongoing work — otherwise Kubernetes may kill your container while it's still mid-operation.
 
-**Default value:** 30 seconds
+**Default value:** 120 seconds
 
 **When to adjust it:**
 - Increase it if your service needs more time to complete long-running tasks during shutdown.
@@ -222,7 +252,7 @@ Select how will be your connection and click on _Next_.
 </Zoom>
 
 ### 4. Specify your workload settings
-You’ll see the following for to specify the conditions.
+You’ll see the following attributes. They define the Web Service **health check**, which SleakOps deploys as the pod's readiness probe and — for Public and Private services — as the load balancer's target health check.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
@@ -236,11 +266,11 @@ You’ll see the following for to specify the conditions.
 | **Path** | The path where Kubernetes checks if the web service is operational. Default: `/` |
 | **Success Code** | The HTTP success code indicating the service's health. Default: `200`.  |
 | **Initial Delay Seconds** | Number of seconds after startup before health checks begin.  Default: `10`.  |
-| **Timeout Seconds** | Number of seconds after startup before health checks begin.  Default: `1`.  |
+| **Timeout Seconds** | Number of seconds the probe waits for a response before the attempt is considered failed. Default: `1`.  |
 | **Period Seconds** | Interval (in seconds) between each health check probe. Default: `5`.  |
 | **Success Threshold** | Minimum number of consecutive successes required for the probe to be considered successful after it has failed. Default: `1`.  |
 | **Failure Threshold** | Number of consecutive failures before the probe is considered to have failed. Default: `60`.  |
-| **terminationGracePeriod** | Time in seconds that Kubernetes waits for graceful shutdown before forcefully terminating the service. Default: `30`.  |
+| **terminationGracePeriod** | Time in seconds that Kubernetes waits for graceful shutdown before forcefully terminating the service. Default: `120`.  |
 
 Once those attributes are completed, click the Next button to move to the next step. 
 

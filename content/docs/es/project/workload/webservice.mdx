@@ -34,13 +34,43 @@ Para habilitar el auto-escalado, puedes activar la opción **Autoscaling** y def
 ### ¿Cuáles son los códigos de éxito predeterminados para un Web Service y puedo cambiarlos?
 </summary>
 El código de éxito predeterminado es el 200, que indica que el servicio está sano. Puedes cambiar este código según los requisitos de tu aplicación, ya que algunos servicios pueden devolver diferentes códigos de éxito dependiendo de las acciones específicas.
+
+El código de éxito se aplica a la verificación de salud del balanceador de carga. La readiness probe dentro del clúster sigue en cambio la regla HTTP estándar de Kubernetes: cualquier código mayor o igual a 200 y menor a 400 cuenta como éxito.
 </details>
 
 <details>
 <summary>
 ### ¿Qué pasa si mi verificación de salud falla repetidamente?
 </summary>
-Si la verificación de salud falla de manera consecutiva y alcanza el umbral de fallos (el valor predeterminado es 60), el servicio se marcará como no saludable, y Kubernetes podría reiniciar o terminar la instancia del servicio para intentar una recuperación.
+La verificación de salud se despliega como la **readiness probe** del pod — y, para servicios Public y Private, como la verificación de salud del balanceador de carga. Si falla de manera consecutiva y alcanza el Umbral de Fallos (el valor predeterminado es 60), Kubernetes marca el pod como *not ready* y deja de enviarle tráfico hasta que la verificación vuelva a pasar. El contenedor **no** se reinicia: reiniciar un contenedor no saludable es tarea de una liveness probe, que SleakOps no agrega por defecto — consulta la siguiente pregunta para configurar una.
+</details>
+
+<details>
+<summary>
+### ¿Puedo agregar una liveness o startup probe a mi Web Service?
+</summary>
+Sí. El formulario del workload administra únicamente la readiness probe, pero el template del Deployment también renderiza una `livenessProbe` y una `startupProbe` cuando las defines en tus [values](/docs/project/values). Agrégalas en **Project → Settings → Chart Configuration**, en el editor de **Values**, anidadas bajo la clave del Workload — consulta [Values globales del Project](/docs/project/values#values-globales-del-project):
+
+```yaml
+backoffice: # la clave de tu Workload, como aparece en los values generados
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: 8000
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 30
+  startupProbe:
+    httpGet:
+      path: /healthz
+      port: 8000
+    periodSeconds: 5
+    failureThreshold: 60
+```
+
+Si la pestaña **Advanced → Values** del Workload está disponible en tu cuenta, puedes definir los mismos bloques ahí como [override del workload](/docs/project/values#el-tab-values-del-workload), sin la clave contenedora. En ambos casos se pasan al Deployment tal como los escribes, así que aceptan cualquier campo de la spec de probes de Kubernetes (`httpGet`, `tcpSocket`, `exec`, `grpc`, tiempos y umbrales).
+
+**Advertencia:** una liveness probe que falla **reinicia el contenedor**. Apúntala a un endpoint liviano que refleje solo el proceso — si además chequea dependencias externas como tu base de datos, una caída de esa dependencia reiniciará todas las réplicas en loop. Prefiere valores tolerantes (un período largo y un umbral de fallos alto), y usa una startup probe en lugar de un retraso inicial grande para aplicaciones que tardan en arrancar.
 </details>
 
 <details>
@@ -90,7 +120,7 @@ El **terminationGracePeriod** es una configuración de Kubernetes que define cu�
 
 **Cómo funciona:** Cuando Kubernetes necesita detener tu contenedor (durante un despliegue, un evento de escalado o un apagado), primero envía una señal **SIGTERM** a tu proceso y luego espera la cantidad de segundos definida por `terminationGracePeriod` antes de matar forzosamente el contenedor. La mayoría de los frameworks con los que construimos aplicaciones manejan SIGTERM automáticamente, pero si tenés algo personalizado, asegurate de que tu aplicación escuche SIGTERM y cierre correctamente todas sus conexiones y procesos en curso — de lo contrario, Kubernetes puede matar el contenedor mientras una operación está a medias.
 
-**Valor predeterminado:** 30 segundos
+**Valor predeterminado:** 120 segundos
 
 **Cuándo ajustarlo:**
 - Auméntalo si tu servicio necesita más tiempo para completar tareas de larga duración durante el apagado.
@@ -223,7 +253,7 @@ Selecciona cómo será tu conexión y haz clic en _Siguiente_.
 </Zoom>
 
 ### 4. Especifica los ajustes de tu servicio
-Verás los siguientes atributos para especificar las condiciones.
+Verás los siguientes atributos para especificar las condiciones. Estos ajustes definen la **verificación de salud** del Web Service, que SleakOps despliega como la readiness probe del pod y — para servicios Public y Private — como la verificación de salud del balanceador de carga.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
 <img
@@ -237,11 +267,11 @@ Verás los siguientes atributos para especificar las condiciones.
 | **Ruta** | La ruta donde Kubernetes verifica si el Web Service está operativo. Predeterminado: `/` |
 | **Código de Éxito** | El código HTTP de éxito que indica la salud del servicio. Predeterminado: `200`. |
 | **Retraso Inicial en Segundos** | Número de segundos después del inicio antes de que comiencen las verificaciones de salud. Predeterminado: `10`. |
-| **Segundos de Tiempo de Espera** | Número de segundos después del inicio antes de que comiencen las verificaciones de salud. Predeterminado: `1`. |
+| **Segundos de Tiempo de Espera** | Número de segundos que la probe espera una respuesta antes de considerar fallido el intento. Predeterminado: `1`. |
 | **Segundos entre cada Verificación** | Intervalo (en segundos) entre cada prueba de verificación de salud. Predeterminado: `5`. |
 | **Umbral de Éxitos** | Número mínimo de éxitos consecutivos requeridos para que la prueba se considere exitosa después de fallar. Predeterminado: `1`. |
 | **Umbral de Fallos** | Número de fallos consecutivos antes de que la prueba se considere fallida. Predeterminado: `60`. |
-| **terminationGracePeriod** | Tiempo en segundos que Kubernetes espera para el apagado ordenado antes de terminar forzosamente el servicio. Predeterminado: `30`.  |
+| **terminationGracePeriod** | Tiempo en segundos que Kubernetes espera para el apagado ordenado antes de terminar forzosamente el servicio. Predeterminado: `120`.  |
 
 Una vez completados estos atributos, haz clic en el botón Siguiente para continuar con el siguiente paso.
 
