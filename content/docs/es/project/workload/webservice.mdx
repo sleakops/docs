@@ -49,25 +49,26 @@ La verificación de salud se despliega como la **readiness probe** del pod — y
 <summary>
 ### ¿Puedo agregar una liveness o startup probe a mi Web Service?
 </summary>
-Sí. El formulario del workload administra únicamente la readiness probe, pero el template del Deployment también renderiza una `livenessProbe` y una `startupProbe` cuando las defines en tus [values](/docs/project/values). Agrégalas en la pestaña **Advanced → Values** del Workload, como [override del workload](/docs/project/values#el-tab-values-del-workload):
+Sí. El formulario del workload administra únicamente la readiness probe, pero el template del Deployment también renderiza una `livenessProbe` y una `startupProbe` cuando las defines en tus [values](/docs/project/values). Agrégalas en **Project → Settings → Chart Configuration**, en el editor de **Values**, anidadas bajo la clave del Workload — consulta [Values globales del Project](/docs/project/values#values-globales-del-project):
 
 ```yaml
-livenessProbe:
-  httpGet:
-    path: /healthz
-    port: 8000
-  periodSeconds: 10
-  timeoutSeconds: 2
-  failureThreshold: 30
-startupProbe:
-  httpGet:
-    path: /healthz
-    port: 8000
-  periodSeconds: 5
-  failureThreshold: 60
+backoffice: # la clave de tu Workload, como aparece en los values generados
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: 8000
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 30
+  startupProbe:
+    httpGet:
+      path: /healthz
+      port: 8000
+    periodSeconds: 5
+    failureThreshold: 60
 ```
 
-Ambos bloques se pasan al Deployment tal como los escribes, así que aceptan cualquier campo de la spec de probes de Kubernetes (`httpGet`, `tcpSocket`, `exec`, `grpc`, tiempos y umbrales). Para compartir las mismas probes entre varios Workloads, defínelas a nivel proyecto anidadas bajo la clave de cada Workload — consulta [Values globales del Project](/docs/project/values#values-globales-del-project).
+Si la pestaña **Advanced → Values** del Workload está disponible en tu cuenta, puedes definir los mismos bloques ahí como [override del workload](/docs/project/values#el-tab-values-del-workload), sin la clave contenedora. En ambos casos se pasan al Deployment tal como los escribes, así que aceptan cualquier campo de la spec de probes de Kubernetes (`httpGet`, `tcpSocket`, `exec`, `grpc`, tiempos y umbrales).
 
 **Advertencia:** una liveness probe que falla **reinicia el contenedor**. Apúntala a un endpoint liviano que refleje solo el proceso — si además chequea dependencias externas como tu base de datos, una caída de esa dependencia reiniciará todas las réplicas en loop. Prefiere valores tolerantes (un período largo y un umbral de fallos alto), y usa una startup probe en lugar de un retraso inicial grande para aplicaciones que tardan en arrancar.
 </details>

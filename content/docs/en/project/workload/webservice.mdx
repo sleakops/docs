@@ -50,25 +50,26 @@ The health check is deployed as the pod's **readiness probe** — and, for Publi
 <summary>
 ### Can I add a liveness or startup probe to my Web Service?
 </summary>
-Yes. The workload settings form manages the readiness probe only, but the Deployment template also renders a `livenessProbe` and a `startupProbe` when you define them in your [values](/docs/project/values). Add them in the Workload's **Advanced → Values** tab, as a [workload override](/docs/project/values#the-workload-values-tab):
+Yes. The workload settings form manages the readiness probe only, but the Deployment template also renders a `livenessProbe` and a `startupProbe` when you define them in your [values](/docs/project/values). Add them in **Project → Settings → Chart Configuration**, in the **Values** editor, nested under the Workload's key — see [Project global values](/docs/project/values#project-global-values):
 
 ```yaml
-livenessProbe:
-  httpGet:
-    path: /healthz
-    port: 8000
-  periodSeconds: 10
-  timeoutSeconds: 2
-  failureThreshold: 30
-startupProbe:
-  httpGet:
-    path: /healthz
-    port: 8000
-  periodSeconds: 5
-  failureThreshold: 60
+backoffice: # your Workload's key, as shown in the generated values
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: 8000
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 30
+  startupProbe:
+    httpGet:
+      path: /healthz
+      port: 8000
+    periodSeconds: 5
+    failureThreshold: 60
 ```
 
-Both blocks are passed to the Deployment exactly as written, so any field of the Kubernetes probe spec is accepted (`httpGet`, `tcpSocket`, `exec`, `grpc`, timings and thresholds). To share the same probes across several Workloads, define them at project level nested under each Workload's key — see [Project global values](/docs/project/values#project-global-values).
+If the Workload's **Advanced → Values** tab is available on your account, you can set the same blocks there as a [workload override](/docs/project/values#the-workload-values-tab), without the wrapping key. Either way they are passed to the Deployment exactly as written, so any field of the Kubernetes probe spec is accepted (`httpGet`, `tcpSocket`, `exec`, `grpc`, timings and thresholds).
 
 **Warning:** a failing liveness probe **restarts the container**. Point it at a lightweight endpoint that reflects only the process itself — if it also checks external dependencies such as your database, an outage of that dependency will restart every replica in a loop. Prefer tolerant settings (a long period and a high failure threshold), and use a startup probe instead of a large initial delay for slow-starting applications.
 </details>
