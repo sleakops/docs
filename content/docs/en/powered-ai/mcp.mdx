@@ -114,6 +114,8 @@ Each area of the platform is covered by tools the agent discovers and calls for 
 | Kubernetes manifests           | "Add a ConfigMap manifest to the web service and preview how it renders"                  |
 | Billing & observability        | "Show my costs for June" / "What resources are still provisioning?"                       |
 
+Kubernetes manifests require the service manifests feature on your company, and static sites require the `static` feature in your subscription.
+
 ### Importing existing infrastructure
 
 The import tools register infrastructure that already exists in your AWS accounts — SleakOps manages it without recreating it. The flow mirrors the console's import wizard:
@@ -124,10 +126,6 @@ The import tools register infrastructure that already exists in your AWS account
 4. **Import clusters** — "Import the EKS cluster Prod_EKS-1 with IngressClasses alb-private and alb-public".
 5. **Import dependencies** — "Import the RDS instance prod-main-db as a dependency of my-app" (database imports ask for credentials).
 6. **Import workloads** — import the workloads of an existing Helm release as a SleakOps project.
-
-:::info Availability
-Import tools require a SleakOps API running release 3.0.0 or later — against an older API they return the API's 404. Kubernetes manifest tools require the service manifests feature flag on your company, and static sites require the `static` feature in your subscription.
-:::
 
 ## FAQs
 
@@ -151,13 +149,6 @@ Import tools require a SleakOps API running release 3.0.0 or later — against a
     ### The container keeps restarting or is unhealthy
   </summary>
   Check the logs with `docker compose logs -f`. The usual causes are missing environment variables, no network connectivity to the SleakOps API, or port 8080 already in use on the host.
-</details>
-
-<details>
-  <summary>
-    ### Import tools answer "HTTP 404"
-  </summary>
-  The API behind `SLEAKOPS_BASE_URL` does not include the import endpoints yet (they ship with release 3.0.0). Point the server to an environment running 3.0.0 or later.
 </details>
 
 <details>

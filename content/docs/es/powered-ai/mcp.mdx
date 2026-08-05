@@ -114,6 +114,8 @@ Cada área de la plataforma está cubierta por tools que el agente descubre y ej
 | Manifests de Kubernetes        | "Agregale un manifest ConfigMap al servicio web y previsualizá cómo renderiza"              |
 | Billing y observabilidad       | "Mostrame los costos de junio" / "¿Qué recursos siguen aprovisionándose?"                   |
 
+Los manifests de Kubernetes requieren la feature de service manifests en tu company, y los sitios estáticos requieren la feature `static` en tu suscripción.
+
 ### Importar infraestructura existente
 
 Los tools de import registran infraestructura que ya existe en tus cuentas de AWS — SleakOps la administra sin recrearla. El flujo replica el wizard de import de la console:
@@ -124,10 +126,6 @@ Los tools de import registran infraestructura que ya existe en tus cuentas de AW
 4. **Importar clusters** — "Importá el cluster EKS Prod_EKS-1 con las IngressClass alb-private y alb-public".
 5. **Importar dependencias** — "Importá la instancia RDS prod-main-db como dependencia de my-app" (los imports de bases de datos piden credenciales).
 6. **Importar workloads** — importá los workloads de un Helm release existente como proyecto de SleakOps.
-
-:::info Disponibilidad
-Los tools de import requieren una API de SleakOps corriendo la release 3.0.0 o posterior — contra una API anterior devuelven el 404 de la API. Los tools de manifests de Kubernetes requieren el feature flag de service manifests en tu company, y los sitios estáticos requieren la feature `static` en tu suscripción.
-:::
 
 ## FAQs
 
@@ -151,13 +149,6 @@ Los tools de import requieren una API de SleakOps corriendo la release 3.0.0 o p
     ### El contenedor se reinicia o queda unhealthy
   </summary>
   Revisá los logs con `docker compose logs -f`. Las causas usuales son variables de entorno faltantes, falta de conectividad de red hacia la API de SleakOps, o el puerto 8080 ya en uso en el host.
-</details>
-
-<details>
-  <summary>
-    ### Los tools de import responden "HTTP 404"
-  </summary>
-  La API detrás de `SLEAKOPS_BASE_URL` todavía no incluye los endpoints de import (llegan con la release 3.0.0). Apuntá el server a un entorno corriendo 3.0.0 o posterior.
 </details>
 
 <details>
