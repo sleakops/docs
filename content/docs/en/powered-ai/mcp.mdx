@@ -1,0 +1,168 @@
+---
+title: SleakOps MCP Server
+sidebar_label: MCP Server
+sidebar_position: 5
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# SleakOps MCP Server
+
+The SleakOps MCP Server lets AI assistants operate your SleakOps platform in natural language. It exposes the SleakOps API as [Model Context Protocol <FiExternalLink/>](https://modelcontextprotocol.io/) tools, so an agent like Claude Code can create projects and services, trigger builds and deployments, manage clusters and dependencies, and import your existing AWS infrastructure — using your own SleakOps credentials and permissions.
+
+## Requirements
+
+- A SleakOps account (the agent acts with your user's role — import operations require an admin).
+- Docker 20.10+ with Docker Compose, or Python 3.11+ to run it locally.
+
+## Configuration
+
+The server is configured through environment variables:
+
+| **Variable**          | **Description**                                                                                     | **Required** | **Default**                  |
+| --------------------- | --------------------------------------------------------------------------------------------------- | ------------ | ---------------------------- |
+| `SLEAKOPS_BASE_URL`   | SleakOps API base URL                                                                                | Yes          | `https://api.sleakops.com`   |
+| `SLEAKOPS_EMAIL`      | Your SleakOps account email                                                                          | Yes          | —                            |
+| `SLEAKOPS_PASSWORD`   | Your SleakOps account password                                                                       | Yes          | —                            |
+| `SLEAKOPS_TIMEOUT`    | Request timeout in seconds                                                                           | No           | `30`                         |
+| `SLEAKOPS_TOOL_MODE`  | `gateway` exposes 2 meta-tools (recommended); `full` exposes every tool natively                     | No           | `gateway`                    |
+
+:::warning
+Never commit your credentials. Keep them in a local `.env` file or a secrets manager.
+:::
+
+## Running the server
+
+With Docker Compose, from the server's repository:
+
+```bash
+cp local.env .env   # then edit .env with your credentials
+docker compose up -d
+curl http://localhost:8080/health   # {"status":"ok"}
+```
+
+Or locally with Python:
+
+```bash
+python3.11 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+
+# HTTP (SSE) transport on port 8080:
+fastmcp run src/server.py --transport sse --host 0.0.0.0 --port 8080
+
+# Or STDIO transport (for direct MCP client integration):
+python src/server.py
+```
+
+## Connecting from Claude Code
+
+Using the SSE transport (server running on port 8080):
+
+```json
+{
+  "mcpServers": {
+    "sleakops": {
+      "url": "http://localhost:8080/sse/"
+    }
+  }
+}
+```
+
+Using the STDIO transport through Docker:
+
+```json
+{
+  "mcpServers": {
+    "sleakops": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "-e", "SLEAKOPS_BASE_URL", "-e", "SLEAKOPS_EMAIL", "-e", "SLEAKOPS_PASSWORD", "mcp-server:latest"],
+      "env": {
+        "SLEAKOPS_BASE_URL": "https://api.sleakops.com",
+        "SLEAKOPS_EMAIL": "your-email@example.com",
+        "SLEAKOPS_PASSWORD": "your-password"
+      }
+    }
+  }
+}
+```
+
+Any MCP-compatible client (Claude Desktop, IDE extensions, custom agents) can connect the same way.
+
+## Gateway mode
+
+By default the server runs in **gateway mode**: instead of loading 80+ tool definitions into your agent's context, it exposes only two meta-tools:
+
+- `search_tools(query)` — without a query returns the full catalog (tool name + one-line summary); with a query returns the best matches with their full description and input schema.
+- `execute_tool(tool_name, arguments)` — runs any tool by name, validating the arguments against its schema.
+
+The agent handles this on its own — you just ask in natural language. Set `SLEAKOPS_TOOL_MODE=full` if your client lazy-loads MCP tools by itself.
+
+## What you can do
+
+Each area of the platform is covered by tools the agent discovers and calls for you. Some example prompts:
+
+| **Area**                       | **Example prompt**                                                                       |
+| ------------------------------ | ---------------------------------------------------------------------------------------- |
+| Projects & services            | "Create a project for repo X on the dev environment and add a public webservice"          |
+| Builds & deployments           | "Trigger a build of my-app on branch main and deploy it when it finishes"                 |
+| Clusters & node pools          | "List my clusters and show the node pools of the production one"                          |
+| Managed dependencies           | "Add a PostgreSQL database to project my-app"                                             |
+| Variables                      | "Create a var group with these environment variables for my-app"                          |
+| Static sites                   | "Serve www.example.com as a static site from the landing project"                         |
+| Kubernetes manifests           | "Add a ConfigMap manifest to the web service and preview how it renders"                  |
+| Billing & observability        | "Show my costs for June" / "What resources are still provisioning?"                       |
+
+### Importing existing infrastructure
+
+The import tools register infrastructure that already exists in your AWS accounts — SleakOps manages it without recreating it. The flow mirrors the console's import wizard:
+
+1. **Provider in import mode** — "Create a provider in import mode for acme.com".
+2. **Register each AWS account** — "Import AWS account 123456789012 as production". The account waits for you to run the CloudFormation Initiator stack in that AWS account.
+3. **Submit the network** — once the account reaches `AWAITING_NETWORK_INPUTS`: "Configure the network of the production account with VPC vpc-… , these subnets, NAT nat-…, IGW igw-… and EIP eipalloc-…".
+4. **Import clusters** — "Import the EKS cluster Prod_EKS-1 with IngressClasses alb-private and alb-public".
+5. **Import dependencies** — "Import the RDS instance prod-main-db as a dependency of my-app" (database imports ask for credentials).
+6. **Import workloads** — import the workloads of an existing Helm release as a SleakOps project.
+
+:::info Availability
+Import tools require a SleakOps API running release 3.0.0 or later — against an older API they return the API's 404. Kubernetes manifest tools require the service manifests feature flag on your company, and static sites require the `static` feature in your subscription.
+:::
+
+## FAQs
+
+<details>
+  <summary>
+    ### The server logs an authentication error at startup
+  </summary>
+  Verify your credentials against the API directly:
+
+  ```bash
+  curl -X POST https://api.sleakops.com/api/login/ \
+    -H "Content-Type: application/json" \
+    -d '{"email":"your-email","password":"your-password"}'
+  ```
+
+  If that fails, the email/password pair is wrong or the account is disabled. If it works, check that `SLEAKOPS_EMAIL` and `SLEAKOPS_PASSWORD` reached the container (`docker compose config`).
+</details>
+
+<details>
+  <summary>
+    ### The container keeps restarting or is unhealthy
+  </summary>
+  Check the logs with `docker compose logs -f`. The usual causes are missing environment variables, no network connectivity to the SleakOps API, or port 8080 already in use on the host.
+</details>
+
+<details>
+  <summary>
+    ### Import tools answer "HTTP 404"
+  </summary>
+  The API behind `SLEAKOPS_BASE_URL` does not include the import endpoints yet (they ship with release 3.0.0). Point the server to an environment running 3.0.0 or later.
+</details>
+
+<details>
+  <summary>
+    ### Why don't I see all the tools in my client?
+  </summary>
+  In gateway mode (the default) only `search_tools` and `execute_tool` are listed — the rest are discovered and executed through them. Set `SLEAKOPS_TOOL_MODE=full` to list every tool natively.
+</details>
