@@ -1,0 +1,76 @@
+---
+title: Configure the network
+sidebar_label: Configure the network
+sidebar_position: 4
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Configure the network
+
+Once an account's CloudFormation stack has run, SleakOps needs to know which VPC, subnets and gateways to use before it can deploy a cluster into it. This step maps that existing AWS network to the inputs SleakOps requires.
+
+## Find accounts waiting on network configuration
+
+If you have accounts still waiting on network configuration, you'll see an alert for it on the Providers list. The banner reads **Network configuration pending** and names the provider with pending accounts. Its **Configure networking** button takes you straight to that account's network configuration form in **Accounts & Networking**. Only admins see this alert.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./network-configuration/pending-network-alert.png").default}
+    alt="Providers list showing the Network configuration pending banner with the Configure networking button"
+  />
+</Zoom>
+
+## Select the VPC
+
+The account's detail panel opens on a single required field: **VPC**. The dropdown lists every VPC SleakOps discovered in the account, as `<name or id> · <cidr_block>`.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./network-configuration/network-config-vpc.png").default}
+    alt="Network configuration form with the VPC dropdown not yet selected"
+  />
+</Zoom>
+
+Selecting a VPC loads its subnets, NAT Gateways and Internet Gateway — the form shows **Loading subnets, NAT and gateways…** while that happens.
+
+## Assign subnets to slots
+
+| **Setting**         | **Description**                                             |
+| -------------------- | ------------------------------------------------------------- |
+| **Public subnets**     | Subnets with a route to the Internet Gateway.                |
+| **Private subnets**    | Subnets that reach the internet through a NAT Gateway.        |
+| **Persistent subnets** | Subnets for stateful resources (databases, storage).          |
+
+All three slots are required — each needs at least one subnet, or the form shows **Select at least one subnet**. The same subnet can be assigned to more than one slot.
+
+## Gateways
+
+- **NAT Gateway(s)** — select at least one. If none are selected, the form shows **Select at least one NAT Gateway**. If the VPC has no NAT Gateway at all, SleakOps shows a warning asking you to create one or pick another VPC.
+- **Internet Gateway** — a single required dropdown, with the same warning if the VPC has none attached.
+
+Each NAT Gateway's Elastic IP is taken automatically from AWS — there's no field to pick it separately.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./network-configuration/network-config-slots.png").default}
+    alt="Network configuration form with a VPC, all three subnet slots, a NAT Gateway and the Internet Gateway selected"
+  />
+</Zoom>
+
+## Submit and import
+
+**Save and apply** stays disabled until all three subnet slots, at least one NAT Gateway, and the Internet Gateway are set. Once you submit, the account moves to **Creating…** while SleakOps applies the configuration — the panel switches to the **network explorer** automatically when it finishes.
+
+The network explorer is a read-only view of the imported network: the VPC, its route tables, the Internet Edge (Internet Gateway, NAT Gateway and its Elastic IP), and the subnets grouped by Public, Private and Persistent.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./network-configuration/network-explorer.png").default}
+    alt="Network explorer showing the VPC, route tables, Internet Edge and subnet groups for a configured account"
+  />
+</Zoom>
+
+From here, the account is ready to import its cluster.
