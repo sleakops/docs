@@ -1,0 +1,48 @@
+---
+title: Importa una cuenta
+sidebar_label: Importa una cuenta
+sidebar_position: 3
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Importa una cuenta
+
+Una vez que un provider está corriendo en modo de importación, conectá cada cuenta de AWS existente que quieras que SleakOps gestione desde su sección **Accounts & Networking**.
+
+## Declará una cuenta de AWS existente
+
+1. En **Accounts & Networking**, hacé clic en la card **Install SleakOps in account**.
+2. Completá los tres campos:
+
+   - **Account color** — elegí uno de los 8 swatches predefinidos, o usá el color picker personalizado para elegir cualquier otro color.
+   - **Account name** — hasta 20 caracteres (por ejemplo, `payments-prod`).
+   - **AWS account ID** — el ID numérico de 12 dígitos de la cuenta.
+
+   <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+     <img
+       src={require("./import-accounts/import-account-form.png").default}
+       alt="Formulario de importación de cuenta con color, nombre y AWS account ID completos"
+     />
+   </Zoom>
+
+3. Hacé clic en **Create account**. La cuenta aparece en la lista de la izquierda.
+
+## Corré el stack de CloudFormation
+
+1. Seleccioná la cuenta recién creada en la lista. Su panel de detalle muestra **CloudFormation not applied yet**.
+
+   <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+     <img
+       src={require("./import-accounts/account-awaiting-cfn.png").default}
+       alt="Panel de detalle de la cuenta mostrando el estado CloudFormation not applied yet con el link Open CloudFormation"
+     />
+   </Zoom>
+
+2. Hacé clic en **Open CloudFormation** para lanzar el stack de CloudFormation de SleakOps. Se abre en una pestaña nueva — corrélo estando conectado a esa cuenta de AWS.
+
+## Qué pasa después
+
+Cuando SleakOps recibe el callback del stack, la cuenta queda lista para la configuración de red.

@@ -1,0 +1,48 @@
+---
+title: Import an account
+sidebar_label: Import an account
+sidebar_position: 3
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Import an account
+
+Once a provider is running in import mode, connect each existing AWS account you want SleakOps to manage from its **Accounts & Networking** section.
+
+## Declare an existing AWS account
+
+1. In **Accounts & Networking**, click the **Install SleakOps in account** card.
+2. Fill in the three fields:
+
+   - **Account color** — pick one of the 8 preset swatches, or use the custom color picker to choose any other color.
+   - **Account name** — up to 20 characters (e.g. `payments-prod`).
+   - **AWS account ID** — the account's 12-digit numeric ID.
+
+   <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+     <img
+       src={require("./import-accounts/import-account-form.png").default}
+       alt="Import account form with color, name, and AWS account ID filled in"
+     />
+   </Zoom>
+
+3. Click **Create account**. The account appears in the list on the left.
+
+## Run the CloudFormation stack
+
+1. Select the new account in the list. Its detail panel shows **CloudFormation not applied yet**.
+
+   <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+     <img
+       src={require("./import-accounts/account-awaiting-cfn.png").default}
+       alt="Account detail panel showing the CloudFormation not applied yet state with the Open CloudFormation link"
+     />
+   </Zoom>
+
+2. Click **Open CloudFormation** to launch the SleakOps CloudFormation stack. It opens in a new tab — run it signed in to this AWS account.
+
+## What happens next
+
+Once SleakOps receives the stack's callback, the account is ready for network configuration.
