@@ -1,0 +1,45 @@
+---
+title: Import a provider
+sidebar_label: Import a provider
+sidebar_position: 2
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Import a provider
+
+A Provider in import mode connects SleakOps to an AWS Organization you already run, instead of creating a new one. This page covers how to create a provider in import mode and where it leads next.
+
+## When to use import mode
+
+Use the default flow ([Providers](/docs/provider)) when you want SleakOps to provision a new AWS Organization and accounts for you. Use import mode when you already operate AWS infrastructure and want SleakOps to manage it as-is — the accounts, network, and EKS cluster are connected rather than recreated.
+
+## Create the provider in import mode
+
+1. Go to **Settings > Providers** and click **Create**. The provider wizard opens on the **Basic Information** tab.
+2. Turn on the **Install SleakOps in existing AWS infra** toggle.
+
+   <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+     <img
+       src={require("./import-provider/provider-wizard-import-toggle.png").default}
+       alt="Basic Information tab with the Install SleakOps in existing AWS infra toggle turned on"
+     />
+   </Zoom>
+
+   With the toggle on, the **Email** field is hidden — SleakOps reads the account email from your existing AWS setup instead. **Name**, **Region**, and **Domain** work the same as in the default flow.
+3. Fill in **Name**, **Region**, and **Domain**, then click **Submit** to move to **Connect to AWS**. This tab and the CloudFormation role setup match the default flow — see [Providers](/docs/provider) — with one addition: an optional box lets you run a CloudFormation stack once on your AWS organization root account to activate organization-level Cost Allocation Tags. Skipping it only disables organization-level cost tagging.
+4. Once the provider finishes creating, SleakOps redirects you automatically to **Accounts & Networking** instead of the dashboard.
+
+   <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+     <img
+       src={require("./import-provider/accounts-networking-landing.png").default}
+       alt="Accounts and Networking section for a provider created in import mode"
+     />
+   </Zoom>
+
+## Next step
+
+{/* TODO: link to the "Import accounts" doc page once it ships */}
+From **Accounts & Networking**, connect your existing AWS accounts to the provider.
