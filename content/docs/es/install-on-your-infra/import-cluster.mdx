@@ -1,0 +1,83 @@
+---
+title: Importa el clúster
+sidebar_label: Importa el clúster
+sidebar_position: 5
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Importa el clúster
+
+Con la red de una cuenta ya configurada, SleakOps puede registrar un clúster EKS existente de esa cuenta sin recrearlo — el último paso del recorrido de importación.
+
+## Requisitos previos
+
+- Una cuenta ya en estado **created**, con su red configurada ([Configura la red](/docs/install-on-your-infra/network-configuration)).
+
+## Instala SleakOps en el clúster
+
+En la lista de Clusters, los admins ven un botón **Install SleakOps in Cluster** junto a **Create**. Solo aparece cuando al menos una cuenta está en estado created.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./import-cluster/import-cluster-button.png").default}
+    alt="Lista de Clusters con el botón Install SleakOps in Cluster junto a Create"
+  />
+</Zoom>
+
+El botón abre un diálogo de 4 pasos.
+
+### 1. Select account
+
+Elegí la cuenta del clúster EKS. Solo se listan las cuentas en estado created.
+
+### 2. Select cluster
+
+SleakOps lista los clústeres EKS que descubrió en esa cuenta — nombre, versión de Kubernetes y estado (ACTIVE, etc.). Elegí el clúster a importar.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./import-cluster/import-cluster-select-eks.png").default}
+    alt="Paso Select cluster listando los clústeres EKS que SleakOps descubrió en la cuenta, con uno seleccionado"
+  />
+</Zoom>
+
+### 3. Cluster endpoint access
+
+SleakOps opera dentro del clúster a través de su API de Kubernetes, así que necesita llegar al endpoint del clúster. Si el endpoint ya es público con una allowlist, SleakOps agrega sus propias direcciones salientes a ella, manteniendo cada entrada que ya está. Si el endpoint no es públicamente alcanzable, SleakOps lo habilita y lo restringe a sus propias direcciones salientes.
+
+Marcá **I allow SleakOps to access the endpoint of this cluster** para continuar — es obligatorio.
+
+### 4. Ingress classes
+
+Ingresá el **Private IngressClass name** (por ejemplo `alb-internal`) y el **Public IngressClass name** (por ejemplo `alb-internet-facing`) del clúster. SleakOps los usa para rutear tráfico privado y público — no puede autodetectarlos, ya que solo la configuración del ALB controller del clúster define cuál es cuál.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./import-cluster/import-cluster-ingress-classes.png").default}
+    alt="Paso Ingress classes con los campos Private y Public IngressClass name completos"
+  />
+</Zoom>
+
+Hacé clic en **Install** para iniciar la importación.
+
+## Progreso de la instalación
+
+Mientras corre la importación, SleakOps lee la metadata del clúster (OIDC issuer), configura la VPN de la cuenta si todavía no existe, crea el namespace dedicado `sleakops`, y guarda el addon de Load Balancer con los nombres de IngressClass del paso 4.
+
+Podés cerrar el diálogo y seguir el progreso desde la lista de clusters — se sigue actualizando mientras la importación está en curso.
+
+Al terminar, SleakOps puede alcanzar el endpoint del clúster y está listo para operar dentro de él. Desde acá, el clúster está listo para que se gestionen sus addons esenciales y nodepools.
+
+## La etiqueta Imported
+
+Un clúster importado muestra una etiqueta **Imported** en su tarjeta en la lista de clusters, distinguiéndolo de los clústeres que SleakOps creó desde cero. Al pasar el mouse sobre la etiqueta se muestra: "Pre-existing EKS cluster imported into SleakOps".
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./import-cluster/cluster-imported-badge.png").default}
+    alt="Lista de clusters mostrando un clúster importado con la etiqueta Imported y su tooltip"
+  />
+</Zoom>

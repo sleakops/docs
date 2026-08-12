@@ -1,0 +1,83 @@
+---
+title: Import the cluster
+sidebar_label: Import the cluster
+sidebar_position: 5
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Import the cluster
+
+With an account's network configured, SleakOps can register an existing EKS cluster of that account without recreating it — the last step of the import journey.
+
+## Prerequisites
+
+- An account already in **created** state, with its network configured ([Configure the network](/docs/install-on-your-infra/network-configuration)).
+
+## Install SleakOps in the cluster
+
+On the Clusters list, admins see an **Install SleakOps in Cluster** button next to **Create**. It only appears once at least one account is in created state.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./import-cluster/import-cluster-button.png").default}
+    alt="Clusters list with the Install SleakOps in Cluster button next to Create"
+  />
+</Zoom>
+
+The button opens a 4-step dialog.
+
+### 1. Select account
+
+Choose the account of the EKS cluster. Only accounts in created state are listed.
+
+### 2. Select cluster
+
+SleakOps lists the EKS clusters it discovered in that account — name, Kubernetes version and status (ACTIVE, etc.). Pick the cluster to import.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./import-cluster/import-cluster-select-eks.png").default}
+    alt="Select cluster step listing the EKS clusters SleakOps discovered in the account, with one selected"
+  />
+</Zoom>
+
+### 3. Cluster endpoint access
+
+SleakOps operates inside the cluster through its Kubernetes API, so it needs to reach the cluster endpoint. If the endpoint is already public with an allowlist, SleakOps adds its own outbound addresses to it, keeping every entry already there. If the endpoint isn't publicly reachable, SleakOps enables it and restricts it to its own outbound addresses.
+
+Check **I allow SleakOps to access the endpoint of this cluster** to continue — it's required.
+
+### 4. Ingress classes
+
+Enter the **Private IngressClass name** (e.g. `alb-internal`) and **Public IngressClass name** (e.g. `alb-internet-facing`) of the cluster. SleakOps uses them to route private and public traffic — it can't autodetect them, since only the cluster's ALB controller configuration defines which one is which.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./import-cluster/import-cluster-ingress-classes.png").default}
+    alt="Ingress classes step with the Private and Public IngressClass name fields filled in"
+  />
+</Zoom>
+
+Click **Install** to start the import.
+
+## Installation progress
+
+While the import runs, SleakOps reads the cluster metadata (OIDC issuer), sets up the account VPN if it doesn't exist yet, creates the dedicated `sleakops` namespace, and saves the Load Balancer addon with the IngressClass names from step 4.
+
+You can close the dialog and follow the progress from the clusters list — it keeps refreshing while the import is in progress.
+
+Once it finishes, SleakOps can reach the cluster endpoint and is ready to operate inside it. From here, the cluster is ready to have its essential addons and nodepools managed.
+
+## The Imported badge
+
+An imported cluster shows an **Imported** badge on its card in the clusters list, distinguishing it from clusters SleakOps created from scratch. Hovering over the badge shows: "Pre-existing EKS cluster imported into SleakOps".
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./import-cluster/cluster-imported-badge.png").default}
+    alt="Clusters list showing an imported cluster with the Imported badge and its tooltip"
+  />
+</Zoom>
