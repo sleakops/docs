@@ -1,0 +1,77 @@
+---
+title: Importa un proyecto
+sidebar_label: Importa un proyecto
+sidebar_position: 15
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+:::info
+Esta página cubre la importación de un recurso existente. Si todavía no conectaste tu infraestructura de AWS a SleakOps, empezá por [Instala SleakOps en tu infraestructura](/docs/install-on-your-infra).
+:::
+
+SleakOps puede adoptar un deployment que ya corre en un clúster como un Proyecto administrado, en vez de crearlo desde cero. La importación descubre los Helm releases que el clúster corre fuera de SleakOps y mapea uno de ellos en workloads y manifiestos.
+
+## Descubrí un release para importar
+
+En la pantalla de Proyectos, hacé clic en **Import Project** junto a **Create**. Esto abre el mismo diálogo de descubrimiento que se usa para importar addons: elegí el clúster a inspeccionar, y SleakOps lista los Helm releases que corren ahí y que todavía no están administrados por SleakOps. Elegí uno para continuar.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./import-project/import-project-entry.png").default}
+    alt="Diálogo de importación de proyecto desde clúster listando Helm releases no administrados"
+  />
+</Zoom>
+
+## Preview: qué detecta SleakOps
+
+SleakOps mapea determinísticamente los documentos del release en workloads — web service, worker, cron job o hook — más cualquier manifiesto compartido por todo el proyecto. Lo que no pudo mapear queda en una lista de **Not included**, cada uno con su motivo. Un botón opcional **Improve mapping with AI** vuelve a correr el mapeo con un LLM como alternativa, si el resultado determinístico necesita ajustarse.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./import-project/import-project-preview.png").default}
+    alt="Paso de preview mostrando el release mapeado en un workload con sus manifiestos"
+  />
+</Zoom>
+
+El release original sigue corriendo intacto. Esto crea un proyecto administrado por SleakOps en su propio namespace, en paralelo — sus pods usan la service account de SleakOps, así que hay que otorgar cualquier acceso a AWS que la app necesite a través de Dependencias. Pasar el tráfico al proyecto administrado es un paso manual.
+
+## Completá los datos del proyecto
+
+Hacé clic en **Continue** para completar el nuevo proyecto:
+
+| **Campo**            | **Descripción**                                                                |
+| ---------------------- | -------------------------------------------------------------------------------- |
+| **Project name**       | Prellenado a partir del nombre del release, slugificado. Editable.              |
+| **Environment**        | El Entorno del clúster elegido en el que se va a desplegar.                     |
+| **Nodepool**           | El node pool del clúster elegido en el que van a correr los workloads.          |
+| **Branch**             | La rama de Git desde la que se construye.                                       |
+| **Repository**         | El repositorio de Git desde el que se construye — requiere una integración de Git configurada. |
+| **Build method**       | Docker o Buildpack.                                                              |
+| **Dockerfile path**    | Solo para el método Docker.                                                     |
+
+Environment y Nodepool listan los recursos reales del clúster que elegiste en el paso de descubrimiento.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./import-project/import-project-details.png").default}
+    alt="Paso de detalles con nombre de proyecto, entorno, nodepool, rama y método de build completos"
+  />
+</Zoom>
+
+Hacé clic en **Import** para crear el proyecto.
+
+## Qué queda manual
+
+El nuevo proyecto se construye desde el repositorio que elijas y se despliega con los manifiestos mapeados desde el release. El release original no se modifica — sigue sirviendo tráfico por su cuenta hasta que decidas pasarte al proyecto administrado. Enrutar tráfico real hacia el proyecto administrado es un paso manual, fuera de SleakOps.
+
+## FAQs
+
+<details>
+<summary>
+### ¿Qué pasa con el release original?
+</summary>
+Nada. El release original sigue corriendo intacto en su propio namespace. SleakOps crea un proyecto nuevo y separado en paralelo — pasar el tráfico al proyecto administrado es un paso manual que tomás cuando estés listo.
+</details>
