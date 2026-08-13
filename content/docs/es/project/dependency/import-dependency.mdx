@@ -1,0 +1,94 @@
+---
+title: Importa una dependencia
+sidebar_label: Importa una dependencia
+sidebar_position: 14
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+:::info
+Esta página cubre la importación de un recurso existente. Si todavía no conectaste tu infraestructura de AWS a SleakOps, empezá por [Instala SleakOps en tu infraestructura](/docs/install-on-your-infra).
+:::
+
+SleakOps puede registrar una Dependencia que ya tenés en AWS — una base de datos, una cola, un bucket — en lugar de crear una desde cero. La importación descubre los recursos reales de una cuenta y adopta el que elijas sin modificarlo.
+
+## Tipos soportados
+
+Los 14 tipos de abajo están soportados para importar. Esta tabla solo indica si SleakOps necesita credenciales para conectarse — no es una columna de soportado/no soportado.
+
+| **Tipo**              | **Requiere credenciales** |
+| ---------------------- | -------------------------- |
+| **PostgreSQL**         | Sí                          |
+| **MySQL**              | Sí                          |
+| **MariaDB**            | Sí                          |
+| **Oracle**             | Sí                          |
+| **Aurora MySQL**       | Sí                          |
+| **Aurora PostgreSQL**  | Sí                          |
+| **DocumentDB**         | Sí                          |
+| **RabbitMQ**           | Sí                          |
+| **MSK**                | Solo para SASL/SCRAM        |
+| **S3 bucket**          | No                          |
+| **SQS**                | No                          |
+| **Redis**              | No                          |
+| **Memcached**          | No                          |
+| **OpenSearch**         | No                          |
+
+## Descubrí e importá
+
+En la lista de Dependencies, hacé clic en **Import Dependency** al lado de **Create**.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./import-dependency/import-dependency-button.png").default}
+    alt="Lista de Dependencies con el botón Import Dependency al lado de Create"
+  />
+</Zoom>
+
+El botón abre un diálogo de 4 pasos.
+
+### 1. Elegí el tipo de recurso
+
+Buscá y elegí uno de los tipos soportados de la tabla anterior.
+
+### 2. Elegí la cuenta
+
+Seleccioná la cuenta donde vive el recurso. Solo se listan cuentas en estado created.
+
+### 3. Descubrí
+
+SleakOps lista los recursos reales de ese tipo que encontró en la cuenta — nombre, versión del engine (o los atributos correspondientes para los tipos que no son bases de datos) y estado. Un recurso ya registrado en SleakOps aparece atenuado y deshabilitado, con un tooltip que aclara que ya está gestionado.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./import-dependency/import-dependency-discovery.png").default}
+    alt="Paso de descubrimiento listando los recursos que SleakOps encontró en la cuenta, con uno seleccionado"
+  />
+</Zoom>
+
+### 4. Nombre, proyecto y credenciales
+
+Ingresá un **Name** y elegí el **Project** al que se va a asociar la dependencia. Para los tipos que requieren credenciales, ingresá el **Username** y **Password** que SleakOps va a usar para conectarse — AWS nunca expone la contraseña maestra de una instancia existente, así que estos valores no se descubren automáticamente.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./import-dependency/import-dependency-config.png").default}
+    alt="Paso de nombre, proyecto y credenciales completo para un recurso PostgreSQL"
+  />
+</Zoom>
+
+Hacé clic en **Import** para iniciar el registro. SleakOps adopta el recurso en su estado de infraestructura sin modificarlo, y podés seguir el progreso desde la lista de dependencias.
+
+## Sincronización de configuración
+
+Una vez importada, la configuración de una dependencia también puede sincronizarse desde el recurso real de AWS en segundo plano — esto todavía no se dispara desde el console.
+
+## Preguntas frecuentes
+
+<details>
+<summary>
+### ¿Importar modifica el recurso?
+</summary>
+No. SleakOps adopta el recurso en su estado de infraestructura sin modificarlo — solo registra lo que ya existe.
+</details>
