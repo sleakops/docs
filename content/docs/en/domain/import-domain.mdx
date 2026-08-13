@@ -1,0 +1,53 @@
+---
+title: Import a domain
+sidebar_label: Import a domain
+sidebar_position: 3
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+:::info
+This page covers importing an existing resource. If you haven't connected your AWS infrastructure to SleakOps yet, start with [Install SleakOps on your infra](/docs/install-on-your-infra).
+:::
+
+Domain import isn't a separate flow — it's a section inside the Environment creation form. Creating an Environment normally provisions a brand-new Route53 hosted zone; the import option lets you reuse one that already exists in the target AWS account instead.
+
+## Reuse an existing hosted zone
+
+On the Environment creation form, an admin-only **Use Existing Hosted Zone** toggle sits below the base fields (Name, Cluster, Domain):
+
+> Adopt a Route53 hosted zone that already exists in the target AWS account instead of creating a new one. The ACM certificate for the domain is adopted automatically when the account has one issued.
+
+Before you can search, three fields need to be filled in first — the Cluster determines which AWS account SleakOps searches:
+
+- No Cluster selected: **"Select a Cluster to search its account for existing hosted zones."**
+- Cluster selected but Name or Domain still missing/invalid: **"Enter a Name and a valid Domain to search for existing hosted zones."**
+
+Once all three are filled in, turning the toggle on searches Route53 in that account:
+
+- A zone whose name matches the Domain field exactly is marked **Exact Match** (plus **Private** if it's a private zone) and listed first.
+- Any other zones found in the account are listed below it, each with a **Private** badge if applicable.
+- No zones at all: **"No hosted zones found in the account."**
+- Zones exist but none match exactly: **"No hosted zone matches `<domain>` exactly. Pick one manually or create a new one."**
+
+Pick one with the radio cards — **Create a New Hosted Zone** (the default, SleakOps provisions a new zone) or one of the discovered zones. Changing the Cluster switches the target AWS account, so it discards any zone you'd already picked — a hosted zone ID only makes sense within the account it belongs to.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./import-domain/domain-import-section.png").default}
+    alt="Environment creation form with the Use Existing Hosted Zone toggle on, showing an exact-match zone and another discovered zone"
+  />
+</Zoom>
+
+Once the Environment is created, the usual domain setup applies — see [Setup your Domains](/docs/domain/setup) and the [Domain Delegation Guide](/docs/domain/delegation) for what comes next.
+
+## FAQs
+
+<details>
+  <summary>
+    ### What happens to the ACM certificate?
+  </summary>
+  It's adopted automatically, along with the hosted zone, when the target AWS account already has one issued for the domain.
+</details>
