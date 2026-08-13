@@ -1,0 +1,59 @@
+---
+title: Importar un Node Pool
+sidebar_label: Importar un Node Pool
+sidebar_position: 4
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+:::info
+Esta página cubre la importación de un recurso existente. Si todavía no conectaste tu infraestructura de AWS a SleakOps, empezá por [Instala SleakOps en tu infraestructura](/docs/install-on-your-infra).
+:::
+
+SleakOps puede tomar bajo gestión un node pool de Karpenter existente en lugar de crear uno desde cero. La importación descubre los node pools que corren de verdad en tu clúster y te permite adoptar uno tal cual está.
+
+## Requisitos previos
+
+- Un usuario con permisos de administrador en SleakOps.
+- La funcionalidad de importación habilitada para tu empresa (`infra_import.nodepool`).
+- El clúster **no** debe estar en modo importación. **Import Node Pool** solo está disponible en clústeres que SleakOps aprovisionó él mismo — no aparece en clústeres importados.
+
+## Descubrí e importá
+
+Desde el listado de Clústeres, seleccioná uno y entrá a su Settings, después hacé clic en Node Pools. Si se cumplen los requisitos anteriores, vas a encontrar un botón **Import Node Pool** junto a **Create**.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./importing-a-nodepool/import-nodepool-button.png").default}
+    alt="Sección Node Pools de un clúster, con el botón Import Node Pool junto a Create"
+  />
+</Zoom>
+
+### Descubrimiento
+
+Al hacer clic se abre un diálogo que lista los node pools de Karpenter que corren de verdad en el clúster y que SleakOps todavía no gestiona:
+
+- Mientras se busca: **"Discovering Karpenter node pools…"**
+- No se encontraron node pools sin gestionar: **"No unmanaged Karpenter node pools were found in this cluster."**
+- El clúster no es alcanzable: un error que pide verificar la conectividad y reintentar.
+
+Un node pool cuyo nombre no cumple las reglas de nombres de SleakOps (minúsculas alfanuméricas con guiones simples, hasta 50 caracteres) no se puede adoptar y aparece deshabilitado — el nombre del pool pasa a ser el nombre del NodePool en SleakOps y no se puede editar después, así que los nombres fuera de ese patrón quedan afuera de la selección.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./importing-a-nodepool/import-nodepool-dialog.png").default}
+    alt="Diálogo Import Node Pool mostrando los node pools de Karpenter descubiertos y sin gestionar del clúster"
+  />
+</Zoom>
+
+### Revisión
+
+Elegí un node pool y pasá al siguiente paso: "Review the configuration mapped from the live pool. It is adopted exactly as it runs today, even where its values fall outside the SleakOps ranges."
+
+SleakOps precarga el mismo formulario que se usa para crear o editar un node pool con los valores descubiertos en el pool real — arquitectura, tipos de nodo, tipos de instancia, límites de CPU y memoria, almacenamiento del nodo, y su taint dedicado si el pool tiene uno.
+
+## Después de importar
+
+Una vez que confirmás la importación: "`<nombre>` is being adopted by SleakOps. SleakOps is taking the live node pool under management. Its EC2NodeClass is cloned under the pool's name and existing nodes rotate gradually, respecting PodDisruptionBudgets and disruption budgets. You can follow the progress in the node pools list."
