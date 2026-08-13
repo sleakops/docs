@@ -12,7 +12,9 @@ import { FiExternalLink } from "react-icons/fi";
 Esta página cubre la importación de un recurso existente. Si todavía no conectaste tu infraestructura de AWS a SleakOps, empezá por [Instala SleakOps en tu infraestructura](/docs/install-on-your-infra).
 :::
 
-Los addons personalizados (desplegados desde tu propio Helm chart, no uno de los tipos gestionados de SleakOps) pueden entrar y salir de SleakOps de dos formas: importando una definición JSON exportada desde otro clúster, o descubriendo y adoptando un release de Helm que ya corre en el clúster. Ambas opciones están en el listado de Addons, junto a **Add custom addon**, y solo están disponibles cuando tu empresa tiene habilitada la funcionalidad de importación (`infra_import.addon`) y no sos un usuario viewer.
+Los addons pueden entrar y salir de SleakOps de dos formas: importando una definición JSON exportada desde otro clúster, o descubriendo y adoptando un release de Helm que ya corre en el clúster. Ambos botones están en el listado de Addons, junto a **Add custom addon**, y solo aparecen cuando tu empresa tiene registrado el tipo de addon genérico (custom Helm chart). A partir de ahí los dos flujos difieren en alcance: **Import from JSON** y **Export JSON** funcionan con cualquier tipo de addon registrado en el clúster — gestionado por SleakOps (Grafana, KEDA, …) o personalizado — mientras que **Import from cluster** siempre adopta el release como un addon personalizado, ya que el descubrimiento no tiene forma de saber a qué tipo gestionado (si es que corresponde a alguno) equivale un release de Helm en vivo.
+
+Ambos flujos requieren que tu empresa tenga habilitada la funcionalidad de importación (`infra_import.addon`) y que seas un usuario **admin** — crear, actualizar o exportar un addon está restringido a admin en el backend.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -40,7 +42,7 @@ Pegá el JSON y hacé clic en **Import**. SleakOps lo valida antes de abrir el f
 
 Una vez que valida, se abre el formulario de creación del addon correspondiente precargado con los `values` pegados (y el `name`, si viene incluido) — nada queda bloqueado, así que podés cambiar lo que quieras antes de instalar. El botón de envío dice **Import** en lugar de **Install**, como recordatorio de que estos son valores de partida, no una configuración por defecto recién creada.
 
-Esto se combina con **Export JSON**, disponible en la vista de detalle de un addon personalizado ya instalado (mismo requisito de acceso, addon en estado `created`). Copia el JSON portable del addon al portapapeles y lo descarga como `<addon-name>.addon.json` — ese archivo es el que pegás en **Import from JSON** en el clúster de destino.
+Esto se combina con **Export JSON**, disponible en la vista de detalle de cualquier addon instalado — gestionado por SleakOps o personalizado — una vez que está en estado `created` (mismo requisito de acceso). Copia el JSON portable del addon al portapapeles y lo descarga como `<addon-name>.addon.json` — ese archivo es el que pegás en **Import from JSON** en el clúster de destino.
 
 ## Importar desde el clúster
 
@@ -55,7 +57,7 @@ Hacé clic en **Import from cluster** para descubrir los releases de Helm que ya
 
 Cada release muestra su nombre, namespace, chart y versión. Mientras corre el descubrimiento: **"Loading releases…"**; si no puede alcanzar el clúster: **"Could not load Helm releases from the cluster."**; si no encuentra ninguno: **"No Helm releases found in this cluster."**
 
-Hacé clic en **Use** sobre un release para precargar el formulario del addon genérico con su nombre de release, namespace, chart, versión y los valores de Helm actuales. A diferencia del flujo por JSON, acá se está adoptando un recurso que ya corre en vivo, no simplemente partiendo de un conjunto de valores: el nombre del release, el namespace, el chart y la versión quedan bloqueados (solo lectura) porque alimentan la importación de Pulumi subyacente y deben coincidir con lo que realmente está corriendo. **Repository** es el único campo que queda vacío y editable — la URL del repositorio del chart no se puede recuperar de un release en vivo, así que la escribís vos.
+Hacé clic en **Use** sobre un release para precargar el formulario del addon genérico con su nombre de release, namespace, chart, versión y los valores de Helm actuales. A diferencia del flujo por JSON — que puede apuntar a cualquier tipo de addon —, este siempre crea un addon personalizado (genérico), y además adopta un recurso que ya corre en vivo, no simplemente parte de un conjunto de valores: el nombre del release, el namespace, el chart y la versión quedan bloqueados (solo lectura) porque alimentan la importación de Pulumi subyacente y deben coincidir con lo que realmente está corriendo. **Repository URL** es el único campo que queda vacío y editable — la URL del repositorio del chart no se puede recuperar de un release en vivo, así que la escribís vos.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
