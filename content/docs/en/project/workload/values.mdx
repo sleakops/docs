@@ -81,6 +81,16 @@ For values that belong to a single deployment — a canary replica bump, a one-o
 
 See [Injecting values on deploy](/docs/cli#injecting-values-on-deploy) for the full syntax and caveats.
 
+## Platform defaults
+
+A few values are set by SleakOps and aren't exposed on any form today:
+
+- **PodDisruptionBudget** — `minAvailable` is `1` below 8 replicas, and `20%` at 8 or more.
+- **CronJob** — `concurrencyPolicy` is always `Forbid`: overlapping runs never execute concurrently.
+- **Termination grace period** — 120s on spot nodes, 300s on on-demand.
+
+Turning off autoscaling removes the HorizontalPodAutoscaler immediately, including from a release that's already published — no extra reset or republish step needed.
+
 ## FAQs
 
 <details>
