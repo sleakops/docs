@@ -47,6 +47,14 @@ You can drag nodes to arrange the graph — positions are saved per Workload, an
 
 Below the graph, the **Project-shared manifests** strip shows the manifests in the [project bucket](#the-project-bucket) that deploy alongside every Workload, with a **Manage →** shortcut to the Project's Chart Configuration.
 
+### Ingress per domain
+
+Every domain or alias you add to a WebService gets its own `ingress-<slug>` node in the graph, separate from the node for the Workload's default URL — you'll see one Ingress manifest per host, not a single shared one.
+
+Deleting a per-domain ingress manifest only removes routing for that host: SleakOps does not re-create it automatically. Add a new manifest (or re-add the domain) if you need that host back.
+
+Two aliases that would collapse to the same manifest name are rejected — rename one of them before saving.
+
 ## Editing a manifest
 
 Click any node to open the manifest editor. The header shows the manifest's kind, origin, base template version, an **Enabled** switch, a copy button and **Delete** (Admin role required — see [Who can edit manifests?](#who-can-edit-manifests)).

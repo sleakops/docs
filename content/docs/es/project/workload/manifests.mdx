@@ -47,6 +47,14 @@ Puedes arrastrar los nodos para acomodar el grafo — las posiciones se guardan 
 
 Debajo del grafo, la franja **Project-shared manifests** muestra los manifiestos del [project bucket](#el-project-bucket) que se despliegan junto a todos los Workloads, con un acceso **Manage →** a la Chart Configuration del Project.
 
+### Ingress por dominio
+
+Cada dominio o alias que agregas a un WebService obtiene su propio nodo `ingress-<slug>` en el grafo, separado del nodo de la URL predeterminada del Workload — vas a ver un manifiesto Ingress por host, no uno solo compartido.
+
+Borrar un manifiesto de ingress de un dominio puntual solo quita el ruteo de ese host: SleakOps no lo vuelve a crear automáticamente. Agrega un manifiesto nuevo (o vuelve a agregar el dominio) si necesitas ese host de nuevo.
+
+Dos alias que colapsarían al mismo nombre de manifiesto se rechazan — renombra uno de los dos antes de guardar.
+
 ## Editar un manifiesto
 
 Haz clic en cualquier nodo para abrir el editor. El header muestra el kind del manifiesto, su origen, la versión del template base, un switch **Enabled**, un botón de copiado y **Delete** (requiere rol Admin — ver [¿Quién puede editar manifiestos?](#quién-puede-editar-manifiestos)).
