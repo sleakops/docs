@@ -97,6 +97,8 @@ El tab **Preview** renderiza el template con las variables actuales del formular
 
 Los badges sobre la salida confirman cuántas variables `<< form >>` se resolvieron, si quedan expresiones `{{ .Values }}` para el deploy, y que los invariantes protegidos están presentes. Si el template no renderiza, los errores se listan con su número de línea y un acceso **Fix in YAML** — un manifiesto que no renderiza no se despliega.
 
+Si el template falla al renderizar por completo, el tab Preview reemplaza su salida con una card "Template failed to render — nothing will deploy" y un acceso **Fix in YAML** — esto es distinto de los badges que solo marcan expresiones `{{ .Values }}` sin resolver, que sí renderizan bien.
+
 ## Agregar un manifiesto
 
 Usa **Add manifest** (en la toolbar del grafo del Workload, o en el project bucket) para desplegar recursos más allá de los generados (requiere rol Admin — ver [¿Quién puede editar manifiestos?](#quién-puede-editar-manifiestos)):
@@ -155,6 +157,8 @@ Cuando personalizas un manifiesto, tu copia queda fijada: SleakOps **nunca la so
 - Las líneas rojas son tus personalizaciones, ausentes de la base.
 
 Desde el diff puedes elegir **Keep my version** o **Reset to v&lt;nueva&gt;**. **Reset to base** (también disponible en el header del editor) descarta tus ediciones estructurales, restaura el template base de SleakOps y vuelve el manifiesto a `managed`. Los valores del formulario no se ven afectados — solo rellenan variables.
+
+No necesitas esperar a que aparezca el banner de actualización disponible para compararte contra la base — todo manifiesto con un template base (managed o customized) tiene un botón **Compare with base** en la toolbar del tab YAML. Los manifiestos customized también tienen ahí un acceso directo a **Reset to base**, además del que está en el header del editor.
 
 ## Deshabilitar y borrar
 

@@ -97,6 +97,8 @@ The **Preview** tab renders the template with the current form variables and sho
 
 The badges above the output confirm how many `<< form >>` variables were resolved, whether `{{ .Values }}` expressions remain for deploy time, and that the protected invariants are present. If the template fails to render, the errors are listed with their line numbers and a **Fix in YAML** shortcut — a manifest that doesn't render will not deploy.
 
+If the template fails to render at all, the Preview tab replaces its output with a "Template failed to render — nothing will deploy" card and a **Fix in YAML** shortcut — this is different from the badges that just flag unresolved `{{ .Values }}` expressions, which still render fine.
+
 ## Adding a manifest
 
 Use **Add manifest** (on the Workload graph toolbar, or in the project bucket) to deploy resources beyond the generated ones (Admin role required — see [Who can edit manifests?](#who-can-edit-manifests)):
@@ -155,6 +157,8 @@ When you customize a manifest, your copy is pinned: SleakOps **never overwrites 
 - Red lines are your customizations, absent from the base.
 
 From the diff you can choose **Keep my version** or **Reset to v&lt;new&gt;**. **Reset to base** (also available in the editor header) discards your structural edits, restores the SleakOps base template and turns the manifest back into `managed`. Form values are not affected — they only fill variables.
+
+You don't have to wait for an update-available banner to diff against the base — every manifest with a base template (managed or customized) has a **Compare with base** button in the YAML tab toolbar. Customized manifests also get a **Reset to base** shortcut right there, in addition to the one in the editor header.
 
 ## Disabling and deleting
 
