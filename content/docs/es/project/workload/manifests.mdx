@@ -43,9 +43,11 @@ Cada nodo muestra el nombre del manifiesto, su Kind (o el host resuelto, en los 
 | **Customized** | `Customized` | Editaste su YAML. SleakOps nunca sobreescribe tu copia — ver [actualizaciones del template base](#actualizaciones-del-template-base). |
 | **Custom**     | `Custom`     | Un manifiesto que agregaste tú. No tiene template base de SleakOps.                                       |
 
-Los manifiestos deshabilitados muestran un badge `Disabled` y sus aristas se dibujan punteadas.
+El origen **Custom** también se muestra como "user added" en el header del editor y en la toolbar del workload — es lo mismo, con distinta etiqueta según dónde lo mires.
 
-Puedes arrastrar los nodos para acomodar el grafo — las posiciones se guardan por Workload, y **Reset layout** restaura el orden automático.
+Los manifiestos deshabilitados muestran un badge `Disabled` y sus aristas se dibujan punteadas. Una línea de resumen arriba del grafo cuenta los manifiestos por origen (`N manifests · X customized · Y user-added · Z disabled`), junto con una leyenda de puntos de color.
+
+Puedes arrastrar los nodos para acomodar el grafo — las posiciones se guardan por Workload, y **Reset layout** restaura el orden automático. Arrastrar nodos, re-vincular dependencias o renombrar la metadata de un manifiesto son acciones de layout — se actualizan al instante pero nunca registran un cambio pendiente ni disparan un deployment, sin importar el switch **Deploy?**.
 
 Debajo del grafo, la franja **Project-shared manifests** muestra los manifiestos del [project bucket](#el-project-bucket) que se despliegan junto a todos los Workloads, con un acceso **Manage →** a la Chart Configuration del Project.
 
@@ -73,7 +75,7 @@ El tab **YAML** es donde editas el template. Pueden aparecer dos tipos de placeh
 - Las variables `<< form >>` se resuelven **antes de Helm**, con los valores del formulario de tu Workload (nombre, namespace, command, healthcheck, etc.).
 - Las expresiones `{{ .Values }}` quedan para **Helm en el momento del deploy** (replicas, resources, tag de imagen — todo lo que viene de [Values](/docs/project/workload/values)).
 
-El panel **Variables** de la derecha lista todo lo disponible: haz clic en una entrada para insertarla en el cursor, o arrástrala al editor.
+El panel **Variables** de la derecha lista todo lo disponible: haz clic en una entrada para insertarla en el cursor, o arrástrala al editor. Arrastrar una variable sobre el editor muestra una vista previa del cursor en vivo, indicando dónde va a caer antes de soltarla.
 
 El editor valida mientras escribes. Los errores bloquean el guardado, e incluyen:
 
@@ -118,6 +120,10 @@ Usa **Add manifest** (en la toolbar del grafo del Workload, o en el project buck
 | **Depends on**  | Opcional. Dibuja las aristas del grafo desde este manifiesto hacia los seleccionados.                                                          |
 | **Template**    | El YAML del manifiesto. Se genera un stub inicial según el Kind elegido.                                                                       |
 
+**Create** permanece deshabilitado hasta completar Scope, Kind, Name y Template. Mientras no hayas editado el stub a mano, escribir un Name lo refleja en vivo en el `metadata.name` del template; cambiar el Kind regenera el stub desde cero.
+
+Usa **Add manifest** en la toolbar para un manifiesto con scope de Workload, o **Add to project** en la franja compartida para el project bucket — ambos abren el mismo modal, pre-configurado con el scope correspondiente.
+
 Ten en cuenta:
 
 - **Los kinds cluster-scoped se rechazan** — en la práctica, un manifiesto sin `namespace` en su metadata se rechaza como "cluster-scoped"; defínelo explícitamente, igual al del entorno del Project. SleakOps solo verifica si el campo está presente, no si el kind es realmente cluster-scoped en Kubernetes.
@@ -137,6 +143,8 @@ Los manifiestos agregados con scope **Project bucket** no están atados a ningú
 </Zoom>
 
 El **Explorer** al inicio de la sección lista cada Workload del Project con sus manifiestos, y el project bucket al final. Usa el filtro para buscar por nombre o kind; hacer clic en un Workload abre su vista Advanced, y hacer clic en un manifiesto abre el editor ahí mismo.
+
+El filtro busca tanto por nombre como por kind. Un Workload sin coincidencias se colapsa de la lista en vez de mostrar una lane vacía; si no hay coincidencias en ningún lado (incluido el bucket), vas a ver un mensaje "No manifests match". Los tipos de Workload que todavía no tienen una vista Advanced dedicada se muestran como filas deshabilitadas.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -168,6 +176,8 @@ No necesitas esperar a que aparezca el banner de actualización disponible para 
 :::info Schema Internal y manifiestos de ingress
 Cambiar el schema de networking de un WebService a **Internal** deshabilita automáticamente todos sus manifiestos de ingress — vas a ver aparecer el badge `Disabled` sin tocar nada. Volver a **Public** o **Private** solo reactiva los manifiestos de ingress que este cambio automático deshabilitó; si habías deshabilitado uno a mano antes de pasar a Internal, sigue deshabilitado y tienes que reactivarlo tú mismo.
 :::
+
+Borrar o resetear un manifiesto te pide escribir el nombre de la acción ("Delete manifest" / "Reset to base") para confirmar — un resguardo contra clics accidentales, no un simple diálogo de confirmación.
 
 ## Desplegar tus cambios
 

@@ -43,9 +43,11 @@ Each node shows the manifest's name, its Kind (or resolved host, for Ingress man
 | **Customized** | `Customized` | You edited its YAML. SleakOps never overwrites your copy — see [template updates](#base-template-updates). |
 | **Custom**     | `Custom`     | A manifest you added yourself. It has no SleakOps base template.                                  |
 
-Disabled manifests show a `Disabled` badge and their edges render dashed.
+The **Custom** origin is also labeled "user added" in the editor header and workload toolbar — same thing, worded differently depending on where you're looking.
 
-You can drag nodes to arrange the graph — positions are saved per Workload, and **Reset layout** restores the automatic arrangement.
+Disabled manifests show a `Disabled` badge and their edges render dashed. A summary line above the graph counts manifests by origin (`N manifests · X customized · Y user-added · Z disabled`), matched to a color-dot legend.
+
+You can drag nodes to arrange the graph — positions are saved per Workload, and **Reset layout** restores the automatic arrangement. Dragging nodes, re-linking dependencies or renaming a manifest's metadata are layout actions — they update instantly but never register a pending change or trigger a deployment, regardless of the **Deploy?** switch.
 
 Below the graph, the **Project-shared manifests** strip shows the manifests in the [project bucket](#the-project-bucket) that deploy alongside every Workload, with a **Manage →** shortcut to the Project's Chart Configuration.
 
@@ -73,7 +75,7 @@ The **YAML** tab is where you edit the template. Two kinds of placeholders can a
 - `<< form >>` variables resolve **before Helm**, from the values of your Workload form (name, namespace, command, healthcheck, etc.).
 - `{{ .Values }}` expressions are left for **Helm at deploy time** (replicas, resources, image tag — everything that comes from [Values](/docs/project/workload/values)).
 
-The **Variables** panel on the right lists everything available: click an entry to insert it at the cursor, or drag it into the editor.
+The **Variables** panel on the right lists everything available: click an entry to insert it at the cursor, or drag it into the editor. Dragging a variable onto the editor shows a live cursor preview of where it'll land before you drop it.
 
 The editor validates as you type. Errors block saving, and include:
 
@@ -118,6 +120,10 @@ Use **Add manifest** (on the Workload graph toolbar, or in the project bucket) t
 | **Depends on**     | Optional. Draws the graph edges from this manifest to the selected ones.                                                                |
 | **Template**       | The manifest YAML. A starting stub is generated for the selected Kind.                                                                  |
 
+**Create** stays disabled until Scope, Kind, Name and Template are all filled. While you haven't hand-edited the stub, typing a Name mirrors it live into the template's `metadata.name`; switching Kind regenerates the stub from scratch.
+
+Use the toolbar's **Add manifest** for a Workload-scoped manifest, or **Add to project** in the shared strip for the Project bucket — both open the same modal, pre-scoped.
+
 Keep in mind:
 
 - **Cluster-scoped kinds are rejected** — in practice, a manifest without a `namespace` in its metadata is rejected as "cluster-scoped"; set it explicitly, equal to the Project environment. SleakOps only checks whether the field is present, not whether the kind is genuinely cluster-scoped in Kubernetes.
@@ -137,6 +143,8 @@ Manifests added with the **Project bucket** scope are not tied to any Workload: 
 </Zoom>
 
 The **Explorer** at the top of the section lists every Workload of the Project with its manifests, and the project bucket at the end. Use the filter to search by name or kind; clicking a Workload opens its Advanced view, and clicking a manifest opens the editor in place.
+
+The filter searches both name and kind. A Workload with no matches collapses out of the list instead of showing an empty lane; if nothing matches anywhere (including the bucket), you'll see a "No manifests match" message. Workload types without a dedicated Advanced view yet show as disabled rows.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -168,6 +176,8 @@ You don't have to wait for an update-available banner to diff against the base �
 :::info Internal schema and ingress manifests
 Switching a WebService's networking schema to **Internal** automatically disables every ingress manifest for it — you'll see the `Disabled` badge appear without touching anything yourself. Switching back to **Public** or **Private** only re-enables the ingress manifests that this automatic switch disabled; if you had manually disabled one before switching to Internal, it stays disabled and you need to re-enable it yourself.
 :::
+
+Deleting or resetting a manifest asks you to type the action's name ("Delete manifest" / "Reset to base") to confirm — a safeguard against accidental clicks, not just a plain confirmation dialog.
 
 ## Deploying your changes
 
