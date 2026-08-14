@@ -116,8 +116,8 @@ Use **Add manifest** (on the Workload graph toolbar, or in the project bucket) t
 
 Keep in mind:
 
-- **Cluster-scoped kinds are rejected**, and the `namespace` must equal the Project environment.
-- **Custom kinds require their CRD installed in the cluster** — for example, a Keda `ScaledObject` needs the Keda Addon. Otherwise the deploy fails with the corresponding Helm error.
+- **Cluster-scoped kinds are rejected** — in practice, a manifest without a `namespace` in its metadata is rejected as "cluster-scoped"; set it explicitly, equal to the Project environment. SleakOps only checks whether the field is present, not whether the kind is genuinely cluster-scoped in Kubernetes.
+- **Custom kinds require their CRD installed in the cluster** — for example, a Keda `ScaledObject` needs the Keda Addon. SleakOps does not check this when you save the manifest; it only surfaces as a Helm error the next time the manifest deploys.
 
 ## The project bucket
 
