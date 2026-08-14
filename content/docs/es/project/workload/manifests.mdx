@@ -63,6 +63,26 @@ Agregar un dominio cuyo host mapea al mismo nombre de Ingress de Kubernetes que 
 
 Haz clic en cualquier nodo para abrir el editor. El header muestra el kind del manifiesto, su origen, la versión del template base, un switch **Enabled**, un botón de copiado y **Delete** (requiere rol Admin — ver [¿Quién puede editar manifiestos?](#quién-puede-editar-manifiestos)).
 
+### Tab Form
+
+:::info Todavía no disponible
+El tab Form todavía no está habilitado — esta sección lo documenta antes del lanzamiento, no es algo que puedas activar hoy.
+:::
+
+El tab Form edita **values**, no el template: llena las mismas variables `<< form >>` que muestra el tab YAML, pero con campos en vez de YAML, y nunca toca la estructura del manifiesto — incluso en uno `customized`. Guardar escribe directo sobre el registro del Service del Workload, los mismos valores que edita el formulario del Workload.
+
+Lo que ves depende del role del manifiesto:
+
+| Role | Qué muestra el formulario |
+| --- | --- |
+| `deployment` | **Command**, y **Healthcheck path/port** para WebServices. Replicas, resources y autoscaling quedan en el tab [Values](/docs/project/workload/values) — son values del release, no del formulario. |
+| `ingress` | El **Domain** del Workload (solo lectura — los dominios se gestionan desde el formulario del Workload) y su **Schema** (public/private/internal). Se renderiza un Ingress por dominio; pasar a internal desactiva los manifiestos de Ingress. |
+| `service` | **Service port** y **Target port**, solo lectura, siguiendo el puerto del container del formulario del Workload. |
+| `pdb` / `hpa` | Un switch de **High availability** / **Autoscaling** — el mismo Enabled que muestra el grafo para ese manifiesto — más campos de solo lectura tomados del Resource Set del Workload (min available para PDB; min, max y CPU target para HPA). |
+| `custom` (agregado por el usuario) | Sin formulario — un placeholder "No generated form for this manifest" con un acceso **Edit YAML**, porque los manifiestos custom solo existen como YAML. |
+
+### Tab YAML
+
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
     src={require("./manifests/manifest-editor-yaml.png").default}

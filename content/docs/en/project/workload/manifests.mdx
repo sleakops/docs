@@ -63,6 +63,26 @@ Adding a domain whose host maps to the same Kubernetes Ingress name as an existi
 
 Click any node to open the manifest editor. The header shows the manifest's kind, origin, base template version, an **Enabled** switch, a copy button and **Delete** (Admin role required — see [Who can edit manifests?](#who-can-edit-manifests)).
 
+### Form tab
+
+:::info Not generally available yet
+The Form tab isn't rolled out yet — this section documents it ahead of launch, not something you can currently turn on.
+:::
+
+The Form tab edits **values**, not the template: it fills the same `<< form >>` variables the YAML tab shows, through plain fields instead of YAML, and never touches the manifest's structure — even on a `customized` manifest. Saving posts straight to the Workload's own service record, the same values the Workload form edits.
+
+What you see depends on the manifest's role:
+
+| Role | What the form shows |
+| --- | --- |
+| `deployment` | **Command**, plus **Healthcheck path/port** for WebServices. Replicas, resources and autoscaling stay on the [Values](/docs/project/workload/values) tab — those are release values, not form values. |
+| `ingress` | The Workload's **Domain** (read-only — domains are managed from the Workload form) and its **Schema** (public/private/internal). One Ingress renders per domain; switching to internal disables the Ingress manifests. |
+| `service` | Read-only **Service port** and **Target port**, following the container port from the Workload form. |
+| `pdb` / `hpa` | A switch for **High availability** / **Autoscaling** — the same Enabled toggle the graph shows for that manifest — plus read-only fields sourced from the Workload's Resource Set (min available for PDB; min, max and CPU target for HPA). |
+| `custom` (user-added) | No form — a "No generated form for this manifest" placeholder with an **Edit YAML** shortcut, since custom manifests only exist as YAML. |
+
+### YAML tab
+
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
     src={require("./manifests/manifest-editor-yaml.png").default}
