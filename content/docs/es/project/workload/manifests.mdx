@@ -157,6 +157,10 @@ Desde el diff puedes elegir **Keep my version** o **Reset to v&lt;nueva&gt;**. *
 - **Deshabilitar** (el switch Enabled): el manifiesto se saltea en el próximo deploy pero conserva su configuración. Si el recurso ya estaba desplegado, el próximo deploy lo quita del cluster.
 - **Delete**: el manifiesto deja de desplegarse y SleakOps **no lo vuelve a crear** en futuros seeds ni actualizaciones del template base. Puedes agregar un manifiesto equivalente más adelante.
 
+:::info Schema Internal y manifiestos de ingress
+Cambiar el schema de networking de un WebService a **Internal** deshabilita automáticamente todos sus manifiestos de ingress — vas a ver aparecer el badge `Disabled` sin tocar nada. Volver a **Public** o **Private** solo reactiva los manifiestos de ingress que este cambio automático deshabilitó; si habías deshabilitado uno a mano antes de pasar a Internal, sigue deshabilitado y tienes que reactivarlo tú mismo.
+:::
+
 ## Desplegar tus cambios
 
 Todos los cambios de contenido de la vista Manifests respetan el switch **Deploy?** de la toolbar:

@@ -157,6 +157,10 @@ From the diff you can choose **Keep my version** or **Reset to v&lt;new&gt;**. *
 - **Disable** (the Enabled switch): the manifest is skipped on the next deploy but keeps its configuration. If the resource was already deployed, the next deploy removes it from the cluster.
 - **Delete**: the manifest will no longer be deployed, and SleakOps will **not re-create it** on future seeds or base-template updates. You can add an equivalent manifest back later.
 
+:::info Internal schema and ingress manifests
+Switching a WebService's networking schema to **Internal** automatically disables every ingress manifest for it — you'll see the `Disabled` badge appear without touching anything yourself. Switching back to **Public** or **Private** only re-enables the ingress manifests that this automatic switch disabled; if you had manually disabled one before switching to Internal, it stays disabled and you need to re-enable it yourself.
+:::
+
 ## Deploying your changes
 
 Every content change in the Manifests view respects the **Deploy?** switch on the toolbar:
