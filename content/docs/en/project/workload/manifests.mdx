@@ -1,5 +1,5 @@
 ---
-sidebar_position: 12
+sidebar_position: 6
 ---
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
@@ -17,7 +17,7 @@ Manifests are being rolled out progressively. If you don't see the **Advanced** 
 
 Manifests live in two places:
 
-- **Per Workload** — open any Workload (WebService, Worker, CronJob or Hook) and switch the view toggle from **Form** to **Advanced**. The Advanced view has two tabs: **Manifests** (the graph of resources) and **Values** (see [Values](/docs/project/values)).
+- **Per Workload** — open any Workload (WebService, Worker, CronJob or Hook) and switch the view toggle from **Form** to **Advanced**. The Advanced view has two tabs: **Manifests** (the graph of resources) and **Values** (see [Values](/docs/project/workload/values)).
 - **Per Project** — go to **Project → Settings → Chart Configuration**. The **Manifests** section lists every Workload and manifest in the Project, and manages the shared **project bucket**.
 
 The **Form** view is still the source of truth for your Workload's configuration: one submit updates every generated manifest. The **Advanced** view is where you inspect and customize what gets deployed.
@@ -61,7 +61,7 @@ Click any node to open the manifest editor. The header shows the manifest's kind
 The **YAML** tab is where you edit the template. Two kinds of placeholders can appear in it:
 
 - `<< form >>` variables resolve **before Helm**, from the values of your Workload form (name, namespace, command, healthcheck, etc.).
-- `{{ .Values }}` expressions are left for **Helm at deploy time** (replicas, resources, image tag — everything that comes from [Values](/docs/project/values)).
+- `{{ .Values }}` expressions are left for **Helm at deploy time** (replicas, resources, image tag — everything that comes from [Values](/docs/project/workload/values)).
 
 The **Variables** panel on the right lists everything available: click an entry to insert it at the cursor, or drag it into the editor.
 
