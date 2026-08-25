@@ -10,9 +10,13 @@ import { FiExternalLink } from "react-icons/fi";
 
 # SleakOps MCP Server
 
-The SleakOps MCP Server lets AI assistants operate your SleakOps platform in natural language. It exposes the SleakOps API as [Model Context Protocol <FiExternalLink/>](https://modelcontextprotocol.io/) tools, so an agent like Claude Code can create projects, services and managed dependencies, trigger builds and deployments, inspect your clusters, and import existing AWS resources — using your own SleakOps user and permissions.
+The SleakOps MCP Server lets AI assistants operate your SleakOps platform in natural language. It exposes the SleakOps API as [Model Context Protocol <FiExternalLink/>](https://modelcontextprotocol.io/) tools, so an agent like Claude Code can create projects, services and managed dependencies, trigger builds and deployments, manage node pools, inspect your clusters, and import existing AWS resources — using your own SleakOps user and permissions.
 
 The server is hosted by SleakOps: you add one URL to your MCP client and sign in with your SleakOps account. There is nothing to install and no credentials to store.
+
+:::info Beta
+The MCP Server is in beta: the tool catalog and the sign-in flow may still change. Tell us about anything that misbehaves.
+:::
 
 ## Requirements
 
@@ -63,12 +67,13 @@ Each area of the platform is covered by tools the agent discovers and calls for 
 | ------------------------------ | ---------------------------------------------------------------------------------------- |
 | Projects & services            | "Create a project for repo X on the dev environment and add a public webservice"          |
 | Builds & deployments           | "Trigger a build of my-app on branch main and deploy it when it finishes"                 |
-| Clusters & node pools          | "List my clusters and show the node pools of the production one"                          |
+| Clusters (read-only)           | "List my clusters and show the node pools of the production one"                          |
+| Node pools                     | "Add an arm64 node pool to the production cluster with 2–8 vCPU"                          |
 | Managed dependencies           | "Add a PostgreSQL database to project my-app"                                             |
 | Variables                      | "Create a var group with these environment variables for my-app"                          |
-| Static sites                   | "Serve www.example.com as a static site from the landing project"                         |
+| Static sites `static` feature  | "Serve www.example.com as a static site from the landing project"                         |
 | Kubernetes manifests           | "Add a ConfigMap manifest to the web service and preview how it renders"                  |
-| Billing & observability        | "Show my costs for June" / "What resources are still provisioning?"                       |
+| Billing                        | "Show me the cost per resource between June 1st and June 30th"                            |
 
 Kubernetes manifests require the service manifests feature on your company, and static sites require the `static` feature in your subscription.
 
@@ -83,7 +88,12 @@ Onboarding a new AWS account (provider, account, network configuration) and impo
 
 ## What the MCP does not do
 
-Creating or reconfiguring the platform's own infrastructure is not available through the MCP — clusters, node pools, cluster addons, environments, providers and AWS accounts. Those operations cost money and reshape your AWS footprint, so they stay a deliberate decision in the console. The agent can still **read** all of them to answer questions and diagnose.
+Two things stay a deliberate decision in the console:
+
+- **Deleting anything.** No tool deletes projects, services, dependencies, static sites or manifests: the damage is immediate and often irreversible, so it is not something an agent does on your behalf.
+- **Creating or reconfiguring the platform's own infrastructure** — clusters, cluster addons, environments, providers and AWS accounts. Those operations cost money and reshape your AWS footprint.
+
+The agent can still **read** all of it to answer questions and diagnose, and node pools are fully manageable: sizing a cluster's capacity is day-to-day work.
 
 ## FAQs
 
@@ -112,5 +122,5 @@ Creating or reconfiguring the platform's own infrastructure is not available thr
   <summary>
     ### A tool answers that it is disabled
   </summary>
-  Tools that create or reconfigure clusters, node pools, cluster addons, environments, providers or AWS accounts are intentionally not exposed. Do it in the console; the agent can read those resources without restrictions.
+  Deletions, and tools that create or reconfigure clusters, cluster addons, environments, providers or AWS accounts, are intentionally not exposed. Do it in the console; the agent can read those resources without restrictions.
 </details>
