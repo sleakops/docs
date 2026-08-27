@@ -1,0 +1,127 @@
+---
+title: SleakOps MCP Server
+sidebar_label: MCP Server
+sidebar_class_name: sidebar-badge-beta
+sidebar_position: 5
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# SleakOps MCP Server
+
+The SleakOps MCP Server lets AI assistants operate your SleakOps platform in natural language. It exposes the SleakOps API as [Model Context Protocol <FiExternalLink/>](https://modelcontextprotocol.io/) tools, so an agent like Claude Code can create projects, services and managed dependencies, trigger builds and deployments, manage node pools, inspect your clusters, and import existing AWS resources — using your own SleakOps user and permissions.
+
+The server is hosted by SleakOps: you add one URL to your MCP client and sign in with your SleakOps account. There is nothing to install and no credentials to store.
+
+:::info Beta
+The MCP Server is in beta: the tool catalog and the sign-in flow may still change. Tell us about anything that misbehaves.
+:::
+
+## Requirements
+
+- A SleakOps account (the agent acts with your user's role — Kubernetes manifest edits require an admin).
+- An MCP client that supports remote HTTP servers with OAuth: Claude Code, Claude Desktop, Cursor, MCP Inspector or your own agent.
+
+## Connecting your client
+
+Add the server to your MCP client configuration:
+
+```json
+{
+  "mcpServers": {
+    "sleakops": {
+      "type": "http",
+      "url": "https://mcp.sleakops.com/mcp"
+    }
+  }
+}
+```
+
+The first time your client connects, it opens your browser on the SleakOps sign-in page. Enter your account email and password — and your two-factor code if you have it enabled — and the client receives its access automatically. From then on it renews the session on its own.
+
+:::tip
+The URL is the only thing your client needs. Your SleakOps password is never stored in the configuration file, and neither the client nor the server keeps a copy of it.
+:::
+
+## How authentication works
+
+- Every tool call runs **as you**: the server uses the session created when you signed in, so your role and account permissions apply exactly as they do in the console.
+- Two people connecting to the same URL each operate their own accounts — the server holds no shared credentials.
+- A session lasts up to 8 hours. When it expires the client asks you to sign in again in the browser.
+
+## Gateway mode
+
+The server runs in **gateway mode**: instead of loading 70+ tool definitions into your agent's context, it exposes only two meta-tools:
+
+- `search_tools(query)` — without a query returns the full catalog (tool name + one-line summary); with a query returns the best matches with their full description and input schema.
+- `execute_tool(tool_name, arguments)` — runs any tool by name, validating the arguments against its schema.
+
+The agent handles this on its own — you just ask in natural language.
+
+## What you can do
+
+Each area of the platform is covered by tools the agent discovers and calls for you. Some example prompts:
+
+| **Area**                       | **Example prompt**                                                                       |
+| ------------------------------ | ---------------------------------------------------------------------------------------- |
+| Projects & services            | "Create a project for repo X on the dev environment and add a public webservice"          |
+| Builds & deployments           | "Trigger a build of my-app on branch main and deploy it when it finishes"                 |
+| Clusters (read-only)           | "List my clusters and show the node pools of the production one"                          |
+| Node pools                     | "Add an arm64 node pool to the production cluster with 2–8 vCPU"                          |
+| Managed dependencies           | "Add a PostgreSQL database to project my-app"                                             |
+| Variables                      | "Create a var group with these environment variables for my-app"                          |
+| Static sites `static` feature  | "Serve www.example.com as a static site from the landing project"                         |
+| Kubernetes manifests           | "Add a ConfigMap manifest to the web service and preview how it renders"                  |
+| Billing                        | "Show me the cost per resource between June 1st and June 30th"                            |
+
+Kubernetes manifests require the service manifests feature on your company, and static sites require the `static` feature in your subscription.
+
+### Importing existing resources
+
+The import tools register resources that already exist in your AWS accounts — SleakOps manages them without recreating them:
+
+- **Dependencies** — "Import the RDS instance prod-main-db as a dependency of my-app" (database imports ask for their credentials).
+- **Workloads** — import the workloads of an existing Helm release as a SleakOps project.
+
+Onboarding a new AWS account (provider, account, network configuration) and importing an EKS cluster are done with the console's import wizard, not through the MCP.
+
+## What the MCP does not do
+
+Two things stay a deliberate decision in the console:
+
+- **Deleting anything.** No tool deletes projects, services, dependencies, static sites or manifests: the damage is immediate and often irreversible, so it is not something an agent does on your behalf.
+- **Creating or reconfiguring the platform's own infrastructure** — clusters, cluster addons, environments, providers and AWS accounts. Those operations cost money and reshape your AWS footprint.
+
+The agent can still **read** all of it to answer questions and diagnose, and node pools are fully manageable: sizing a cluster's capacity is day-to-day work.
+
+## FAQs
+
+<details>
+  <summary>
+    ### My client says it can't connect
+  </summary>
+  Check that your client supports remote MCP servers over HTTP with OAuth, and that the entry uses `"type": "http"` with the URL `https://mcp.sleakops.com/mcp`. If the browser never opens, clear the client's stored MCP tokens and reconnect so it starts a fresh sign-in.
+</details>
+
+<details>
+  <summary>
+    ### It asks me to sign in again
+  </summary>
+  Sessions last up to 8 hours; after that the server rejects the old access and your client reopens the sign-in page. Signing in again is all that's needed.
+</details>
+
+<details>
+  <summary>
+    ### Why don't I see all the tools in my client?
+  </summary>
+  Only `search_tools` and `execute_tool` are listed — the rest are discovered and executed through them, which keeps your agent's context small. Ask for what you need in natural language and the agent finds the right tool.
+</details>
+
+<details>
+  <summary>
+    ### A tool answers that it is disabled
+  </summary>
+  Deletions, and tools that create or reconfigure clusters, cluster addons, environments, providers or AWS accounts, are intentionally not exposed. Do it in the console; the agent can read those resources without restrictions.
+</details>
