@@ -1,0 +1,127 @@
+---
+title: SleakOps MCP Server
+sidebar_label: MCP Server
+sidebar_class_name: sidebar-badge-beta
+sidebar_position: 5
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# SleakOps MCP Server
+
+El SleakOps MCP Server permite que asistentes de IA operen tu plataforma SleakOps en lenguaje natural. Expone la API de SleakOps como tools de [Model Context Protocol <FiExternalLink/>](https://modelcontextprotocol.io/), de modo que un agente como Claude Code puede crear proyectos, servicios y dependencias administradas, disparar builds y deployments, administrar node pools, consultar tus clusters, e importar recursos AWS existentes — usando tu propio usuario y permisos de SleakOps.
+
+El server está hosteado por SleakOps: agregás una URL a tu cliente MCP e iniciás sesión con tu cuenta. No hay nada que instalar ni credenciales que guardar.
+
+:::warning Beta
+El MCP Server está en beta: el catálogo de tools y el flujo de inicio de sesión pueden cambiar. Contanos cualquier cosa que no funcione como esperás.
+:::
+
+## Requisitos
+
+- Una cuenta de SleakOps (el agente actúa con el rol de tu usuario — la edición de manifests de Kubernetes requiere un admin).
+- Un cliente MCP que soporte servers remotos por HTTP con OAuth: Claude Code, Claude Desktop, Cursor, MCP Inspector o tu propio agente.
+
+## Conectar tu cliente
+
+Agregá el server a la configuración de tu cliente MCP:
+
+```json
+{
+  "mcpServers": {
+    "sleakops": {
+      "type": "http",
+      "url": "https://mcp.sleakops.com/mcp"
+    }
+  }
+}
+```
+
+La primera vez que tu cliente se conecta, abre el navegador en la pantalla de inicio de sesión de SleakOps. Ingresás el email y la password de tu cuenta — y el código de doble factor si lo tenés activo — y el cliente recibe su acceso automáticamente. A partir de ahí renueva la sesión por su cuenta.
+
+:::tip
+La URL es lo único que necesita tu cliente. Tu password de SleakOps nunca queda en el archivo de configuración, y ni el cliente ni el server guardan una copia.
+:::
+
+## Cómo funciona la autenticación
+
+- Cada ejecución de un tool corre **como vos**: el server usa la sesión que se creó cuando iniciaste sesión, así que tu rol y tus permisos de cuenta aplican igual que en la console.
+- Dos personas conectadas a la misma URL operan cada una sus propias cuentas — el server no guarda credenciales compartidas.
+- La sesión dura hasta 8 horas. Cuando expira, el cliente te pide iniciar sesión de nuevo en el navegador.
+
+## Modo gateway
+
+El server corre en **modo gateway**: en lugar de cargar más de 70 definiciones de tools en el contexto de tu agente, expone sólo dos meta-tools:
+
+- `search_tools(query)` — sin query devuelve el catálogo completo (nombre del tool + resumen de una línea); con query devuelve las mejores coincidencias con su descripción completa y su schema de entrada.
+- `execute_tool(tool_name, arguments)` — ejecuta cualquier tool por nombre, validando los argumentos contra su schema.
+
+El agente maneja esto solo — vos simplemente pedís en lenguaje natural.
+
+## Qué podés hacer
+
+Cada área de la plataforma está cubierta por tools que el agente descubre y ejecuta por vos. Algunos ejemplos de prompts:
+
+| **Área**                       | **Ejemplo de prompt**                                                                    |
+| ------------------------------ | ---------------------------------------------------------------------------------------- |
+| Proyectos y servicios          | "Creá un proyecto para el repo X en el environment dev y agregale un webservice público"   |
+| Builds y deployments           | "Disparame un build de my-app en la rama main y deployalo cuando termine"                 |
+| Clusters (sólo lectura)        | "Listame mis clusters y mostrame los node pools del de producción"                        |
+| Node pools                     | "Agregá un node pool arm64 al cluster de producción con 2 a 8 vCPU"                       |
+| Dependencias administradas     | "Agregale una base PostgreSQL al proyecto my-app"                                         |
+| Variables                      | "Creá un var group con estas variables de entorno para my-app"                            |
+| Sitios estáticos (feature `static`) | "Servime www.example.com como sitio estático desde el proyecto landing"              |
+| Manifests de Kubernetes        | "Agregá un manifest ConfigMap al servicio web y mostrame el preview"                      |
+| Billing                        | "Mostrame el costo por recurso entre el 1 y el 30 de junio"                               |
+
+Los manifests de Kubernetes requieren la feature de manifests de servicio habilitada en tu company, y los sitios estáticos requieren la feature `static` en tu suscripción.
+
+### Importar recursos existentes
+
+Los tools de import registran recursos que ya existen en tus cuentas de AWS — SleakOps los administra sin recrearlos:
+
+- **Dependencias** — "Importá la instancia RDS prod-main-db como dependencia de my-app" (los imports de bases de datos piden sus credenciales).
+- **Workloads** — importar los workloads de un Helm release existente como proyecto de SleakOps.
+
+El onboarding de una cuenta AWS nueva (provider, account, configuración de red) y el import de un cluster EKS se hacen con el wizard de import de la console, no por el MCP.
+
+## Qué no hace el MCP
+
+Hay dos cosas que siguen siendo una decisión deliberada en la console:
+
+- **Borrar cualquier cosa.** Ningún tool borra proyectos, servicios, dependencias, sitios estáticos ni manifests: el daño es inmediato y muchas veces irreversible, así que no es algo que un agente haga en tu nombre.
+- **Crear o reconfigurar la infraestructura propia de la plataforma** — clusters, addons de cluster, environments, providers y cuentas de AWS. Esas operaciones cuestan dinero y cambian tu huella en AWS.
+
+El agente sí puede **leer** todo eso para responder preguntas y diagnosticar, y los node pools se administran sin restricciones: dimensionar la capacidad de un cluster es trabajo del día a día.
+
+## FAQs
+
+<details>
+  <summary>
+    ### Mi cliente dice que no puede conectarse
+  </summary>
+  Verificá que tu cliente soporte servers MCP remotos por HTTP con OAuth, y que la entrada use `"type": "http"` con la URL `https://mcp.sleakops.com/mcp`. Si el navegador nunca se abre, borrá los tokens MCP guardados en el cliente y volvé a conectar para que arranque un inicio de sesión nuevo.
+</details>
+
+<details>
+  <summary>
+    ### Me pide iniciar sesión otra vez
+  </summary>
+  Las sesiones duran hasta 8 horas; después el server rechaza el acceso viejo y tu cliente vuelve a abrir la pantalla de inicio de sesión. Con volver a ingresar alcanza.
+</details>
+
+<details>
+  <summary>
+    ### ¿Por qué no veo todos los tools en mi cliente?
+  </summary>
+  Sólo se listan `search_tools` y `execute_tool` — el resto se descubre y se ejecuta a través de ellos, lo que mantiene chico el contexto de tu agente. Pedí lo que necesitás en lenguaje natural y el agente encuentra el tool correcto.
+</details>
+
+<details>
+  <summary>
+    ### Un tool responde que está deshabilitado
+  </summary>
+  Los borrados, y los tools que crean o reconfiguran clusters, addons de cluster, environments, providers o cuentas de AWS, están deliberadamente fuera del catálogo. Hacelo desde la console; el agente puede leer esos recursos sin restricciones.
+</details>
