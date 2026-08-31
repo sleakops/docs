@@ -87,6 +87,16 @@ Los tools de import registran recursos que ya existen en tus cuentas de AWS — 
 
 El onboarding de una cuenta AWS nueva (provider, account, configuración de red) y el import de un cluster EKS se hacen con el wizard de import de la console, no por el MCP.
 
+### Deployar un sitio estático de punta a punta
+
+Con la feature `static` en tu suscripción, el agente puede llevar un repositorio de frontend a un sitio publicado en una sola conversación. El environment de destino ya debe existir y tener un dominio configurado (ver [Sitio Estático](/docs/project/workload/static)) — los environments se crean en la console.
+
+1. **Creá el proyecto** — "Creá un proyecto static para el repo X en el environment dev, compilando con Node 20, `npm run build`, salida en `dist`". El agente llama a `create_project` con `method="static"` y los tres campos de build (`node_version`, `build_command`, `output_path`).
+2. **Asociá el dominio del sitio** — "Servilo en landing.dev.example.com". El agente llama a `create_static`; la URL debe ser un subdominio directo del dominio del environment. Hacelo **antes** del primer deployment: los workloads deployables de un proyecto static son sus Statics, así que un deployment sin uno se rechaza.
+3. **La primera publicación es automática** — cuando el dominio del sitio queda activo, SleakOps dispara el primer build y su deploy por su cuenta.
+4. **Publicá actualizaciones** — "Buildeá main y deployalo cuando termine". El agente encadena `trigger_build`, `create_release`, `create_deployment`, `approve_deployment` y `wait_for_deployment`. Cada deploy sincroniza el resultado del build al bucket del proyecto e invalida la caché de CloudFront de cada Static con invalidate on deploy habilitado (el default).
+5. **Refrescá la caché a demanda** — "Invalidá la caché del sitio landing". El agente llama a `invalidate_static`, útil cuando invalidate on deploy está deshabilitado o necesitás forzar un refresh.
+
 ## Qué no hace el MCP
 
 Hay dos cosas que siguen siendo una decisión deliberada en la console:

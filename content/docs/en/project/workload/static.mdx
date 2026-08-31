@@ -1,0 +1,84 @@
+---
+sidebar_position: 6
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Static Site
+
+**Static sites** build your frontend from its Git repository and serve the output from a private S3 bucket through Amazon CloudFront, on your own domain. There are no containers running and no web server to maintain: SleakOps builds the site, uploads it to S3 and keeps the CloudFront cache fresh.
+
+:::info
+Static sites require the `static` feature in your subscription. Without it, the **Static site** build method and the **Static** tab under Workloads are not shown.
+:::
+
+## How it works
+
+- You create a Project with the **Static site** build method. SleakOps generates the project's Dockerfile automatically — a multistage build that compiles your frontend with Node and packages the output — so there is no Dockerfile to write or maintain.
+- The Project gets a private S3 bucket. Each **Static** attached to the Project is a custom domain served from that bucket through its own CloudFront distribution, with its TLS certificate and DNS record managed for you.
+- Each deploy syncs the new build output to the bucket, so the site always reflects the last deployed build.
+
+## Creating a static site
+
+Navigate to **Projects**, click **Create**, and select your repository and branch as with any Project. Choose **Static site** as the build method and complete the build configuration:
+
+| **Attribute**     | **Description**                                                                                              |
+| ----------------- | ------------------------------------------------------------------------------------------------------------ |
+| **Node version**  | Node.js version used to build the site: 18, 20 or 22. Default: `20`.                                          |
+| **Build command** | The command that produces the production build, e.g. `npm run build`.                                         |
+| **Output path**   | The repo-relative folder the build writes to, e.g. `dist`. Absolute paths and `..` segments are not accepted. |
+| **Subdomain**     | The site's URL: you type a single label and the environment's domain is appended (e.g. `landing` becomes `landing.dev.example.com`). |
+
+{/* TODO: screenshot - Project create form with the Static site build method selected, showing Node version, Build command, Output path and Subdomain */}
+
+The site's URL must be a **direct subdomain of the environment's domain** — the only shape covered by the domain's wildcard certificate. The target environment therefore needs a domain configured (see [Domain](/docs/domain)).
+
+After you submit, SleakOps provisions the project's bucket and the site's CloudFront distribution, certificate and DNS record. Once the domain is active, the first build and deploy run automatically — the site is published without further steps.
+
+## How deploys work
+
+A static Project follows the same Build → Release → Deployment flow as any other Project. The build compiles your frontend into an image containing the static output; the deploy runs a short-lived job that syncs that output to the project's bucket (removing files that no longer exist in the build) and then invalidates the CloudFront cache of every Static with **Invalidate on deploy** enabled.
+
+Builds and deployments appear in the Builds and Deployments sections as usual. To roll back, redeploy a previous Release — its image contains that version's static output.
+
+## Managing your static sites
+
+Open **Workloads** in the left pane and select the **Static** tab to see every static site with its state, URL and environment.
+
+{/* TODO: screenshot - Statics list under Workloads with a created static site */}
+
+The detail view shows the S3 bucket, the CloudFront distribution and links to the AWS console, and offers two cache controls:
+
+- **Invalidate on deploy** — invalidates the CloudFront cache on every deploy, so visitors get the new version immediately. Enabled by default.
+- **Invalidate cache** — triggers a manual invalidation, available once the distribution is created.
+
+{/* TODO: screenshot - Static detail with the Invalidate on deploy toggle and the Invalidate cache action */}
+
+A Project can serve several Statics: they share the same content — the project's bucket — on different domains, each with its own CloudFront distribution. Changing a Static's URL re-provisions its distribution, certificate and DNS record for the new domain.
+
+The build configuration (Node version, build command, output path) is editable in the project's settings; SleakOps regenerates the Dockerfile on save. The build method itself cannot be switched to or from Static site after creation.
+
+## FAQs
+
+<details>
+  <summary>
+    ### Does it work with single-page applications?
+  </summary>
+  Yes. The CloudFront distribution serves `index.html` as the root object and maps not-found responses back to `index.html`, so client-side routes (React Router, Vue Router, etc.) resolve correctly on direct navigation and refresh.
+</details>
+
+<details>
+  <summary>
+    ### Why doesn't my static site have replicas or CPU settings?
+  </summary>
+  A static site runs no Pods: the content is served by S3 and CloudFront, so there is nothing to scale or allocate resources for. Scaling, health checks and resource settings only apply to containerized workloads such as [Web Services](/docs/project/workload/webservice).
+</details>
+
+<details>
+  <summary>
+    ### When do visitors see the new content after a deploy?
+  </summary>
+  Immediately, when the Static has **Invalidate on deploy** enabled (the default): the deploy invalidates the CloudFront cache after syncing the bucket. If you disabled it, cached content is served until it expires — use **Invalidate cache** in the Static's detail to refresh it on demand.
+</details>

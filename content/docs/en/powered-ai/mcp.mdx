@@ -87,6 +87,16 @@ The import tools register resources that already exist in your AWS accounts — 
 
 Onboarding a new AWS account (provider, account, network configuration) and importing an EKS cluster are done with the console's import wizard, not through the MCP.
 
+### Deploying a static site end-to-end
+
+With the `static` feature in your subscription, the agent can take a frontend repository to a published site in a single conversation. The target environment must already exist and have a domain configured (see [Static Site](/docs/project/workload/static)) — environments are created in the console.
+
+1. **Create the project** — "Create a static project for repo X on the dev environment, building with Node 20, `npm run build`, output in `dist`". The agent calls `create_project` with `method="static"` and the three build fields (`node_version`, `build_command`, `output_path`).
+2. **Attach the site's domain** — "Serve it at landing.dev.example.com". The agent calls `create_static`; the URL must be a direct subdomain of the environment's domain. Do this **before** the first deployment: a static project's deployable workloads are its Statics, so a deployment without one is rejected.
+3. **First publish is automatic** — once the site's domain is active, SleakOps triggers the first build and its deploy on its own.
+4. **Ship updates** — "Build main and deploy it when it finishes". The agent chains `trigger_build`, `create_release`, `create_deployment`, `approve_deployment` and `wait_for_deployment`. Each deploy syncs the build output to the project's bucket and invalidates the CloudFront cache of every Static with invalidate on deploy enabled (the default).
+5. **Refresh the cache on demand** — "Invalidate the cache of the landing site". The agent calls `invalidate_static`, useful when invalidate on deploy is disabled or you need to force a refresh.
+
 ## What the MCP does not do
 
 Two things stay a deliberate decision in the console:
