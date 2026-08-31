@@ -37,6 +37,10 @@ The site's URL must be a **direct subdomain of the environment's domain** — th
 
 After you submit, SleakOps provisions the project's bucket and the site's CloudFront distribution, certificate and DNS record. Once the domain is active, the first build and deploy run automatically — the site is published without further steps.
 
+:::info
+If the domain's certificate is still being issued, the distribution starts on a default CloudFront certificate without the custom domain attached — the site doesn't answer on its URL yet. SleakOps attaches the domain automatically as soon as the certificate is ready.
+:::
+
 ## How deploys work
 
 A static Project follows the same Build → Release → Deployment flow as any other Project. The build compiles your frontend into an image containing the static output; the deploy runs a short-lived job that syncs that output to the project's bucket (removing files that no longer exist in the build) and then invalidates the CloudFront cache of every Static with **Invalidate on deploy** enabled.

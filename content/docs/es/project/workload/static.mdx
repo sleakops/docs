@@ -37,6 +37,10 @@ La URL del sitio debe ser un **subdominio directo del dominio del environment** 
 
 Al enviar el formulario, SleakOps aprovisiona el bucket del proyecto y la distribución de CloudFront, el certificado y el registro DNS del sitio. Una vez que el dominio está activo, el primer build y su deploy corren automáticamente — el sitio queda publicado sin pasos adicionales.
 
+:::info
+Si el certificado del dominio todavía se está emitiendo, la distribución arranca con un certificado default de CloudFront sin el dominio custom adjunto — el sitio todavía no responde en su URL. SleakOps adjunta el dominio automáticamente apenas el certificado queda emitido.
+:::
+
 ## Cómo funcionan los deploys
 
 Un Project estático sigue el mismo flujo Build → Release → Deployment que cualquier otro Project. El build compila tu frontend en una imagen que contiene el resultado estático; el deploy corre un job de corta duración que sincroniza ese resultado al bucket del proyecto (eliminando los archivos que ya no existen en el build) y luego invalida la caché de CloudFront de cada Static con **Invalidate on deploy** habilitado.
