@@ -1,0 +1,53 @@
+---
+title: Importa un dominio
+sidebar_label: Importa un dominio
+sidebar_position: 3
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+:::info
+Esta página cubre la importación de un recurso existente. Si todavía no conectaste tu infraestructura de AWS a SleakOps, empezá por [Instala SleakOps en tu infraestructura](/docs/install-on-your-infra).
+:::
+
+La importación de dominio no es un flujo separado — es una sección dentro del formulario de creación de un Entorno. Crear un Entorno normalmente aprovisiona una hosted zone de Route53 nueva; la opción de importación te permite reutilizar una que ya existe en la cuenta de AWS de destino en lugar de eso.
+
+## Reutilizá una hosted zone existente
+
+En el formulario de creación de Entorno, un toggle **Use Existing Hosted Zone**, visible solo para administradores, aparece debajo de los campos base (Name, Cluster, Domain):
+
+> Adopt a Route53 hosted zone that already exists in the target AWS account instead of creating a new one. The ACM certificate for the domain is adopted automatically when the account has one issued.
+
+Antes de poder buscar, hace falta completar tres campos primero — el Cluster determina en qué cuenta de AWS busca SleakOps:
+
+- Sin Cluster elegido: **"Select a Cluster to search its account for existing hosted zones."**
+- Cluster elegido pero falta Name o Domain (o el Domain no es válido): **"Enter a Name and a valid Domain to search for existing hosted zones."**
+
+Una vez que los tres campos están completos, activar el toggle busca en Route53 de esa cuenta:
+
+- Una zona cuyo nombre coincide exacto con el campo Domain se marca con el badge **Exact Match** (más **Private** si es una zona privada) y se muestra primero.
+- Las demás zonas encontradas en la cuenta se listan debajo, cada una con el badge **Private** si corresponde.
+- Si no hay ninguna zona: **"No hosted zones found in the account."**
+- Si hay zonas pero ninguna coincide exacto: **"No hosted zone matches `<domain>` exactly. Pick one manually or create a new one."**
+
+Elegí una opción con las tarjetas de radio — **Create a New Hosted Zone** (la opción por defecto, SleakOps aprovisiona una zona nueva) o una de las zonas encontradas. Cambiar el Cluster cambia la cuenta de AWS de destino, así que descarta cualquier zona que ya hubieras elegido — el id de una hosted zone solo tiene sentido dentro de la cuenta a la que pertenece.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./import-domain/domain-import-section.png").default}
+    alt="Formulario de creación de Entorno con el toggle Use Existing Hosted Zone activado, mostrando una zona con exact match y otra zona encontrada"
+  />
+</Zoom>
+
+Una vez creado el Entorno, aplica la configuración de dominio habitual — mirá [Setup your Domains](/docs/domain/setup) y la [Domain Delegation Guide](/docs/domain/delegation) para lo que sigue.
+
+## FAQs
+
+<details>
+  <summary>
+    ### ¿Qué pasa con el certificado ACM?
+  </summary>
+  Se adopta automáticamente, junto con la hosted zone, cuando la cuenta de AWS de destino ya tiene uno emitido para el dominio.
+</details>

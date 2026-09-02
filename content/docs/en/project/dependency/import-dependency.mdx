@@ -1,0 +1,94 @@
+---
+title: Import a dependency
+sidebar_label: Import a dependency
+sidebar_position: 14
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+:::info
+This page covers importing an existing resource. If you haven't connected your AWS infrastructure to SleakOps yet, start with [Install SleakOps on your infra](/docs/install-on-your-infra).
+:::
+
+SleakOps can register a Dependency you already run in AWS — a database, a queue, a bucket — instead of creating one from scratch. Import discovers the real resources in an account and adopts the one you pick without modifying it.
+
+## Supported types
+
+All 14 types below are supported for import. This table only indicates whether SleakOps needs credentials to connect — it isn't a support/not-supported column.
+
+| **Type**             | **Credentials required** |
+| --------------------- | ------------------------- |
+| **PostgreSQL**         | Yes                       |
+| **MySQL**              | Yes                       |
+| **MariaDB**            | Yes                       |
+| **Oracle**             | Yes                       |
+| **Aurora MySQL**       | Yes                       |
+| **Aurora PostgreSQL**  | Yes                       |
+| **DocumentDB**         | Yes                       |
+| **RabbitMQ**           | Yes                       |
+| **MSK**                | Only for SASL/SCRAM       |
+| **S3 bucket**          | No                        |
+| **SQS**                | No                        |
+| **Redis**              | No                        |
+| **Memcached**          | No                        |
+| **OpenSearch**         | No                        |
+
+## Discover and import
+
+On the Dependencies list, click **Import Dependency** next to **Create**.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./import-dependency/import-dependency-button.png").default}
+    alt="Dependencies list with the Import Dependency button next to Create"
+  />
+</Zoom>
+
+The button opens a 4-step dialog.
+
+### 1. Choose the type of resource
+
+Search and pick one of the supported types above.
+
+### 2. Choose the account
+
+Select the account where the resource lives. Only accounts in created state are listed.
+
+### 3. Discover
+
+SleakOps lists the real resources of that type it found in the account — name, engine version (or the relevant attributes for non-database types), and status. A resource already registered in SleakOps shows dimmed and disabled, with a tooltip explaining it's already managed.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./import-dependency/import-dependency-discovery.png").default}
+    alt="Discover step listing the resources SleakOps found in the account, with one selected"
+  />
+</Zoom>
+
+### 4. Name, project and credentials
+
+Enter a **Name** and pick the **Project** to attach the dependency to. For types that require credentials, enter the **Username** and **Password** SleakOps should use to connect — AWS never exposes the master password of an existing instance, so these values aren't discovered automatically.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./import-dependency/import-dependency-config.png").default}
+    alt="Name, project and credentials step filled in for a PostgreSQL resource"
+  />
+</Zoom>
+
+Click **Import** to start the registration. SleakOps adopts the resource into its infrastructure state without modifying it, and you can follow the progress from the dependencies list.
+
+## Configuration sync
+
+Once imported, a dependency's config can also be synced from the real AWS resource in the background — this isn't triggered from the console yet.
+
+## FAQs
+
+<details>
+<summary>
+### Does importing modify the resource?
+</summary>
+No. SleakOps adopts the resource into its infrastructure state without modifying it — it only registers what's already there.
+</details>
