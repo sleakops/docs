@@ -1,0 +1,88 @@
+---
+sidebar_position: 6
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Sitio Estático
+
+Los **sitios estáticos** compilan tu frontend desde su repositorio Git y sirven el resultado desde un bucket S3 privado a través de Amazon CloudFront, en tu propio dominio. No hay contenedores corriendo ni servidor web que mantener: SleakOps compila el sitio, lo sube a S3 y mantiene fresca la caché de CloudFront.
+
+:::info
+Los sitios estáticos requieren la feature `static` en tu suscripción. Sin ella, el build method **Static site** y la pestaña **Static** dentro de Workloads no se muestran.
+:::
+
+## Cómo funciona
+
+- Creás un Project con el build method **Static site**. SleakOps genera el Dockerfile del proyecto automáticamente — un build multistage que compila tu frontend con Node y empaqueta el resultado — así que no hay Dockerfile que escribir ni mantener.
+- El Project obtiene un bucket S3 privado. Cada **Static** asociado al Project es un dominio custom servido desde ese bucket a través de su propia distribución de CloudFront, con su certificado TLS y su registro DNS administrados por la plataforma.
+- Cada deploy sincroniza el nuevo build al bucket, así que el sitio siempre refleja el último build deployado.
+
+## Crear un sitio estático
+
+Navegá a **Projects**, hacé clic en **Create** y seleccioná tu repositorio y branch como en cualquier Project. Elegí **Static site** como build method y completá la configuración de build:
+
+| **Atributo**      | **Descripción**                                                                                                 |
+| ----------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Node version**  | Versión de Node.js usada para compilar el sitio: 18, 20 o 22. Default: `20`.                                      |
+| **Build command** | El comando que produce el build de producción, p. ej. `npm run build`.                                            |
+| **Output path**   | La carpeta relativa al repo donde el build escribe el resultado, p. ej. `dist`. No se aceptan rutas absolutas ni segmentos `..`. |
+| **Subdomain**     | La URL del sitio: escribís una sola etiqueta y el dominio del environment se agrega como sufijo (p. ej. `landing` se convierte en `landing.dev.example.com`). |
+
+{/* TODO: screenshot - Formulario de creación de Project con el build method Static site seleccionado, mostrando Node version, Build command, Output path y Subdomain */}
+
+La URL del sitio debe ser un **subdominio directo del dominio del environment** — la única forma que cubre el certificado wildcard del dominio. El environment de destino necesita, por lo tanto, un dominio configurado (ver [Domain](/docs/domain)).
+
+Al enviar el formulario, SleakOps aprovisiona el bucket del proyecto y la distribución de CloudFront, el certificado y el registro DNS del sitio. Una vez que el dominio está activo, el primer build y su deploy corren automáticamente — el sitio queda publicado sin pasos adicionales.
+
+:::info
+Si el certificado del dominio todavía se está emitiendo, la distribución arranca con un certificado default de CloudFront sin el dominio custom adjunto — el sitio todavía no responde en su URL. SleakOps adjunta el dominio automáticamente apenas el certificado queda emitido.
+:::
+
+## Cómo funcionan los deploys
+
+Un Project estático sigue el mismo flujo Build → Release → Deployment que cualquier otro Project. El build compila tu frontend en una imagen que contiene el resultado estático; el deploy corre un job de corta duración que sincroniza ese resultado al bucket del proyecto (eliminando los archivos que ya no existen en el build) y luego invalida la caché de CloudFront de cada Static con **Invalidate on deploy** habilitado.
+
+Los builds y deployments aparecen en las secciones de Builds y Deployments como siempre. Para hacer rollback, re-deployá un Release anterior — su imagen contiene el resultado estático de esa versión.
+
+## Administrar tus sitios estáticos
+
+Abrí **Workloads** en el panel izquierdo y seleccioná la pestaña **Static** para ver cada sitio estático con su estado, URL y environment.
+
+{/* TODO: screenshot - Listado de Statics dentro de Workloads con un sitio estático creado */}
+
+La vista de detalle muestra el bucket S3, la distribución de CloudFront y links a la consola de AWS, y ofrece dos controles de caché:
+
+- **Invalidate on deploy** — invalida la caché de CloudFront en cada deploy, para que los visitantes reciban la nueva versión de inmediato. Habilitado por default.
+- **Invalidate cache** — dispara una invalidación manual, disponible una vez creada la distribución.
+
+{/* TODO: screenshot - Detalle del Static con el toggle Invalidate on deploy y la acción Invalidate cache */}
+
+Un Project puede servir varios Statics: comparten el mismo contenido — el bucket del proyecto — en dominios distintos, cada uno con su propia distribución de CloudFront. Cambiar la URL de un Static re-aprovisiona su distribución, certificado y registro DNS para el nuevo dominio.
+
+La configuración de build (Node version, build command, output path) es editable en los settings del proyecto; SleakOps regenera el Dockerfile al guardar. El build method en sí no puede cambiarse hacia o desde Static site después de la creación.
+
+## FAQs
+
+<details>
+  <summary>
+    ### ¿Funciona con single-page applications?
+  </summary>
+  Sí. La distribución de CloudFront sirve `index.html` como objeto raíz y mapea las respuestas not-found de vuelta a `index.html`, así que las rutas del lado del cliente (React Router, Vue Router, etc.) resuelven correctamente en navegación directa y al refrescar.
+</details>
+
+<details>
+  <summary>
+    ### ¿Por qué mi sitio estático no tiene réplicas ni configuración de CPU?
+  </summary>
+  Un sitio estático no corre Pods: el contenido lo sirven S3 y CloudFront, así que no hay nada que escalar ni recursos que asignar. El escalado, los health checks y la configuración de recursos solo aplican a workloads containerizados como los [Web Services](/docs/project/workload/webservice).
+</details>
+
+<details>
+  <summary>
+    ### ¿Cuándo ven los visitantes el contenido nuevo después de un deploy?
+  </summary>
+  De inmediato, cuando el Static tiene **Invalidate on deploy** habilitado (el default): el deploy invalida la caché de CloudFront después de sincronizar el bucket. Si lo deshabilitaste, el contenido cacheado se sirve hasta que expira — usá **Invalidate cache** en el detalle del Static para refrescarlo a demanda.
+</details>
