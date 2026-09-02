@@ -1,5 +1,5 @@
 ---
-sidebar_position: 13
+sidebar_position: 7
 ---
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
@@ -7,7 +7,7 @@ import { FiExternalLink } from "react-icons/fi";
 
 # Values
 
-Every deployment renders your Project's Helm chart with a **values tree**: replicas, resources, image tags, hosts, probes and everything else that parameterizes the [manifests](/docs/project/manifests). SleakOps generates those values for you, and lets you override them at three persistent levels — plus a fourth, ephemeral level at deploy time.
+Every deployment renders your Project's Helm chart with a **values tree**: replicas, resources, image tags, hosts, probes and everything else that parameterizes the [manifests](/docs/project/workload/manifests). SleakOps generates those values for you, and lets you override them at three persistent levels — plus a fourth, ephemeral level at deploy time.
 
 ## The override levels
 
@@ -57,7 +57,7 @@ In the example above, `resources.limits.memory` is generated as `1331Mi`, raised
 
 ## Project global values
 
-Project-wide overrides live in **Project → Settings → Chart Configuration**, in the **Values** editor of the Extends Template & Values section. The deprecation notice shown on that section is about migrating free-form **templates** to [Manifests](/docs/project/manifests) — the Values editor remains the home of project globals. Nest the keys under the Workload's name (or under `global:` for chart-wide values):
+Project-wide overrides live in **Project → Settings → Chart Configuration**, in the **Values** editor of the Extends Template & Values section. The deprecation notice shown on that section is about migrating free-form **templates** to [Manifests](/docs/project/workload/manifests) — the Values editor remains the home of project globals. Nest the keys under the Workload's name (or under `global:` for chart-wide values):
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -80,6 +80,16 @@ Use project globals for values you want every Workload of the Project to inherit
 For values that belong to a single deployment — a canary replica bump, a one-off feature flag — inject them from your pipeline with `sleakops deploy -f values.yaml`, `--set key=value` or `--set-string key=value`. They win over every persistent level, apply to that deployment only, and the next deploy without them reverts to the platform values.
 
 See [Injecting values on deploy](/docs/cli#injecting-values-on-deploy) for the full syntax and caveats.
+
+## Platform defaults
+
+A few values are set by SleakOps and aren't exposed on any form today:
+
+- **PodDisruptionBudget** — `minAvailable` is `1` below 8 replicas, and `20%` at 8 or more.
+- **CronJob** — `concurrencyPolicy` is always `Forbid`: overlapping runs never execute concurrently.
+- **Termination grace period** — 120s on spot nodes, 300s on on-demand.
+
+Turning off autoscaling removes the HorizontalPodAutoscaler on the next deploy — no extra reset or republish needed.
 
 ## FAQs
 
