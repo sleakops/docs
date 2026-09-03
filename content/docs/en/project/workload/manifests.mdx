@@ -1,5 +1,5 @@
 ---
-sidebar_position: 12
+sidebar_position: 6
 ---
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
@@ -10,14 +10,16 @@ import { FiExternalLink } from "react-icons/fi";
 Every Workload you create in SleakOps is deployed to Kubernetes through a set of **manifests** — the Deployment, Service, Ingress, PodDisruptionBudget and HorizontalPodAutoscaler resources that SleakOps generates for it. The Manifests feature makes those resources first-class citizens: you can inspect each one, customize its YAML, disable it, or add your own extra manifests — per Workload or shared across the whole Project.
 
 :::info Availability
-Manifests are being rolled out progressively. If you don't see the **Advanced** toggle on your Workload forms or the **Manifests** section in your Project's Chart Configuration, the feature is not enabled for your company yet.
+Manifests ships in **SleakOps 3.0.0** behind the `service_manifests` company feature flag, off by default while the rollout completes. If you don't see the **Advanced** toggle on your Workload forms or the **Manifests** section in your Project's Chart Configuration, ask your SleakOps contact to enable it for your company. The flag can also be scoped to a subset of users through a configuration group, so it may be on for your company and still off for your user — if the Manifests surfaces are missing, ask your SleakOps contact whether your user is in the rollout.
 :::
+
+Enabling `service_manifests` is also a prerequisite for importing a Project from an existing Helm release.
 
 ## Where to find them
 
 Manifests live in two places:
 
-- **Per Workload** — open any Workload (WebService, Worker, CronJob or Hook) and switch the view toggle from **Form** to **Advanced**. The Advanced view has two tabs: **Manifests** (the graph of resources) and **Values** (see [Values](/docs/project/values)).
+- **Per Workload** — open any Workload (WebService, Worker, CronJob or Hook) and switch the view toggle from **Form** to **Advanced**. The Advanced view has two tabs: **Manifests** (the graph of resources) and **Values** (see [Values](/docs/project/workload/values)).
 - **Per Project** — go to **Project → Settings → Chart Configuration**. The **Manifests** section lists every Workload and manifest in the Project, and manages the shared **project bucket**.
 
 The **Form** view is still the source of truth for your Workload's configuration: one submit updates every generated manifest. The **Advanced** view is where you inspect and customize what gets deployed.
@@ -41,15 +43,25 @@ Each node shows the manifest's name, its Kind (or resolved host, for Ingress man
 | **Customized** | `Customized` | You edited its YAML. SleakOps never overwrites your copy — see [template updates](#base-template-updates). |
 | **Custom**     | `Custom`     | A manifest you added yourself. It has no SleakOps base template.                                  |
 
-Disabled manifests show a `Disabled` badge and their edges render dashed.
+The **Custom** origin is also labeled "user added" in the editor header and workload toolbar — same thing, worded differently depending on where you're looking.
 
-You can drag nodes to arrange the graph — positions are saved per Workload, and **Reset layout** restores the automatic arrangement.
+Disabled manifests show a `Disabled` badge and their edges render dashed. A summary line above the graph counts manifests by origin (`N manifests · X customized · Y user-added · Z disabled`), matched to a color-dot legend.
+
+You can drag nodes to arrange the graph — positions are saved per Workload, and **Reset layout** restores the automatic arrangement. Dragging nodes and re-linking dependencies are layout actions — they update instantly but never register a pending change or trigger a deployment, regardless of the **Deploy?** switch.
 
 Below the graph, the **Project-shared manifests** strip shows the manifests in the [project bucket](#the-project-bucket) that deploy alongside every Workload, with a **Manage →** shortcut to the Project's Chart Configuration.
 
+### Ingress per domain
+
+Every domain or alias you add to a WebService gets its own `ingress-<slug>` node in the graph, separate from the node for the Workload's default URL — you'll see one Ingress manifest per host, not a single shared one.
+
+Deleting a per-domain ingress manifest only removes routing for that host: SleakOps does not re-create it automatically. Add a new manifest (or re-add the domain) if you need that host back.
+
+Adding a domain whose host maps to the same Kubernetes Ingress name as an existing host of the Workload is rejected when you save the domain — `api.acme.com` and `api-acme.com` collapse to one name; pick one that differs in more than dots or dashes. Manifest node names never clash: a repeated slug simply gets the domain's id appended.
+
 ## Editing a manifest
 
-Click any node to open the manifest editor. The header shows the manifest's kind, origin, base template version, an **Enabled** switch, a copy button and **Delete**.
+Click any node to open the manifest editor. The header shows the manifest's kind, origin, base template version, an **Enabled** switch, a copy button and **Delete** (Admin role required — see [Who can edit manifests?](#who-can-edit-manifests)).
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -61,9 +73,9 @@ Click any node to open the manifest editor. The header shows the manifest's kind
 The **YAML** tab is where you edit the template. Two kinds of placeholders can appear in it:
 
 - `<< form >>` variables resolve **before Helm**, from the values of your Workload form (name, namespace, command, healthcheck, etc.).
-- `{{ .Values }}` expressions are left for **Helm at deploy time** (replicas, resources, image tag — everything that comes from [Values](/docs/project/values)).
+- `{{ .Values }}` expressions are left for **Helm at deploy time** (replicas, resources, image tag — everything that comes from [Values](/docs/project/workload/values)).
 
-The **Variables** panel on the right lists everything available: click an entry to insert it at the cursor, or drag it into the editor.
+The **Variables** panel on the right lists everything available: click an entry to insert it at the cursor, or drag it into the editor. Dragging a variable onto the editor shows a live cursor preview of where it'll land before you drop it.
 
 The editor validates as you type. Errors block saving, and include:
 
@@ -85,11 +97,13 @@ The **Preview** tab renders the template with the current form variables and sho
   />
 </Zoom>
 
-The badges above the output confirm how many `<< form >>` variables were resolved, whether `{{ .Values }}` expressions remain for deploy time, and that the protected invariants are present. If the template fails to render, the errors are listed with their line numbers and a **Fix in YAML** shortcut — a manifest that doesn't render will not deploy.
+The badges above the output confirm how many `<< form >>` variables were resolved, whether `{{ .Values }}` expressions remain for deploy time, and that the protected invariants are present.
+
+If the template fails to render, the Preview tab replaces its output with a "Template failed to render — nothing will deploy" card, listing the errors with their line numbers and a **Fix in YAML** shortcut — this is different from the badges that just flag unresolved `{{ .Values }}` expressions, which still render fine.
 
 ## Adding a manifest
 
-Use **Add manifest** (on the Workload graph toolbar, or in the project bucket) to deploy resources beyond the generated ones:
+Use **Add manifest** (on the Workload graph toolbar, or in the project bucket) to deploy resources beyond the generated ones (Admin role required — see [Who can edit manifests?](#who-can-edit-manifests)):
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -106,14 +120,20 @@ Use **Add manifest** (on the Workload graph toolbar, or in the project bucket) t
 | **Depends on**     | Optional. Draws the graph edges from this manifest to the selected ones.                                                                |
 | **Template**       | The manifest YAML. A starting stub is generated for the selected Kind.                                                                  |
 
+**Create** stays disabled until Kind, Name and Template are all filled. While you haven't hand-edited the stub, typing a Name mirrors it live into the template's `metadata.name`; switching Kind regenerates the stub from scratch.
+
 Keep in mind:
 
-- **Cluster-scoped kinds are rejected**, and the `namespace` must equal the Project environment.
-- **Custom kinds require their CRD installed in the cluster** — for example, a Keda `ScaledObject` needs the Keda Addon. Otherwise the deploy fails with the corresponding Helm error.
+- **Cluster-scoped kinds are rejected** — in practice, a manifest without a `namespace` in its metadata is rejected as "cluster-scoped"; set it explicitly, equal to the Project environment. SleakOps only checks whether the field is present, not whether the kind is genuinely cluster-scoped in Kubernetes.
+- **Custom kinds require their CRD installed in the cluster** — for example, a Keda `ScaledObject` needs the Keda Addon. SleakOps does not check this when you save the manifest; it only surfaces as a Helm error the next time the manifest deploys.
 
 ## The project bucket
 
 Manifests added with the **Project bucket** scope are not tied to any Workload: they deploy with **every release** of the Project. Typical residents are NetworkPolicies, shared ConfigMaps and ServiceAccounts. Manage them from **Project → Settings → Chart Configuration → Manifests**:
+
+:::info Requires two flags
+The project bucket requires both the `service_manifests` and `project_chart` company flags — if the shared bucket doesn't appear in your Chart Configuration even though per-Workload Manifests do, ask your SleakOps contact to check `project_chart`.
+:::
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -122,7 +142,9 @@ Manifests added with the **Project bucket** scope are not tied to any Workload: 
   />
 </Zoom>
 
-The **Explorer** at the top of the section lists every Workload of the Project with its manifests, and the project bucket at the end. Use the filter to search by name or kind; clicking a Workload opens its Advanced view, and clicking a manifest opens the editor in place.
+The **Explorer** at the top of the section lists every Workload of the Project with its manifests, and the project bucket at the end. Clicking a Workload opens its Advanced view, and clicking a manifest opens the editor in place.
+
+The filter searches both name and kind. A Workload with no matches collapses out of the list instead of showing an empty lane; if nothing matches anywhere (including the bucket), you'll see a "No manifests match" message. Workload types without a dedicated Advanced view yet show as disabled rows.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -144,10 +166,18 @@ When you customize a manifest, your copy is pinned: SleakOps **never overwrites 
 
 From the diff you can choose **Keep my version** or **Reset to v&lt;new&gt;**. **Reset to base** (also available in the editor header) discards your structural edits, restores the SleakOps base template and turns the manifest back into `managed`. Form values are not affected — they only fill variables.
 
+You don't have to wait for an update-available banner to diff against the base — every manifest with a base template (managed or customized) has a **Compare with base** button in the YAML tab toolbar. Customized manifests also get a **Reset to base** shortcut right there, in addition to the one in the editor header.
+
 ## Disabling and deleting
 
 - **Disable** (the Enabled switch): the manifest is skipped on the next deploy but keeps its configuration. If the resource was already deployed, the next deploy removes it from the cluster.
 - **Delete**: the manifest will no longer be deployed, and SleakOps will **not re-create it** on future seeds or base-template updates. You can add an equivalent manifest back later.
+
+:::info Internal schema and ingress manifests
+Switching a WebService's networking schema to **Internal** automatically disables every ingress manifest for it — you'll see the `Disabled` badge appear without touching anything yourself. Switching back to **Public** or **Private** only re-enables the ingress manifests that this automatic switch disabled; if you had manually disabled one before switching to Internal, it stays disabled and you need to re-enable it yourself.
+:::
+
+Deleting or resetting asks for confirmation first: the dialog spells out the consequence (the manifest won't be re-created on future seeds; a reset discards your structural edits) and its confirm button is labeled with the action — **Delete manifest** / **Reset to base**.
 
 ## Deploying your changes
 
@@ -156,7 +186,7 @@ Every content change in the Manifests view respects the **Deploy?** switch on th
 - **On** — a deployment is triggered right after each save.
 - **Off** — changes accumulate as [pending changes](/docs/project/deployment/pending_changes) and are deployed when you publish them.
 
-Layout-only actions — dragging nodes or **Reset layout** — are cosmetic: they never create a pending change or a deployment, regardless of the switch.
+Layout actions on the graph — see [The manifest graph](#the-manifest-graph) — are the exception: they never go through this switch.
 
 ## FAQs
 
@@ -178,7 +208,7 @@ They keep deploying exactly as before. The Extends Template & Values section is 
 <summary>
 ### Can I deploy resources from a CRD?
 </summary>
-Yes — choose **Custom…** as the Kind when adding a manifest and set the CRD's <code>apiVersion</code>/<code>kind</code>. The CRD must be installed in the cluster (for example, Keda's <code>ScaledObject</code> requires the Keda Addon), otherwise the deploy fails with the corresponding Helm error.
+Yes — choose **Custom…** as the Kind when adding a manifest and set the CRD's <code>apiVersion</code>/<code>kind</code>. The manifest saves regardless; the CRD must be installed in the cluster (for example, Keda's <code>ScaledObject</code> requires the Keda Addon), otherwise the deploy fails with the corresponding Helm error.
 </details>
 
 <details>
@@ -199,5 +229,5 @@ Disabling keeps the manifest and its configuration but skips it at deploy time �
 <summary>
 ### Who can edit manifests?
 </summary>
-Editing follows your platform role: viewers see the graph, the YAML and the previews in read-only mode; editors and admins can customize, add, disable and delete manifests.
+Viewers see the graph and the YAML in read-only mode; rendering a Preview needs at least the Editor role. Editors can also drag nodes to rearrange the graph, but cannot create, edit, disable, delete or reset a manifest — those actions require the Admin role.
 </details>

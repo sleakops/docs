@@ -1,0 +1,76 @@
+---
+title: Configura la red
+sidebar_label: Configura la red
+sidebar_position: 4
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Configura la red
+
+Una vez que el stack de CloudFormation de una cuenta corrió, SleakOps necesita saber qué VPC, subnets y gateways usar antes de poder desplegar un clúster en ella. Este paso mapea esa red de AWS existente a los inputs que SleakOps requiere.
+
+## Encontrá cuentas pendientes de configuración de red
+
+Si tenés cuentas todavía esperando su configuración de red, vas a ver una alerta para eso en la lista de Providers. El banner dice **Network configuration pending** y nombra al provider con cuentas pendientes. Su botón **Configure networking** te lleva directo al formulario de configuración de red de esa cuenta en **Accounts & Networking**. Solo los admins ven esta alerta.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./network-configuration/pending-network-alert.png").default}
+    alt="Lista de Providers mostrando el banner Network configuration pending con el botón Configure networking"
+  />
+</Zoom>
+
+## Seleccioná la VPC
+
+El panel de detalle de la cuenta abre con un único campo obligatorio: **VPC**. El dropdown lista cada VPC que SleakOps descubrió en la cuenta, como `<nombre o id> · <cidr_block>`.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./network-configuration/network-config-vpc.png").default}
+    alt="Formulario de configuración de red con el dropdown de VPC sin seleccionar todavía"
+  />
+</Zoom>
+
+Al seleccionar una VPC se cargan sus subnets, NAT Gateways e Internet Gateway — el formulario muestra **Loading subnets, NAT and gateways…** mientras eso sucede.
+
+## Asigná subnets a los slots
+
+| **Setting**             | **Description**                                              |
+| ------------------------ | --------------------------------------------------------------- |
+| **Public subnets**        | Subnets con ruta hacia el Internet Gateway.                     |
+| **Private subnets**       | Subnets que llegan a internet a través de un NAT Gateway.        |
+| **Persistent subnets**    | Subnets para recursos con estado (bases de datos, storage).      |
+
+Los tres slots son obligatorios — cada uno necesita al menos una subnet, o el formulario muestra **Select at least one subnet**. La misma subnet se puede asignar a más de un slot.
+
+## Gateways
+
+- **NAT Gateway(s)** — seleccioná al menos uno. Si no hay ninguno seleccionado, el formulario muestra **Select at least one NAT Gateway**. Si la VPC no tiene ningún NAT Gateway, SleakOps muestra una advertencia pidiéndote crear uno o elegir otra VPC.
+- **Internet Gateway** — un único dropdown obligatorio, con la misma advertencia si la VPC no tiene ninguno asociado.
+
+La Elastic IP de cada NAT Gateway se toma automáticamente de AWS — no hay un campo para elegirla por separado.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./network-configuration/network-config-slots.png").default}
+    alt="Formulario de configuración de red con una VPC, los tres slots de subnets, un NAT Gateway y el Internet Gateway seleccionados"
+  />
+</Zoom>
+
+## Enviá e importá
+
+**Save and apply** queda deshabilitado hasta completar los tres slots de subnets, al menos un NAT Gateway y el Internet Gateway. Al enviarlo, la cuenta pasa a **Creating…** mientras SleakOps aplica la configuración — el panel cambia automáticamente al **network explorer** cuando termina.
+
+El network explorer es una vista de solo lectura de la red importada: la VPC, sus route tables, el Internet Edge (Internet Gateway, NAT Gateway y su Elastic IP), y las subnets agrupadas en Public, Private y Persistent.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./network-configuration/network-explorer.png").default}
+    alt="Network explorer mostrando la VPC, las route tables, el Internet Edge y los grupos de subnets de una cuenta configurada"
+  />
+</Zoom>
+
+Desde acá, la cuenta está lista para importar su clúster.

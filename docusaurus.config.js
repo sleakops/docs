@@ -176,6 +176,17 @@ const config = {
           : undefined,
       },
     ],
+    [
+      "@docusaurus/plugin-client-redirects",
+      {
+        // Manifests + Values moved from project/ to project/workload/.
+        // console/src/utils/helplinks.js hardcodes the old URL, so it must keep resolving.
+        redirects: [
+          { to: "/docs/project/workload/manifests", from: "/docs/project/manifests" },
+          { to: "/docs/project/workload/values", from: "/docs/project/values" },
+        ],
+      },
+    ],
   ],
 
   themeConfig: {

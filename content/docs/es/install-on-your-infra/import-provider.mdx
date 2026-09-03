@@ -1,0 +1,44 @@
+---
+title: Importar un provider
+sidebar_label: Importar un provider
+sidebar_position: 2
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+# Importar un provider
+
+Un provider en modo de importación conecta SleakOps con una Organización de AWS que ya operás, en lugar de crear una nueva. Esta página cubre cómo crear un provider en modo de importación y a dónde te lleva a continuación.
+
+## Cuándo usar el modo de importación
+
+Usá el flujo por defecto ([Providers](/docs/provider)) cuando quieras que SleakOps aprovisione una nueva Organización de AWS y sus cuentas por vos. Usá el modo de importación cuando ya operás infraestructura en AWS y querés que SleakOps la gestione tal como está — las cuentas, la red y el clúster EKS se conectan en lugar de recrearse.
+
+## Crea el provider en modo de importación
+
+1. Ve a **Configuración > Providers** y hacé clic en **Crear**. El wizard del provider se abre en la pestaña **Basic Information**.
+2. Activá el toggle **Install SleakOps in existing AWS infra**.
+
+   <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+     <img
+       src={require("./import-provider/provider-wizard-import-toggle.png").default}
+       alt="Pestaña Basic Information con el toggle Install SleakOps in existing AWS infra activado"
+     />
+   </Zoom>
+
+   Con el toggle activado, el campo **Email** se oculta — SleakOps lee el email de la cuenta desde tu configuración de AWS existente. **Name**, **Region** y **Domain** funcionan igual que en el flujo por defecto.
+3. Completá **Name**, **Region** y **Domain**, y hacé clic en **Submit** para pasar a **Connect to AWS**. Esta pestaña y la configuración del rol de CloudFormation coinciden con el flujo por defecto — mirá [Providers](/docs/provider) — con un agregado: un cuadro opcional te permite ejecutar un stack de CloudFormation una vez en la cuenta raíz de tu Organización de AWS para activar las Cost Allocation Tags a nivel organización. Si lo omitís, solo se desactiva el etiquetado de costos a nivel organización.
+4. Cuando el provider termina de crearse, SleakOps te redirige automáticamente a **Accounts & Networking** en lugar del dashboard.
+
+   <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+     <img
+       src={require("./import-provider/accounts-networking-landing.png").default}
+       alt="Sección Accounts and Networking de un provider creado en modo de importación"
+     />
+   </Zoom>
+
+## Próximo paso
+
+Desde **Accounts & Networking**, [conectá tus cuentas de AWS existentes](/docs/install-on-your-infra/import-accounts) al provider.

@@ -1,5 +1,5 @@
 ---
-sidebar_position: 13
+sidebar_position: 7
 ---
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
@@ -7,7 +7,7 @@ import { FiExternalLink } from "react-icons/fi";
 
 # Values
 
-Cada deployment renderiza el chart de Helm de tu Project con un **árbol de values**: replicas, resources, tags de imagen, hosts, probes y todo lo demás que parametriza los [manifiestos](/docs/project/manifests). SleakOps genera esos values por ti, y te deja sobreescribirlos en tres niveles persistentes — más un cuarto nivel, efímero, en el momento del deploy.
+Cada deployment renderiza el chart de Helm de tu Project con un **árbol de values**: replicas, resources, tags de imagen, hosts, probes y todo lo demás que parametriza los [manifiestos](/docs/project/workload/manifests). SleakOps genera esos values por ti, y te deja sobreescribirlos en tres niveles persistentes — más un cuarto nivel, efímero, en el momento del deploy.
 
 ## Los niveles de override
 
@@ -57,7 +57,7 @@ En el ejemplo de arriba, `resources.limits.memory` se genera como `1331Mi`, sube
 
 ## Values globales del Project
 
-Los overrides a nivel Project viven en **Project → Settings → Chart Configuration**, en el editor de **Values** de la sección Extends Template & Values. El aviso de deprecación de esa sección apunta a migrar los **templates** libres a [Manifests](/docs/project/manifests) — el editor de Values sigue siendo el hogar de los globales del Project. Anida las claves bajo el nombre del Workload (o bajo `global:` para values de todo el chart):
+Los overrides a nivel Project viven en **Project → Settings → Chart Configuration**, en el editor de **Values** de la sección Extends Template & Values. El aviso de deprecación de esa sección apunta a migrar los **templates** libres a [Manifests](/docs/project/workload/manifests) — el editor de Values sigue siendo el hogar de los globales del Project. Anida las claves bajo el nombre del Workload (o bajo `global:` para values de todo el chart):
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -80,6 +80,16 @@ Usa los globales del Project para valores que quieres que todos los Workloads he
 Para valores que pertenecen a un único deployment — subir réplicas para un canary, un feature flag puntual — inyéctalos desde tu pipeline con `sleakops deploy -f values.yaml`, `--set clave=valor` o `--set-string clave=valor`. Ganan sobre todos los niveles persistentes, aplican solo a ese deployment, y el próximo deploy sin esos flags vuelve a los valores de la plataforma.
 
 Ver [Inyectar values en el deploy](/docs/cli#inyectar-values-en-el-deploy) para la sintaxis completa y sus consideraciones.
+
+## Configuraciones por defecto de la plataforma
+
+Hay algunos values que fija SleakOps y que hoy no están expuestos en ningún formulario:
+
+- **PodDisruptionBudget** — `minAvailable` es `1` por debajo de 8 réplicas, y `20%` a partir de 8.
+- **CronJob** — `concurrencyPolicy` siempre es `Forbid`: las corridas que se superponen nunca se ejecutan en simultáneo.
+- **Período de gracia de terminación** — 120s en nodos spot, 300s en on-demand.
+
+Desactivar el autoscaling quita el HorizontalPodAutoscaler en el próximo deploy — sin necesidad de un reset ni de republicar.
 
 ## FAQs
 

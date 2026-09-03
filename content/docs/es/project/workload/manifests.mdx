@@ -1,5 +1,5 @@
 ---
-sidebar_position: 12
+sidebar_position: 6
 ---
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
@@ -10,14 +10,16 @@ import { FiExternalLink } from "react-icons/fi";
 Cada Workload que creas en SleakOps se despliega en Kubernetes a través de un conjunto de **manifiestos** — los recursos Deployment, Service, Ingress, PodDisruptionBudget y HorizontalPodAutoscaler que SleakOps genera para él. La funcionalidad de Manifests convierte esos recursos en ciudadanos de primera clase: puedes inspeccionar cada uno, personalizar su YAML, deshabilitarlo o agregar tus propios manifiestos extra — por Workload o compartidos a nivel del Project.
 
 :::info Disponibilidad
-Manifests se está habilitando progresivamente. Si no ves el toggle **Advanced** en los formularios de tus Workloads ni la sección **Manifests** en la Chart Configuration de tu Project, la funcionalidad todavía no está habilitada para tu compañía.
+Manifests se lanza en **SleakOps 3.0.0** detrás del feature flag de compañía `service_manifests`, apagado por defecto mientras se completa el rollout. Si no ves el toggle **Advanced** en los formularios de tus Workloads ni la sección **Manifests** en la Chart Configuration de tu Project, pide a tu contacto de SleakOps que lo habilite para tu compañía. El flag también puede estar acotado a un subconjunto de usuarios mediante un grupo de configuración, así que puede estar habilitado para tu compañía y seguir apagado para tu usuario — si las superficies de Manifests no aparecen, consulta con tu contacto de SleakOps si tu usuario está incluido en el rollout.
 :::
+
+Habilitar `service_manifests` también es un prerrequisito para importar un Project desde un release de Helm existente.
 
 ## Dónde encontrarlos
 
 Los manifiestos viven en dos lugares:
 
-- **Por Workload** — abre cualquier Workload (WebService, Worker, CronJob o Hook) y cambia el toggle de vista de **Form** a **Advanced**. La vista Advanced tiene dos tabs: **Manifests** (el grafo de recursos) y **Values** (ver [Values](/docs/project/values)).
+- **Por Workload** — abre cualquier Workload (WebService, Worker, CronJob o Hook) y cambia el toggle de vista de **Form** a **Advanced**. La vista Advanced tiene dos tabs: **Manifests** (el grafo de recursos) y **Values** (ver [Values](/docs/project/workload/values)).
 - **Por Project** — ve a **Project → Settings → Chart Configuration**. La sección **Manifests** lista todos los Workloads y manifiestos del Project, y administra el **project bucket** compartido.
 
 La vista **Form** sigue siendo la fuente de verdad de la configuración de tu Workload: un submit actualiza todos los manifiestos generados. La vista **Advanced** es donde inspeccionas y personalizas lo que se despliega.
@@ -41,15 +43,25 @@ Cada nodo muestra el nombre del manifiesto, su Kind (o el host resuelto, en los 
 | **Customized** | `Customized` | Editaste su YAML. SleakOps nunca sobreescribe tu copia — ver [actualizaciones del template base](#actualizaciones-del-template-base). |
 | **Custom**     | `Custom`     | Un manifiesto que agregaste tú. No tiene template base de SleakOps.                                       |
 
-Los manifiestos deshabilitados muestran un badge `Disabled` y sus aristas se dibujan punteadas.
+El origen **Custom** también se muestra como "user added" en el header del editor y en la toolbar del Workload — es lo mismo, con distinta etiqueta según dónde lo mires.
 
-Puedes arrastrar los nodos para acomodar el grafo — las posiciones se guardan por Workload, y **Reset layout** restaura el orden automático.
+Los manifiestos deshabilitados muestran un badge `Disabled` y sus aristas se dibujan punteadas. Una línea de resumen arriba del grafo cuenta los manifiestos por origen (`N manifests · X customized · Y user-added · Z disabled`), junto con una leyenda de puntos de color.
+
+Puedes arrastrar los nodos para acomodar el grafo — las posiciones se guardan por Workload, y **Reset layout** restaura el orden automático. Arrastrar nodos y re-vincular dependencias son acciones de layout — se actualizan al instante pero nunca registran un cambio pendiente ni disparan un deployment, sin importar el switch **Deploy?**.
 
 Debajo del grafo, la franja **Project-shared manifests** muestra los manifiestos del [project bucket](#el-project-bucket) que se despliegan junto a todos los Workloads, con un acceso **Manage →** a la Chart Configuration del Project.
 
+### Ingress por dominio
+
+Cada dominio o alias que agregas a un WebService obtiene su propio nodo `ingress-<slug>` en el grafo, separado del nodo de la URL predeterminada del Workload — vas a ver un manifiesto Ingress por host, no uno solo compartido.
+
+Borrar un manifiesto de ingress de un dominio puntual solo quita el ruteo de ese host: SleakOps no lo vuelve a crear automáticamente. Agrega un manifiesto nuevo (o vuelve a agregar el dominio) si necesitas ese host de nuevo.
+
+Agregar un dominio cuyo host mapea al mismo nombre de Ingress de Kubernetes que otro host existente del Workload se rechaza al guardar el dominio — `api.acme.com` y `api-acme.com` colapsan al mismo nombre; elige uno que difiera en algo más que puntos o guiones. Los nombres de los nodos de manifiesto nunca chocan: un slug repetido simplemente recibe el id del dominio como sufijo.
+
 ## Editar un manifiesto
 
-Haz clic en cualquier nodo para abrir el editor. El header muestra el kind del manifiesto, su origen, la versión del template base, un switch **Enabled**, un botón de copiado y **Delete**.
+Haz clic en cualquier nodo para abrir el editor. El header muestra el kind del manifiesto, su origen, la versión del template base, un switch **Enabled**, un botón de copiado y **Delete** (requiere rol Admin — ver [¿Quién puede editar manifiestos?](#quién-puede-editar-manifiestos)).
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -61,9 +73,9 @@ Haz clic en cualquier nodo para abrir el editor. El header muestra el kind del m
 El tab **YAML** es donde editas el template. Pueden aparecer dos tipos de placeholders:
 
 - Las variables `<< form >>` se resuelven **antes de Helm**, con los valores del formulario de tu Workload (nombre, namespace, command, healthcheck, etc.).
-- Las expresiones `{{ .Values }}` quedan para **Helm en el momento del deploy** (replicas, resources, tag de imagen — todo lo que viene de [Values](/docs/project/values)).
+- Las expresiones `{{ .Values }}` quedan para **Helm en el momento del deploy** (replicas, resources, tag de imagen — todo lo que viene de [Values](/docs/project/workload/values)).
 
-El panel **Variables** de la derecha lista todo lo disponible: haz clic en una entrada para insertarla en el cursor, o arrástrala al editor.
+El panel **Variables** de la derecha lista todo lo disponible: haz clic en una entrada para insertarla en el cursor, o arrástrala al editor. Arrastrar una variable sobre el editor muestra una vista previa del cursor en vivo, indicando dónde va a caer antes de soltarla.
 
 El editor valida mientras escribes. Los errores bloquean el guardado, e incluyen:
 
@@ -85,11 +97,13 @@ El tab **Preview** renderiza el template con las variables actuales del formular
   />
 </Zoom>
 
-Los badges sobre la salida confirman cuántas variables `<< form >>` se resolvieron, si quedan expresiones `{{ .Values }}` para el deploy, y que los invariantes protegidos están presentes. Si el template no renderiza, los errores se listan con su número de línea y un acceso **Fix in YAML** — un manifiesto que no renderiza no se despliega.
+Los badges sobre la salida confirman cuántas variables `<< form >>` se resolvieron, si quedan expresiones `{{ .Values }}` para el deploy, y que los invariantes protegidos están presentes.
+
+Si el template no renderiza, el tab Preview reemplaza su salida con una card "Template failed to render — nothing will deploy", listando los errores con su número de línea y un acceso **Fix in YAML** — esto es distinto de los badges que solo marcan expresiones `{{ .Values }}` sin resolver, que sí renderizan bien.
 
 ## Agregar un manifiesto
 
-Usa **Add manifest** (en la toolbar del grafo del Workload, o en el project bucket) para desplegar recursos más allá de los generados:
+Usa **Add manifest** (en la toolbar del grafo del Workload, o en el project bucket) para desplegar recursos más allá de los generados (requiere rol Admin — ver [¿Quién puede editar manifiestos?](#quién-puede-editar-manifiestos)):
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -106,14 +120,20 @@ Usa **Add manifest** (en la toolbar del grafo del Workload, o en el project buck
 | **Depends on**  | Opcional. Dibuja las aristas del grafo desde este manifiesto hacia los seleccionados.                                                          |
 | **Template**    | El YAML del manifiesto. Se genera un stub inicial según el Kind elegido.                                                                       |
 
+**Create** permanece deshabilitado hasta completar Kind, Name y Template. Mientras no hayas editado el stub a mano, escribir un Name lo refleja en vivo en el `metadata.name` del template; cambiar el Kind regenera el stub desde cero.
+
 Ten en cuenta:
 
-- **Los kinds cluster-scoped se rechazan**, y el `namespace` debe ser igual al del entorno del Project.
-- **Los kinds custom requieren su CRD instalado en el cluster** — por ejemplo, un `ScaledObject` de Keda necesita el Addon de Keda. Si no, el deploy falla con el error correspondiente de Helm.
+- **Los kinds cluster-scoped se rechazan** — en la práctica, un manifiesto sin `namespace` en su metadata se rechaza como "cluster-scoped"; defínelo explícitamente, igual al del entorno del Project. SleakOps solo verifica si el campo está presente, no si el kind es realmente cluster-scoped en Kubernetes.
+- **Los kinds custom requieren su CRD instalado en el cluster** — por ejemplo, un `ScaledObject` de Keda necesita el Addon de Keda. SleakOps no valida esto al guardar el manifiesto; solo aparece como un error de Helm la próxima vez que el manifiesto se despliega.
 
 ## El project bucket
 
 Los manifiestos agregados con scope **Project bucket** no están atados a ningún Workload: se despliegan con **cada release** del Project. Los habitantes típicos son NetworkPolicies, ConfigMaps compartidos y ServiceAccounts. Se administran desde **Project → Settings → Chart Configuration → Manifests**:
+
+:::info Requiere dos flags
+El project bucket requiere que estén habilitados los flags de compañía `service_manifests` y `project_chart` — si el bucket compartido no aparece en tu Chart Configuration aunque los Manifests por Workload sí, pide a tu contacto de SleakOps que revise `project_chart`.
+:::
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -122,7 +142,9 @@ Los manifiestos agregados con scope **Project bucket** no están atados a ningú
   />
 </Zoom>
 
-El **Explorer** al inicio de la sección lista cada Workload del Project con sus manifiestos, y el project bucket al final. Usa el filtro para buscar por nombre o kind; hacer clic en un Workload abre su vista Advanced, y hacer clic en un manifiesto abre el editor ahí mismo.
+El **Explorer** al inicio de la sección lista cada Workload del Project con sus manifiestos, y el project bucket al final. Hacer clic en un Workload abre su vista Advanced, y hacer clic en un manifiesto abre el editor ahí mismo.
+
+El filtro busca tanto por nombre como por kind. Un Workload sin coincidencias se colapsa de la lista en vez de mostrar una lane vacía; si no hay coincidencias en ningún lado (incluido el bucket), vas a ver un mensaje "No manifests match". Los tipos de Workload que todavía no tienen una vista Advanced dedicada se muestran como filas deshabilitadas.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -144,10 +166,18 @@ Cuando personalizas un manifiesto, tu copia queda fijada: SleakOps **nunca la so
 
 Desde el diff puedes elegir **Keep my version** o **Reset to v&lt;nueva&gt;**. **Reset to base** (también disponible en el header del editor) descarta tus ediciones estructurales, restaura el template base de SleakOps y vuelve el manifiesto a `managed`. Los valores del formulario no se ven afectados — solo rellenan variables.
 
+No necesitas esperar a que aparezca el banner de actualización disponible para compararte contra la base — todo manifiesto con un template base (managed o customized) tiene un botón **Compare with base** en la toolbar del tab YAML. Los manifiestos customized también tienen ahí un acceso directo a **Reset to base**, además del que está en el header del editor.
+
 ## Deshabilitar y borrar
 
 - **Deshabilitar** (el switch Enabled): el manifiesto se saltea en el próximo deploy pero conserva su configuración. Si el recurso ya estaba desplegado, el próximo deploy lo quita del cluster.
 - **Delete**: el manifiesto deja de desplegarse y SleakOps **no lo vuelve a crear** en futuros seeds ni actualizaciones del template base. Puedes agregar un manifiesto equivalente más adelante.
+
+:::info Schema Internal y manifiestos de ingress
+Cambiar el schema de networking de un WebService a **Internal** deshabilita automáticamente todos sus manifiestos de ingress — vas a ver aparecer el badge `Disabled` sin tocar nada. Volver a **Public** o **Private** solo reactiva los manifiestos de ingress que este cambio automático deshabilitó; si habías deshabilitado uno a mano antes de pasar a Internal, sigue deshabilitado y tienes que reactivarlo tú mismo.
+:::
+
+Borrar o resetear pide confirmación primero: el diálogo detalla la consecuencia (el manifiesto no se vuelve a crear en futuros seeds; un reset descarta tus ediciones estructurales) y su botón de confirmación queda etiquetado con la acción — **Delete manifest** / **Reset to base**.
 
 ## Desplegar tus cambios
 
@@ -156,7 +186,7 @@ Todos los cambios de contenido de la vista Manifests respetan el switch **Deploy
 - **Prendido** — se dispara un deployment después de cada guardado.
 - **Apagado** — los cambios se acumulan como [cambios pendientes](/docs/project/deployment/pending_changes) y se despliegan cuando los publicas.
 
-Las acciones de solo layout — arrastrar nodos o **Reset layout** — son cosméticas: nunca crean un cambio pendiente ni un deployment, esté como esté el switch.
+Las acciones de layout del grafo — ver [El grafo de manifiestos](#el-grafo-de-manifiestos) — son la excepción: nunca pasan por este switch.
 
 ## FAQs
 
@@ -178,7 +208,7 @@ Se siguen desplegando exactamente igual que antes. La sección Extends Template 
 <summary>
 ### ¿Puedo desplegar recursos de un CRD?
 </summary>
-Sí — elige **Custom…** como Kind al agregar un manifiesto y define el <code>apiVersion</code>/<code>kind</code> del CRD. El CRD debe estar instalado en el cluster (por ejemplo, el <code>ScaledObject</code> de Keda requiere el Addon de Keda); si no, el deploy falla con el error correspondiente de Helm.
+Sí — elige **Custom…** como Kind al agregar un manifiesto y define el <code>apiVersion</code>/<code>kind</code> del CRD. El manifiesto se guarda igual; el CRD debe estar instalado en el cluster (por ejemplo, el <code>ScaledObject</code> de Keda requiere el Addon de Keda); si no, el deploy falla con el error correspondiente de Helm.
 </details>
 
 <details>
@@ -199,5 +229,5 @@ Deshabilitar conserva el manifiesto y su configuración pero lo saltea al desple
 <summary>
 ### ¿Quién puede editar manifiestos?
 </summary>
-La edición sigue tu rol en la plataforma: los viewers ven el grafo, el YAML y los previews en modo solo lectura; los editors y admins pueden personalizar, agregar, deshabilitar y borrar manifiestos.
+Los viewers ven el grafo y el YAML en modo solo lectura; renderizar un Preview requiere al menos el rol Editor. Los editors además pueden arrastrar nodos para reorganizar el grafo, pero no pueden crear, editar, deshabilitar, borrar ni resetear un manifiesto — esas acciones requieren el rol Admin.
 </details>
