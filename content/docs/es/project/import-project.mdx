@@ -1,6 +1,6 @@
 ---
-title: Importa un proyecto
-sidebar_label: Importa un proyecto
+title: Importá un proyecto
+sidebar_label: Importá un proyecto
 sidebar_position: 15
 ---
 
@@ -9,14 +9,20 @@ import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
 
 :::info
-Esta página cubre la importación de un recurso existente. Si todavía no conectaste tu infraestructura de AWS a SleakOps, empezá por [Instala SleakOps en tu infraestructura](/docs/install-on-your-infra).
+Esta página cubre la importación de un recurso existente. Si todavía no conectaste tu infraestructura de AWS a SleakOps, empezá por [Instalá SleakOps en tu infraestructura](/docs/install-on-your-infra).
 :::
 
 SleakOps puede adoptar un deployment que ya corre en un clúster como un Proyecto administrado, en vez de crearlo desde cero. La importación descubre los Helm releases que el clúster corre fuera de SleakOps y mapea uno de ellos en workloads y manifiestos.
 
+## Requisitos previos
+
+- Un usuario con permisos de administrador en SleakOps.
+- La funcionalidad de importación habilitada para tu empresa (`infra_import.project`).
+- La funcionalidad `service_manifests` habilitada para tu empresa: el proyecto importado se arma con [Manifests](/docs/project/workload/manifests). Sin ella, el botón **Import Project** no aparece y SleakOps rechaza la importación con **"Importing a project requires the service manifests feature."**
+
 ## Descubrí un release para importar
 
-En la pantalla de Proyectos, hacé clic en **Import Project** junto a **Create**. Esto abre el mismo diálogo de descubrimiento que se usa para importar addons: elegí el clúster a inspeccionar, y SleakOps lista los Helm releases que corren ahí y que todavía no están administrados por SleakOps. Elegí uno para continuar.
+En la pantalla de Proyectos, hacé clic en **Import Project** junto a **Create**. Esto abre el mismo diálogo de descubrimiento que se usa para importar addons: elegí el clúster a inspeccionar, y SleakOps lista los Helm releases que corren ahí y que todavía no están administrados por SleakOps. Hacé clic en **Import** sobre uno para continuar.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -27,7 +33,9 @@ En la pantalla de Proyectos, hacé clic en **Import Project** junto a **Create**
 
 ## Preview: qué detecta SleakOps
 
-SleakOps mapea determinísticamente los documentos del release en workloads — web service, worker, cron job o hook — más cualquier manifiesto compartido por todo el proyecto. Lo que no pudo mapear queda en una lista de **Not included**, cada uno con su motivo. Un botón opcional **Improve mapping with AI** vuelve a correr el mapeo con un LLM como alternativa, si el resultado determinístico necesita ajustarse.
+SleakOps mapea determinísticamente los documentos del release en workloads — web service, worker, cron job o hook — más cualquier manifiesto compartido por todo el proyecto. Lo que no pudo mapear queda en una lista de **Not included**, cada uno con su motivo. Cuando el mapeo con IA está disponible, un botón opcional **Improve mapping with AI** vuelve a correr el mapeo con un LLM como alternativa; una vez que existen ambos, **Use AI mapping** y **Use deterministic mapping** alternan entre ellos.
+
+Si el namespace del release tiene Secrets, una sección **Environment variables** los lista, cada uno con un checkbox. Los que leen los workloads ya vienen marcados. Cada Secret seleccionado se convierte en un Var Group del nuevo proyecto — variables de entorno, o archivos en la ruta donde el release los montaba. SleakOps copia los valores del lado del servidor; nunca se muestran en el diálogo.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img

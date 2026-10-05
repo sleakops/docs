@@ -34,7 +34,7 @@ The account's detail panel opens on a single required field: **VPC**. The dropdo
   />
 </Zoom>
 
-Selecting a VPC loads its subnets, NAT Gateways and Internet Gateway — the form shows **Loading subnets, NAT and gateways…** while that happens.
+SleakOps discovers the account's whole network topology once, when the form opens (**Discovering network topology…**). Selecting a VPC then narrows the subnets, NAT Gateways and Internet Gateways shown below to the ones in that VPC.
 
 ## Assign subnets to slots
 
@@ -44,14 +44,14 @@ Selecting a VPC loads its subnets, NAT Gateways and Internet Gateway — the for
 | **Private subnets**    | Subnets that reach the internet through a NAT Gateway.        |
 | **Persistent subnets** | Subnets for stateful resources (databases, storage).          |
 
-All three slots are required — each needs at least one subnet, or the form shows **Select at least one subnet**. The same subnet can be assigned to more than one slot.
+All three slots are required — each needs at least one subnet. The descriptions above are guidance: SleakOps doesn't check the subnets' routes. The same subnet can be assigned to more than one slot.
 
 ## Gateways
 
-- **NAT Gateway(s)** — select at least one. If none are selected, the form shows **Select at least one NAT Gateway**. If the VPC has no NAT Gateway at all, SleakOps shows a warning asking you to create one or pick another VPC.
-- **Internet Gateway** — a single required dropdown, with the same warning if the VPC has none attached.
+- **NAT Gateway(s)** — select at least one. If the VPC has no NAT Gateway at all, SleakOps shows **This VPC has no NAT Gateways**.
+- **Internet Gateway** — a single required dropdown. If the VPC has none, SleakOps shows **This VPC has no Internet Gateway attached**.
 
-Each NAT Gateway's Elastic IP is taken automatically from AWS — there's no field to pick it separately.
+Each NAT Gateway's Elastic IP is taken automatically from AWS — there's no field to pick it separately. A NAT Gateway without one is flagged with **This NAT Gateway has no Elastic IP attached**.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -62,7 +62,7 @@ Each NAT Gateway's Elastic IP is taken automatically from AWS — there's no fie
 
 ## Submit and import
 
-**Save and apply** stays disabled until all three subnet slots, at least one NAT Gateway, and the Internet Gateway are set. Once you submit, the account moves to **Creating…** while SleakOps applies the configuration — the panel switches to the **network explorer** automatically when it finishes.
+**Save and apply** stays disabled until all three subnet slots, at least one NAT Gateway with an Elastic IP, and the Internet Gateway are set. Once you submit, the account moves to **Creating…** while SleakOps applies the configuration — the panel switches to the **network explorer** automatically when it finishes.
 
 The network explorer is a read-only view of the imported network: the VPC, its route tables, the Internet Edge (Internet Gateway, NAT Gateway and its Elastic IP), and the subnets grouped by Public, Private and Persistent.
 

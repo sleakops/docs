@@ -1,5 +1,5 @@
 ---
-sidebar_position: 7
+sidebar_position: 8
 ---
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
@@ -57,14 +57,9 @@ En el ejemplo de arriba, `resources.limits.memory` se genera como `1331Mi`, sube
 
 ## Values globales del Project
 
-Los overrides a nivel Project viven en **Project → Settings → Chart Configuration**, en el editor de **Values** de la sección Extends Template & Values. El aviso de deprecación de esa sección apunta a migrar los **templates** libres a [Manifests](/docs/project/workload/manifests) — el editor de Values sigue siendo el hogar de los globales del Project. Anida las claves bajo el nombre del Workload (o bajo `global:` para values de todo el chart):
+Los overrides a nivel Project viven en **Project → Settings → Chart Configuration**, en el editor de **Values** de la sección **Extends Values**. Esa sección solo contiene values: los recursos custom de Kubernetes se administran como [Manifests](/docs/project/workload/manifests). Guarda con **Apply changes**. Anida las claves bajo el nombre del Workload (o bajo `global:` para values de todo el chart):
 
-<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
-  <img
-    src={require("./values/project-global-values.png").default}
-    alt="Editor de values globales del Project en Chart Configuration"
-  />
-</Zoom>
+{/* TODO: screenshot - retake Chart Configuration > Extends Values (current UI) */}
 
 ```yaml
 backoffice:
@@ -83,11 +78,11 @@ Ver [Inyectar values en el deploy](/docs/cli#inyectar-values-en-el-deploy) para 
 
 ## Configuraciones por defecto de la plataforma
 
-Hay algunos values que fija SleakOps y que hoy no están expuestos en ningún formulario:
+Algunos values tienen valores por defecto de SleakOps:
 
-- **PodDisruptionBudget** — `minAvailable` es `1` por debajo de 8 réplicas, y `20%` a partir de 8.
-- **CronJob** — `concurrencyPolicy` siempre es `Forbid`: las corridas que se superponen nunca se ejecutan en simultáneo.
-- **Período de gracia de terminación** — 120s en nodos spot, 300s en on-demand.
+- **PodDisruptionBudget** — no está expuesto en ningún formulario: `minAvailable` es `1` hasta 8 réplicas, y `20%` por encima de 8.
+- **Concurrency policy de CronJob** — se define con el campo **Concurrency Policy** del formulario del CronJob (`Allow`, `Forbid` o `Replace`; el formulario preselecciona `Allow`). Un CronJob creado sin ese campo — por ejemplo, desde la API — recibe `Forbid`.
+- **Período de gracia de terminación** — se define con el campo **Grace Period** del formulario de cada Workload. Cuando un Workload no tiene valor, SleakOps usa 120s si el nodepool del Project corre nodos spot, y 300s en caso contrario.
 
 Desactivar el autoscaling quita el HorizontalPodAutoscaler en el próximo deploy — sin necesidad de un reset ni de republicar.
 

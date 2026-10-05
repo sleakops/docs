@@ -1,6 +1,6 @@
 ---
-title: Configura la red
-sidebar_label: Configura la red
+title: Configurá la red
+sidebar_label: Configurá la red
 sidebar_position: 4
 ---
 
@@ -8,7 +8,7 @@ import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
 
-# Configura la red
+# Configurá la red
 
 Una vez que el stack de CloudFormation de una cuenta corrió, SleakOps necesita saber qué VPC, subnets y gateways usar antes de poder desplegar un clúster en ella. Este paso mapea esa red de AWS existente a los inputs que SleakOps requiere.
 
@@ -34,7 +34,7 @@ El panel de detalle de la cuenta abre con un único campo obligatorio: **VPC**. 
   />
 </Zoom>
 
-Al seleccionar una VPC se cargan sus subnets, NAT Gateways e Internet Gateway — el formulario muestra **Loading subnets, NAT and gateways…** mientras eso sucede.
+SleakOps descubre toda la topología de red de la cuenta una sola vez, al abrir el formulario (**Discovering network topology…**). Al seleccionar una VPC, los subnets, NAT Gateways e Internet Gateways que se muestran abajo se filtran a los de esa VPC.
 
 ## Asigná subnets a los slots
 
@@ -44,14 +44,14 @@ Al seleccionar una VPC se cargan sus subnets, NAT Gateways e Internet Gateway �
 | **Private subnets**       | Subnets que llegan a internet a través de un NAT Gateway.        |
 | **Persistent subnets**    | Subnets para recursos con estado (bases de datos, storage).      |
 
-Los tres slots son obligatorios — cada uno necesita al menos una subnet, o el formulario muestra **Select at least one subnet**. La misma subnet se puede asignar a más de un slot.
+Los tres slots son obligatorios — cada uno necesita al menos una subnet. Las descripciones de arriba son orientativas: SleakOps no verifica las rutas de las subnets. La misma subnet se puede asignar a más de un slot.
 
 ## Gateways
 
-- **NAT Gateway(s)** — seleccioná al menos uno. Si no hay ninguno seleccionado, el formulario muestra **Select at least one NAT Gateway**. Si la VPC no tiene ningún NAT Gateway, SleakOps muestra una advertencia pidiéndote crear uno o elegir otra VPC.
-- **Internet Gateway** — un único dropdown obligatorio, con la misma advertencia si la VPC no tiene ninguno asociado.
+- **NAT Gateway(s)** — seleccioná al menos uno. Si la VPC no tiene ningún NAT Gateway, SleakOps muestra **This VPC has no NAT Gateways**.
+- **Internet Gateway** — un único dropdown obligatorio. Si la VPC no tiene ninguno, SleakOps muestra **This VPC has no Internet Gateway attached**.
 
-La Elastic IP de cada NAT Gateway se toma automáticamente de AWS — no hay un campo para elegirla por separado.
+La Elastic IP de cada NAT Gateway se toma automáticamente de AWS — no hay un campo para elegirla por separado. Un NAT Gateway sin Elastic IP se marca con **This NAT Gateway has no Elastic IP attached**.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -62,7 +62,7 @@ La Elastic IP de cada NAT Gateway se toma automáticamente de AWS — no hay un 
 
 ## Enviá e importá
 
-**Save and apply** queda deshabilitado hasta completar los tres slots de subnets, al menos un NAT Gateway y el Internet Gateway. Al enviarlo, la cuenta pasa a **Creating…** mientras SleakOps aplica la configuración — el panel cambia automáticamente al **network explorer** cuando termina.
+**Save and apply** queda deshabilitado hasta completar los tres slots de subnets, al menos un NAT Gateway con Elastic IP y el Internet Gateway. Al enviarlo, la cuenta pasa a **Creating…** mientras SleakOps aplica la configuración — el panel cambia automáticamente al **network explorer** cuando termina.
 
 El network explorer es una vista de solo lectura de la red importada: la VPC, sus route tables, el Internet Edge (Internet Gateway, NAT Gateway y su Elastic IP), y las subnets agrupadas en Public, Private y Persistent.
 

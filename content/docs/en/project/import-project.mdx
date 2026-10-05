@@ -14,9 +14,15 @@ This page covers importing an existing resource. If you haven't connected your A
 
 SleakOps can adopt a deployment already running in a cluster as a managed Project instead of building it from scratch. Import discovers the Helm releases the cluster runs outside SleakOps and maps one of them into workloads and manifests.
 
+## Prerequisites
+
+- An admin user in SleakOps.
+- The import feature enabled for your company (`infra_import.project`).
+- The `service_manifests` feature enabled for your company: the imported project is built from [Manifests](/docs/project/workload/manifests). Without it, the **Import Project** button doesn't appear and SleakOps rejects the import with **"Importing a project requires the service manifests feature."**
+
 ## Discover a release to import
 
-On the Projects screen, click **Import Project** next to **Create**. This opens the same discovery dialog used to import addons: pick the cluster to inspect, and SleakOps lists the Helm releases running there that aren't already managed by SleakOps. Pick one to continue.
+On the Projects screen, click **Import Project** next to **Create**. This opens the same discovery dialog used to import addons: pick the cluster to inspect, and SleakOps lists the Helm releases running there that aren't already managed by SleakOps. Click **Import** on one to continue.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -27,7 +33,9 @@ On the Projects screen, click **Import Project** next to **Create**. This opens 
 
 ## Preview: what SleakOps detects
 
-SleakOps maps the release's documents deterministically into workloads — web service, worker, cron job, or hook — plus any manifests shared across the whole project. Anything it couldn't map lands in a **Not included** list, each with a reason. An optional **Improve mapping with AI** button re-runs the mapping with an LLM as an alternative if the deterministic result needs adjusting.
+SleakOps maps the release's documents deterministically into workloads — web service, worker, cron job, or hook — plus any manifests shared across the whole project. Anything it couldn't map lands in a **Not included** list, each with a reason. When AI mapping is available, an optional **Improve mapping with AI** button re-runs the mapping with an LLM as an alternative; once both exist, **Use AI mapping** and **Use deterministic mapping** switch between them.
+
+If the release's namespace has Secrets, an **Environment variables** section lists them with a checkbox each. The ones the workloads read come already checked. Each selected Secret becomes a Var Group of the new project — environment variables, or files at the path where the release mounted them. SleakOps copies the values server-side; they're never shown in the dialog.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img

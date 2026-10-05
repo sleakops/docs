@@ -1,5 +1,5 @@
 ---
-sidebar_position: 6
+sidebar_position: 7
 ---
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
@@ -13,7 +13,7 @@ Every Workload you create in SleakOps is deployed to Kubernetes through a set of
 Manifests ships in **SleakOps 3.0.0** behind the `service_manifests` company feature flag, off by default while the rollout completes. If you don't see the **Advanced** toggle on your Workload forms or the **Manifests** section in your Project's Chart Configuration, ask your SleakOps contact to enable it for your company. The flag can also be scoped to a subset of users through a configuration group, so it may be on for your company and still off for your user — if the Manifests surfaces are missing, ask your SleakOps contact whether your user is in the rollout.
 :::
 
-Enabling `service_manifests` is also a prerequisite for importing a Project from an existing Helm release.
+Enabling `service_manifests` is also a prerequisite for [importing a Project from an existing Helm release](/docs/project/import-project).
 
 ## Where to find them
 
@@ -47,9 +47,9 @@ The **Custom** origin is also labeled "user added" in the editor header and work
 
 Disabled manifests show a `Disabled` badge and their edges render dashed. A summary line above the graph counts manifests by origin (`N manifests · X customized · Y user-added · Z disabled`), matched to a color-dot legend.
 
-You can drag nodes to arrange the graph — positions are saved per Workload, and **Reset layout** restores the automatic arrangement. Dragging nodes and re-linking dependencies are layout actions — they update instantly but never register a pending change or trigger a deployment, regardless of the **Deploy?** switch.
+You can drag nodes to arrange the graph — positions are saved per Workload, and **Reset layout** restores the automatic arrangement. Dragging nodes is a layout action — it updates instantly but never registers a pending change or triggers a deployment, regardless of the **Deploy?** switch. Edges can't be drawn or re-linked on the graph: a manifest's dependencies are set only through **Depends on** when you [add it](#adding-a-manifest).
 
-Below the graph, the **Project-shared manifests** strip shows the manifests in the [project bucket](#the-project-bucket) that deploy alongside every Workload, with a **Manage →** shortcut to the Project's Chart Configuration.
+Below the graph, the **Project-shared manifests** strip shows the manifests in the [project bucket](#the-project-bucket) that deploy alongside every Workload, with a **Manage →** shortcut to the Project's Chart Configuration and an **Add to project** button that opens the add dialog with the **Project bucket** scope preselected.
 
 ### Ingress per domain
 
@@ -61,7 +61,7 @@ Adding a domain whose host maps to the same Kubernetes Ingress name as an existi
 
 ## Editing a manifest
 
-Click any node to open the manifest editor. The header shows the manifest's kind, origin, base template version, an **Enabled** switch, a copy button and **Delete** (Admin role required — see [Who can edit manifests?](#who-can-edit-manifests)).
+Click any node to open the manifest editor. The header shows the manifest's kind, origin, an **Enabled** switch, a copy button and **Delete** (Admin role required — see [Who can edit manifests?](#who-can-edit-manifests)).
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -70,21 +70,21 @@ Click any node to open the manifest editor. The header shows the manifest's kind
   />
 </Zoom>
 
-The **YAML** tab is where you edit the template. Two kinds of placeholders can appear in it:
+The **YAML** tab is where you edit the template; its toolbar shows the base template version the manifest was created from (`base vX`, or `no catalog base` for a manifest you added). Two kinds of placeholders can appear in it:
 
 - `<< form >>` variables resolve **before Helm**, from the values of your Workload form (name, namespace, command, healthcheck, etc.).
 - `{{ .Values }}` expressions are left for **Helm at deploy time** (replicas, resources, image tag — everything that comes from [Values](/docs/project/workload/values)).
 
 The **Variables** panel on the right lists everything available: click an entry to insert it at the cursor, or drag it into the editor. Dragging a variable onto the editor shows a live cursor preview of where it'll land before you drop it.
 
-The editor validates as you type. Errors block saving, and include:
+The editor validates as you type and lists the issues below the YAML, with a `Template valid` / `N errors` badge in the toolbar. The live check doesn't disable **Save**: SleakOps validates again on save and rejects a template that still has errors, showing them in the same panel. The live check flags:
 
 - Unknown variables not declared in the Workload's variable context.
 - Expressions blocked by the template sandbox.
 - Removing the protected `sleakops.com/managed` label.
-- A `namespace` different from the Project environment (warning — the namespace always belongs to the environment).
+- A `namespace` different from the Project environment — shown as a warning while you type, but the save is rejected: the namespace always belongs to the environment.
 
-Saving your first structural edit turns a `managed` manifest into `customized`. If the **Deploy?** switch on the graph toolbar is off, the save is registered as a [pending change](/docs/project/deployment/pending_changes); if it's on, a deployment is triggered right away.
+Saving your first structural edit turns a `managed` manifest into `customized`. If the **Deploy?** switch on the graph toolbar is off, the save is registered as a [pending change](/docs/project/deployment/pending_changes); if it's on, a deployment is triggered right away (edits made from Chart Configuration are always pending — see [Deploying your changes](#deploying-your-changes)).
 
 ### Preview
 
@@ -103,7 +103,7 @@ If the template fails to render, the Preview tab replaces its output with a "Tem
 
 ## Adding a manifest
 
-Use **Add manifest** (on the Workload graph toolbar, or in the project bucket) to deploy resources beyond the generated ones (Admin role required — see [Who can edit manifests?](#who-can-edit-manifests)):
+Use **Add manifest** (on the Workload graph toolbar, or in the project bucket of Chart Configuration) — or **Add to project** on the Workload's Project-shared manifests strip — to deploy resources beyond the generated ones (Admin role required — see [Who can edit manifests?](#who-can-edit-manifests)):
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -120,7 +120,7 @@ Use **Add manifest** (on the Workload graph toolbar, or in the project bucket) t
 | **Depends on**     | Optional. Draws the graph edges from this manifest to the selected ones.                                                                |
 | **Template**       | The manifest YAML. A starting stub is generated for the selected Kind.                                                                  |
 
-**Create** stays disabled until Kind, Name and Template are all filled. While you haven't hand-edited the stub, typing a Name mirrors it live into the template's `metadata.name`; switching Kind regenerates the stub from scratch.
+**Create manifest** stays disabled until Kind, Name and Template are all filled. While you haven't hand-edited the stub, typing a Name mirrors it live into the template's `metadata.name` and switching Kind regenerates the stub for the new Kind; once you edit the template by hand, neither changes it.
 
 Keep in mind:
 
@@ -132,7 +132,7 @@ Keep in mind:
 Manifests added with the **Project bucket** scope are not tied to any Workload: they deploy with **every release** of the Project. Typical residents are NetworkPolicies, shared ConfigMaps and ServiceAccounts. Manage them from **Project → Settings → Chart Configuration → Manifests**:
 
 :::info Requires two flags
-The project bucket requires both the `service_manifests` and `project_chart` company flags — if the shared bucket doesn't appear in your Chart Configuration even though per-Workload Manifests do, ask your SleakOps contact to check `project_chart`.
+The project bucket requires both the `service_manifests` and `project_chart` company flags. With `project_chart` off, the whole **Chart Configuration** card is missing from **Project → Settings**, and the Workload's Project-shared manifests strip reads "No shared manifests in this project yet." even if the Project has some — if per-Workload Manifests work but you can't reach the bucket, ask your SleakOps contact to check `project_chart`.
 :::
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
@@ -153,20 +153,22 @@ The filter searches both name and kind. A Workload with no matches collapses out
   />
 </Zoom>
 
-:::warning Extends Template & Values is deprecated
-The free-form **Extends Template & Values** section below Manifests keeps working, but it is deprecated: new custom resources should be added as manifests. See [Extra Templates](/docs/project/chart/extra_templates).
+:::info Extra Templates are now project manifests
+The free-form **Templates** editor of Chart Configuration no longer exists: custom resources are added as manifests, and the section below Manifests is now **Extends Values**, which only holds the [project global values](/docs/project/workload/values#project-global-values). The Extra Templates a Project had were migrated to manifests automatically — see [Extra Templates](/docs/project/chart/extra_templates).
 :::
 
 ## Base template updates
 
-When you customize a manifest, your copy is pinned: SleakOps **never overwrites it**, even when the base template it came from gets improvements. When a newer base version exists, the editor shows an **update available** badge and a banner with a **View diff** button:
+When you customize a manifest, your copy is pinned: SleakOps **never overwrites it**, even when the base template it came from gets improvements. When a newer base version exists, the editor shows an **update available** badge and a banner ("Base template vN available — your copy is customized from vM. It will not be overwritten.") with a **View diff** button. Close the banner with **×** to keep your version as it is.
 
-- Green lines are what the new base adds.
-- Red lines are your customizations, absent from the base.
+**View diff** opens the YAML tab in compare mode: your manifest (still editable) on the left, the read-only SleakOps base on the right.
 
-From the diff you can choose **Keep my version** or **Reset to v&lt;new&gt;**. **Reset to base** (also available in the editor header) discards your structural edits, restores the SleakOps base template and turns the manifest back into `managed`. Form values are not affected — they only fill variables.
+- Red lines are your copy's lines that differ from the base.
+- Green lines are the base's lines that differ from your copy — including what the new base adds.
 
-You don't have to wait for an update-available banner to diff against the base — every manifest with a base template (managed or customized) has a **Compare with base** button in the YAML tab toolbar. Customized manifests also get a **Reset to base** shortcut right there, in addition to the one in the editor header.
+Compare mode has two actions in the YAML toolbar: **Exit compare**, and — for customized manifests only — **Reset to base**, which discards your structural edits, restores the latest SleakOps base template and turns the manifest back into `managed`. Form values are not affected — they only fill variables. Reset is only available from compare mode; there is no reset button in the editor header.
+
+You don't have to wait for an update-available banner to diff against the base — every manifest with a base template (managed or customized) has a **Compare with base** button in the YAML tab toolbar that opens the same compare mode.
 
 ## Disabling and deleting
 
@@ -181,12 +183,14 @@ Deleting or resetting asks for confirmation first: the dialog spells out the con
 
 ## Deploying your changes
 
-Every content change in the Manifests view respects the **Deploy?** switch on the toolbar:
+Every content change made from a Workload's Manifests tab — including edits to project bucket manifests opened from its Project-shared manifests strip — respects the **Deploy?** switch on the toolbar:
 
 - **On** — a deployment is triggered right after each save.
 - **Off** — changes accumulate as [pending changes](/docs/project/deployment/pending_changes) and are deployed when you publish them.
 
-Layout actions on the graph — see [The manifest graph](#the-manifest-graph) — are the exception: they never go through this switch.
+Changes made from the **Manifests** section of **Project → Settings → Chart Configuration** (adding, editing, disabling or deleting a manifest there) are always registered as pending changes: that section has no **Deploy?** switch of its own, and the **Deploy?** switch at the bottom of the page only applies to **Apply changes** on the Values editor.
+
+Layout actions on the graph — see [The manifest graph](#the-manifest-graph) — never go through this switch.
 
 ## FAQs
 
@@ -201,7 +205,7 @@ Yes. Open the Workload's Advanced view, click the manifest and edit its YAML. Yo
 <summary>
 ### What happens to my existing Extra Templates?
 </summary>
-They keep deploying exactly as before. The Extends Template & Values section is deprecated in favor of Manifests, so migrate custom resources to manifests as you touch them — one manifest per resource, with validation and preview instead of one free-form blob.
+They were migrated to manifests automatically, one manifest per YAML document: a document that redefines a resource SleakOps already generates for a Workload became that Workload manifest's customization, and every other document became a project bucket manifest. The free-form Templates editor is gone — add and edit those resources as manifests. See <a href="/docs/project/chart/extra_templates">Extra Templates</a> for details.
 </details>
 
 <details>

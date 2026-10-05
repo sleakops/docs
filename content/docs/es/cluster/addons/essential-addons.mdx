@@ -8,10 +8,6 @@ import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
 
-:::info
-Esta página cubre la importación de un recurso existente. Si todavía no conectaste tu infraestructura de AWS a SleakOps, empezá por [Instala SleakOps en tu infraestructura](/docs/install-on-your-infra).
-:::
-
 Los addons esenciales son el pegamento de infraestructura que todo clúster necesita para funcionar bajo SleakOps: networking, autoscaling y control de acceso. A diferencia de los addons opcionales que elegís del listado de Addons, estos cinco siempre están presentes — SleakOps los instala automáticamente en todo clúster gestionado en lugar de esperar a que vos los agregues.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
@@ -35,15 +31,20 @@ Aparecen en el listado de Addons como cualquier otra tarjeta de addon, sin ningu
 
 ## Comportamiento en clústeres importados
 
-En un clúster gestionado, SleakOps aprovisiona y es dueño de los cinco addons esenciales desde el primer día. En un clúster importado no hay nada que aprovisionar — la infraestructura del cliente ya corre su propia versión de cada pieza — así que en lugar de instalarlos, SleakOps los adopta a partir de lo que ya está corriendo, uno a la vez, a medida que traés recursos bajo gestión.
+En un clúster gestionado, SleakOps instala y es dueño de los cinco addons esenciales. En un clúster importado, SleakOps instala solo **AWS Auth**, automáticamente, como parte de la importación; los otros cuatro se comportan distinto:
 
-El addon Load Balancer es un ejemplo concreto: cuando se importa un clúster, su fila de Addon se crea directamente a partir de los nombres de las IngressClass públicas y privadas descubiertas en el payload de importación, sin correr ningún aprovisionamiento de Pulumi — el cliente ya corre su propio controlador ALB, así que SleakOps solo necesita registrar lo que existe.
+| Addon | En un clúster importado |
+|---|---|
+| Metrics Server | No se instala automáticamente. Instalalo desde el listado de Addons cuando lo necesites. |
+| ExternalDNS | No se instala automáticamente. Instalalo desde el listado de Addons cuando lo necesites. |
+| Karpenter | No se puede instalar: "Karpenter is not supported on imported clusters: node capacity is managed by the cluster owner." |
+| Load Balancer | No se puede instalar: "The Load Balancer addon is not supported on imported clusters: the ALB controller and its IngressClasses are managed by the cluster owner." SleakOps rutea el tráfico por los nombres de IngressClass definidos al importar el clúster. |
 
-AWS Auth tiene el comportamiento de importación más elaborado. En un clúster gestionado, SleakOps es dueño de todo el `mapRoles` del ConfigMap `aws-auth`. En un clúster importado, el módulo corre en modo merge: lee el ConfigMap `aws-auth` real del cliente y mezcla solo las entradas de rol que requiere SleakOps, deduplicadas por ARN de rol y con las entradas de SleakOps ganando en caso de conflicto — se preserva cada entrada previa del cliente. Este merge es idempotente: leer un ConfigMap ya mezclado y volver a correrlo no duplica entradas.
+En un clúster importado, AWS Auth conserva cada entrada que ya existe en el ConfigMap `aws-auth` del clúster y le agrega los roles de SleakOps.
 
 ## Restricciones
 
-**Configuración** — el formulario de configuración de un addon esencial es de solo lectura en un clúster gestionado, ya que SleakOps es dueño de esa configuración; se vuelve editable en un clúster importado, ya que ahí la configuración refleja lo que el cliente ya tenía corriendo, y eso es suyo para cambiar. La mayoría de los addons esenciales (Metrics Server, ExternalDNS, Karpenter, AWS Auth) no tienen campos configurables — Load Balancer es el único con un esquema real (los nombres de sus IngressClass públicas y privadas), así que también es el único donde se ve el bloqueo de solo lectura:
+**Configuración** — el formulario de configuración de un addon esencial es de solo lectura en un clúster gestionado, ya que SleakOps es dueño de esa configuración. Load Balancer es el único addon esencial con campos configurables (los nombres de sus IngressClass públicas y privadas), así que es donde se ve el bloqueo de solo lectura:
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -52,4 +53,4 @@ AWS Auth tiene el comportamiento de importación más elaborado. En un clúster 
   />
 </Zoom>
 
-**Eliminación** — los addons esenciales no se pueden eliminar en absoluto en un clúster gestionado: son permanentes durante toda la vida del clúster y solo se destruyen automáticamente cuando se destruye el clúster mismo. En un clúster importado se pueden eliminar de forma individual como cualquier otro recurso adoptado, sujeto a la misma protección de dependencias que cualquier addon (no se puede eliminar uno del que otro addon depende). Esta restricción está condicionada por el tipo de clúster, no por el rol del usuario que hace la solicitud.
+**Eliminación** — los addons esenciales no se pueden eliminar en un clúster gestionado ("'`<name>`' is an essential addon of this managed cluster and cannot be deleted."): solo se eliminan cuando se destruye el clúster mismo. En un clúster importado se pueden eliminar como cualquier otro addon, salvo que otro addon dependa de ellos.

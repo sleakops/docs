@@ -1,5 +1,5 @@
 ---
-sidebar_position: 7
+sidebar_position: 8
 ---
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
@@ -57,14 +57,9 @@ In the example above, `resources.limits.memory` is generated as `1331Mi`, raised
 
 ## Project global values
 
-Project-wide overrides live in **Project → Settings → Chart Configuration**, in the **Values** editor of the Extends Template & Values section. The deprecation notice shown on that section is about migrating free-form **templates** to [Manifests](/docs/project/workload/manifests) — the Values editor remains the home of project globals. Nest the keys under the Workload's name (or under `global:` for chart-wide values):
+Project-wide overrides live in **Project → Settings → Chart Configuration**, in the **Values** editor of the **Extends Values** section. That section holds only values: custom Kubernetes resources are managed as [Manifests](/docs/project/workload/manifests). Save with **Apply changes**. Nest the keys under the Workload's name (or under `global:` for chart-wide values):
 
-<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
-  <img
-    src={require("./values/project-global-values.png").default}
-    alt="Project global values editor in Chart Configuration"
-  />
-</Zoom>
+{/* TODO: screenshot - retake Chart Configuration > Extends Values (current UI) */}
 
 ```yaml
 backoffice:
@@ -83,11 +78,11 @@ See [Injecting values on deploy](/docs/cli#injecting-values-on-deploy) for the f
 
 ## Platform defaults
 
-A few values are set by SleakOps and aren't exposed on any form today:
+A few values have SleakOps defaults:
 
-- **PodDisruptionBudget** — `minAvailable` is `1` below 8 replicas, and `20%` at 8 or more.
-- **CronJob** — `concurrencyPolicy` is always `Forbid`: overlapping runs never execute concurrently.
-- **Termination grace period** — 120s on spot nodes, 300s on on-demand.
+- **PodDisruptionBudget** — not exposed on any form: `minAvailable` is `1` up to 8 replicas, and `20%` above 8.
+- **CronJob concurrency policy** — set with the **Concurrency Policy** field of the CronJob form (`Allow`, `Forbid` or `Replace`; the form preselects `Allow`). A CronJob created without that field — for example, through the API — gets `Forbid`.
+- **Termination grace period** — set with the **Grace Period** field of each Workload form. When a Workload has no value, SleakOps uses 120s if the Project's nodepool runs spot nodes, and 300s otherwise.
 
 Turning off autoscaling removes the HorizontalPodAutoscaler on the next deploy — no extra reset or republish needed.
 

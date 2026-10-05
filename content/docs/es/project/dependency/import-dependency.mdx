@@ -1,6 +1,6 @@
 ---
-title: Importa una dependencia
-sidebar_label: Importa una dependencia
+title: Importá una dependencia
+sidebar_label: Importá una dependencia
 sidebar_position: 14
 ---
 
@@ -9,14 +9,20 @@ import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
 
 :::info
-Esta página cubre la importación de un recurso existente. Si todavía no conectaste tu infraestructura de AWS a SleakOps, empezá por [Instala SleakOps en tu infraestructura](/docs/install-on-your-infra).
+Esta página cubre la importación de un recurso existente. Si todavía no conectaste tu infraestructura de AWS a SleakOps, empezá por [Instalá SleakOps en tu infraestructura](/docs/install-on-your-infra).
 :::
 
 SleakOps puede registrar una Dependencia que ya tenés en AWS — una base de datos, una cola, un bucket — en lugar de crear una desde cero. La importación descubre los recursos reales de una cuenta y adopta el que elijas sin modificarlo.
 
+## Requisitos previos
+
+- Un usuario con permisos de administrador en SleakOps.
+- La funcionalidad de importación habilitada para tu empresa (`infra_import.dependency`).
+- Una cuenta en estado **created**, donde vive el recurso.
+
 ## Tipos soportados
 
-Los 14 tipos de abajo están soportados para importar. Esta tabla solo indica si SleakOps necesita credenciales para conectarse — no es una columna de soportado/no soportado.
+Los 15 tipos de abajo están soportados para importar. Esta tabla solo indica si SleakOps necesita credenciales para conectarse — no es una columna de soportado/no soportado.
 
 | **Tipo**              | **Requiere credenciales** |
 | ---------------------- | -------------------------- |
@@ -32,6 +38,7 @@ Los 14 tipos de abajo están soportados para importar. Esta tabla solo indica si
 | **S3 bucket**          | No                          |
 | **SQS**                | No                          |
 | **Redis**              | No                          |
+| **Valkey**             | No                          |
 | **Memcached**          | No                          |
 | **OpenSearch**         | No                          |
 
@@ -69,7 +76,12 @@ SleakOps lista los recursos reales de ese tipo que encontró en la cuenta — no
 
 ### 4. Nombre, proyecto y credenciales
 
-Ingresá un **Name** y elegí el **Project** al que se va a asociar la dependencia. Para los tipos que requieren credenciales, ingresá el **Username** y **Password** que SleakOps va a usar para conectarse — AWS nunca expone la contraseña maestra de una instancia existente, así que estos valores no se descubren automáticamente.
+Ingresá un **Name** y elegí el **Project** (se muestra como `<proyecto> (<entorno>)`) al que se va a asociar la dependencia. Para los tipos que requieren credenciales, ingresá el **Username** y **Password** que SleakOps va a usar para conectarse — AWS nunca expone la contraseña maestra de una instancia existente, así que estos valores no se descubren automáticamente.
+
+Según el tipo y el recurso, el paso también muestra:
+
+- **Connection string** (PostgreSQL, MySQL, MariaDB, Oracle, Aurora, DocumentDB) — un atajo opcional: pegá la URI que ya usan tus aplicaciones y hacé clic en **Fill fields** para completar los campos a partir de ella. Revisalos antes de importar; la cadena en sí no se envía a SleakOps.
+- **Database Name** (PostgreSQL, MySQL, MariaDB, Oracle, Aurora) — obligatorio solo cuando AWS no reporta un nombre de base de datos inicial para el recurso. Ingresá la base de datos a la que se conectan tus aplicaciones.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -78,11 +90,11 @@ Ingresá un **Name** y elegí el **Project** al que se va a asociar la dependenc
   />
 </Zoom>
 
-Hacé clic en **Import** para iniciar el registro. SleakOps adopta el recurso en su estado de infraestructura sin modificarlo, y podés seguir el progreso desde la lista de dependencias.
+Hacé clic en **Import** para iniciar el registro. SleakOps adopta el recurso en su estado de infraestructura sin modificarlo, y podés seguir el progreso desde la lista de dependencias. La importación también crea un Var Group llamado `<name>-<tipo>` (por ejemplo `orders-postgresql`) con los outputs de conexión de la dependencia, para que los workloads del proyecto puedan usarlos.
 
-## Sincronización de configuración
+## Después de importar
 
-Una vez importada, la configuración de una dependencia también puede sincronizarse desde el recurso real de AWS en segundo plano — esto todavía no se dispara desde el console.
+Las dependencias importadas no se pueden editar: SleakOps no gestiona el recurso, así que la API responde **"Imported dependencies cannot be edited: SleakOps does not manage the resource."** Los cambios al recurso en sí se hacen en AWS.
 
 ## Preguntas frecuentes
 

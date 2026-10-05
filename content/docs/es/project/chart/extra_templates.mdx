@@ -7,123 +7,49 @@ import { FiExternalLink } from "react-icons/fi";
 
 # Extra Templates
 
-:::warning Deprecado en favor de Manifests
-Extender templates y values está deprecado. Para agregar o editar recursos personalizados, usa la sección **Manifests** del Project — cada recurso se vuelve su propio manifiesto, con validación, preview y scoping por Workload. Ver la [documentación de Manifests](/docs/project/workload/manifests). Los Extra Templates existentes se siguen desplegando como siempre hasta que los migres.
+:::warning Reemplazado por Manifests
+Los Extra Templates fueron reemplazados por **Manifests**. El editor libre de **Templates** ya no existe en **Project → Settings → Chart Configuration**: para agregar o editar recursos personalizados de Kubernetes, usa [Manifests](/docs/project/workload/manifests) — cada recurso es su propio manifiesto, con validación, preview y alcance por Workload o a nivel de todo el Project.
 :::
 
-Los Extra Templates te permiten desplegar recursos personalizados de Kubernetes más allá de los componentes integrados de SleakOps. Esta poderosa funcionalidad te permite extender tu proyecto con recursos especializados como Ingresses personalizados, pods de prueba, u otros objetos de Kubernetes adaptados a tus requisitos específicos.
+Los Extra Templates eran un único campo YAML libre en la Chart Configuration del Project donde pegabas recursos extra de Kubernetes (Ingresses personalizados, ConfigMaps, NetworkPolicies, Pods de prueba…) para desplegarlos junto al chart generado.
 
-## Casos de Uso
-- Configuraciones de Ingress personalizadas para enrutamiento especializado
-- Pods de prueba para depuración y desarrollo
-- ConfigMaps o Secrets adicionales
-- Políticas de red personalizadas
-- Componentes especializados de monitoreo o logging
+## Qué pasó con tus Extra Templates
 
-:::warning Configuración de NodePool Requerida
-Dado que SleakOps utiliza NodePools para la ubicación de recursos, todos los recursos personalizados deben incluir la configuración adecuada de `tolerations` apuntando a un NodePool existente.
-:::
+A partir de **SleakOps 3.0.0**, los Extra Templates de cada Project se migraron a manifiestos automáticamente, un manifiesto por documento YAML:
 
-## Desplegando un Ingress Personalizado
+- Un documento que redefine un recurso que SleakOps ya genera para un Workload (mismo kind y nombre — por ejemplo, tu propia versión del Service o del Ingress de un Workload) pasó a ser la personalización de ese manifiesto del Workload: aparece como `Customized` en la vista **Advanced** del Workload.
+- Todo otro documento pasó a ser un manifiesto del [project bucket](/docs/project/workload/manifests#el-project-bucket) del Project (origen `Custom`), que se despliega con cada release del Project.
 
-Para desplegar un Ingress personalizado, agrega tu configuración YAML de Kubernetes en la sección **Templates**. Aquí tienes un ejemplo completo que puedes usar como punto de partida:
+Los documentos comentados por completo no se migraron. Los recursos migrados se despliegan igual que antes.
 
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: coreexampledjangocelerysleakopscom
-  namespace: example-django-celery-myenv
-  labels:
-    app.kubernetes.io/name: example-django-celery
-  annotations:
-    alb.ingress.kubernetes.io/certificate-arn: >-
-      arn:aws:acm:REGION:ACCOUNT_ID:certificate/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
-    alb.ingress.kubernetes.io/group.name: example-django-celery-public
-    alb.ingress.kubernetes.io/healthcheck-path: /health
-    alb.ingress.kubernetes.io/healthcheck-port: '8000'
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
-    alb.ingress.kubernetes.io/ssl-redirect: '443'
-    alb.ingress.kubernetes.io/success-codes: '200'
-    alb.ingress.kubernetes.io/target-type: ip
-    meta.helm.sh/release-name: example-django-celery-myenv
-    meta.helm.sh/release-namespace: example-django-celery-myenv
-spec:
-  ingressClassName: alb-ingressclass-public
-  tls:
-    - hosts:
-        - core.example-django-celery.sleakops.com
-  rules:
-    - host: core.example-django-celery.sleakops.com
-      http:
-        paths:
-          - path: /api/public/
-            pathType: Prefix
-            backend:
-              service:
-                name: example-django-celery-myenv-api-public-svc
-                port:
-                  number: 8000
-```
+Si la migración cambió el chart de tu Project, puedes encontrar un deployment pendiente cuya descripción indica que lo creó SleakOps para aplicar la nueva versión; publícalo como cualquier otro [cambio pendiente](/docs/project/deployment/pending_changes).
 
-Una vez que hayas definido tu plantilla de Ingress, puedes desplegarla usando la interfaz:
+## Qué ves ahora
 
-<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
-<img
-    src="/img/project/chart/template-deploy.png"
-    alt="Interfaz de despliegue de plantillas"
-/>
-</Zoom>
+La página de Chart Configuration muestra un aviso **Extra templates are managed as project manifests**, y la sección debajo de Manifests ahora es **Extends Values**: solo contiene los [values globales del Project](/docs/project/workload/values#values-globales-del-project), que sigues editando como antes.
 
-## Preguntas Frecuentes
+- Con Manifests habilitado para tu compañía, el aviso remite a la sección **Manifests** de arriba, donde agregas y editas los recursos migrados.
+- Con Manifests todavía no habilitado para tu compañía, los recursos migrados se siguen desplegando pero son de solo lectura hasta que se habilite el editor de Manifests — pide a tu contacto de SleakOps que lo habilite.
+
+## FAQs
 
 <details>
 <summary>
-### ¿Cómo uso valores personalizados en mis plantillas?
+### ¿Cómo agrego ahora un Ingress u otro recurso personalizado?
 </summary>
-
-Puedes definir valores personalizados en la sección **Values** en el lado derecho de la interfaz. Estos valores pueden ser referenciados en tus plantillas usando la sintaxis de plantillas de Helm.
-
-<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
-<img
-    src="/img/project/chart/extra-values.png"
-    alt="Ejemplo de configuración de valores personalizados"
-/>
-</Zoom>
-
-El ejemplo anterior muestra cómo crear una plantilla de Pod que usa valores personalizados y cómo referenciarlos en tu configuración YAML.
+Agrégalo como manifiesto — desde la vista <b>Advanced</b> del Workload (con alcance a ese Workload) o desde el project bucket en la Chart Configuration (compartido en todo el Project). Ver <a href="/docs/project/workload/manifests#agregar-un-manifiesto">Agregar un manifiesto</a>.
 </details>
 
 <details>
 <summary>
 ### ¿Qué tipos de recursos de Kubernetes puedo desplegar?
 </summary>
-
-SleakOps soporta **solo recursos con alcance de namespace** debido a requisitos de seguridad y aislamiento. Cada proyecto opera dentro de su propio namespace con permisos con alcance de namespace.
-
-**Recursos soportados incluyen:**
-- Pods, Deployments, Services
-- Ingresses, NetworkPolicies
-- ConfigMaps, Secrets
-- PersistentVolumeClaims
-- Jobs, CronJobs
-
-**No soportados:**
-- ClusterRoles, ClusterRoleBindings
-- CustomResourceDefinitions
-- PersistentVolumes
-- Cualquier recurso con alcance de cluster
+Solo recursos con alcance de namespace: cada manifiesto debe definir <code>metadata.namespace</code> igual al namespace del entorno del Project, y los recursos cluster-scoped (ClusterRoles, ClusterRoleBindings, CustomResourceDefinitions, PersistentVolumes, StorageClasses…) se rechazan. Se aceptan recursos de un kind custom (CRD), siempre que el CRD esté instalado en el cluster.
 </details>
 
 <details>
 <summary>
-### ¿Cómo soluciono problemas de despliegue de plantillas?
+### ¿Dónde están ahora mis values personalizados?
 </summary>
-
-Pasos comunes de solución de problemas:
-1. **Validar sintaxis YAML** - Asegúrate de que tu plantilla sea YAML válido de Kubernetes
-2. **Verificar tolerations de NodePool** - Verifica que las tolerations apunten a NodePools existentes
-3. **Revisar cuotas de recursos** - Asegúrate de que haya recursos suficientes disponibles
-4. **Validar referencias** - Verifica que los servicios, secrets o configmaps referenciados existan
-5. **Revisar logs** - Revisa los logs de despliegue para mensajes de error específicos
+En el editor de <b>Values</b> de la sección <b>Extends Values</b> de la Chart Configuration — la migración no los modificó. Ver <a href="/docs/project/workload/values">Values</a>.
 </details>
