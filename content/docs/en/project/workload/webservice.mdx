@@ -117,7 +117,9 @@ This gives your application enough time to handle graceful shutdown procedures, 
 <summary>
 ### How can I deploy my static web service?
 </summary>
-At the moment, Sleakops doesn't natively support static sites, but you can still deploy them using the same flow as other sites, by containerizing them with a web server like Nginx. Below is a simple example of a Dockerfile and the corresponding nginx.conf to serve your static content.
+SleakOps supports static sites natively: create a Project with the **Static site** build method and the platform builds your frontend and serves it from S3 through CloudFront on your own domain — see [Static Site](/docs/project/workload/static). It requires the `static` feature in your subscription.
+
+Without that feature, you can still deploy a static site as a regular Web Service by containerizing it with a web server like Nginx. Below is a simple example of a Dockerfile and the corresponding nginx.conf to serve your static content.
 
 ```
 FROM node:20.11.0-alpine AS base

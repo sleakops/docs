@@ -24,10 +24,12 @@ Puedes encontrar la sección de Chart navegando a **Proyecto → Configuración*
 SleakOps utiliza NodePools para determinar dónde se despliegan los recursos. Debes configurar el parámetro `tolerations` para apuntar a un NodePool existente para todos los recursos desplegados.
 :::
 
+La página **Chart Configuration** tiene tres secciones: **Chart Dependencies**, **Manifests** (cuando [Manifests](/docs/project/workload/manifests) está habilitado para tu compañía) y **Extends Values**, el editor de los [values globales del Project](/docs/project/workload/values#values-globales-del-project).
+
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
-    src="/img/project/chart/config-chart.png"
-    alt="Interfaz de configuración del Chart"
+    src={"/img/project/chart/config-chart.png"}
+    alt="Interfaz de configuración del chart con las secciones Chart Dependencies y Manifests"
   />
 </Zoom>
 
@@ -83,8 +85,8 @@ Valores que se aplican a todo el Proyecto:
   </summary>
   Sí. Puedes:
 
-  - Personalizar o agregar [**Manifests**](/docs/project/manifests) por Workload o compartidos en el Project
-  - Sobreescribir [**Values**](/docs/project/values) a nivel Project o Workload
+  - Personalizar o agregar [**Manifests**](/docs/project/workload/manifests) por Workload o compartidos en el Project
+  - Sobreescribir [**Values**](/docs/project/workload/values) a nivel Project o Workload
   - Agregar dependencias de chart usando [**Chart Dependencies**](/docs/project/chart/chart_dependencies), similar a [Helm Chart Dependencies <FiExternalLink />](https://helm.sh/docs/helm/helm_dependency/)
 </details>
 
@@ -93,9 +95,9 @@ Valores que se aplican a todo el Proyecto:
     ### ¿Puedo agregar un Ingress personalizado a mi Proyecto?
   </summary>
   Sí — agrégalo como manifiesto desde la vista Advanced del Workload o desde el
-  project bucket. Ver la [documentación de Manifests](/docs/project/manifests).
-  El camino legacy de [Extra Templates](/docs/project/chart/extra_templates)
-  sigue funcionando pero está deprecado.
+  project bucket. Ver la [documentación de Manifests](/docs/project/workload/manifests).
+  El editor legacy de [Extra Templates](/docs/project/chart/extra_templates) ya no existe:
+  los Extra Templates existentes se migraron a manifiestos automáticamente.
 </details>
 
 <details>
@@ -104,5 +106,5 @@ Valores que se aplican a todo el Proyecto:
   </summary>
   Sí. Abre la vista **Advanced** del Workload, haz clic en el manifiesto y edita
   su YAML — tu copia se conserva y SleakOps nunca la sobreescribe. Ver
-  [Manifests](/docs/project/manifests).
+  [Manifests](/docs/project/workload/manifests).
 </details>

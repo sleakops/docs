@@ -1,0 +1,56 @@
+---
+title: Importá un dominio
+sidebar_label: Importá un dominio
+sidebar_position: 3
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+:::info
+Esta página cubre la importación de un recurso existente. Si todavía no conectaste tu infraestructura de AWS a SleakOps, empezá por [Instalá SleakOps en tu infraestructura](/docs/install-on-your-infra).
+:::
+
+La importación de dominio no es un flujo separado — es una sección dentro del formulario de creación de un Entorno. Crear un Entorno normalmente aprovisiona una hosted zone de Route53 nueva; la opción de importación te permite reutilizar una que ya existe en la cuenta de AWS de destino en lugar de eso.
+
+## Requisitos previos
+
+- Un usuario con permisos de administrador en SleakOps.
+- La funcionalidad de importación habilitada para tu empresa.
+
+## Reutilizá una hosted zone existente
+
+En el formulario de creación de Entorno, un toggle **Use Existing Hosted Zone** aparece debajo de los campos base (Name, Cluster, Domain):
+
+> Adopt a Route53 hosted zone that already exists in the target AWS account instead of creating a new one. Turn off this toggle to create a new zone instead. The ACM certificate for the domain is adopted automatically when the account has one issued.
+
+Mientras el toggle está activado, el campo **Domain** se oculta: el dominio del Entorno es el nombre de la zona que elijas. El Cluster determina en qué cuenta de AWS busca SleakOps, así que la búsqueda necesita primero un Cluster y un Name:
+
+- Sin Cluster elegido: **"Select a Cluster to search its account for existing hosted zones."**
+- Cluster elegido pero todavía sin Name: **"Enter a Name to search this account for existing hosted zones."**
+
+Con ambos completos, SleakOps lista todas las hosted zones de Route53 de esa cuenta, cada una con su ID de zona, la cantidad de registros y el badge **Private** si es una zona privada:
+
+- Hay zonas: **"The zone you pick becomes this Environment's domain."** Elegí una con las tarjetas de radio; el **Domain** resultante se muestra arriba de la lista.
+- No hay ninguna zona: **"No hosted zones found in this account. Turn off this toggle to proceed — SleakOps will provision a new Route53 zone for the domain automatically."**
+
+Con el toggle activado, tenés que elegir una zona antes de enviar (**"Select the hosted zone to import"**). Cambiar el Cluster cambia la cuenta de AWS de destino, así que descarta cualquier zona que ya hubieras elegido. El dominio raíz del provider no se puede importar de esta forma — SleakOps lo rechaza con **"Root domain import is out of scope."**
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./import-domain/domain-import-section.png").default}
+    alt="Formulario de creación de Environment con el toggle Use Existing Hosted Zone activado, listando las hosted zones encontradas en la cuenta con una seleccionada"
+  />
+</Zoom>
+
+Una vez creado el Entorno, aplica la configuración de dominio habitual — mirá [Setup your Domains](/docs/domain/setup) y la [Domain Delegation Guide](/docs/domain/delegation) para lo que sigue.
+
+## FAQs
+
+<details>
+  <summary>
+    ### ¿Qué pasa con el certificado ACM?
+  </summary>
+  Se adopta automáticamente, junto con la hosted zone, cuando la cuenta de AWS de destino ya tiene uno emitido para el dominio.
+</details>
