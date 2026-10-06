@@ -9,12 +9,15 @@ import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
 
 :::info
-Esta página cubre la importación de un recurso existente. Si todavía no conectaste tu infraestructura de AWS a SleakOps, empezá por [Instala SleakOps en tu infraestructura](/docs/install-on-your-infra).
+Esta página cubre la importación de un recurso existente. Si todavía no conectaste tu infraestructura de AWS a SleakOps, empezá por [Instalá SleakOps en tu infraestructura](/docs/install-on-your-infra).
 :::
 
-Los addons pueden entrar y salir de SleakOps de dos formas: importando una definición JSON exportada desde otro clúster, o descubriendo y adoptando un release de Helm que ya corre en el clúster. Ambos botones están en el listado de Addons, junto a **Add custom addon**, y solo aparecen cuando tu empresa tiene registrado el tipo de addon genérico (custom Helm chart). A partir de ahí los dos flujos difieren en alcance: **Import from JSON** y **Export JSON** funcionan con cualquier tipo de addon registrado en el clúster — gestionado por SleakOps (Grafana, KEDA, …) o personalizado — mientras que **Import from cluster** siempre adopta el release como un addon personalizado, ya que el descubrimiento no tiene forma de saber a qué tipo gestionado (si es que corresponde a alguno) equivale un release de Helm en vivo.
+Los addons pueden entrar y salir de SleakOps de dos formas: importando una definición JSON exportada desde otro clúster, o descubriendo y adoptando un release de Helm que ya corre en el clúster. Ambos botones están en el listado de Addons, junto a **Add custom addon**, y solo aparecen cuando tu empresa tiene registrado el tipo de addon genérico (custom Helm chart). A partir de ahí los dos flujos difieren en alcance: **Import from JSON** y **Export JSON** funcionan con cualquier tipo de addon registrado en el clúster — gestionado por SleakOps (Grafana, KEDA, …) o personalizado — mientras que **Import from cluster** siempre adopta el release como un addon personalizado.
 
-Ambos flujos requieren que tu empresa tenga habilitada la funcionalidad de importación (`infra_import.addon`) y que seas un usuario **admin** — crear, actualizar o exportar un addon está restringido a admin en el backend.
+## Requisitos previos
+
+- Un usuario con permisos de administrador en SleakOps. Los editores también ven los botones, pero SleakOps rechaza la importación o exportación con un error de permisos.
+- La funcionalidad de importación habilitada para tu empresa.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -57,7 +60,7 @@ Hacé clic en **Import from cluster** para descubrir los releases de Helm que ya
 
 Cada release muestra su nombre, namespace, chart y versión. Mientras corre el descubrimiento: **"Loading releases…"**; si no puede alcanzar el clúster: **"Could not load Helm releases from the cluster."**; si no encuentra ninguno: **"No Helm releases found in this cluster."**
 
-Hacé clic en **Use** sobre un release para precargar el formulario del addon genérico con su nombre de release, namespace, chart, versión y los valores de Helm actuales. A diferencia del flujo por JSON — que puede apuntar a cualquier tipo de addon —, este siempre crea un addon personalizado (genérico), y además adopta un recurso que ya corre en vivo, no simplemente parte de un conjunto de valores: el nombre del release, el namespace, el chart y la versión quedan bloqueados (solo lectura) porque alimentan la importación de Pulumi subyacente y deben coincidir con lo que realmente está corriendo. **Repository URL** es el único campo que queda vacío y editable — la URL del repositorio del chart no se puede recuperar de un release en vivo, así que la escribís vos.
+Hacé clic en **Use** sobre un release para precargar el formulario del addon genérico con su nombre de release, namespace, chart, versión y los valores de Helm actuales. A diferencia del flujo por JSON — que puede apuntar a cualquier tipo de addon —, este siempre crea un addon personalizado (genérico), y además adopta un recurso que ya corre en vivo, no simplemente parte de un conjunto de valores: el nombre del release, el namespace, el chart y la versión quedan bloqueados (solo lectura) porque deben coincidir con lo que realmente está corriendo. **Repository URL** es el único campo que queda vacío y editable — la URL del repositorio del chart no se puede recuperar de un release en vivo, así que la escribís vos.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img

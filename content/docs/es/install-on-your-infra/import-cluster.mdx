@@ -1,6 +1,6 @@
 ---
-title: Importa el clúster
-sidebar_label: Importa el clúster
+title: Importá el clúster
+sidebar_label: Importá el clúster
 sidebar_position: 5
 ---
 
@@ -8,15 +8,17 @@ import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
 
-# Importa el clúster
+# Importá el clúster
 
 Con la red de una cuenta ya configurada, SleakOps puede registrar un clúster EKS existente de esa cuenta sin recrearlo — el último paso del recorrido de importación.
 
 ## Requisitos previos
 
-- Una cuenta ya en estado **created**, con su red configurada ([Configura la red](/docs/install-on-your-infra/network-configuration)).
+- Un usuario con permisos de administrador en SleakOps.
+- La funcionalidad de importación habilitada para tu empresa.
+- Una cuenta ya en estado **created**, con su red configurada ([Configurá la red](/docs/install-on-your-infra/network-configuration)).
 
-## Instala SleakOps en el clúster
+## Instalá SleakOps en el clúster
 
 En la lista de Clusters, los admins ven un botón **Install SleakOps in Cluster** junto a **Create**. Solo aparece cuando al menos una cuenta está en estado created.
 
@@ -52,7 +54,7 @@ Marcá **I allow SleakOps to access the endpoint of this cluster** para continua
 
 ### 4. Ingress classes
 
-Ingresá el **Private IngressClass name** (por ejemplo `alb-internal`) y el **Public IngressClass name** (por ejemplo `alb-internet-facing`) del clúster. SleakOps los usa para rutear tráfico privado y público — no puede autodetectarlos, ya que solo la configuración del ALB controller del clúster define cuál es cuál.
+Definí el **Private IngressClass name** (por ejemplo `alb-internal`) y el **Public IngressClass name** (por ejemplo `alb-internet-facing`) del clúster. SleakOps rutea el tráfico privado y público a través de ellos. Inspecciona las IngressClasses del clúster y precarga ambos campos cuando puede identificarlas (**"SleakOps detected these IngressClasses in your cluster. Change either name if it is not the one you want."**); si no, ingresás ambos nombres tal como existen en el clúster. Los dos campos quedan editables en cualquier caso.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -65,11 +67,11 @@ Hacé clic en **Install** para iniciar la importación.
 
 ## Progreso de la instalación
 
-Mientras corre la importación, SleakOps lee la metadata del clúster (OIDC issuer), configura la VPN de la cuenta si todavía no existe, crea el namespace dedicado `sleakops`, y guarda el addon de Load Balancer con los nombres de IngressClass del paso 4.
+Mientras corre la importación, SleakOps lee la metadata del clúster (OIDC issuer), configura la VPN de la cuenta si todavía no existe, crea el namespace dedicado `sleakops` y mapea sus roles en el clúster instalando el [addon esencial AWS Auth](/docs/cluster/addons/essential-addons), que conserva cada entrada que ya existe en tu ConfigMap `aws-auth`. Los nombres de IngressClass del paso 4 se guardan en la configuración del clúster.
 
 Podés cerrar el diálogo y seguir el progreso desde la lista de clusters — se sigue actualizando mientras la importación está en curso.
 
-Al terminar, SleakOps puede alcanzar el endpoint del clúster y está listo para operar dentro de él. Desde acá, el clúster está listo para que se gestionen sus addons esenciales y nodepools.
+Al terminar, SleakOps puede alcanzar el endpoint del clúster y está listo para operar dentro de él. Después podés instalar los addons esenciales que necesites (Metrics Server, ExternalDNS) desde el detalle del clúster e [importar sus node pools](/docs/cluster/nodepools/importing-a-nodepool).
 
 ## La etiqueta Imported
 
@@ -81,3 +83,19 @@ Un clúster importado muestra una etiqueta **Imported** en su tarjeta en la list
     alt="Lista de clusters mostrando un clúster importado con la etiqueta Imported y su tooltip"
   />
 </Zoom>
+
+## Trabajar con un clúster importado
+
+### Node pool base
+
+Los addons que SleakOps corre en un clúster importado no quedan fijados a ningún node pool hasta que elijas uno, así que corren donde los ubique tu scheduler. Mientras no haya uno definido, los admins ven un ícono de advertencia en la tarjeta del clúster que lleva a la configuración de **Node Pools** del clúster. Ahí, la tarjeta **Base Node Pool** lista los node pools de Karpenter reales del clúster (con su arquitectura); elegí uno y confirmá. Un pool que SleakOps todavía no gestiona aparece marcado como **will be imported** y primero se [importa](/docs/cluster/nodepools/importing-a-nodepool). Los addons que ya están corriendo no se mueven en el momento: cada uno toma el nuevo node pool la próxima vez que se vuelve a aplicar. Elegir **Not pinned** lo quita. Esta configuración requiere el mismo acceso que la importación de node pools (un usuario admin, con la importación de node pools habilitada para tu empresa).
+
+### Crear Proyectos
+
+Cuando creás un Proyecto en un Entorno de un clúster importado, el campo **Nodepool** lista por nombre los node pools de Karpenter reales del clúster, más **No node pool** (los workloads corren sin fijar y el scheduler del clúster decide dónde). Al elegir un pool aparece el campo **Architecture**: queda definido y bloqueado cuando el pool fija una sola arquitectura; si no, elegís `(64-Bit) X86` o `(64-Bit) ARM` para tus builds y workloads. Si no se pueden listar los pools reales, igual podés crear el Proyecto sin fijar.
+
+### Límites
+
+- Los addons esenciales **Karpenter** y **Load Balancer** no se pueden instalar — la capacidad de nodos y el ALB controller siguen en manos del dueño del clúster. Mirá [Addons esenciales](/docs/cluster/addons/essential-addons).
+- Los node pools importados todavía no se pueden eliminar desde SleakOps: **"This NodePool was imported from the cluster. Deleting an imported NodePool is not supported yet."**
+- Las [dependencias importadas](/docs/project/dependency/import-dependency) no se pueden editar desde SleakOps.

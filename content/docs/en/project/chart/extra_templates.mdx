@@ -7,123 +7,49 @@ import { FiExternalLink } from "react-icons/fi";
 
 # Extra Templates
 
-:::warning Deprecated in favor of Manifests
-Extending templates & values is deprecated. To add or edit custom resources, use the Project's **Manifests** section instead — each resource becomes its own manifest, with validation, preview and per-Workload scoping. See the [Manifests documentation](/docs/project/workload/manifests). Existing Extra Templates keep deploying as before until you migrate them.
+:::warning Replaced by Manifests
+Extra Templates have been replaced by **Manifests**. The free-form **Templates** editor no longer exists in **Project → Settings → Chart Configuration**: to add or edit custom Kubernetes resources, use [Manifests](/docs/project/workload/manifests) — each resource is its own manifest, with validation, preview and per-Workload or project-wide scope.
 :::
 
-Extra Templates enable you to deploy custom Kubernetes resources beyond SleakOps' built-in components. This powerful feature allows you to extend your project with specialized resources such as custom Ingresses, testing pods, or other Kubernetes objects tailored to your specific requirements.
+Extra Templates were a single free-form YAML field in the Project's Chart Configuration where you pasted extra Kubernetes resources (custom Ingresses, ConfigMaps, NetworkPolicies, test Pods…) to deploy alongside the generated chart.
 
-## Use Cases
-- Custom Ingress configurations for specialized routing
-- Testing pods for debugging and development
-- Additional ConfigMaps or Secrets
-- Custom networking policies
-- Specialized monitoring or logging components
+## What happened to your Extra Templates
 
-:::warning NodePool Configuration Required
-Since SleakOps uses NodePools for resource placement, all custom resources must include proper `tolerations` configuration targeting an existing NodePool.
-:::
+Starting with **SleakOps 3.0.0**, Extra Templates are deprecated and the Extra Templates of every Project were migrated to manifests automatically — the migration is compulsory and needs no action on your side. Each YAML document became one manifest:
 
-## Deploying a Custom Ingress
+- A document that redefines a resource SleakOps already generates for a Workload (same kind and name — for example, your own version of a Workload's Service or Ingress) became that Workload manifest's customization: it shows as `Customized` in the Workload's **Advanced** view.
+- Every other document became a manifest in the Project's [project bucket](/docs/project/workload/manifests#the-project-bucket) (`Custom` origin), which deploys with every release of the Project.
 
-To deploy a custom Ingress, add your Kubernetes YAML configuration in the **Templates** section. Here's a complete example you can use as a starting point:
+Commented-out documents were not migrated. The migrated resources deploy the same way they did before.
 
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: coreexampledjangocelerysleakopscom
-  namespace: example-django-celery-myenv
-  labels:
-    app.kubernetes.io/name: example-django-celery
-  annotations:
-    alb.ingress.kubernetes.io/certificate-arn: >-
-      arn:aws:acm:REGION:ACCOUNT_ID:certificate/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
-    alb.ingress.kubernetes.io/group.name: example-django-celery-public
-    alb.ingress.kubernetes.io/healthcheck-path: /health
-    alb.ingress.kubernetes.io/healthcheck-port: '8000'
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
-    alb.ingress.kubernetes.io/ssl-redirect: '443'
-    alb.ingress.kubernetes.io/success-codes: '200'
-    alb.ingress.kubernetes.io/target-type: ip
-    meta.helm.sh/release-name: example-django-celery-myenv
-    meta.helm.sh/release-namespace: example-django-celery-myenv
-spec:
-  ingressClassName: alb-ingressclass-public
-  tls:
-    - hosts:
-        - core.example-django-celery.sleakops.com
-  rules:
-    - host: core.example-django-celery.sleakops.com
-      http:
-        paths:
-          - path: /api/public/
-            pathType: Prefix
-            backend:
-              service:
-                name: example-django-celery-myenv-api-public-svc
-                port:
-                  number: 8000
-```
+If the migration changed your Project's chart, you may find a pending deployment whose description says it was created by SleakOps to apply the new version; publish it like any other [pending change](/docs/project/deployment/pending_changes).
 
-Once you have defined your Ingress template, you can deploy it using the interface:
+## What you see now
 
-<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
-<img
-    src="/img/project/chart/template-deploy.png"
-    alt="Template deployment interface"
-/>
-</Zoom>
+The Chart Configuration page shows an **Extra templates are managed as project manifests** notice, and the section below Manifests is now **Extends Values**: it only holds the [project global values](/docs/project/workload/values#project-global-values), which you keep editing as before.
 
-## Frequently Asked Questions
+- With Manifests enabled for your company, the notice points to the **Manifests** section above it, where you add and edit the migrated resources.
+- With Manifests not yet enabled for your company, the migrated resources keep deploying but are read-only until the Manifests editor is enabled — ask your SleakOps contact to enable it.
+
+## FAQs
 
 <details>
 <summary>
-### How do I use custom values in my templates?
+### How do I add a custom Ingress or another custom resource now?
 </summary>
-
-You can define custom values in the **Values** section on the right side of the interface. These values can then be referenced in your templates using Helm templating syntax.
-
-<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
-<img
-    src="/img/project/chart/extra-values.png"
-    alt="Custom values configuration example"
-/>
-</Zoom>
-
-The example above shows how to create a Pod template that uses custom values and how to reference them in your YAML configuration.
+Add it as a manifest — from the Workload's <b>Advanced</b> view (scoped to that Workload) or from the project bucket in Chart Configuration (shared across the Project). See <a href="/docs/project/workload/manifests#adding-a-manifest">Adding a manifest</a>.
 </details>
 
 <details>
 <summary>
 ### What types of Kubernetes resources can I deploy?
 </summary>
-
-SleakOps supports **namespace-scoped resources only** due to security and isolation requirements. Each project operates within its own namespace with namespace-scoped permissions.
-
-**Supported resources include:**
-- Pods, Deployments, Services
-- Ingresses, NetworkPolicies
-- ConfigMaps, Secrets
-- PersistentVolumeClaims
-- Jobs, CronJobs
-
-**Not supported:**
-- ClusterRoles, ClusterRoleBindings
-- CustomResourceDefinitions
-- PersistentVolumes
-- Any cluster-scoped resources
+Namespace-scoped resources only: every manifest must set <code>metadata.namespace</code> to the Project environment's namespace, and cluster-scoped resources (ClusterRoles, ClusterRoleBindings, CustomResourceDefinitions, PersistentVolumes, StorageClasses…) are rejected. Resources of a custom kind (CRD) are accepted, as long as the CRD is installed in the cluster.
 </details>
 
 <details>
 <summary>
-### How do I troubleshoot template deployment issues?
+### Where are my custom values now?
 </summary>
-
-Common troubleshooting steps:
-1. **Validate YAML syntax** - Ensure your template is valid Kubernetes YAML
-2. **Check NodePool tolerations** - Verify tolerations target existing NodePools
-3. **Review resource quotas** - Ensure sufficient resources are available
-4. **Validate references** - Check that referenced services, secrets, or configmaps exist
-5. **Check logs** - Review deployment logs for specific error messages
+In the <b>Values</b> editor of the <b>Extends Values</b> section of Chart Configuration — they were not changed by the migration. See <a href="/docs/project/workload/values">Values</a>.
 </details>

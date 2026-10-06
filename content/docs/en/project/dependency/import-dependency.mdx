@@ -14,9 +14,15 @@ This page covers importing an existing resource. If you haven't connected your A
 
 SleakOps can register a Dependency you already run in AWS — a database, a queue, a bucket — instead of creating one from scratch. Import discovers the real resources in an account and adopts the one you pick without modifying it.
 
+## Prerequisites
+
+- An admin user in SleakOps.
+- The import feature enabled for your company.
+- An account in **created** state, where the resource lives.
+
 ## Supported types
 
-All 14 types below are supported for import. This table only indicates whether SleakOps needs credentials to connect — it isn't a support/not-supported column.
+All 15 types below are supported for import. This table only indicates whether SleakOps needs credentials to connect — it isn't a support/not-supported column.
 
 | **Type**             | **Credentials required** |
 | --------------------- | ------------------------- |
@@ -32,6 +38,7 @@ All 14 types below are supported for import. This table only indicates whether S
 | **S3 bucket**          | No                        |
 | **SQS**                | No                        |
 | **Redis**              | No                        |
+| **Valkey**             | No                        |
 | **Memcached**          | No                        |
 | **OpenSearch**         | No                        |
 
@@ -69,7 +76,12 @@ SleakOps lists the real resources of that type it found in the account — name,
 
 ### 4. Name, project and credentials
 
-Enter a **Name** and pick the **Project** to attach the dependency to. For types that require credentials, enter the **Username** and **Password** SleakOps should use to connect — AWS never exposes the master password of an existing instance, so these values aren't discovered automatically.
+Enter a **Name** and pick the **Project** (shown as `<project> (<environment>)`) to attach the dependency to. For types that require credentials, enter the **Username** and **Password** SleakOps should use to connect — AWS never exposes the master password of an existing instance, so these values aren't discovered automatically.
+
+Depending on the type and the resource, the step also shows:
+
+- **Connection string** (PostgreSQL, MySQL, MariaDB, Oracle, Aurora, DocumentDB) — an optional shortcut: paste the URI your applications already use and click **Fill fields** to fill the fields from it. Review them before importing; the string itself isn't sent to SleakOps.
+- **Database Name** (PostgreSQL, MySQL, MariaDB, Oracle, Aurora) — required only when AWS reports no initial database name for the resource. Enter the database your applications connect to.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -78,11 +90,11 @@ Enter a **Name** and pick the **Project** to attach the dependency to. For types
   />
 </Zoom>
 
-Click **Import** to start the registration. SleakOps adopts the resource into its infrastructure state without modifying it, and you can follow the progress from the dependencies list.
+Click **Import** to start the registration. SleakOps adopts the resource into its infrastructure state without modifying it, and you can follow the progress from the dependencies list. The import also creates a Var Group named `<name>-<type>` (for example `orders-postgresql`) holding the dependency's connection outputs, so the project's workloads can use them.
 
-## Configuration sync
+## After importing
 
-Once imported, a dependency's config can also be synced from the real AWS resource in the background — this isn't triggered from the console yet.
+Imported dependencies can't be edited: SleakOps doesn't manage the resource, so the API answers **"Imported dependencies cannot be edited: SleakOps does not manage the resource."** Changes to the resource itself are made in AWS.
 
 ## FAQs
 

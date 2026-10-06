@@ -17,8 +17,7 @@ SleakOps can bring an existing Karpenter node pool under management instead of c
 ## Prerequisites
 
 - An admin user in SleakOps.
-- The import feature enabled for your company (`infra_import.nodepool`).
-- The cluster must **not** be in import mode. **Import Node Pool** is only available on clusters SleakOps provisioned itself — it doesn't appear on imported clusters.
+- The import feature enabled for your company.
 
 ## Discover and import
 
@@ -37,9 +36,9 @@ Clicking it opens a dialog that lists the live Karpenter node pools running in t
 
 - While the search runs: **"Discovering Karpenter node pools…"**
 - No unmanaged node pools found: **"No unmanaged Karpenter node pools were found in this cluster."**
-- The cluster isn't reachable: an error asking you to check connectivity and try again.
+- The cluster isn't reachable: **"Could not list the Karpenter node pools of this cluster. Check that the cluster is reachable and try again."**
 
-A node pool whose name doesn't match SleakOps' naming rules (lowercase alphanumerics with single hyphens, up to 50 characters) can't be adopted and appears disabled — the pool's name becomes the NodePool's name in SleakOps and can't be edited afterward, so names outside that pattern are filtered out of selection.
+A node pool whose name doesn't match SleakOps' naming rules (lowercase alphanumerics with single hyphens, up to 50 characters) can't be adopted and appears disabled with an **Unsupported name** badge — the pool's name becomes the NodePool's name in SleakOps and can't be edited afterward. A pool whose EC2NodeClass is used by other pools shows a **Shared NodeClass** badge. **View manifest** shows the live pool's YAML.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -50,10 +49,15 @@ A node pool whose name doesn't match SleakOps' naming rules (lowercase alphanume
 
 ### Review
 
-Select a node pool and move to the next step: "Review the configuration mapped from the live pool. It is adopted exactly as it runs today, even where its values fall outside the SleakOps ranges."
+Select a node pool and move to the next step: "Review the configuration mapped from the live pool. It is adopted exactly as it runs today, even where its values fall outside the SleakOps ranges, so the fields are read-only — edit the pool once it is yours."
 
 SleakOps pre-fills the same form used to create or edit a node pool with the values discovered on the live pool — architecture, node types, instance types, CPU and memory limits, node storage, and its dedicated taint if the pool has one.
 
 ## After importing
 
-Once you confirm the import: "`<name>` is being adopted by SleakOps. SleakOps is taking the live node pool under management. Its EC2NodeClass is cloned under the pool's name and existing nodes rotate gradually, respecting PodDisruptionBudgets and disruption budgets. You can follow the progress in the node pools list."
+What happens to the live pool depends on the cluster:
+
+- **Cluster provisioned by SleakOps** — the pool's EC2NodeClass is cloned under the pool's name and existing nodes rotate gradually, respecting PodDisruptionBudgets and disruption budgets.
+- **[Imported cluster](/docs/install-on-your-infra/import-cluster)** — the pool keeps the EC2NodeClass it already references. Nothing is cloned and no node rotates.
+
+In both cases SleakOps becomes the source of truth for the pool, and you can follow the progress in the node pools list. An imported node pool can't be deleted from SleakOps yet (**"This NodePool was imported from the cluster. Deleting an imported NodePool is not supported yet."**).
