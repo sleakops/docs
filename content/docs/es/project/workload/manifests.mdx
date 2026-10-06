@@ -10,10 +10,10 @@ import { FiExternalLink } from "react-icons/fi";
 Cada Workload que creas en SleakOps se despliega en Kubernetes a través de un conjunto de **manifiestos** — los recursos Deployment, Service, Ingress, PodDisruptionBudget y HorizontalPodAutoscaler que SleakOps genera para él. La funcionalidad de Manifests convierte esos recursos en ciudadanos de primera clase: puedes inspeccionar cada uno, personalizar su YAML, deshabilitarlo o agregar tus propios manifiestos extra — por Workload o compartidos a nivel del Project.
 
 :::info Disponibilidad
-Manifests se lanza en **SleakOps 3.0.0** detrás del feature flag de compañía `service_manifests`, apagado por defecto mientras se completa el rollout. Si no ves el toggle **Advanced** en los formularios de tus Workloads ni la sección **Manifests** en la Chart Configuration de tu Project, pide a tu contacto de SleakOps que lo habilite para tu compañía. El flag también puede estar acotado a un subconjunto de usuarios mediante un grupo de configuración, así que puede estar habilitado para tu compañía y seguir apagado para tu usuario — si las superficies de Manifests no aparecen, consulta con tu contacto de SleakOps si tu usuario está incluido en el rollout.
+Manifests está disponible desde **SleakOps 3.0.0** y se habilita por compañía. Si no ves el toggle **Advanced** en los formularios de tus Workloads ni la sección **Manifests** en la Chart Configuration de tu Project, consulta con tu contacto de SleakOps.
 :::
 
-Habilitar `service_manifests` también es un prerrequisito para [importar un Project desde un release de Helm existente](/docs/project/import-project).
+Manifests también es un prerrequisito para [importar un Project desde un release de Helm existente](/docs/project/import-project).
 
 ## Dónde encontrarlos
 
@@ -131,8 +131,8 @@ Ten en cuenta:
 
 Los manifiestos agregados con scope **Project bucket** no están atados a ningún Workload: se despliegan con **cada release** del Project. Los habitantes típicos son NetworkPolicies, ConfigMaps compartidos y ServiceAccounts. Se administran desde **Project → Settings → Chart Configuration → Manifests**:
 
-:::info Requiere dos flags
-El project bucket requiere que estén habilitados los flags de compañía `service_manifests` y `project_chart`. Con `project_chart` apagado, la card **Chart Configuration** completa desaparece de **Project → Settings**, y la franja Project-shared manifests del Workload muestra "No shared manifests in this project yet." aunque el Project tenga alguno — si los Manifests por Workload funcionan pero no puedes llegar al bucket, pide a tu contacto de SleakOps que revise `project_chart`.
+:::info Disponibilidad
+El project bucket vive en la **Chart Configuration**, que se habilita por compañía. Si la card **Chart Configuration** no aparece en **Project → Settings**, la franja Project-shared manifests del Workload muestra "No shared manifests in this project yet." aunque el Project tenga alguno — pide a tu contacto de SleakOps que habilite la Chart Configuration para tu compañía.
 :::
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">

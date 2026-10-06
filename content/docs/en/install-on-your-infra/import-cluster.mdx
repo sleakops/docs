@@ -15,7 +15,7 @@ With an account's network configured, SleakOps can register an existing EKS clus
 ## Prerequisites
 
 - An admin user in SleakOps.
-- The import feature enabled for your company (`infra_import.cluster`).
+- The import feature enabled for your company.
 - An account already in **created** state, with its network configured ([Configure the network](/docs/install-on-your-infra/network-configuration)).
 
 ## Install SleakOps in the cluster
@@ -67,7 +67,7 @@ Click **Install** to start the import.
 
 ## Installation progress
 
-While the import runs, SleakOps reads the cluster metadata (OIDC issuer), sets up the account VPN if it doesn't exist yet, creates the dedicated `sleakops` namespace, and maps its roles into the cluster by installing the [AWS Auth essential addon](/docs/cluster/addons/essential-addons), which keeps every entry already in your `aws-auth` ConfigMap. The IngressClass names from step 4 are stored in the cluster's configuration; no Load Balancer addon is installed.
+While the import runs, SleakOps reads the cluster metadata (OIDC issuer), sets up the account VPN if it doesn't exist yet, creates the dedicated `sleakops` namespace, and maps its roles into the cluster by installing the [AWS Auth essential addon](/docs/cluster/addons/essential-addons), which keeps every entry already in your `aws-auth` ConfigMap. The IngressClass names from step 4 are stored in the cluster's configuration.
 
 You can close the dialog and follow the progress from the clusters list — it keeps refreshing while the import is in progress.
 
@@ -88,7 +88,7 @@ An imported cluster shows an **Imported** badge on its card in the clusters list
 
 ### Base node pool
 
-The addons SleakOps runs on an imported cluster aren't pinned to any node pool until you choose one, so they run wherever your scheduler places them. While none is set, admins see a warning icon on the cluster card that leads to the cluster's **Node Pools** settings. There, the **Base Node Pool** card lists the cluster's live Karpenter node pools (with their architecture); pick one and confirm. A pool SleakOps doesn't manage yet is marked **will be imported** and is [imported](/docs/cluster/nodepools/importing-a-nodepool) first. Addons already running don't move right away: each one picks up the new node pool the next time it's reapplied. Choosing **Not pinned** clears it. This setting needs the same access as node pool import (admin and `infra_import.nodepool`).
+The addons SleakOps runs on an imported cluster aren't pinned to any node pool until you choose one, so they run wherever your scheduler places them. While none is set, admins see a warning icon on the cluster card that leads to the cluster's **Node Pools** settings. There, the **Base Node Pool** card lists the cluster's live Karpenter node pools (with their architecture); pick one and confirm. A pool SleakOps doesn't manage yet is marked **will be imported** and is [imported](/docs/cluster/nodepools/importing-a-nodepool) first. Addons already running don't move right away: each one picks up the new node pool the next time it's reapplied. Choosing **Not pinned** clears it. This setting needs the same access as node pool import (an admin user, with node pool import enabled for your company).
 
 ### Creating Projects
 

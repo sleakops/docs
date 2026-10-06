@@ -10,10 +10,10 @@ import { FiExternalLink } from "react-icons/fi";
 Every Workload you create in SleakOps is deployed to Kubernetes through a set of **manifests** — the Deployment, Service, Ingress, PodDisruptionBudget and HorizontalPodAutoscaler resources that SleakOps generates for it. The Manifests feature makes those resources first-class citizens: you can inspect each one, customize its YAML, disable it, or add your own extra manifests — per Workload or shared across the whole Project.
 
 :::info Availability
-Manifests ships in **SleakOps 3.0.0** behind the `service_manifests` company feature flag, off by default while the rollout completes. If you don't see the **Advanced** toggle on your Workload forms or the **Manifests** section in your Project's Chart Configuration, ask your SleakOps contact to enable it for your company. The flag can also be scoped to a subset of users through a configuration group, so it may be on for your company and still off for your user — if the Manifests surfaces are missing, ask your SleakOps contact whether your user is in the rollout.
+Manifests is available since **SleakOps 3.0.0** and is enabled per company. If you don't see the **Advanced** toggle on your Workload forms or the **Manifests** section in your Project's Chart Configuration, ask your SleakOps contact.
 :::
 
-Enabling `service_manifests` is also a prerequisite for [importing a Project from an existing Helm release](/docs/project/import-project).
+Manifests is also a prerequisite for [importing a Project from an existing Helm release](/docs/project/import-project).
 
 ## Where to find them
 
@@ -131,8 +131,8 @@ Keep in mind:
 
 Manifests added with the **Project bucket** scope are not tied to any Workload: they deploy with **every release** of the Project. Typical residents are NetworkPolicies, shared ConfigMaps and ServiceAccounts. Manage them from **Project → Settings → Chart Configuration → Manifests**:
 
-:::info Requires two flags
-The project bucket requires both the `service_manifests` and `project_chart` company flags. With `project_chart` off, the whole **Chart Configuration** card is missing from **Project → Settings**, and the Workload's Project-shared manifests strip reads "No shared manifests in this project yet." even if the Project has some — if per-Workload Manifests work but you can't reach the bucket, ask your SleakOps contact to check `project_chart`.
+:::info Availability
+The project bucket lives in **Chart Configuration**, which is enabled per company. If the **Chart Configuration** card is missing from **Project → Settings**, the Workload's Project-shared manifests strip reads "No shared manifests in this project yet." even if the Project has some — ask your SleakOps contact to enable Chart Configuration for your company.
 :::
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
