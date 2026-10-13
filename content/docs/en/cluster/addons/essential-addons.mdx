@@ -1,0 +1,56 @@
+---
+title: Essential addons
+sidebar_label: Essential addons
+sidebar_position: 9
+---
+
+import Zoom from "react-medium-image-zoom";
+import "react-medium-image-zoom/dist/styles.css";
+import { FiExternalLink } from "react-icons/fi";
+
+Essential addons are the infrastructure glue every cluster needs to function under SleakOps: networking, autoscaling, and access control. Unlike the optional addons you pick from the Addons list, these five are always present — SleakOps installs them automatically on every managed cluster instead of waiting for you to add them.
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./essential-addons/essential-addons-list.png").default}
+    alt="Addons list showing the five essential addons (all Installed) alongside a mix of installed, deprecated, and not-yet-installed optional addons"
+  />
+</Zoom>
+
+They show in the Addons list like any other addon card, with no special badge or visual marker — you recognize them by name and description, not by a distinct treatment.
+
+## The five essential addons
+
+| Name | What it does |
+|---|---|
+| Metrics Server | Collects resource metrics from kubelets and exposes them through the Kubernetes Metrics API, enabling Horizontal Pod Autoscaling and `kubectl top`. |
+| ExternalDNS | Synchronizes exposed Kubernetes Services and Ingresses with DNS providers (Route53), keeping cluster DNS records up to date automatically. |
+| Karpenter | A Kubernetes node autoscaler that provisions right-sized compute capacity in response to unschedulable pods, improving efficiency and reducing cost. |
+| AWS Auth | Wires SleakOps IAM roles into the cluster's `aws-auth` ConfigMap and the SleakOps RBAC ClusterRoles, enabling SleakOps integration and role-based access. |
+| Load Balancer | The AWS Load Balancer Controller manages Application Load Balancers for Kubernetes Ingresses, plus the public and private IngressClasses used to route external traffic. |
+
+## Behavior on imported clusters
+
+On a managed cluster, SleakOps installs and owns all five essential addons. On an imported cluster, SleakOps installs only **AWS Auth**, automatically, as part of the import; the other four behave differently:
+
+| Addon | On an imported cluster |
+|---|---|
+| Metrics Server | Not installed automatically. Install it from the Addons list when you need it. |
+| ExternalDNS | Not installed automatically. Install it from the Addons list when you need it. |
+| Karpenter | Can't be installed: "Karpenter is not supported on imported clusters: node capacity is managed by the cluster owner." |
+| Load Balancer | Can't be installed: "The Load Balancer addon is not supported on imported clusters: the ALB controller and its IngressClasses are managed by the cluster owner." SleakOps routes traffic through the IngressClass names set when the cluster was imported. |
+
+On an imported cluster, AWS Auth keeps every entry already in the cluster's `aws-auth` ConfigMap and adds the SleakOps roles to it.
+
+## Restrictions
+
+**Configuration** — an essential addon's configuration form is read-only on a managed cluster, since SleakOps owns that configuration. Load Balancer is the only essential addon with configurable fields (its public and private IngressClass names), so it's the one where the read-only lock is visible:
+
+<Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
+  <img
+    src={require("./essential-addons/essential-addon-lb-detail.png").default}
+    alt="Load Balancer addon detail view on a managed cluster, with its IngressClass name fields locked"
+  />
+</Zoom>
+
+**Deletion** — essential addons can't be deleted on a managed cluster ("'`<name>`' is an essential addon of this managed cluster and cannot be deleted."): they're only removed when the cluster itself is destroyed. On an imported cluster, they can be deleted like any other addon, unless another addon depends on them.

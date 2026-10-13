@@ -91,7 +91,7 @@ persistence:
     - ReadWriteOnce
   size: 5Gi
 ```
-3. In case you need another storageClass, you can define it as an [extra template](/docs/project/chart/extra_templates) and use it. Remember to set the provisioner to `ebs.csi.aws.com`.
+3. In case you need another storageClass, note that a StorageClass is a cluster-scoped resource, so it can't be added as a project [manifest](/docs/project/workload/manifests) (project manifests only accept namespaced resources); it has to exist in the cluster beforehand. Remember to set the provisioner to `ebs.csi.aws.com`.
 4. In case the pods are not starting, check the logs of the EBS CSI Controller for errors
 </details>
 
@@ -109,7 +109,7 @@ persistence:
     - ReadWriteMany
   size: 5Gi
 ```
-3. In case you need another storageClass, you can define it as an [extra template](/docs/project/chart/extra_templates) and use it. Remember to set the provisioner to `efs.csi.aws.com`.
+3. In case you need another storageClass, note that a StorageClass is a cluster-scoped resource, so it can't be added as a project [manifest](/docs/project/workload/manifests) (project manifests only accept namespaced resources); it has to exist in the cluster beforehand. Remember to set the provisioner to `efs.csi.aws.com`.
 4. In case the pods are not starting, check the logs of the EFS CSI Controller for errors
 </details>
 
