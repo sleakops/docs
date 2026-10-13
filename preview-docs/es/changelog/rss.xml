@@ -4,10 +4,356 @@
         <title>SleakOps Documentation Blog</title>
         <link>https://docs.sleakops.com/preview-docs/es/changelog</link>
         <description>SleakOps Documentation Blog</description>
-        <lastBuildDate>Wed, 13 May 2026 00:00:00 GMT</lastBuildDate>
+        <lastBuildDate>Tue, 13 Oct 2026 00:00:00 GMT</lastBuildDate>
         <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
         <generator>https://github.com/jpmonette/feed</generator>
         <language>es</language>
+        <item>
+            <title><![CDATA[Versión 3.0.0]]></title>
+            <link>https://docs.sleakops.com/preview-docs/es/changelog/2026/10/13/version-3.0.0</link>
+            <guid>https://docs.sleakops.com/preview-docs/es/changelog/2026/10/13/version-3.0.0</guid>
+            <pubDate>Tue, 13 Oct 2026 00:00:00 GMT</pubDate>
+            <description><![CDATA[lanzamiento mayor · 13 de octubre de 2026]]></description>
+            <content:encoded><![CDATA[<p><code>lanzamiento mayor</code> · 13 de octubre de 2026</p>
+<hr>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-nuevas-funcionalidades">🚀 Nuevas funcionalidades<a href="https://docs.sleakops.com/preview-docs/es/changelog/2026/10/13/version-3.0.0#-nuevas-funcionalidades" class="hash-link" aria-label="Enlace directo al 🚀 Nuevas funcionalidades" title="Enlace directo al 🚀 Nuevas funcionalidades" translate="no">​</a></h2>
+<ul>
+<li class="">
+<p><strong>Importá tu AWS existente</strong> (beta)<br>
+<!-- -->SleakOps ahora puede adoptar tu infraestructura existente —cuentas de AWS, redes, clusters EKS, dominios, bases de datos y otras dependencias, proyectos y sus variable groups— en lugar de aprovisionar todo desde cero. No se recrea nada: los recursos importados quedan identificados como tales, las bases de datos se pueden incorporar pegando su connection string y Valkey se suma a las dependencias administradas soportadas.</p>
+</li>
+<li class="">
+<p><strong>Sitios estáticos</strong><br>
+<!-- -->Un nuevo tipo de proyecto estático construye tu frontend desde Git y lo sirve en tu propio dominio a través de S3 y CloudFront, sin contenedores ni servidores web que mantener.</p>
+</li>
+<li class="">
+<p><strong>Manifiestos</strong> (beta)<br>
+<!-- -->Los manifiestos que SleakOps genera para tus workloads ahora se pueden ver y editar, y podés agregar los tuyos (por ejemplo, un Ingress adicional), con total transparencia sobre lo que se despliega. Los NodePools suman además un formulario extendido con edición en YAML, para que la configuración avanzada de Karpenter ya no tenga que cambiarse directamente en el cluster.</p>
+</li>
+<li class="">
+<p><strong>Presets de entorno</strong> (beta)<br>
+<!-- -->El detalle de un preset ahora muestra todos sus proyectos juntos y permite crearlos todos, con sus recursos, en pocos clicks en lugar de uno por uno. Los presets exportados localmente también funcionan con repositorios privados.</p>
+</li>
+<li class="">
+<p><strong>MCP Server</strong> (beta)<br>
+<!-- -->Conectá el servidor MCP de SleakOps a Claude Code o a cualquier cliente MCP y operá la plataforma en lenguaje natural.</p>
+</li>
+<li class="">
+<p><strong>Chat de soporte contextual</strong><br>
+<!-- -->Cada recurso tiene ahora un botón de soporte que abre el chat de soporte directamente desde donde estás trabajando.</p>
+</li>
+</ul>
+<hr>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-mejoras">✨ Mejoras<a href="https://docs.sleakops.com/preview-docs/es/changelog/2026/10/13/version-3.0.0#-mejoras" class="hash-link" aria-label="Enlace directo al ✨ Mejoras" title="Enlace directo al ✨ Mejoras" translate="no">​</a></h2>
+<ul>
+<li class="">
+<p><strong>Addons esenciales gestionados desde la sección Addons</strong><br>
+<!-- -->Los addons esenciales del cluster ahora se listan y gestionan junto con el resto de los addons. Su configuración queda protegida contra ediciones que podrían romper el cluster y se completa automáticamente al adoptarlos.</p>
+</li>
+<li class="">
+<p><strong>Estado más claro de Builds y Deployments</strong><br>
+<!-- -->Los Builds y Deployments ahora muestran por qué están en espera (por ejemplo, encolados detrás de otro build o esperando que un recurso esté listo), y los cambios pendientes se revisan directamente desde el detalle del deployment.</p>
+</li>
+<li class="">
+<p><strong>Mejoras en la consola y en el control de acceso</strong><br>
+<!-- -->La configuración avanzada se despliega automáticamente cuando difiere de los valores por defecto, los links de los addons están disponibles desde el Dashboard y Workloads, Settings tiene su propia barra lateral y los servicios muestran todos sus variable groups. Además, el rol Viewer ya no puede leer los valores secretos de los variable groups.</p>
+</li>
+</ul>
+<hr>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-correcciones">🐛 Correcciones<a href="https://docs.sleakops.com/preview-docs/es/changelog/2026/10/13/version-3.0.0#-correcciones" class="hash-link" aria-label="Enlace directo al 🐛 Correcciones" title="Enlace directo al 🐛 Correcciones" translate="no">​</a></h2>
+<ul>
+<li class="">
+<p><strong>Edición más segura de dependencias de base de datos</strong><br>
+<!-- -->Guardar una dependencia de base de datos ya no desactiva su protección contra borrado en AWS, los clusters Aurora restaurados desde un snapshot o point-in-time se pueden volver a editar y el formulario de edición de DocumentDB muestra la clase de instancia configurada. Los restores ahora validan la versión del motor contra la del snapshot antes de crear cualquier recurso.</p>
+</li>
+<li class="">
+<p><strong>Cambio de dominio de un environment confiable</strong><br>
+<!-- -->Cambiar el dominio de un environment ahora aprovisiona el nuevo dominio, reapunta los addons y los alias de S3, y redespliega los proyectos afectados (incluidos sitios estáticos y workers) recién cuando el dominio está listo. Los dominios huérfanos se pueden eliminar sin errores.</p>
+</li>
+<li class="">
+<p><strong>Creación y eliminación de clusters</strong><br>
+<!-- -->Los clusters nuevos instalan sus addons esenciales en el orden correcto, y eliminar un cluster ya no falla cuando algunos addons se estaban borrando ni deja namespaces de proyectos sin eliminar.</p>
+</li>
+<li class="">
+<p><strong>Workloads y registro de actividad</strong><br>
+<!-- -->Volver a ejecutar un CronJob ahora abre el formulario del job precargado con su definición, las actualizaciones de servicios conservan la configuración de réplicas de backup, eliminar un variable group de tipo archivo ya no deja pods intentando montarlo y el registro de actividad del Dashboard muestra solo la actividad del provider seleccionado.</p>
+</li>
+</ul>
+<hr>]]></content:encoded>
+            <category>release</category>
+        </item>
+        <item>
+            <title><![CDATA[Versión 2.13.0]]></title>
+            <link>https://docs.sleakops.com/preview-docs/es/changelog/2026/07/16/version-2.13.0</link>
+            <guid>https://docs.sleakops.com/preview-docs/es/changelog/2026/07/16/version-2.13.0</guid>
+            <pubDate>Thu, 16 Jul 2026 00:00:00 GMT</pubDate>
+            <description><![CDATA[lanzamiento menor · 16 de julio de 2026]]></description>
+            <content:encoded><![CDATA[<p><code>lanzamiento menor</code> · 16 de julio de 2026</p>
+<hr>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-nuevas-funcionalidades">🚀 Nuevas funcionalidades<a href="https://docs.sleakops.com/preview-docs/es/changelog/2026/07/16/version-2.13.0#-nuevas-funcionalidades" class="hash-link" aria-label="Enlace directo al 🚀 Nuevas funcionalidades" title="Enlace directo al 🚀 Nuevas funcionalidades" translate="no">​</a></h2>
+<ul>
+<li class="">
+<p><strong>Import/Export de Addons y Environments</strong><br>
+<!-- -->Ahora es posible adoptar como Addons de SleakOps los releases de Helm que ya corren en el cluster, crear Addons custom desde JSON y exportar o importar los recursos de un proyecto o environment.</p>
+</li>
+<li class="">
+<p><strong>Explorador de Accounts y Networking</strong><br>
+<!-- -->Una nueva sección, accesible desde el listado de Providers, muestra cada Account del Provider y una vista de solo lectura de su networking (VPC, subnets, NAT e Internet gateways).</p>
+</li>
+<li class="">
+<p><strong>Partners de soporte</strong><br>
+<!-- -->Las companies que trabajan con un partner de soporte ahora envían sus tickets de soporte y diagnóstico a ese partner, con su branding en el botón de soporte y en el drawer del ticket.</p>
+</li>
+</ul>
+<hr>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-mejoras">✨ Mejoras<a href="https://docs.sleakops.com/preview-docs/es/changelog/2026/07/16/version-2.13.0#-mejoras" class="hash-link" aria-label="Enlace directo al ✨ Mejoras" title="Enlace directo al ✨ Mejoras" translate="no">​</a></h2>
+<ul>
+<li class="">
+<p><strong>Nuevo formulario de webservices para todos</strong><br>
+<!-- -->El formulario de webservices rediseñado queda habilitado para todos los usuarios y reemplaza al anterior.</p>
+</li>
+<li class="">
+<p><strong>Selección de cuentas simplificada</strong><br>
+<!-- -->El sidebar lista solo las cuentas con al menos un cluster y selecciona la cuenta automáticamente cuando hay una sola disponible.</p>
+</li>
+<li class="">
+<p><strong>Reportes con IA mejorados</strong><br>
+<!-- -->Los diagramas de infraestructura se renderizan en lugar de mostrar el código, todos los reportes pueden imprimirse en PDF y comparten un layout consistente.</p>
+</li>
+<li class="">
+<p><strong>Monitoreo de Redis cluster</strong><br>
+<!-- -->Las métricas ahora funcionan para dependencias Redis en modo cluster, con una pestaña por cada miembro del replication group.</p>
+</li>
+<li class="">
+<p><strong>Actualización del Addon EFS</strong><br>
+<!-- -->Hay disponible una nueva versión del Addon EFS con el driver CSI actualizado, y los file systems con volúmenes asociados quedan protegidos ante cambios que los romperían.</p>
+</li>
+</ul>
+<hr>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-correcciones">🐛 Correcciones<a href="https://docs.sleakops.com/preview-docs/es/changelog/2026/07/16/version-2.13.0#-correcciones" class="hash-link" aria-label="Enlace directo al 🐛 Correcciones" title="Enlace directo al 🐛 Correcciones" translate="no">​</a></h2>
+<ul>
+<li class="">
+<p><strong>Borrado de volúmenes</strong><br>
+<!-- -->Borrar un volumen que un pod todavía monta ahora reintenta hasta que se libera, o termina con un error claro en lugar de fallar sin aviso.</p>
+</li>
+<li class="">
+<p><strong>Errores al crear dependencias</strong><br>
+<!-- -->Al fallar la creación de una dependency se muestra el error de validación real en lugar de un mensaje genérico.</p>
+</li>
+<li class="">
+<p><strong>Presets de Dockertron</strong><br>
+<!-- -->Se corrigieron los comandos de workers, los nombres de variables de dependencias y la configuración de n8n en los presets de Dockertron.</p>
+</li>
+<li class="">
+<p><strong>Comparación del forecast en Billing</strong><br>
+<!-- -->Las cards de resumen de costos comparan el forecast contra el total completo del mes anterior, corrigiendo porcentajes inflados.</p>
+</li>
+<li class="">
+<p><strong>Tamaño de letra del Dashboard en mobile</strong><br>
+<!-- -->Se corrigió el texto demasiado pequeño del dashboard en dispositivos móviles.</p>
+</li>
+</ul>
+<hr>]]></content:encoded>
+            <category>release</category>
+        </item>
+        <item>
+            <title><![CDATA[Versión 2.12.1]]></title>
+            <link>https://docs.sleakops.com/preview-docs/es/changelog/2026/07/06/version-2.12.1</link>
+            <guid>https://docs.sleakops.com/preview-docs/es/changelog/2026/07/06/version-2.12.1</guid>
+            <pubDate>Mon, 06 Jul 2026 00:00:00 GMT</pubDate>
+            <description><![CDATA[lanzamiento de parche · 6 de julio de 2026]]></description>
+            <content:encoded><![CDATA[<p><code>lanzamiento de parche</code> · 6 de julio de 2026</p>
+<hr>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-mejoras">✨ Mejoras<a href="https://docs.sleakops.com/preview-docs/es/changelog/2026/07/06/version-2.12.1#-mejoras" class="hash-link" aria-label="Enlace directo al ✨ Mejoras" title="Enlace directo al ✨ Mejoras" translate="no">​</a></h2>
+<ul>
+<li class="">
+<p><strong>Tutorial de sticky sessions para Web Services</strong><br>
+<!-- -->Nueva guía para habilitar sticky sessions en un Web Service mediante sus anotaciones de ingress, incluyendo cuándo no conviene usarlas y cómo verificarlas.</p>
+</li>
+<li class="">
+<p><strong>Guía de revisión de costos</strong><br>
+<!-- -->Nuevo tutorial para leer tu gasto en AWS con el Cost Explorer, Kubecost y los Cost Allocation Tags antes de decidir qué optimizar.</p>
+</li>
+<li class="">
+<p><strong>Página de alcance del soporte</strong><br>
+<!-- -->Nueva página que explica cómo contactar al Soporte, qué cubre y dónde buscar primero ante consultas frecuentes, alineada con el Modelo de Responsabilidad.</p>
+</li>
+<li class="">
+<p><strong>Guía de pruebas exhaustivas de ambientes</strong><br>
+<!-- -->Nuevo checklist de pruebas para validar que tu aplicación funcione por completo tras migrar a una nueva infraestructura de SleakOps.</p>
+</li>
+<li class="">
+<p><strong>Documentación de encriptación de bases de datos</strong><br>
+<!-- -->La documentación de dependencias ahora describe con precisión los valores por defecto de la encriptación at-rest, cómo desactivarla y cómo usar una clave KMS propia en dependencias de bases de datos.</p>
+</li>
+</ul>
+<hr>]]></content:encoded>
+            <category>release</category>
+        </item>
+        <item>
+            <title><![CDATA[Versión 2.12.0]]></title>
+            <link>https://docs.sleakops.com/preview-docs/es/changelog/2026/06/30/version-2.12.0</link>
+            <guid>https://docs.sleakops.com/preview-docs/es/changelog/2026/06/30/version-2.12.0</guid>
+            <pubDate>Tue, 30 Jun 2026 00:00:00 GMT</pubDate>
+            <description><![CDATA[lanzamiento menor · 30 de junio de 2026]]></description>
+            <content:encoded><![CDATA[<p><code>lanzamiento menor</code> · 30 de junio de 2026</p>
+<hr>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-nuevas-funcionalidades">🚀 Nuevas funcionalidades<a href="https://docs.sleakops.com/preview-docs/es/changelog/2026/06/30/version-2.12.0#-nuevas-funcionalidades" class="hash-link" aria-label="Enlace directo al 🚀 Nuevas funcionalidades" title="Enlace directo al 🚀 Nuevas funcionalidades" translate="no">​</a></h2>
+<ul>
+<li class="">
+<p><strong>Soporte de Kubernetes 1.34</strong><br>
+<!-- -->Los clusters ahora pueden actualizarse de EKS 1.33 a 1.34, y los clusters nuevos se crean en 1.34 por defecto. Los addons gestionados, como Prometheus y el AWS Load Balancer Controller, se actualizaron a las APIs recomendadas para esta versión.</p>
+</li>
+<li class="">
+<p><strong>Reporte de compatibilidad de manifiestos propios</strong><br>
+<!-- -->Antes de un upgrade de EKS es posible generar un reporte que señala los recursos desplegados por fuera de SleakOps que usan APIs deprecadas o removidas en la versión de Kubernetes de destino.</p>
+</li>
+<li class="">
+<p><strong>AWS DataSync en dependencias S3</strong><br>
+<!-- -->Una nueva acción en las dependencias S3 sincroniza datos desde otro bucket o una fuente externa usando AWS DataSync, con el estado de la transferencia visible desde la consola.</p>
+</li>
+</ul>
+<hr>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-mejoras">✨ Mejoras<a href="https://docs.sleakops.com/preview-docs/es/changelog/2026/06/30/version-2.12.0#-mejoras" class="hash-link" aria-label="Enlace directo al ✨ Mejoras" title="Enlace directo al ✨ Mejoras" translate="no">​</a></h2>
+<ul>
+<li class="">
+<p><strong>Upgrades de cluster en la sección Upgrades</strong><br>
+<!-- -->Los upgrades de EKS ahora se programan, ejecutan y siguen desde la sección Upgrades, con confirmación por email, recordatorio 24 horas antes y un reporte de downtime por servicio. Los clusters con un upgrade pendiente se destacan en el listado, y los nodos rotan una sola vez durante el upgrade.</p>
+</li>
+<li class="">
+<p><strong>Timeout automático para builds trabados</strong><br>
+<!-- -->Los builds que superan el tiempo máximo permitido ahora se detienen automáticamente y quedan marcados como fallidos, sin depender de que el CLI o el CI sigan conectados.</p>
+</li>
+<li class="">
+<p><strong>Refinamientos de interfaz</strong><br>
+<!-- -->Campos de lista rediseñados en los formularios, nuevos selectores de fecha, mejor posicionamiento de los selectores dentro de los drawers y correcciones visuales en el Explorer.</p>
+</li>
+</ul>
+<hr>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-correcciones">🐛 Correcciones<a href="https://docs.sleakops.com/preview-docs/es/changelog/2026/06/30/version-2.12.0#-correcciones" class="hash-link" aria-label="Enlace directo al 🐛 Correcciones" title="Enlace directo al 🐛 Correcciones" translate="no">​</a></h2>
+<ul>
+<li class="">
+<p><strong>Multi-AZ de RDS desactivado por defecto</strong><br>
+<!-- -->Las nuevas bases RDS ya no activan Multi-AZ salvo que se solicite, evitando costos inesperados.</p>
+</li>
+<li class="">
+<p><strong>Correcciones en formularios</strong><br>
+<!-- -->El formulario de web services ahora conserva los valores guardados del healthcheck al editar, y los formularios de variable groups y de chart dependencies ya no muestran validaciones incorrectas.</p>
+</li>
+<li class="">
+<p><strong>Deployments tras cambios sin deploy</strong><br>
+<!-- -->Aceptar un deployment pendiente después de editar un workload sin desplegar ya no termina en error.</p>
+</li>
+<li class="">
+<p><strong>Actualizaciones de Project Access</strong><br>
+<!-- -->Los cambios de políticas en Project Access ahora se aplican y se reflejan en el estado del environment.</p>
+</li>
+<li class="">
+<p><strong>Puerto visible sin healthcheck</strong><br>
+<!-- -->El detalle del servicio muestra el puerto aunque el healthcheck esté deshabilitado.</p>
+</li>
+<li class="">
+<p><strong>Confirmación de borrado de environments</strong><br>
+<!-- -->El diálogo de confirmación ya no lista objetos internos de facturación.</p>
+</li>
+<li class="">
+<p><strong>Input del chat tras refrescar</strong><br>
+<!-- -->El campo de texto del chat ya no se bloquea cuando la conversación se refresca.</p>
+</li>
+</ul>
+<hr>]]></content:encoded>
+            <category>release</category>
+        </item>
+        <item>
+            <title><![CDATA[Versión 2.11.0]]></title>
+            <link>https://docs.sleakops.com/preview-docs/es/changelog/2026/06/11/version-2.11.0</link>
+            <guid>https://docs.sleakops.com/preview-docs/es/changelog/2026/06/11/version-2.11.0</guid>
+            <pubDate>Thu, 11 Jun 2026 00:00:00 GMT</pubDate>
+            <description><![CDATA[lanzamiento menor · 11 de junio de 2026]]></description>
+            <content:encoded><![CDATA[<p><code>lanzamiento menor</code> · 11 de junio de 2026</p>
+<hr>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-nuevas-funcionalidades">🚀 Nuevas funcionalidades<a href="https://docs.sleakops.com/preview-docs/es/changelog/2026/06/11/version-2.11.0#-nuevas-funcionalidades" class="hash-link" aria-label="Enlace directo al 🚀 Nuevas funcionalidades" title="Enlace directo al 🚀 Nuevas funcionalidades" translate="no">​</a></h2>
+<ul>
+<li class="">
+<p><strong>Gestión ampliada de RDS y Aurora</strong><br>
+<!-- -->Las dependencias RDS ahora pueden restaurarse a un momento específico y usar parameter groups personalizados. La encriptación del almacenamiento se habilita por defecto, con soporte de claves KMS propias, Performance Insights y restore desde snapshot para Aurora PostgreSQL.</p>
+</li>
+<li class="">
+<p><strong>Opciones de autenticación en Kafka</strong><br>
+<!-- -->Las dependencias Kafka (MSK) ahora pueden crearse con autenticación IAM o SCRAM (usuario y contraseña), además de sin autenticación de cliente.</p>
+</li>
+<li class="">
+<p><strong>Múltiples file systems EFS por cluster</strong><br>
+<!-- -->EFS ahora se gestiona como addon del cluster y soporta más de un file system por cluster. Los clusters con storage classes legacy se migran automáticamente a las actuales.</p>
+</li>
+<li class="">
+<p><strong>Costos de IA desglosados por producto</strong><br>
+<!-- -->El historial de gasto en IA ahora se desglosa por producto (chat, autodiagnóstico, reportes, etc.). Los pedidos de reportes verifican el límite de presupuesto de IA de entrada y, si se alcanzó, muestran un link para ajustarlo.</p>
+</li>
+</ul>
+<hr>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-mejoras">✨ Mejoras<a href="https://docs.sleakops.com/preview-docs/es/changelog/2026/06/11/version-2.11.0#-mejoras" class="hash-link" aria-label="Enlace directo al ✨ Mejoras" title="Enlace directo al ✨ Mejoras" translate="no">​</a></h2>
+<ul>
+<li class="">
+<p><strong>Detalles de recursos desde cualquier pantalla</strong><br>
+<!-- -->Los detalles de un recurso pueden abrirse desde cualquier pantalla y exponen las mismas acciones que las tablas. Las notificaciones de migración completada enlazan directo a su detalle.</p>
+</li>
+<li class="">
+<p><strong>Mejoras en la pantalla de Billing</strong><br>
+<!-- -->Billing carga más rápido, agrupa los costos por tipo de recurso y muestra los costos por nodepool en el detalle de cada cluster.</p>
+</li>
+<li class="">
+<p><strong>Migración a BuildKit en proyectos productivos</strong><br>
+<!-- -->Los proyectos productivos que todavía usan Kaniko reciben un aviso previo y luego se migran a BuildKit.</p>
+</li>
+<li class="">
+<p><strong>Compactación de logs más confiable</strong><br>
+<!-- -->Los addons Loki y LokiV2 ahora asignan almacenamiento persistente a su componente de compactación, que opera sin errores.</p>
+</li>
+</ul>
+<hr>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-correcciones">🐛 Correcciones<a href="https://docs.sleakops.com/preview-docs/es/changelog/2026/06/11/version-2.11.0#-correcciones" class="hash-link" aria-label="Enlace directo al 🐛 Correcciones" title="Enlace directo al 🐛 Correcciones" translate="no">​</a></h2>
+<ul>
+<li class="">
+<p><strong>Precisión del Activity Log</strong><br>
+<!-- -->Las acciones sobre volúmenes y workloads generan un único registro sobre el recurso correcto, y los clonados de proyectos se registran y pueden filtrarse.</p>
+</li>
+<li class="">
+<p><strong>Validación de certificados SSL</strong><br>
+<!-- -->La validación del certificado SSL del dominio de un environment ahora crea siempre el deployment pendiente de aprobación.</p>
+</li>
+<li class="">
+<p><strong>Spellcheck deshabilitado en campos sensibles</strong><br>
+<!-- -->Los campos con secretos (valores de variables, API keys, tokens, kubeconfig, claves de AWS) ya no envían su contenido al corrector ortográfico del navegador.</p>
+</li>
+<li class="">
+<p><strong>Nombre de bucket en S3</strong><br>
+<!-- -->Las dependencias S3 usan siempre el nombre real del bucket en lugar de asumir que coincide con el nombre de la dependencia.</p>
+</li>
+<li class="">
+<p><strong>Filtros ocultos en tablas</strong><br>
+<!-- -->Los filtros ocultos ahora se mantienen en la URL, por lo que las vistas filtradas sobreviven a un refresh y pueden compartirse.</p>
+</li>
+</ul>
+<hr>]]></content:encoded>
+            <category>release</category>
+        </item>
+        <item>
+            <title><![CDATA[Versión 2.10.1]]></title>
+            <link>https://docs.sleakops.com/preview-docs/es/changelog/2026/05/27/version-2.10.1</link>
+            <guid>https://docs.sleakops.com/preview-docs/es/changelog/2026/05/27/version-2.10.1</guid>
+            <pubDate>Wed, 27 May 2026 00:00:00 GMT</pubDate>
+            <description><![CDATA[lanzamiento de parche · 27 de mayo de 2026]]></description>
+            <content:encoded><![CDATA[<p><code>lanzamiento de parche</code> · 27 de mayo de 2026</p>
+<hr>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-nuevas-funcionalidades">🚀 Nuevas funcionalidades<a href="https://docs.sleakops.com/preview-docs/es/changelog/2026/05/27/version-2.10.1#-nuevas-funcionalidades" class="hash-link" aria-label="Enlace directo al 🚀 Nuevas funcionalidades" title="Enlace directo al 🚀 Nuevas funcionalidades" translate="no">​</a></h2>
+<ul>
+<li class=""><strong>Soporte de EKS Pod Identity</strong><br>
+<!-- -->Los nuevos clusters creados con SleakOps ahora soportan Amazon EKS Pod Identity.</li>
+</ul>
+<hr>]]></content:encoded>
+            <category>release</category>
+        </item>
         <item>
             <title><![CDATA[Versión 2.10.0]]></title>
             <link>https://docs.sleakops.com/preview-docs/es/changelog/2026/05/13/version-2.10.0</link>
@@ -872,216 +1218,6 @@ El autodiagnóstico ahora está disponible para Clusters, Dependencias, Builds y
 <!-- -->Corrección de mensajes de error cuando falla la ejecución de módulos de infraestructura.</li>
 <li class=""><strong>Selector de Cuenta Móvil</strong><br>
 <!-- -->Soporte para selector de cuenta en dispositivos móviles.</li>
-</ul>
-<hr>]]></content:encoded>
-            <category>release</category>
-        </item>
-        <item>
-            <title><![CDATA[Versión 2.0.0]]></title>
-            <link>https://docs.sleakops.com/preview-docs/es/changelog/2025/10/01/version-2.0.0</link>
-            <guid>https://docs.sleakops.com/preview-docs/es/changelog/2025/10/01/version-2.0.0</guid>
-            <pubDate>Wed, 01 Oct 2025 00:00:00 GMT</pubDate>
-            <description><![CDATA[major release · 01/10/2025]]></description>
-            <content:encoded><![CDATA[<p><code>major release</code> · 01/10/2025</p>
-<hr>
-<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-nuevas-funcionalidades">🚀 Nuevas funcionalidades<a href="https://docs.sleakops.com/preview-docs/es/changelog/2025/10/01/version-2.0.0#-nuevas-funcionalidades" class="hash-link" aria-label="Enlace directo al 🚀 Nuevas funcionalidades" title="Enlace directo al 🚀 Nuevas funcionalidades" translate="no">​</a></h2>
-<ul>
-<li class=""><strong>Rediseño Completo de Consola</strong><br>
-<!-- -->UI modernizada para una experiencia más limpia e intuitiva.</li>
-<li class=""><strong>Soporte para Tema Claro</strong><br>
-<!-- -->Soporte completo para modo claro.</li>
-<li class=""><strong>Bot de Soporte</strong><br>
-<!-- -->Respuestas automatizadas para preguntas comunes de soporte.</li>
-<li class=""><strong>Documentación Integral</strong><br>
-<!-- -->Guías ampliadas cubriendo todas las funcionalidades.</li>
-<li class=""><strong>Actualización de lambdas</strong><br>
-<!-- -->Actualización de versiones de Python para lambdas.</li>
-<li class=""><strong>Project Chart</strong><br>
-<!-- -->Promovido a estable.</li>
-<li class=""><strong>Project Access</strong><br>
-<!-- -->Promovido a estable.</li>
-<li class=""><strong>Dependency Aurora MySQL</strong><br>
-<!-- -->Promovido a estable.</li>
-<li class=""><strong>Dependency Oracle</strong><br>
-<!-- -->Promovido a estable.</li>
-<li class=""><strong>Dependency MariaDB</strong><br>
-<!-- -->Promovido a estable.</li>
-<li class=""><strong>Dependency Aurora PostgreSQL</strong><br>
-<!-- -->Promovido a estable.</li>
-<li class=""><strong>Edición de Dependencies</strong><br>
-<!-- -->Capacidad de editar dependencies existentes.</li>
-<li class=""><strong>Dockertron (beta)</strong><br>
-<!-- -->Dockerización automática impulsada por IA.</li>
-<li class=""><strong>Cancelación de Builds</strong><br>
-<!-- -->Posibilidad de cancelar builds pendientes.</li>
-<li class=""><strong>Nueva Dependency MSK</strong><br>
-<!-- -->Soporte para Kafka vía AWS MSK.</li>
-<li class=""><strong>Webservices Mejorados</strong><br>
-<!-- -->Configurar anotaciones de ingress personalizadas y healthchecks opcionales.</li>
-<li class=""><strong>Nodepools Avanzados</strong><br>
-<!-- -->Nuevas estrategias de fallback y mezcla de instancias (reservadas, spot, on-demand) para mejor control de costos y rendimiento.</li>
-</ul>
-<hr>
-<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-correcciones">🐛 Correcciones<a href="https://docs.sleakops.com/preview-docs/es/changelog/2025/10/01/version-2.0.0#-correcciones" class="hash-link" aria-label="Enlace directo al 🐛 Correcciones" title="Enlace directo al 🐛 Correcciones" translate="no">​</a></h2>
-<ul>
-<li class=""><strong>GitLab self-hosted</strong><br>
-<!-- -->Corrección de validación de URL.</li>
-<li class=""><strong>Eliminación de Cluster</strong><br>
-<!-- -->Mejoras en el manejo de eliminación en cascada.</li>
-</ul>
-<hr>]]></content:encoded>
-            <category>release</category>
-        </item>
-        <item>
-            <title><![CDATA[Versión 1.7.16]]></title>
-            <link>https://docs.sleakops.com/preview-docs/es/changelog/2025/07/21/version-1.7.16</link>
-            <guid>https://docs.sleakops.com/preview-docs/es/changelog/2025/07/21/version-1.7.16</guid>
-            <pubDate>Mon, 21 Jul 2025 00:00:00 GMT</pubDate>
-            <description><![CDATA[patch release · 21/07/2025]]></description>
-            <content:encoded><![CDATA[<p><code>patch release</code> · 21/07/2025</p>
-<hr>
-<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-nuevas-funcionalidades">🚀 Nuevas funcionalidades<a href="https://docs.sleakops.com/preview-docs/es/changelog/2025/07/21/version-1.7.16#-nuevas-funcionalidades" class="hash-link" aria-label="Enlace directo al 🚀 Nuevas funcionalidades" title="Enlace directo al 🚀 Nuevas funcionalidades" translate="no">​</a></h2>
-<ul>
-<li class=""><strong>Projects con Repositorios Públicos</strong><br>
-<!-- -->Ahora puedes crear y gestionar proyectos vinculados a repositorios públicos.</li>
-<li class=""><strong>Excluir Builds de Métricas</strong><br>
-<!-- -->Los builds pueden excluirse del dashboard de métricas de Grafana para reportes más precisos.</li>
-</ul>
-<hr>
-<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-correcciones">🐛 Correcciones<a href="https://docs.sleakops.com/preview-docs/es/changelog/2025/07/21/version-1.7.16#-correcciones" class="hash-link" aria-label="Enlace directo al 🐛 Correcciones" title="Enlace directo al 🐛 Correcciones" translate="no">​</a></h2>
-<ul>
-<li class=""><strong>Deployments de Nuevos Projects</strong><br>
-<!-- -->Corrección de problemas que impedían el despliegue exitoso de proyectos recién creados.</li>
-</ul>
-<hr>]]></content:encoded>
-            <category>release</category>
-        </item>
-        <item>
-            <title><![CDATA[Versión 1.7.15]]></title>
-            <link>https://docs.sleakops.com/preview-docs/es/changelog/2025/07/07/version-1.7.15</link>
-            <guid>https://docs.sleakops.com/preview-docs/es/changelog/2025/07/07/version-1.7.15</guid>
-            <pubDate>Mon, 07 Jul 2025 00:00:00 GMT</pubDate>
-            <description><![CDATA[patch release · 07/07/2025]]></description>
-            <content:encoded><![CDATA[<p><code>patch release</code> · 07/07/2025</p>
-<hr>
-<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-nuevas-funcionalidades">🚀 Nuevas funcionalidades<a href="https://docs.sleakops.com/preview-docs/es/changelog/2025/07/07/version-1.7.15#-nuevas-funcionalidades" class="hash-link" aria-label="Enlace directo al 🚀 Nuevas funcionalidades" title="Enlace directo al 🚀 Nuevas funcionalidades" translate="no">​</a></h2>
-<ul>
-<li class=""><strong>Resiliencia de Nodegroup Spot</strong><br>
-<!-- -->Los nodegroups Spot ahora previenen fallos cuando no hay instancias Spot disponibles.</li>
-<li class=""><strong>VariableGroups Basados en Archivos</strong><br>
-<!-- -->Agregado soporte para crear variablegroups de tipo archivo.</li>
-<li class=""><strong>Agent Bot (beta)</strong><br>
-<!-- -->Bot agente experimental lanzado en beta.</li>
-</ul>
-<hr>
-<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-correcciones">🐛 Correcciones<a href="https://docs.sleakops.com/preview-docs/es/changelog/2025/07/07/version-1.7.15#-correcciones" class="hash-link" aria-label="Enlace directo al 🐛 Correcciones" title="Enlace directo al 🐛 Correcciones" translate="no">​</a></h2>
-<ul>
-<li class=""><strong>Configuración de dominio dependiente</strong><br>
-<!-- -->Generar registros DNS cuando el dominio padre ya está creado.</li>
-<li class=""><strong>Estado de Cluster con apagado nocturno</strong><br>
-<!-- -->Corrección de visualización incorrecta del estado para clusters con apagado nocturno habilitado.</li>
-<li class=""><strong>Filtros de VariableGroups</strong><br>
-<!-- -->Filtrar por proyectos en la lista de variablegroups.</li>
-<li class=""><strong>Eliminar cluster</strong><br>
-<!-- -->Corrección del flujo de eliminación de cluster.</li>
-<li class=""><strong>Estado de ticket de soporte</strong><br>
-<!-- -->Corrección del estado de cierre de ticket de soporte.</li>
-</ul>
-<hr>]]></content:encoded>
-            <category>release</category>
-        </item>
-        <item>
-            <title><![CDATA[Versión 1.7.14]]></title>
-            <link>https://docs.sleakops.com/preview-docs/es/changelog/2025/06/26/version-1.7.14</link>
-            <guid>https://docs.sleakops.com/preview-docs/es/changelog/2025/06/26/version-1.7.14</guid>
-            <pubDate>Thu, 26 Jun 2025 00:00:00 GMT</pubDate>
-            <description><![CDATA[patch release · 26/06/2025]]></description>
-            <content:encoded><![CDATA[<p><code>patch release</code> · 26/06/2025</p>
-<hr>
-<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-nuevas-funcionalidades">🚀 Nuevas funcionalidades<a href="https://docs.sleakops.com/preview-docs/es/changelog/2025/06/26/version-1.7.14#-nuevas-funcionalidades" class="hash-link" aria-label="Enlace directo al 🚀 Nuevas funcionalidades" title="Enlace directo al 🚀 Nuevas funcionalidades" translate="no">​</a></h2>
-<ul>
-<li class=""><strong>Mejoras en Transiciones de Estado</strong><br>
-<!-- -->Cambios de estado más fluidos para addons de cluster y formularios.</li>
-<li class=""><strong>Soporte con Imágenes</strong><br>
-<!-- -->Los usuarios ahora pueden subir imágenes en el chat de soporte.</li>
-<li class=""><strong>Jobs desde Cronjobs o Jobs Existentes</strong><br>
-<!-- -->Capacidad de lanzar un Job desde un cronjob o Job existente.</li>
-<li class=""><strong>Errores de Infraestructura</strong><br>
-<!-- -->Mejora en el análisis y visualización de errores de infraestructura para facilitar la resolución de problemas.</li>
-</ul>
-<hr>
-<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-correcciones">🐛 Correcciones<a href="https://docs.sleakops.com/preview-docs/es/changelog/2025/06/26/version-1.7.14#-correcciones" class="hash-link" aria-label="Enlace directo al 🐛 Correcciones" title="Enlace directo al 🐛 Correcciones" translate="no">​</a></h2>
-<ul>
-<li class=""><strong>Volúmenes Duplicados</strong><br>
-<!-- -->Corrección del problema al crear volúmenes con el mismo nombre.</li>
-<li class=""><strong>Usuarios Duplicados</strong><br>
-<!-- -->Prevención de creación de usuarios con el mismo email.</li>
-<li class=""><strong>Dependencies Duplicadas</strong><br>
-<!-- -->Bloqueo de creación de dependencies con nombres duplicados.</li>
-<li class=""><strong>Monitoreo de Dependencies</strong><br>
-<!-- -->Corrección de problemas de rango de fechas en la pantalla de monitoreo de dependencies.</li>
-</ul>
-<hr>]]></content:encoded>
-            <category>release</category>
-        </item>
-        <item>
-            <title><![CDATA[Versión 1.7.13]]></title>
-            <link>https://docs.sleakops.com/preview-docs/es/changelog/2025/06/02/version-1.7.13</link>
-            <guid>https://docs.sleakops.com/preview-docs/es/changelog/2025/06/02/version-1.7.13</guid>
-            <pubDate>Mon, 02 Jun 2025 00:00:00 GMT</pubDate>
-            <description><![CDATA[patch release · 02/06/2025]]></description>
-            <content:encoded><![CDATA[<p><code>patch release</code> · 02/06/2025</p>
-<hr>
-<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-nuevas-funcionalidades">🚀 Nuevas funcionalidades<a href="https://docs.sleakops.com/preview-docs/es/changelog/2025/06/02/version-1.7.13#-nuevas-funcionalidades" class="hash-link" aria-label="Enlace directo al 🚀 Nuevas funcionalidades" title="Enlace directo al 🚀 Nuevas funcionalidades" translate="no">​</a></h2>
-<ul>
-<li class=""><strong>Monitoreo de Dependencies</strong><br>
-<!-- -->Mejora en visualización y seguimiento de dependencies.</li>
-<li class=""><strong>Control de Servicios</strong><br>
-<!-- -->Nuevo toggle para encender o apagar webservices y workers.</li>
-<li class=""><strong>Builds con o sin caché</strong><br>
-<!-- -->Opción para ejecutar builds usando caché o desde cero.</li>
-<li class=""><strong>Importación de Bucket S3 con Versionado</strong><br>
-<!-- -->Agregado soporte para importar Buckets S3 con versionado activo.</li>
-<li class=""><strong>Variable Groups</strong><br>
-<!-- -->Interfaz mejorada para gestionar grupos de variables.</li>
-<li class=""><strong>Validación de Dockerfile</strong><br>
-<!-- -->Nuevas validaciones para asegurar la confiabilidad de Dockerfiles.</li>
-</ul>
-<hr>
-<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-correcciones">🐛 Correcciones<a href="https://docs.sleakops.com/preview-docs/es/changelog/2025/06/02/version-1.7.13#-correcciones" class="hash-link" aria-label="Enlace directo al 🐛 Correcciones" title="Enlace directo al 🐛 Correcciones" translate="no">​</a></h2>
-<ul>
-<li class=""><strong>Logs de Jobs</strong><br>
-<!-- -->Corrección de enlaces rotos de logs para Jobs.</li>
-<li class=""><strong>Nombres de Ramas</strong><br>
-<!-- -->Agregado soporte para ramas con / en sus nombres.</li>
-<li class=""><strong>Pipelines de GitLab</strong><br>
-<!-- -->Corrección de problemas que afectaban la ejecución de pipelines.</li>
-</ul>
-<hr>]]></content:encoded>
-            <category>release</category>
-        </item>
-        <item>
-            <title><![CDATA[Versión 1.7.12]]></title>
-            <link>https://docs.sleakops.com/preview-docs/es/changelog/2025/05/14/version-1.7.12</link>
-            <guid>https://docs.sleakops.com/preview-docs/es/changelog/2025/05/14/version-1.7.12</guid>
-            <pubDate>Wed, 14 May 2025 00:00:00 GMT</pubDate>
-            <description><![CDATA[patch release · 14/05/2025]]></description>
-            <content:encoded><![CDATA[<p><code>patch release</code> · 14/05/2025</p>
-<hr>
-<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-nuevas-funcionalidades">🚀 Nuevas funcionalidades<a href="https://docs.sleakops.com/preview-docs/es/changelog/2025/05/14/version-1.7.12#-nuevas-funcionalidades" class="hash-link" aria-label="Enlace directo al 🚀 Nuevas funcionalidades" title="Enlace directo al 🚀 Nuevas funcionalidades" translate="no">​</a></h2>
-<ul>
-<li class=""><strong>Nuevo Flujo de Soporte</strong><br>
-<!-- -->Introducido un chatbot de soporte y sistema de tickets para proporcionar mejor trazabilidad y tiempos de respuesta más rápidos.</li>
-<li class=""><strong>Gestión de Suscripciones y Planes</strong><br>
-<!-- -->Herramientas mejoradas para gestionar suscripciones y planes de servicio.</li>
-</ul>
-<hr>
-<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="-correcciones">🐛 Correcciones<a href="https://docs.sleakops.com/preview-docs/es/changelog/2025/05/14/version-1.7.12#-correcciones" class="hash-link" aria-label="Enlace directo al 🐛 Correcciones" title="Enlace directo al 🐛 Correcciones" translate="no">​</a></h2>
-<ul>
-<li class=""><strong>Mejoras en Formularios</strong><br>
-<!-- -->Mejoras generales en usabilidad y validación de formularios.</li>
-<li class=""><strong>Consola de Project</strong><br>
-<!-- -->Mejoras de UI/UX en la pantalla de consola de proyecto.</li>
 </ul>
 <hr>]]></content:encoded>
             <category>release</category>
