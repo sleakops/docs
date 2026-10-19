@@ -57,7 +57,7 @@ The URL is the only thing your client needs. Your SleakOps password is never sto
 
 ## Gateway mode
 
-The server runs in **gateway mode**: instead of loading 70+ tool definitions into your agent's context, it exposes only two meta-tools:
+The server runs in **gateway mode**: instead of loading 60+ tool definitions into your agent's context, it exposes only two meta-tools:
 
 - `search_tools(query)` — without a query returns the full catalog (tool name + one-line summary); with a query returns the best matches with their full description and input schema.
 - `execute_tool(tool_name, arguments)` — runs any tool by name, validating the arguments against its schema.
@@ -108,12 +108,12 @@ Two things stay a deliberate decision in the console:
 - **Deleting anything.** No tool deletes projects, services, dependencies, static sites or manifests: the damage is immediate and often irreversible, so it is not something an agent does on your behalf.
 - **Creating or reconfiguring the platform's own infrastructure** — clusters, cluster addons, environments, providers and AWS accounts. Those operations cost money and reshape your AWS footprint.
 
-Two operations are not part of the hosted MCP's catalog:
-
-- **Invalidating a static site's cache on demand** — use **Invalidate cache** in the Static's detail.
-- **Importing the workloads of an existing Helm release** as a SleakOps project.
-
 The agent can still **read** all of it to answer questions and diagnose, and node pools are fully manageable: sizing a cluster's capacity is day-to-day work.
+
+Two operations are not part of the hosted MCP's catalog either:
+
+- **Invalidating a static site's cache on demand** — see the end of [Deploying a static site end-to-end](#deploying-a-static-site-end-to-end).
+- **Importing the workloads of an existing Helm release** as a SleakOps project — use **Import Project** in the console ([Import a project](/docs/project/import-project)).
 
 ## FAQs
 

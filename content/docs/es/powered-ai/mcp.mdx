@@ -57,7 +57,7 @@ La URL es lo único que necesita tu cliente. Tu password de SleakOps nunca queda
 
 ## Modo gateway
 
-El server corre en **modo gateway**: en lugar de cargar más de 70 definiciones de tools en el contexto de tu agente, expone sólo dos meta-tools:
+El server corre en **modo gateway**: en lugar de cargar más de 60 definiciones de tools en el contexto de tu agente, expone sólo dos meta-tools:
 
 - `search_tools(query)` — sin query devuelve el catálogo completo (nombre del tool + resumen de una línea); con query devuelve las mejores coincidencias con su descripción completa y su schema de entrada.
 - `execute_tool(tool_name, arguments)` — ejecuta cualquier tool por nombre, validando los argumentos contra su schema.
@@ -108,12 +108,12 @@ Hay dos cosas que siguen siendo una decisión deliberada en la console:
 - **Borrar cualquier cosa.** Ningún tool borra proyectos, servicios, dependencias, sitios estáticos ni manifests: el daño es inmediato y muchas veces irreversible, así que no es algo que un agente haga en tu nombre.
 - **Crear o reconfigurar la infraestructura propia de la plataforma** — clusters, addons de cluster, environments, providers y cuentas de AWS. Esas operaciones cuestan dinero y cambian tu huella en AWS.
 
-Dos operaciones no forman parte del catálogo del MCP hosteado:
-
-- **Invalidar la caché de un sitio estático a demanda** — usá **Invalidate cache** en el detalle del Static.
-- **Importar los workloads de un Helm release existente** como proyecto de SleakOps.
-
 El agente sí puede **leer** todo eso para responder preguntas y diagnosticar, y los node pools se administran sin restricciones: dimensionar la capacidad de un cluster es trabajo del día a día.
+
+Dos operaciones tampoco forman parte del catálogo del MCP hosteado:
+
+- **Invalidar la caché de un sitio estático a demanda** — ver el final de [Deployar un sitio estático de punta a punta](#deployar-un-sitio-estático-de-punta-a-punta).
+- **Importar los workloads de un Helm release existente** como proyecto de SleakOps — usá **Import Project** en la console ([Importá un proyecto](/docs/project/import-project)).
 
 ## FAQs
 
