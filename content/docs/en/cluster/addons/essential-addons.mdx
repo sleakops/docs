@@ -44,7 +44,7 @@ On an imported cluster, AWS Auth keeps every entry already in the cluster's `aws
 
 ## Restrictions
 
-**Configuration** — an essential addon's configuration form is read-only on a managed cluster, since SleakOps owns that configuration. Load Balancer is the only essential addon with configurable fields (its public and private IngressClass names), so it's the one where the read-only lock is visible:
+**Configuration** — an essential addon's configuration form is read-only on a managed cluster, since SleakOps owns that configuration. The exception is ExternalDNS: once it's installed, its **Enable Custom Values** toggle and **Custom Values (YAML)** field stay editable, and the Helm values you enter there are merged over the SleakOps defaults. SleakOps doesn't manage those custom values, so a SleakOps update may stop supporting them. On Load Balancer, the public and private IngressClass name fields show the read-only lock:
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
