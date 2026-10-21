@@ -99,3 +99,7 @@ Cuando creás un Proyecto en un Entorno de un clúster importado, el campo **Nod
 - Los addons esenciales **Karpenter** y **Load Balancer** no se pueden instalar — la capacidad de nodos y el ALB controller siguen en manos del dueño del clúster. Mirá [Addons esenciales](/docs/cluster/addons/essential-addons).
 - Los node pools importados todavía no se pueden eliminar desde SleakOps: **"This NodePool was imported from the cluster. Deleting an imported NodePool is not supported yet."**
 - Las [dependencias importadas](/docs/project/dependency/import-dependency) no se pueden editar desde SleakOps.
+
+### Eliminar un clúster importado
+
+Eliminar un clúster importado desde SleakOps no elimina tu clúster EKS: SleakOps deja de gestionarlo y lo deja corriendo. Elimina de forma permanente lo que SleakOps creó para él (dependencias, addons, workloads y var groups) y el namespace `sleakops` que desplegó en tu clúster. Los node pools adoptados de tu clúster siguen corriendo en tu cuenta; solo se elimina su registro en SleakOps. El diálogo de confirmación lista los recursos que se van a eliminar.
