@@ -14,7 +14,15 @@ To create a Build you only need four parameters, only the Project field is requi
 - Project: Refers to what we call ProjectEnv, here you choose which ProjectEnv you want to build.
 - Branch: Lets you choose any branch of the repository that you've chosen as Project. Defaults to Environment name.
 - Commit hash: You can also choose the commit has to build a specific commit and not the last one as we do by default. Defaults to last commit.
-- Tag: Just a tag to differentiate builds. Defaults to 'latest'.
+- Tag: Optional custom tag for the image. When you leave it empty, SleakOps generates a unique tag for every build, made of the commit plus a short build identifier (`<commit>-<id>`).
+
+#### Image tags
+
+Every build gets its own image tag, so two builds never share one, even when they build the same commit.
+
+- **Custom tags must be unique within the project.** A tag already used by another build of the same project is rejected with an error. If your CI/CD pipeline reuses a fixed tag on every run (for example, `sleakops build --tag staging`), remove the `--tag` option or pass a value that changes per run, such as a version number.
+- **Rebuilding a failed build creates a new tag.** The new build doesn't inherit the original build's tag, custom or generated; if you need a custom tag, set a new one.
+- **Deploying by commit.** `sleakops deploy --tag` accepts either a build's tag or a commit hash. With a commit hash, SleakOps deploys the most recent successful build of that commit. See the [CLI](/docs/cli).
 
 ## Why do we need to Build a Docker image?
 

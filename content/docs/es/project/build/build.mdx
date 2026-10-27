@@ -14,7 +14,15 @@ Para crear un Build solo el campo Project es obligatorio; los otros tres son opc
 - Project: hace referencia a lo que llamamos ProjectEnv; acá elegís qué ProjectEnv querés buildear.
 - Branch: te permite elegir cualquier branch del repositorio que hayas elegido como Project. Por defecto, el nombre del Environment.
 - Commit hash: también podés elegir el commit para buildear un commit específico en lugar del último, que es lo que hacemos por defecto. Por defecto, el último commit.
-- Tag: simplemente un tag para diferenciar builds. Por defecto, 'latest'.
+- Tag: tag custom opcional para la imagen. Si lo dejás vacío, SleakOps genera un tag único para cada build, formado por el commit más un identificador corto del build (`<commit>-<id>`).
+
+#### Tags de imagen
+
+Cada build tiene su propio tag de imagen, así que dos builds nunca comparten uno, aunque buildeen el mismo commit.
+
+- **Los tags custom deben ser únicos dentro del proyecto.** Un tag que ya usa otro build del mismo proyecto se rechaza con un error. Si tu pipeline de CI/CD reutiliza un tag fijo en cada ejecución (por ejemplo, `sleakops build --tag staging`), quitá la opción `--tag` o pasá un valor que cambie en cada ejecución, como un número de versión.
+- **Rebuildear un build fallido genera un tag nuevo.** El build nuevo no hereda el tag del original, sea custom o generado; si necesitás un tag custom, definí uno nuevo.
+- **Deploy por commit.** `sleakops deploy --tag` acepta el tag de un build o un hash de commit. Con un hash de commit, SleakOps despliega el build exitoso más reciente de ese commit. Ver la [CLI](/docs/cli).
 
 ## ¿Por qué necesitamos buildear una imagen de Docker?
 

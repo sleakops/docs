@@ -49,7 +49,7 @@ sleakops build [options]
 This command initiates the build process, and SleakOps takes care of compiling your code, running tests, and packaging the application for deployment. You can specify additional options to tailor the build process to your specific needs.
 
 There are two required arguments **project** and **branch**, which are used to know what to build.
-Besides, you might add a **commit** to build a previous commit, a **tag** for the image, and the _provider_ if you need to specify it.
+Besides, you might add a **commit** to build a previous commit, a **tag** for the image, and the _provider_ if you need to specify it. Without `--tag`, each build gets its own unique tag (`<commit>-<id>`). A custom tag must be unique within the project: reusing a tag from another build of the project returns an error, so a pipeline that passes the same `--tag` on every run (for example, `--tag staging`) must drop it or pass a value that changes per run.
 
 As previously mentioned the key might be an input here or a environment variable.
 
@@ -76,7 +76,7 @@ sleakops deploy [options]
 
 SleakOps seamlessly handles the deployment process, ensuring that your application is up and running in no time. You can specify deployment options to fine-tune the process according to your requirements.
 
-Here **project** and **environment** are the required arguments. User might add a **build** or **tag** image to specify an image. Here the **wait** and **key** options are present to, the usage is the same as in the build command.
+Here **project** and **environment** are the required arguments. User might add a **build** or **tag** image to specify an image. `--tag` accepts a build's tag or a commit hash; with a commit hash, SleakOps deploys the most recent successful build of that commit. Here the **wait** and **key** options are present to, the usage is the same as in the build command.
 
 ### Injecting values on deploy
 
