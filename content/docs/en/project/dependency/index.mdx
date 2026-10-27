@@ -129,6 +129,9 @@ When you create a dependency, SleakOps automatically:
 #### Network Security
 - **VPC Integration**: Dependencies are created inside your project's VPC for secure network access
 - **Security Groups**: Automatically configured to allow the traffic needed between services
+  - Databases, caches, DocumentDB, OpenSearch, MSK and RabbitMQ accept your own security groups in the optional **Security Group IDs** field. Leave it empty and SleakOps creates and manages the security group
+  - The security groups must belong to the environment's VPC and AWS account, otherwise provisioning fails. SleakOps adds no rules to them: they must already allow the traffic your workloads need
+  - You can change them later, except on MSK: they are set at creation, because changing them replaces the Kafka cluster
 - **Private Endpoints**: Dependencies use private endpoints when available to minimize exposure
 
 ### Access Patterns
