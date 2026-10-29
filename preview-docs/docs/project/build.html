@@ -13,8 +13,8 @@
 
 <link rel="alternate" type="application/rss+xml" href="/preview-docs/changelog/rss.xml" title="SleakOps Documentation RSS Feed">
 <link rel="alternate" type="application/atom+xml" href="/preview-docs/changelog/atom.xml" title="SleakOps Documentation Atom Feed"><link rel="stylesheet" href="/preview-docs/assets/css/styles.d6e8485f.css">
-<script src="/preview-docs/assets/js/runtime~main.3c96300d.js" defer="defer"></script>
-<script src="/preview-docs/assets/js/main.529573d4.js" defer="defer"></script>
+<script src="/preview-docs/assets/js/runtime~main.b13383b1.js" defer="defer"></script>
+<script src="/preview-docs/assets/js/main.e9502b9b.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
 <svg style="display: none;"><defs>
@@ -28,7 +28,14 @@
 <li class="">Project: Refers to what we call ProjectEnv, here you choose which ProjectEnv you want to build.</li>
 <li class="">Branch: Lets you choose any branch of the repository that you&#x27;ve chosen as Project. Defaults to Environment name.</li>
 <li class="">Commit hash: You can also choose the commit has to build a specific commit and not the last one as we do by default. Defaults to last commit.</li>
-<li class="">Tag: Just a tag to differentiate builds. Defaults to &#x27;latest&#x27;.</li>
+<li class="">Tag: Optional custom tag for the image. When you leave it empty, SleakOps generates a unique tag for every build, made of the commit plus a short build identifier (<code>&lt;commit&gt;-&lt;id&gt;</code>).</li>
+</ul>
+<h4 class="anchor anchorTargetStickyNavbar_Vzrq" id="image-tags">Image tags<a href="#image-tags" class="hash-link" aria-label="Direct link to Image tags" title="Direct link to Image tags" translate="no">​</a></h4>
+<p>Every build gets its own image tag, so two builds never share one, even when they build the same commit.</p>
+<ul>
+<li class=""><strong>Custom tags must be unique within each project environment.</strong> A tag already used by another build of the same project and environment is rejected with an error; the same tag can be used in different environments (for example, the same version in staging and production). If your CI/CD pipeline reuses a fixed tag on every run (for example, <code>sleakops build --tag staging</code>), remove the <code>--tag</code> option or pass a value that changes per run, such as a version number.</li>
+<li class=""><strong>A failed build releases its tag.</strong> Rebuilding a failed build creates a new generated tag; if you need the custom tag the failed build had, create a new build with that same tag.</li>
+<li class=""><strong>Deploying by commit.</strong> <code>sleakops deploy --tag</code> accepts either a build&#x27;s tag or a commit hash. With a commit hash, SleakOps deploys the most recent successful build of that commit. See the <a class="" href="/preview-docs/docs/cli">CLI</a>.</li>
 </ul>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="why-do-we-need-to-build-a-docker-image">Why do we need to Build a Docker image?<a href="#why-do-we-need-to-build-a-docker-image" class="hash-link" aria-label="Direct link to Why do we need to Build a Docker image?" title="Direct link to Why do we need to Build a Docker image?" translate="no">​</a></h2>
 <p>As we use <a href="https://helm.sh/docs/" target="_blank" rel="noopener noreferrer" class="">Helm charts <svg stroke="currentColor" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg></a> we need the image because is what they use to deploy a Kubernetes Release.</p>
