@@ -13,8 +13,8 @@
 
 <link rel="alternate" type="application/rss+xml" href="/preview-docs/es/changelog/rss.xml" title="SleakOps Documentation RSS Feed">
 <link rel="alternate" type="application/atom+xml" href="/preview-docs/es/changelog/atom.xml" title="SleakOps Documentation Atom Feed"><link rel="stylesheet" href="/preview-docs/es/assets/css/styles.d6e8485f.css">
-<script src="/preview-docs/es/assets/js/runtime~main.4b215c27.js" defer="defer"></script>
-<script src="/preview-docs/es/assets/js/main.cb2aad87.js" defer="defer"></script>
+<script src="/preview-docs/es/assets/js/runtime~main.c1df8148.js" defer="defer"></script>
+<script src="/preview-docs/es/assets/js/main.44e29132.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
 <svg style="display: none;"><defs>
@@ -26,7 +26,7 @@
 <div class="theme-admonition theme-admonition-info admonition_xJq3 alert alert--info"><div class="admonitionHeading_Gvgb"><span class="admonitionIcon_Rf37"><svg viewBox="0 0 14 16"><path fill-rule="evenodd" d="M7 2.3c3.14 0 5.7 2.56 5.7 5.7s-2.56 5.7-5.7 5.7A5.71 5.71 0 0 1 1.3 8c0-3.14 2.56-5.7 5.7-5.7zM7 1C3.14 1 0 4.14 0 8s3.14 7 7 7 7-3.14 7-7-3.14-7-7-7zm1 3H6v5h2V4zm0 6H6v2h2v-2z"></path></svg></span>info</div><div class="admonitionContent_BuS1"><p>Los upgrades los crea SleakOps. Vos actuás sobre los que ya están encolados para tus cuentas — no se pueden crear ni cancelar desde el panel.</p></div></div>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="dónde-encontrar-upgrades">Dónde encontrar Upgrades<a href="#dónde-encontrar-upgrades" class="hash-link" aria-label="Enlace directo al Dónde encontrar Upgrades" title="Enlace directo al Dónde encontrar Upgrades" translate="no">​</a></h2>
 <p>Upgrades vive en <code>/upgrades/</code> y tiene una entrada dedicada en el footer del sidebar para usuarios Admin y Editor.</p>
-<p>Cuando hay al menos un upgrade <strong>Pending</strong>, el ícono del sidebar se vuelve rojo y muestra un contador con la cantidad de upgrades pendientes en todas las cuentas.</p>
+<p>Cuando hay al menos un upgrade <strong>Pending</strong> o en <strong>Error</strong>, el ícono del sidebar se vuelve rojo y muestra un contador con la cantidad de esos upgrades en todas las cuentas.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="leer-la-tabla-de-upgrades">Leer la tabla de Upgrades<a href="#leer-la-tabla-de-upgrades" class="hash-link" aria-label="Enlace directo al Leer la tabla de Upgrades" title="Enlace directo al Leer la tabla de Upgrades" translate="no">​</a></h2>
 <p>La lista muestra los upgrades de todas las cuentas a las que tu rol tiene acceso — ignora la cuenta seleccionada en la barra superior.</p>
 <table><thead><tr><th><strong>Columna</strong></th><th><strong>Descripción</strong></th></tr></thead><tbody><tr><td><strong>Upgrade</strong></td><td>Título y estado actual. Cuando el upgrade apunta a un recurso específico (Cluster, NodePool, Service), su ícono y nombre aparecen debajo del título.</td></tr><tr><td><strong>Account</strong></td><td>La cuenta sobre la que se va a ejecutar el upgrade.</td></tr><tr><td><strong>Execution Date</strong></td><td>Fecha programada mientras esté Pending, momento real de ejecución en los demás estados. Pasá el cursor para ver el timestamp exacto.</td></tr><tr><td><strong>Actions</strong></td><td>Ver detalle, Ejecutar y (cuando aplica) Revisar instrucciones.</td></tr></tbody></table>
@@ -66,6 +66,7 @@
 <!-- -->
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="cuando-un-upgrade-falla">Cuando un upgrade falla<a href="#cuando-un-upgrade-falla" class="hash-link" aria-label="Enlace directo al Cuando un upgrade falla" title="Enlace directo al Cuando un upgrade falla" translate="no">​</a></h2>
 <p>Ante un fallo, el upgrade pasa al estado <strong>Error</strong> y el drawer muestra el mensaje arriba de la pestaña Details. Abrí el upgrade y hacé clic en <strong>Execute</strong> de nuevo para reintentar — el retry corre la misma operación con los mismos parámetros.</p>
+<p>Un upgrade de versión del cluster que falló mantiene el cluster marcado como pendiente de actualización, y su configuración queda bloqueada para edición hasta que el reintento termine.</p>
 <p>SleakOps no hace rollback automático. Si un upgrade debe deshacerse, contactá a soporte.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="preguntas-frecuentes">Preguntas frecuentes<a href="#preguntas-frecuentes" class="hash-link" aria-label="Enlace directo al Preguntas frecuentes" title="Enlace directo al Preguntas frecuentes" translate="no">​</a></h2>
 <details class="details_lb9f alert alert--info details_b_Ee" data-collapsed="true"><summary><h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="por-qué-no-puedo-crear-un-upgrade">¿Por qué no puedo crear un upgrade?<a href="#por-qué-no-puedo-crear-un-upgrade" class="hash-link" aria-label="Enlace directo al ¿Por qué no puedo crear un upgrade?" title="Enlace directo al ¿Por qué no puedo crear un upgrade?" translate="no">​</a></h3></summary><div><div class="collapsibleContent_i85q"><p>SleakOps define y agenda los upgrades de forma centralizada. Vos ves los upgrades que la plataforma encola para tus cuentas y decidís <strong>cuándo</strong> dentro de la ventana permitida — ejecutar ya o mover la fecha dentro de <code>[hoy, deadline]</code>. La creación de tipos de upgrade queda reservada al equipo de SleakOps.</p></div></div></details>
