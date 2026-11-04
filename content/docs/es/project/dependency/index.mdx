@@ -125,6 +125,9 @@ Cuando creas una dependencia, SleakOps automáticamente:
 #### Seguridad de Red
 - **Integración VPC**: Las dependencias se crean dentro de la VPC de tu proyecto para acceso seguro de red
 - **Security Groups**: Configurados automáticamente para permitir el tráfico necesario entre servicios
+  - Las bases de datos, cachés, DocumentDB, OpenSearch, MSK y RabbitMQ (solo brokers privados) aceptan tus propios security groups en el campo opcional **Security Group IDs**. Si lo dejás vacío, SleakOps crea y gestiona el security group
+  - Los security groups deben pertenecer a la VPC y a la cuenta de AWS del entorno; si no, el aprovisionamiento falla. SleakOps no les agrega reglas: ya deben permitir el tráfico que necesitan tus cargas de trabajo
+  - Podés cambiarlos después, salvo en MSK: se definen al crearla, porque cambiarlos reemplaza el cluster de Kafka
 - **Endpoints Privados**: Las dependencias usan endpoints privados cuando están disponibles para minimizar la exposición
 
 ### Patrones de Acceso
