@@ -44,7 +44,7 @@ En un clúster importado, AWS Auth conserva cada entrada que ya existe en el Con
 
 ## Restricciones
 
-**Configuración** — el formulario de configuración de un addon esencial es de solo lectura en un clúster gestionado, ya que SleakOps es dueño de esa configuración. Load Balancer es el único addon esencial con campos configurables (los nombres de sus IngressClass públicas y privadas), así que es donde se ve el bloqueo de solo lectura:
+**Configuración** — el formulario de configuración de un addon esencial es de solo lectura en un clúster gestionado, ya que SleakOps es dueño de esa configuración. La excepción es ExternalDNS: una vez instalado, su opción **Enable Custom Values** y su campo **Custom Values (YAML)** siguen editables, y los valores de Helm que cargues ahí se combinan sobre los valores por defecto de SleakOps. SleakOps no gestiona esos valores personalizados, así que una actualización de SleakOps puede dejar de soportarlos. En Load Balancer, los campos de nombre de las IngressClass públicas y privadas muestran el bloqueo de solo lectura:
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img

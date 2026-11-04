@@ -99,3 +99,7 @@ When you create a Project in an Environment of an imported cluster, the **Nodepo
 - The **Karpenter** and **Load Balancer** essential addons can't be installed — node capacity and the ALB controller stay with the cluster owner. See [Essential addons](/docs/cluster/addons/essential-addons).
 - Imported node pools can't be deleted from SleakOps yet: **"This NodePool was imported from the cluster. Deleting an imported NodePool is not supported yet."**
 - [Imported dependencies](/docs/project/dependency/import-dependency) can't be edited from SleakOps.
+
+### Deleting an imported cluster
+
+Deleting an imported cluster from SleakOps doesn't delete your EKS cluster: SleakOps stops managing it and leaves it running. It permanently removes what SleakOps created for it (dependencies, addons, workloads and var groups) and the `sleakops` namespace it deployed on your cluster. Node pools adopted from your cluster keep running in your account; only their SleakOps record is removed. The confirmation dialog lists the resources that will be removed.
