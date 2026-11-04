@@ -57,7 +57,7 @@ The URL is the only thing your client needs. Your SleakOps password is never sto
 
 ## Gateway mode
 
-The server runs in **gateway mode**: instead of loading 70+ tool definitions into your agent's context, it exposes only two meta-tools:
+The server runs in **gateway mode**: instead of loading 60+ tool definitions into your agent's context, it exposes only two meta-tools:
 
 - `search_tools(query)` — without a query returns the full catalog (tool name + one-line summary); with a query returns the best matches with their full description and input schema.
 - `execute_tool(tool_name, arguments)` — runs any tool by name, validating the arguments against its schema.
@@ -87,7 +87,6 @@ Kubernetes manifests require the service manifests feature on your company, and 
 The import tools register resources that already exist in your AWS accounts — SleakOps manages them without recreating them:
 
 - **Dependencies** — "Import the RDS instance prod-main-db as a dependency of my-app" (database imports ask for their credentials).
-- **Workloads** — import the workloads of an existing Helm release as a SleakOps project.
 
 Onboarding a new AWS account (provider, account, network configuration) and importing an EKS cluster are done with the console's import wizard, not through the MCP.
 
@@ -99,7 +98,8 @@ With the `static` feature in your subscription, the agent can take a frontend re
 2. **Attach the site's domain** — "Serve it at landing.dev.example.com". The agent calls `create_static`; the URL must be a direct subdomain of the environment's domain. Do this **before** the first deployment: a static project's deployable workloads are its Statics, so a deployment without one is rejected.
 3. **First publish is automatic** — once the site's domain is active, SleakOps triggers the first build and its deploy on its own.
 4. **Ship updates** — "Build main and deploy it when it finishes". The agent chains `trigger_build`, `create_release`, `create_deployment`, `approve_deployment` and `wait_for_deployment`. Each deploy syncs the build output to the project's bucket and invalidates the CloudFront cache of every Static with invalidate on deploy enabled (the default).
-5. **Refresh the cache on demand** — "Invalidate the cache of the landing site". The agent calls `invalidate_static`, useful when invalidate on deploy is disabled or you need to force a refresh.
+
+To refresh a site's cache on demand — invalidate on deploy disabled, or a forced refresh — use **Invalidate cache** in the Static's detail in the console.
 
 ## What the MCP does not do
 
@@ -109,6 +109,11 @@ Two things stay a deliberate decision in the console:
 - **Creating or reconfiguring the platform's own infrastructure** — clusters, cluster addons, environments, providers and AWS accounts. Those operations cost money and reshape your AWS footprint.
 
 The agent can still **read** all of it to answer questions and diagnose, and node pools are fully manageable: sizing a cluster's capacity is day-to-day work.
+
+Two operations are not part of the hosted MCP's catalog either:
+
+- **Invalidating a static site's cache on demand** — see the end of [Deploying a static site end-to-end](#deploying-a-static-site-end-to-end).
+- **Importing the workloads of an existing Helm release** as a SleakOps project — use **Import Project** in the console ([Import a project](/docs/project/import-project)).
 
 ## FAQs
 
