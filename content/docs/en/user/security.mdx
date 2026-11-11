@@ -1,0 +1,67 @@
+---
+sidebar_position: 3
+---
+
+# Security
+
+Protect access to SleakOps with two-factor authentication (2FA) and keep your company's passwords fresh. Open **Security** from your user profile menu in the sidebar. The company-wide options are shown to admins only.
+
+## Set up your own 2FA
+
+1. Turn on **Active MFA using TOTP**.
+2. Scan the QR code with an authenticator app (any TOTP app works).
+3. Enter the 6-digit code and click **Save**.
+
+From then on, SleakOps asks for a code from your authenticator app every time you sign in.
+
+## Require 2FA for all members
+
+Turn on **Require 2FA for all members** to make 2FA mandatory in your company. You must set up your own 2FA before you can turn it on.
+
+While it is on, a member without 2FA is blocked until they set it up: the console takes them to **Security**, where they configure it as described above and then continue. Requests made with a CLI API key are not affected.
+
+The **2FA** column in the **Members** list shows who has it **Enabled** and who has it **Not set up**.
+
+## Password rotation
+
+Turn on **Rotate all members' passwords every 3 months** to renew every member's password periodically. The 3 months count from the day you turn it on, and the rotation runs on or shortly after the date shown under the switch, next to the date of the last rotation.
+
+On each rotation, for every member of the company:
+
+- The current password stops working and open sessions are closed.
+- They receive an email with a link to set a new password. The link is valid for 24 hours; after that, they use **Forgot password** on the sign-in page.
+
+**Rotate all passwords now** does the same immediately for every member, you included. It can run at most once per hour and cannot be undone.
+
+## Reset a member's 2FA
+
+When a member loses access to their authenticator app, an admin can reset their 2FA:
+
+1. Go to **Members** and open the member's actions.
+2. Click **Reset 2FA**.
+3. Optionally check **Also reset their password** to send them an email with a link to set a new password.
+4. Confirm with **Reset 2FA**.
+
+The member is signed out and their authenticator app stops working. They set up 2FA again from **Security**; if your company requires 2FA, they must do it on their next sign-in.
+
+## FAQs
+
+<details>
+<summary>
+
+### Does requiring 2FA affect the CLI or CI/CD pipelines?
+
+</summary>
+
+No. Requests authenticated with a CLI API key keep working whether or not the member has 2FA set up.
+</details>
+
+<details>
+<summary>
+
+### A member didn't use the password link within 24 hours. What now?
+
+</summary>
+
+The link expires, but the member can request a new one with **Forgot password** on the sign-in page.
+</details>
