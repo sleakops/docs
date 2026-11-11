@@ -1,0 +1,67 @@
+---
+sidebar_position: 3
+---
+
+# Seguridad
+
+Protege el acceso a SleakOps con autenticación en dos pasos (2FA) y mantén renovadas las contraseñas de tu compañía. Abre **Security** desde el menú de tu perfil de usuario en la barra lateral. Las opciones a nivel de compañía solo las ven los administradores.
+
+## Configura tu propio 2FA
+
+1. Activa **Active MFA using TOTP**.
+2. Escanea el código QR con una app de autenticación (sirve cualquier app TOTP).
+3. Ingresa el código de 6 dígitos y haz clic en **Save**.
+
+A partir de ese momento, SleakOps te pide un código de tu app de autenticación cada vez que inicias sesión.
+
+## Exigir 2FA a todos los miembros
+
+Activa **Require 2FA for all members** para que el 2FA sea obligatorio en tu compañía. Debes configurar tu propio 2FA antes de poder activarlo.
+
+Mientras esté activo, un miembro sin 2FA queda bloqueado hasta configurarlo: la consola lo lleva a **Security**, donde lo configura como se describe arriba y luego continúa. Las solicitudes hechas con una API key del CLI no se ven afectadas.
+
+La columna **2FA** de la lista de **Members** muestra quién lo tiene **Enabled** y quién **Not set up**.
+
+## Rotación de contraseñas
+
+Activa **Rotate all members' passwords every 3 months** para renovar periódicamente la contraseña de todos los miembros. Los 3 meses se cuentan desde el día en que la activas, y la rotación se ejecuta en la fecha que se muestra debajo del switch o poco después, junto a la fecha de la última rotación.
+
+En cada rotación, para cada miembro de la compañía:
+
+- La contraseña actual deja de funcionar y se cierran las sesiones abiertas.
+- Recibe un email con un enlace para definir una nueva contraseña. El enlace vale 24 horas; pasado ese plazo, usa **Forgot password** en la pantalla de inicio de sesión.
+
+**Rotate all passwords now** hace lo mismo de inmediato para todos los miembros, incluido tú. Se puede ejecutar como máximo una vez por hora y no se puede deshacer.
+
+## Restablecer el 2FA de un miembro
+
+Cuando un miembro pierde el acceso a su app de autenticación, un administrador puede restablecer su 2FA:
+
+1. Ve a **Members** y abre las acciones del miembro.
+2. Haz clic en **Reset 2FA**.
+3. Opcionalmente marca **Also reset their password** para enviarle un email con un enlace para definir una nueva contraseña.
+4. Confirma con **Reset 2FA**.
+
+El miembro queda deslogueado y su app de autenticación deja de funcionar. Vuelve a configurar el 2FA desde **Security**; si tu compañía exige 2FA, debe hacerlo en su próximo inicio de sesión.
+
+## Preguntas Frecuentes
+
+<details>
+<summary>
+
+### ¿Exigir 2FA afecta al CLI o a los pipelines de CI/CD?
+
+</summary>
+
+No. Las solicitudes autenticadas con una API key del CLI siguen funcionando, tenga o no el miembro el 2FA configurado.
+</details>
+
+<details>
+<summary>
+
+### Un miembro no usó el enlace de la contraseña dentro de las 24 horas. ¿Qué hace?
+
+</summary>
+
+El enlace vence, pero el miembro puede pedir uno nuevo con **Forgot password** en la pantalla de inicio de sesión.
+</details>
