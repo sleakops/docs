@@ -8,7 +8,7 @@ import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
 
-Los addons esenciales son el pegamento de infraestructura que todo clúster necesita para funcionar bajo SleakOps: networking, DNS, autoscaling y control de acceso. A diferencia de los addons opcionales que elegís del listado de Addons, estos seis siempre están presentes — SleakOps los instala automáticamente en todo clúster gestionado en lugar de esperar a que vos los agregues. Un clúster gestionado creado antes de que CoreDNS fuera un addon esencial puede no mostrarlo como instalado todavía. Hasta que se instale ahí, el clúster conserva el CoreDNS que configuró AWS y la opción [System Resilience](/docs/cluster) no tiene efecto sobre él.
+Los addons esenciales son el pegamento de infraestructura que todo clúster necesita para funcionar bajo SleakOps: networking, DNS, autoscaling y control de acceso. A diferencia de los addons opcionales que elegís del listado de Addons, estos seis siempre están presentes — SleakOps los instala automáticamente en todo clúster gestionado en lugar de esperar a que vos los agregues. En un clúster gestionado creado antes de que CoreDNS fuera un addon esencial, SleakOps lo instala con el [upgrade](/docs/upgrades) **CoreDNS Managed Addon**, que corre con el clúster encendido. Conserva la configuración DNS del clúster (el Corefile), y la versión de CoreDNS cuando corre la imagen que provee AWS. Los cambios hechos a mano sobre CoreDNS fuera de su configuración DNS (por ejemplo sus recursos, tolerations o cantidad de réplicas) se reemplazan por la configuración de SleakOps; podés volver a declararlos con Custom Values. Los pods de CoreDNS se reemplazan de forma gradual y el DNS sigue resolviendo mientras se reinician. Hasta que ese upgrade corra, el clúster conserva el CoreDNS que configuró AWS y la opción [System Resilience](/docs/cluster) no tiene efecto sobre él.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -28,7 +28,7 @@ Aparecen en el listado de Addons como cualquier otra tarjeta de addon, sin ningu
 | Karpenter | Un autoscaler de nodos de Kubernetes que aprovisiona capacidad de cómputo del tamaño justo en respuesta a pods sin programar, mejorando la eficiencia y reduciendo el costo. |
 | AWS Auth | Conecta los roles IAM de SleakOps al ConfigMap `aws-auth` del clúster y a los ClusterRoles de RBAC de SleakOps, habilitando la integración de SleakOps y el acceso basado en roles. |
 | Load Balancer | El AWS Load Balancer Controller gestiona los Application Load Balancers para los Ingresses de Kubernetes, además de las IngressClasses públicas y privadas usadas para rutear el tráfico externo. |
-| CoreDNS | El servidor DNS del clúster, que resuelve los nombres internos de los Services para todas las cargas de trabajo. SleakOps toma el CoreDNS que AWS instala con el clúster y conserva su configuración (el Corefile, con sus stub domains y forwarders) y su versión; la cantidad de réplicas y cómo se reparten entre nodos siguen la opción [System Resilience](/docs/cluster) del clúster. |
+| CoreDNS | El servidor DNS del clúster, que resuelve los nombres internos de los Services para todas las cargas de trabajo. SleakOps toma el CoreDNS que AWS instala con el clúster y conserva su configuración (el Corefile, con sus stub domains y forwarders) y su versión; la cantidad de réplicas y cómo se reparten entre nodos siguen la opción [System Resilience](/docs/cluster) del clúster. Podés sobrescribir su configuración con Custom Values (ver [Restricciones](#restricciones)). |
 
 ## Comportamiento en clústeres importados
 
@@ -46,7 +46,9 @@ En un clúster importado, AWS Auth conserva cada entrada que ya existe en el Con
 
 ## Restricciones
 
-**Configuración** — el formulario de configuración de un addon esencial es de solo lectura en un clúster gestionado, ya que SleakOps es dueño de esa configuración. Load Balancer es el único addon esencial con campos configurables (los nombres de sus IngressClass públicas y privadas), así que es donde se ve el bloqueo de solo lectura:
+**Configuración** — el formulario de configuración de un addon esencial es de solo lectura en un clúster gestionado, ya que SleakOps es dueño de esa configuración. La excepción es el switch **Enable Custom Values** de ExternalDNS y CoreDNS: al activarlo podés pegar YAML que sobrescribe la configuración del addon. En CoreDNS, el YAML lleva los valores que acepta el addon de CoreDNS gestionado por AWS para su versión instalada (por ejemplo `replicaCount`, `resources`, `tolerations` o `corefile`) y se aplica sobre las réplicas que fija System Resilience; una lista que definas reemplaza la de SleakOps. Una clave que el addon no acepta deja CoreDNS en error con el mensaje de AWS, y el CoreDNS que ya corre sigue funcionando. Los Custom Values no los gestiona SleakOps: una actualización de SleakOps puede dejar de soportarlos.
+
+Load Balancer es el único addon esencial con otros campos configurables (los nombres de sus IngressClass públicas y privadas), así que es donde se ve el bloqueo de solo lectura:
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
