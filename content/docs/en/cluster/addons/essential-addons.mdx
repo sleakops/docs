@@ -8,7 +8,7 @@ import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
 import { FiExternalLink } from "react-icons/fi";
 
-Essential addons are the infrastructure glue every cluster needs to function under SleakOps: networking, DNS, autoscaling, and access control. Unlike the optional addons you pick from the Addons list, these six are always present — SleakOps installs them automatically on every managed cluster instead of waiting for you to add them. A managed cluster created before CoreDNS became an essential addon may not show it as installed yet. Until it is installed there, the cluster keeps the CoreDNS that AWS set up and the [System Resilience](/docs/cluster) setting has no effect on it.
+Essential addons are the infrastructure glue every cluster needs to function under SleakOps: networking, DNS, autoscaling, and access control. Unlike the optional addons you pick from the Addons list, these six are always present — SleakOps installs them automatically on every managed cluster instead of waiting for you to add them. On a managed cluster created before CoreDNS became an essential addon, SleakOps installs it through the **CoreDNS Managed Addon** [upgrade](/docs/upgrades), which keeps the cluster's DNS configuration and CoreDNS version and runs while the cluster is on. Until that upgrade runs, the cluster keeps the CoreDNS that AWS set up and the [System Resilience](/docs/cluster) setting has no effect on it.
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
@@ -28,7 +28,7 @@ They show in the Addons list like any other addon card, with no special badge or
 | Karpenter | A Kubernetes node autoscaler that provisions right-sized compute capacity in response to unschedulable pods, improving efficiency and reducing cost. |
 | AWS Auth | Wires SleakOps IAM roles into the cluster's `aws-auth` ConfigMap and the SleakOps RBAC ClusterRoles, enabling SleakOps integration and role-based access. |
 | Load Balancer | The AWS Load Balancer Controller manages Application Load Balancers for Kubernetes Ingresses, plus the public and private IngressClasses used to route external traffic. |
-| CoreDNS | The cluster DNS server that resolves internal Service names for every workload. SleakOps takes over the CoreDNS that AWS installs with the cluster and keeps its configuration (the Corefile, including stub domains and forwarders) and its version; its number of replicas and how they spread across nodes follow the cluster's [System Resilience](/docs/cluster) setting. |
+| CoreDNS | The cluster DNS server that resolves internal Service names for every workload. SleakOps takes over the CoreDNS that AWS installs with the cluster and keeps its configuration (the Corefile, including stub domains and forwarders) and its version; its number of replicas and how they spread across nodes follow the cluster's [System Resilience](/docs/cluster) setting. You can override its configuration with Custom Values (see [Restrictions](#restrictions)). |
 
 ## Behavior on imported clusters
 
@@ -46,7 +46,9 @@ On an imported cluster, AWS Auth keeps every entry already in the cluster's `aws
 
 ## Restrictions
 
-**Configuration** — an essential addon's configuration form is read-only on a managed cluster, since SleakOps owns that configuration. Load Balancer is the only essential addon with configurable fields (its public and private IngressClass names), so it's the one where the read-only lock is visible:
+**Configuration** — an essential addon's configuration form is read-only on a managed cluster, since SleakOps owns that configuration. The exception is the **Enable Custom Values** switch of ExternalDNS and CoreDNS: turn it on to paste YAML that overrides the addon's configuration. For CoreDNS, the YAML takes the values the AWS-managed CoreDNS addon accepts for its installed version (for example `replicaCount`, `resources`, `tolerations` or `corefile`) and is applied over the replicas set by System Resilience; a list you set replaces SleakOps' list. A key the addon doesn't accept leaves CoreDNS in error with the message from AWS, and the CoreDNS already running keeps working. Custom Values are not managed by SleakOps: a SleakOps update may stop supporting them.
+
+Load Balancer is the only essential addon with other configurable fields (its public and private IngressClass names), so it's the one where the read-only lock is visible:
 
 <Zoom overlayBgColorEnd="rgba(255, 255, 255, 0.8)">
   <img
