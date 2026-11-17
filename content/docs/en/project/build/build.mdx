@@ -21,7 +21,7 @@ To create a Build you only need four parameters, only the Project field is requi
 Every build gets its own image tag, so two builds never share one, even when they build the same commit.
 
 - **Custom tags must be unique within each project environment.** A tag already used by another build of the same project and environment is rejected with an error; the same tag can be used in different environments (for example, the same version in staging and production). If your CI/CD pipeline reuses a fixed tag on every run (for example, `sleakops build --tag staging`), remove the `--tag` option or pass a value that changes per run, such as a version number.
-- **A failed build releases its tag.** Rebuilding a failed build creates a new generated tag; if you need the custom tag the failed build had, create a new build with that same tag.
+- **A failed build releases its tag.** Rebuilding a failed build from the console keeps the custom tag you gave it, so the new build uses that same tag; a failed build with a generated tag gets a new generated tag.
 - **Deploying by commit.** `sleakops deploy --tag` accepts either a build's tag or a commit hash. With a commit hash, SleakOps deploys the most recent successful build of that commit. See the [CLI](/docs/cli).
 
 ## Why do we need to Build a Docker image?

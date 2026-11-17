@@ -21,7 +21,7 @@ Para crear un Build solo el campo Project es obligatorio; los otros tres son opc
 Cada build tiene su propio tag de imagen, así que dos builds nunca comparten uno, aunque buildeen el mismo commit.
 
 - **Los tags custom deben ser únicos dentro de cada entorno del proyecto.** Un tag que ya usa otro build del mismo proyecto y entorno se rechaza con un error; el mismo tag se puede usar en entornos distintos (por ejemplo, la misma versión en staging y en producción). Si tu pipeline de CI/CD reutiliza un tag fijo en cada ejecución (por ejemplo, `sleakops build --tag staging`), quitá la opción `--tag` o pasá un valor que cambie en cada ejecución, como un número de versión.
-- **Un build fallido libera su tag.** Rebuildear un build fallido genera un tag nuevo; si necesitás el tag custom que tenía el build fallido, creá un build nuevo con ese mismo tag.
+- **Un build fallido libera su tag.** Al rebuildear un build fallido desde la consola se conserva el tag custom que le diste, así que el build nuevo usa ese mismo tag; un build fallido con tag generado recibe un tag generado nuevo.
 - **Deploy por commit.** `sleakops deploy --tag` acepta el tag de un build o un hash de commit. Con un hash de commit, SleakOps despliega el build exitoso más reciente de ese commit. Ver la [CLI](/docs/cli).
 
 ## ¿Por qué necesitamos buildear una imagen de Docker?
