@@ -13,8 +13,8 @@
 
 <link rel="alternate" type="application/rss+xml" href="/preview-docs/es/changelog/rss.xml" title="SleakOps Documentation RSS Feed">
 <link rel="alternate" type="application/atom+xml" href="/preview-docs/es/changelog/atom.xml" title="SleakOps Documentation Atom Feed"><link rel="stylesheet" href="/preview-docs/es/assets/css/styles.d6e8485f.css">
-<script src="/preview-docs/es/assets/js/runtime~main.c5069846.js" defer="defer"></script>
-<script src="/preview-docs/es/assets/js/main.9b9fcdb4.js" defer="defer"></script>
+<script src="/preview-docs/es/assets/js/runtime~main.02f680c4.js" defer="defer"></script>
+<script src="/preview-docs/es/assets/js/main.6d083a7a.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
 <svg style="display: none;"><defs>
@@ -34,7 +34,7 @@
 <p>Cada build tiene su propio tag de imagen, así que dos builds nunca comparten uno, aunque buildeen el mismo commit.</p>
 <ul>
 <li class=""><strong>Los tags custom deben ser únicos dentro de cada entorno del proyecto.</strong> Un tag que ya usa otro build del mismo proyecto y entorno se rechaza con un error; el mismo tag se puede usar en entornos distintos (por ejemplo, la misma versión en staging y en producción). Si tu pipeline de CI/CD reutiliza un tag fijo en cada ejecución (por ejemplo, <code>sleakops build --tag staging</code>), quitá la opción <code>--tag</code> o pasá un valor que cambie en cada ejecución, como un número de versión.</li>
-<li class=""><strong>Un build fallido libera su tag.</strong> Rebuildear un build fallido genera un tag nuevo; si necesitás el tag custom que tenía el build fallido, creá un build nuevo con ese mismo tag.</li>
+<li class=""><strong>Un build fallido libera su tag.</strong> Al rebuildear un build fallido desde la consola se conserva el tag custom que le diste, así que el build nuevo usa ese mismo tag; un build fallido con tag generado recibe un tag generado nuevo.</li>
 <li class=""><strong>Deploy por commit.</strong> <code>sleakops deploy --tag</code> acepta el tag de un build o un hash de commit. Con un hash de commit, SleakOps despliega el build exitoso más reciente de ese commit. Ver la <a class="" href="/preview-docs/es/docs/cli">CLI</a>.</li>
 </ul>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="por-qué-necesitamos-buildear-una-imagen-de-docker">¿Por qué necesitamos buildear una imagen de Docker?<a href="#por-qué-necesitamos-buildear-una-imagen-de-docker" class="hash-link" aria-label="Enlace directo al ¿Por qué necesitamos buildear una imagen de Docker?" title="Enlace directo al ¿Por qué necesitamos buildear una imagen de Docker?" translate="no">​</a></h2>
