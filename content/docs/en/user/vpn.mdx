@@ -61,15 +61,13 @@ These settings are available with the new VPN (V2). New accounts get it from the
 
 ### Server settings
 
-The server settings are grouped in sections. Each field shows its allowed range below it.
+The form shows the settings most accounts change: **DNS servers** (between 1 and 4, in order of preference), **Search domain**, **Traffic between users**, **Require a one-time code (MFA)**, **Max connected users**, **Several devices per user**, **Max devices per user**, **Session timeout (seconds)**, **Inactive timeout (seconds)** and **Message before connecting**. Each field shows its allowed range below it.
 
-| **Section** | **Settings** |
-| --- | --- |
-| **Network and DNS** | **DNS servers** (between 1 and 4, in order of preference), **Search domain**, **DNS mapping**, **Block outside DNS**, **Restrict routes**, **Traffic between users**, **MSS fix**, **Jumbo frames**, **LZO compression**, **IPv6** and **IPv6 firewall**. |
-| **Connection and ping** | **Ping interval (seconds)**, **Ping timeout (seconds)** (at least the ping interval plus 5), **Link ping interval (seconds)**, **Link ping timeout (seconds)**, **Inactive timeout (seconds)** and **Session timeout (seconds)**. |
-| **Access** | **Require a one-time code (MFA)**, **Several devices per user**, **Max devices per user**, **Max connected users**, **Allowed devices** and **Message before connecting**. |
-| **Security** | **Encryption cipher** and **Hash algorithm**. |
-| **Advanced** | **Debug logging**. |
+### Advanced (JSON)
+
+The **Advanced (JSON)** section shows every editable server setting as JSON, like the server editor of Pritunl, so you can change the ones the form doesn't show: **DNS mapping**, **Block outside DNS**, **Restrict routes**, **MSS fix**, **Jumbo frames**, **LZO compression**, **IPv6**, **IPv6 firewall**, the ping settings (**Ping interval**, **Ping timeout**, **Link ping interval** and **Link ping timeout**), **Allowed devices**, **Encryption cipher**, **Hash algorithm** and **Debug logging**.
+
+Edit the JSON and click **Apply JSON**. The values go into the form and nothing changes on the VPN until you click **Save server and routes**. If a value is not valid, or the JSON includes a setting that can't be changed, SleakOps lists what is wrong and applies nothing. **Ping timeout** must be at least the ping interval plus 5.
 
 Values listed under **Managed by SleakOps** are shown for reference and can't be changed: **Client network**, **Port**, **Protocol**, **Network mode**, **VXLAN**, **Groups**, **DH parameter size (bits)**, **WireGuard** and **Replicas**.
 
@@ -83,7 +81,7 @@ The Pritunl administrator credentials are never shown in SleakOps. They are stor
 
 Routes are the networks VPN users can reach. You can add a network (IPv4 in CIDR notation, e.g. `192.168.50.0/24`), remove it, and turn **NAT** on or off for it. Turn on NAT when the destination network has no route back to VPN clients. A default route (`0.0.0.0/0`) is not allowed.
 
-Routes marked **Managed** can't be changed or removed: they cover the account's own network, the VPN client network and the DNS servers. To change the DNS routes, change the **DNS servers**. The routes to the networks of the provider's other accounts are created with the VPN, and you can remove them or change their NAT.
+Routes marked **Managed** can't be changed or removed: they cover the account's own network, the VPN client network and the DNS servers. To change the DNS routes, change the **DNS servers**. A new VPN only has the route to the account's own network. Add the networks of other accounts or your own networks if users need them.
 
 :::warning
 **Save server and routes** restarts the VPN server once. Connected users are disconnected for about a minute and their Pritunl client reconnects on its own. The outage lasts about as long as the **Ping timeout** (60 seconds by default): a lower value shortens it.

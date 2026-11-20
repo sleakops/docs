@@ -61,15 +61,13 @@ Estos ajustes están disponibles con la nueva VPN (V2). Las cuentas nuevas la ti
 
 ### Ajustes del servidor
 
-Los ajustes del servidor están agrupados en secciones. Cada campo muestra debajo su rango permitido.
+El formulario muestra los ajustes que la mayoría de las cuentas cambia: **DNS servers** (entre 1 y 4, en orden de preferencia), **Search domain**, **Traffic between users**, **Require a one-time code (MFA)**, **Max connected users**, **Several devices per user**, **Max devices per user**, **Session timeout (seconds)**, **Inactive timeout (seconds)** y **Message before connecting**. Cada campo muestra debajo su rango permitido.
 
-| **Sección** | **Ajustes** |
-| --- | --- |
-| **Network and DNS** | **DNS servers** (entre 1 y 4, en orden de preferencia), **Search domain**, **DNS mapping**, **Block outside DNS**, **Restrict routes**, **Traffic between users**, **MSS fix**, **Jumbo frames**, **LZO compression**, **IPv6** e **IPv6 firewall**. |
-| **Connection and ping** | **Ping interval (seconds)**, **Ping timeout (seconds)** (como mínimo el intervalo de ping más 5), **Link ping interval (seconds)**, **Link ping timeout (seconds)**, **Inactive timeout (seconds)** y **Session timeout (seconds)**. |
-| **Access** | **Require a one-time code (MFA)**, **Several devices per user**, **Max devices per user**, **Max connected users**, **Allowed devices** y **Message before connecting**. |
-| **Security** | **Encryption cipher** y **Hash algorithm**. |
-| **Advanced** | **Debug logging**. |
+### Advanced (JSON)
+
+La sección **Advanced (JSON)** muestra todos los ajustes editables del servidor como JSON, como el editor de servidor de Pritunl, para que puedas cambiar los que el formulario no muestra: **DNS mapping**, **Block outside DNS**, **Restrict routes**, **MSS fix**, **Jumbo frames**, **LZO compression**, **IPv6**, **IPv6 firewall**, los ajustes de ping (**Ping interval**, **Ping timeout**, **Link ping interval** y **Link ping timeout**), **Allowed devices**, **Encryption cipher**, **Hash algorithm** y **Debug logging**.
+
+Edita el JSON y haz clic en **Apply JSON**. Los valores pasan al formulario y la VPN no cambia hasta que haces clic en **Save server and routes**. Si un valor no es válido, o el JSON incluye un ajuste que no se puede cambiar, SleakOps lista lo que está mal y no aplica nada. **Ping timeout** debe ser como mínimo el intervalo de ping más 5.
 
 Los valores que aparecen bajo **Managed by SleakOps** se muestran como referencia y no se pueden cambiar: **Client network**, **Port**, **Protocol**, **Network mode**, **VXLAN**, **Groups**, **DH parameter size (bits)**, **WireGuard** y **Replicas**.
 
@@ -83,7 +81,7 @@ Las credenciales de administrador de Pritunl nunca se muestran en SleakOps. Se g
 
 Las rutas son las redes a las que llegan los usuarios de la VPN. Puedes agregar una red (IPv4 en notación CIDR, por ejemplo `192.168.50.0/24`), quitarla y activar o desactivar su **NAT**. Activa NAT cuando la red de destino no tiene una ruta de vuelta hacia los clientes de la VPN. No se permite una ruta por defecto (`0.0.0.0/0`).
 
-Las rutas marcadas como **Managed** no se pueden cambiar ni quitar: cubren la red propia de la cuenta, la red de los clientes de la VPN y los servidores DNS. Para cambiar las rutas de DNS, cambia los **DNS servers**. Las rutas hacia las redes de las otras cuentas del proveedor se crean con la VPN, y puedes quitarlas o cambiar su NAT.
+Las rutas marcadas como **Managed** no se pueden cambiar ni quitar: cubren la red propia de la cuenta, la red de los clientes de la VPN y los servidores DNS. Para cambiar las rutas de DNS, cambia los **DNS servers**. Una VPN nueva solo tiene la ruta a la red propia de la cuenta. Agrega las redes de otras cuentas o las tuyas si los usuarios las necesitan.
 
 :::warning
 **Save server and routes** reinicia el servidor VPN una vez. Los usuarios conectados se desconectan alrededor de un minuto y su cliente Pritunl se reconecta solo. El corte dura más o menos lo que el **Ping timeout** (60 segundos por defecto): un valor más bajo lo acorta.
