@@ -74,3 +74,52 @@ The network explorer is a read-only view of the imported network: the VPC, its r
 </Zoom>
 
 From here, the account is ready to import its cluster.
+
+## Protect your public load balancer with a web application firewall
+
+SleakOps can put AWS WAF in front of each cluster's public load balancer, so malicious traffic is stopped before it reaches your applications. The firewall uses AWS managed rules for IP reputation, known bad inputs and the core rule set. It is off by default.
+
+It applies to clusters created by SleakOps (not imported clusters) and only to the public load balancer.
+
+### Turn it on
+
+Only admins can change it.
+
+1. Open **Accounts & Networking** and select the account.
+2. Open **Web application firewall**.
+3. Enable the firewall for the cluster you want to protect.
+
+The firewall starts in **Count** mode: requests are only counted and nothing is blocked. Review the matches for about a week, then switch the cluster to **Block**.
+
+### Review false positives
+
+Check what the rules match before you block:
+
+- In your AWS account, open the **AWS WAF** console, select the web ACL `sleakops-<cluster>` and review the metrics per rule and the sampled requests.
+- If you enabled logging, full logs are in the CloudWatch Logs group `aws-waf-logs-<cluster>`, kept for 30 days. The `Authorization` and `Cookie` headers are hidden.
+
+A blocked request gets a `403` from the load balancer. If a specific rule blocks legitimate traffic, keep that rule in **Count** from the same form while the others keep blocking. Request bodies larger than 8 KB are never blocked by the body size rule.
+
+### Optional rule groups
+
+You can add more AWS managed rule groups, all off by default: anonymous IPs, SQL injection and Linux.
+
+### Cost
+
+AWS bills the firewall in your account, not SleakOps. Reference prices for us-east-1:
+
+- USD 5 per month per web ACL.
+- USD 1 per month per rule group (USD 8 per month in total with the default rule groups).
+- USD 0.60 per million requests.
+
+Logging adds CloudWatch Logs charges. Prices vary by region: see [AWS WAF pricing](https://aws.amazon.com/waf/pricing/).
+
+### Limits
+
+- A load balancer can have only one web ACL. If your public load balancer already has a web ACL you attached yourself, SleakOps does not replace it and does not enable the firewall.
+- If one of your own Ingresses in the same ingress group sets an AWS WAF annotation, yours wins or the load balancer stops updating. Remove that annotation before you enable the firewall.
+- If the load balancer can't reach AWS WAF, AWS does not forward the request to your application (AWS default behavior), even in **Count** mode.
+
+### Turn it off
+
+Disabling the firewall removes the web ACL. Deleting the cluster removes it too.
