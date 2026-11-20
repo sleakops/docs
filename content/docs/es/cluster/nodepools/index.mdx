@@ -82,6 +82,22 @@ No puedes cambiar el tipo de arquitectura de un Node Pool, pero puedes lograr el
 
 <details>
 <summary>
+### ¿Pueden mis Pods usar las credenciales de AWS del nodo?
+</summary>
+No. Los nodos requieren IMDSv2 (metadatos de instancia basados en token) y los Pods de los nodos de un node pool no pueden acceder a los metadatos de instancia del nodo. Un workload que necesite credenciales de AWS debe usar el rol de IAM que SleakOps le asigna a su Pod.
+</details>
+
+<details>
+<summary>
+### ¿Qué pasa cuando se aplica la mejora "System Nodes IMDSv2 Enforcement"?
+</summary>
+Aplica IMDSv2 a los nodos de sistema del clúster, el grupo fijo y chico que corre los add-ons del clúster, en los clústeres creados antes de que fuera el valor por defecto. Los clústeres creados después, y los que pasan por un upgrade de versión de Kubernetes, ya lo tienen. La programas desde **Upgrades**.
+
+No es un reinicio en el lugar: AWS reemplaza los nodos de sistema de a uno. Se lanza un nodo nuevo y después el viejo se drena (sus Pods pasan a otros nodos) y se termina. Tus aplicaciones corren en los nodos de los node pools y siguen funcionando. Los add-ons de los nodos de sistema pasan al nodo nuevo en pocos minutos. Prográmala en una ventana de poco tráfico.
+</details>
+
+<details>
+<summary>
 ### ¿Cómo creo un Node Pool?
 </summary>
 Sigue la guía [Creando un Node Pool](/docs/cluster/nodepools/creating-nodepool).

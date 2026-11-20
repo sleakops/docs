@@ -94,6 +94,10 @@ The addons SleakOps runs on an imported cluster aren't pinned to any node pool u
 
 When you create a Project in an Environment of an imported cluster, the **Nodepool** field lists the cluster's live Karpenter node pools by name, plus **No node pool** (workloads run unpinned and the cluster scheduler decides placement). Picking a pool shows an **Architecture** field: it's set and locked when the pool fixes a single architecture, and otherwise you choose `(64-Bit) X86` or `(64-Bit) ARM` for your builds and workloads. If the live pools can't be listed, you can still create the Project unpinned.
 
+### Node security
+
+Nodes, security groups and node classes of an imported cluster belong to you. SleakOps recommends requiring IMDSv2 on the nodes and removing SSH access.
+
 ### Limits
 
 - The **Karpenter**, **Load Balancer** and **CoreDNS** essential addons can't be installed — node capacity, the ALB controller and cluster DNS stay with the cluster owner. See [Essential addons](/docs/cluster/addons/essential-addons).
