@@ -83,7 +83,7 @@ Las credenciales de administrador de Pritunl nunca se muestran en SleakOps. Se g
 
 Las rutas son las redes a las que llegan los usuarios de la VPN. Puedes agregar una red (IPv4 en notación CIDR, por ejemplo `192.168.50.0/24`), quitarla y activar o desactivar su **NAT**. Activa NAT cuando la red de destino no tiene una ruta de vuelta hacia los clientes de la VPN. No se permite una ruta por defecto (`0.0.0.0/0`).
 
-Las rutas marcadas como **Managed** no se pueden cambiar ni quitar: cubren la red propia de la cuenta, la red de los clientes de la VPN y los servidores DNS. Para cambiar las rutas de DNS, cambia los **DNS servers**. Una VPN nueva solo tiene la ruta a la red propia de la cuenta. Agrega las redes de otras cuentas o las tuyas si los usuarios las necesitan.
+Las rutas marcadas como **Managed** no se pueden cambiar ni quitar: cubren la red propia de la cuenta, la red de los clientes de la VPN y los servidores DNS. Para cambiar las rutas de DNS, cambia los **DNS servers**. Una VPN nueva solo tiene la ruta a la red propia de la cuenta. Agrega las redes de otras cuentas o las tuyas si los usuarios las necesitan. Esto también vale para la **Cuenta de Management**: su red está conectada con tus otras cuentas, pero su VPN solo llega a ellas después de que agregues sus redes aquí.
 
 :::warning
 **Save server and routes** reinicia el servidor VPN una vez. Los usuarios conectados se desconectan alrededor de un minuto y su cliente Pritunl se reconecta solo. El corte dura más o menos lo que el **Ping timeout** (60 segundos por defecto): un valor más bajo lo acorta.

@@ -83,7 +83,7 @@ The Pritunl administrator credentials are never shown in SleakOps. They are stor
 
 Routes are the networks VPN users can reach. You can add a network (IPv4 in CIDR notation, e.g. `192.168.50.0/24`), remove it, and turn **NAT** on or off for it. Turn on NAT when the destination network has no route back to VPN clients. A default route (`0.0.0.0/0`) is not allowed.
 
-Routes marked **Managed** can't be changed or removed: they cover the account's own network, the VPN client network and the DNS servers. To change the DNS routes, change the **DNS servers**. A new VPN only has the route to the account's own network. Add the networks of other accounts or your own networks if users need them.
+Routes marked **Managed** can't be changed or removed: they cover the account's own network, the VPN client network and the DNS servers. To change the DNS routes, change the **DNS servers**. A new VPN only has the route to the account's own network. Add the networks of other accounts or your own networks if users need them. This also applies to the **Management Account**: its network is connected to your other accounts, but its VPN only reaches them after you add their networks here.
 
 :::warning
 **Save server and routes** restarts the VPN server once. Connected users are disconnected for about a minute and their Pritunl client reconnects on its own. The outage lasts about as long as the **Ping timeout** (60 seconds by default): a lower value shortens it.
