@@ -57,7 +57,7 @@ Admins can change how the VPN of each account works from the account's **VPN set
 
 Only admins can open this page.
 
-These settings are available with the new VPN (V2). New accounts get it from the start. If an account still runs the previous VPN, the page shows a notice: run the migration **VPN V2: Improved Reliability, Security and Management** from **Upgrades**. It creates the new VPN alongside the current one, so nobody loses access while you switch. After it runs, every VPN user downloads and imports the new profile. A later upgrade, **VPN V2: Retire the Previous VPN Server**, removes the previous server: profiles created before it stop working.
+These settings are available with the new VPN (V2). New accounts get it from the start. If an account still runs the previous VPN, the page shows a notice: run the migration **VPN V2: Improved Reliability, Security and Management** from **Upgrades**. It creates the new VPN alongside the current one, so nobody loses access while you switch. After it runs, every VPN user downloads and imports the new profile. The migration also copies the settings and the routes you changed in the previous VPN to the new one. If it can't, it tells you and the new VPN keeps its default settings, so review them in **VPN settings**. A later upgrade, **VPN V2: Retire the Previous VPN Server**, removes the previous server: profiles created before it stop working.
 
 ### Server settings
 
@@ -65,9 +65,11 @@ The form shows the settings most accounts change: **DNS servers** (between 1 and
 
 ### Advanced (JSON)
 
-The **Advanced (JSON)** section shows every editable server setting as JSON, like the server editor of Pritunl, so you can change the ones the form doesn't show: **DNS mapping**, **Block outside DNS**, **Restrict routes**, **MSS fix**, **Jumbo frames**, **LZO compression**, **IPv6**, **IPv6 firewall**, the ping settings (**Ping interval**, **Ping timeout**, **Link ping interval** and **Link ping timeout**), **Allowed devices**, **Encryption cipher**, **Hash algorithm** and **Debug logging**.
+The **Advanced (JSON)** section shows every editable server setting as JSON, like the server editor of Pritunl, so you can change the ones the form doesn't show: **DNS mapping**, **Block outside DNS**, **Restrict routes**, **MSS fix**, **Jumbo frames**, **LZO compression**, **IPv6**, **IPv6 firewall**, the ping settings (**Ping interval**, **Ping timeout**, **Link ping interval** and **Link ping timeout**), **Allowed devices**, **Encryption cipher**, **Hash algorithm** and **Debug logging**. It also lists the other settings of the Pritunl server that SleakOps has no form for, such as **route_dns** or **geo_sort**, with the type of their current value.
 
 Edit the JSON and click **Apply JSON**. The values go into the form and nothing changes on the VPN until you click **Save server and routes**. If a value is not valid, or the JSON includes a setting that can't be changed, SleakOps lists what is wrong and applies nothing. **Ping timeout** must be at least the ping interval plus 5.
+
+SleakOps can't tell whether one of those other Pritunl settings changes the VPN profiles. Before you save one, check it in the Pritunl documentation: SleakOps asks you to confirm that you did, and if it does affect the profiles, every user has to import theirs again. Settings that SleakOps manages, and the ones that only report the server's state, are not editable.
 
 Values listed under **Managed by SleakOps** are shown for reference and can't be changed: **Client network**, **Port**, **Protocol**, **Network mode**, **VXLAN**, **Groups**, **DH parameter size (bits)**, **WireGuard** and **Replicas**.
 

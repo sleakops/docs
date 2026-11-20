@@ -57,7 +57,7 @@ Los administradores pueden cambiar cómo funciona la VPN de cada cuenta desde su
 
 Solo los administradores pueden abrir esta página.
 
-Estos ajustes están disponibles con la nueva VPN (V2). Las cuentas nuevas la tienen desde el inicio. Si una cuenta todavía usa la VPN anterior, la página muestra un aviso: ejecuta la migración **VPN V2: Improved Reliability, Security and Management** desde **Upgrades**. Crea la nueva VPN junto a la actual, así nadie pierde el acceso mientras cambias. Cuando termina, cada usuario de la VPN descarga e importa el perfil nuevo. Una actualización posterior, **VPN V2: Retire the Previous VPN Server**, retira el servidor anterior: los perfiles creados antes dejan de funcionar.
+Estos ajustes están disponibles con la nueva VPN (V2). Las cuentas nuevas la tienen desde el inicio. Si una cuenta todavía usa la VPN anterior, la página muestra un aviso: ejecuta la migración **VPN V2: Improved Reliability, Security and Management** desde **Upgrades**. Crea la nueva VPN junto a la actual, así nadie pierde el acceso mientras cambias. Cuando termina, cada usuario de la VPN descarga e importa el perfil nuevo. La migración también copia a la nueva VPN los ajustes y las rutas que cambiaste en la anterior. Si no puede, te avisa y la nueva VPN queda con sus ajustes por defecto: revísalos en **VPN settings**. Una actualización posterior, **VPN V2: Retire the Previous VPN Server**, retira el servidor anterior: los perfiles creados antes dejan de funcionar.
 
 ### Ajustes del servidor
 
@@ -65,9 +65,11 @@ El formulario muestra los ajustes que la mayoría de las cuentas cambia: **DNS s
 
 ### Advanced (JSON)
 
-La sección **Advanced (JSON)** muestra todos los ajustes editables del servidor como JSON, como el editor de servidor de Pritunl, para que puedas cambiar los que el formulario no muestra: **DNS mapping**, **Block outside DNS**, **Restrict routes**, **MSS fix**, **Jumbo frames**, **LZO compression**, **IPv6**, **IPv6 firewall**, los ajustes de ping (**Ping interval**, **Ping timeout**, **Link ping interval** y **Link ping timeout**), **Allowed devices**, **Encryption cipher**, **Hash algorithm** y **Debug logging**.
+La sección **Advanced (JSON)** muestra todos los ajustes editables del servidor como JSON, como el editor de servidor de Pritunl, para que puedas cambiar los que el formulario no muestra: **DNS mapping**, **Block outside DNS**, **Restrict routes**, **MSS fix**, **Jumbo frames**, **LZO compression**, **IPv6**, **IPv6 firewall**, los ajustes de ping (**Ping interval**, **Ping timeout**, **Link ping interval** y **Link ping timeout**), **Allowed devices**, **Encryption cipher**, **Hash algorithm** y **Debug logging**. También lista los demás ajustes del servidor de Pritunl que SleakOps no tiene en el formulario, como **route_dns** o **geo_sort**, con el tipo de su valor actual.
 
 Edita el JSON y haz clic en **Apply JSON**. Los valores pasan al formulario y la VPN no cambia hasta que haces clic en **Save server and routes**. Si un valor no es válido, o el JSON incluye un ajuste que no se puede cambiar, SleakOps lista lo que está mal y no aplica nada. **Ping timeout** debe ser como mínimo el intervalo de ping más 5.
+
+SleakOps no puede saber si uno de esos otros ajustes de Pritunl cambia los perfiles de la VPN. Antes de guardar uno, revísalo en la documentación de Pritunl: SleakOps te pide confirmar que lo hiciste y, si afecta a los perfiles, cada usuario tiene que importar el suyo de nuevo. Los ajustes que gestiona SleakOps y los que solo informan el estado del servidor no se pueden editar.
 
 Los valores que aparecen bajo **Managed by SleakOps** se muestran como referencia y no se pueden cambiar: **Client network**, **Port**, **Protocol**, **Network mode**, **VXLAN**, **Groups**, **DH parameter size (bits)**, **WireGuard** y **Replicas**.
 
