@@ -1,0 +1,61 @@
+---
+id: blocked-ips
+title: Blocked IPs
+sidebar_label: Blocked IPs
+sidebar_position: 8
+---
+
+# Blocked IPs
+
+Block a scanner, an abusive client or any unwanted source before its traffic reaches your public load balancers. **Blocked IPs** denies incoming traffic from the IPv4 ranges you list, at the edge of your account's network.
+
+## How it works
+
+Blocked IPs is implemented with **VPC Network ACLs** (NACLs), applied to the account's **public subnets**: the ones where your public load balancers, the NAT gateway and the VPN server live.
+
+- The first time you save a list, SleakOps creates a dedicated Network ACL and associates the public subnets with it. It holds one deny rule per entry, followed by a rule that allows all other inbound and outbound traffic.
+- The VPC's default Network ACL is never modified.
+- Private and data subnets are not affected.
+- If you remove every entry, all traffic is allowed again.
+- If you delete the account or the provider, the dedicated Network ACL is removed and the subnets go back to the default one.
+
+## Manage the list
+
+1. Go to **Accounts & Networking** and select the account.
+2. Open **Blocked IPs**. Only admins can see and edit it.
+3. Add entries and save. Each entry has an IPv4 range (a single IP is saved as `/32`), an optional protocol (TCP or UDP) with an optional port range, and an optional description.
+
+Changes are applied in the background and take from a few seconds to a few minutes. The page shows when they are being applied. If an apply fails, save again to retry.
+
+## Stateless: what it means for you
+
+Network ACLs are **stateless**: they evaluate each packet on its own and do not remember connections. Blocking a range inbound therefore also drops the **replies** from that range to connections your workloads open towards it. For example, if a service in your cluster consumes an external API hosted in a blocked range, its responses will no longer arrive.
+
+A rule limited to a port only affects traffic to that destination port.
+
+A wide range, such as a cloud provider's `/8`, can cut off services your cluster depends on. Prefer the narrowest range that covers the source.
+
+Network ACLs do not filter Amazon DNS, DHCP, instance metadata or Time Sync traffic.
+
+## Limits and rejected ranges
+
+| Rule | Detail |
+|---|---|
+| Entries per account | Up to 19. AWS allows 20 rules per direction and one is used to allow the rest of the traffic. |
+| Smallest range | `/8`. Wider ranges, such as `0.0.0.0/0`, are rejected. |
+| Reserved ranges | Rejected (for example loopback, link-local and multicast). |
+| IP version | IPv4 only. IPv6 is not supported. |
+| Duplicates | The same range, protocol and ports cannot be listed twice. |
+| Description | Up to 100 characters. It is stored in SleakOps only. |
+
+To prevent you from locking SleakOps or your own traffic out, SleakOps rejects any range that overlaps:
+
+- the account's own VPC network, or the VPCs of the other accounts of the provider;
+- the IPs SleakOps operates from;
+- the public IPs of your NAT gateways and VPN servers;
+- the VPN client networks.
+
+## Good to know
+
+- Blocked IPs is **not available for accounts with an imported network** (your own VPC). Manage Network ACLs directly in AWS for those.
+- It is a deny list, not an allow list, and it is not an application firewall. It filters by source IP, protocol and port only. For filtering by request content, use other tools.
