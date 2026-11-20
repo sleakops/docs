@@ -17,17 +17,22 @@ Solo los administradores de la cuenta ven y modifican esta sección.
 
 1. Ve a **Accounts & Networking** y selecciona la cuenta de AWS.
 2. Abre la sección **Load balancer access logs**.
-3. Opcionalmente define **Retention (days)** (por defecto: 90).
+3. Opcionalmente define **Retention (days)** (por defecto: 90). Puedes cambiarla cuando los logs estén activados en al menos un clúster.
 4. Para cada clúster, activa **Public ALB** y/o **Private ALB**.
 5. Haz clic en **Save**.
 
 SleakOps aplica el cambio y la sección muestra el progreso. Para dejar de recolectar logs, desactiva los mismos interruptores y guarda.
+
+Activar o desactivar los logs de acceso puede reiniciar el controlador de load balancer del clúster. Tus load balancers siguen atendiendo tráfico y cualquier cambio de Ingress que hagas mientras tanto se aplica cuando el controlador vuelve.
+
+Si la configuración falla, SleakOps deja el load balancer como estaba. Guarda de nuevo para reintentar.
 
 Un clúster aparece como no disponible cuando:
 
 - Es un clúster importado: gestionas los logs de su load balancer en tu propia cuenta de AWS (ver [Clústeres importados](#clústeres-importados)).
 - No tiene un load balancer gestionado por SleakOps.
 - Su controlador de load balancer es demasiado antiguo: actualiza el clúster para habilitar los logs de acceso.
+- Se está creando, actualizando o eliminando, y aparece como no listo. Inténtalo de nuevo cuando esté listo.
 
 ## Dónde se guardan los logs
 
@@ -50,7 +55,7 @@ Mientras los logs de acceso estén activados para un load balancer, SleakOps def
 
 Si defines alguno de ellos con la annotation `alb.ingress.kubernetes.io/load-balancer-attributes` en tus Ingress, SleakOps reemplaza tu valor. Cualquier otro atributo que definas ahí, por ejemplo `idle_timeout.timeout_seconds`, sigue aplicando.
 
-Al desactivar los logs de acceso, SleakOps define solo `access_logs.s3.enabled=false`. Un load balancer para el que nunca los activaste no se modifica.
+Al desactivar los logs de acceso, SleakOps define solo `access_logs.s3.enabled=false`. Un load balancer para el que nunca los activaste no se modifica nunca, y desactivarlos en uno que nunca activaste no hace nada: tus propios atributos `access_logs.s3.*` ahí siguen aplicando.
 
 ## Si se elimina la cuenta
 

@@ -17,17 +17,22 @@ Only account administrators can see and change this section.
 
 1. Go to **Accounts & Networking** and select the AWS account.
 2. Open the **Load balancer access logs** section.
-3. Optionally set **Retention (days)** (default: 90).
+3. Optionally set **Retention (days)** (default: 90). You can change it once logs are on for at least one cluster.
 4. For each cluster, switch on **Public ALB** and/or **Private ALB**.
 5. Click **Save**.
 
 SleakOps applies the change and the section shows its progress. To stop collecting logs, switch the same toggles off and save.
+
+Turning access logs on or off can restart the load balancer controller in the cluster. Your load balancers keep serving traffic, and any Ingress change you make meanwhile is applied once the controller is back.
+
+If setting up fails, SleakOps leaves the load balancer as it was. Save again to retry.
 
 A cluster appears as unavailable when:
 
 - It is an imported cluster: manage its load balancer logs in your own AWS account (see [Imported clusters](#imported-clusters)).
 - It has no load balancer managed by SleakOps.
 - Its load balancer controller is too old: upgrade the cluster to enable access logs.
+- It is being created, updated or deleted, and shows as not ready. Try again once it is ready.
 
 ## Where the logs are stored
 
@@ -50,7 +55,7 @@ While access logs are on for a load balancer, SleakOps sets these three attribut
 
 If you set any of these through the `alb.ingress.kubernetes.io/load-balancer-attributes` annotation on your Ingresses, SleakOps replaces your value. Every other attribute you set there, for example `idle_timeout.timeout_seconds`, keeps working.
 
-When you turn access logs off, SleakOps sets only `access_logs.s3.enabled=false`. A load balancer you never turned them on for is not touched.
+When you turn access logs off, SleakOps sets only `access_logs.s3.enabled=false`. A load balancer you never turned them on for is never touched, and turning access logs off for one you never turned on does nothing: your own `access_logs.s3.*` attributes there keep applying.
 
 ## When the account is removed
 
