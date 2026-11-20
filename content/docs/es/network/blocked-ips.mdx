@@ -16,7 +16,6 @@ IPs bloqueadas se implementa con **Network ACLs de VPC** (NACL), aplicadas a las
 - La primera vez que guardás una lista, SleakOps crea una Network ACL dedicada y asocia a ella las subredes públicas. Contiene una regla de denegación por cada entrada, seguida de una regla que permite el resto del tráfico de entrada y de salida.
 - La Network ACL default de la VPC nunca se modifica.
 - Las subredes privadas y de persistencia no se ven afectadas.
-- Las conexiones establecidas desde orígenes que siguen permitidos no se interrumpen.
 - Si eliminás todas las entradas, se vuelve a permitir todo el tráfico.
 - Si eliminás la cuenta o el provider, la Network ACL dedicada se elimina y las subredes vuelven a la default.
 
@@ -33,6 +32,8 @@ Los cambios se aplican en segundo plano y tardan entre unos segundos y unos minu
 Las Network ACL **no guardan estado** (son _stateless_): evalúan cada paquete por separado y no recuerdan las conexiones. Por eso, bloquear un rango en la entrada también descarta las **respuestas** de ese rango a las conexiones que tus workloads abren hacia él. Por ejemplo, si un servicio de tu clúster consume una API externa alojada en un rango bloqueado, sus respuestas dejan de llegar.
 
 Una regla limitada a un puerto solo afecta el tráfico hacia ese puerto de destino.
+
+Un rango amplio, como el `/8` de un proveedor cloud, puede cortar servicios de los que depende tu cluster. Preferí el rango más chico que cubra el origen.
 
 Las Network ACL no filtran el tráfico de DNS de Amazon, DHCP, metadata de instancia ni Time Sync.
 

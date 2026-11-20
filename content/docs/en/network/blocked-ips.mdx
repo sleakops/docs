@@ -16,7 +16,6 @@ Blocked IPs is implemented with **VPC Network ACLs** (NACLs), applied to the acc
 - The first time you save a list, SleakOps creates a dedicated Network ACL and associates the public subnets with it. It holds one deny rule per entry, followed by a rule that allows all other inbound and outbound traffic.
 - The VPC's default Network ACL is never modified.
 - Private and data subnets are not affected.
-- Established connections from sources that are still allowed are not interrupted.
 - If you remove every entry, all traffic is allowed again.
 - If you delete the account or the provider, the dedicated Network ACL is removed and the subnets go back to the default one.
 
@@ -33,6 +32,8 @@ Changes are applied in the background and take from a few seconds to a few minut
 Network ACLs are **stateless**: they evaluate each packet on its own and do not remember connections. Blocking a range inbound therefore also drops the **replies** from that range to connections your workloads open towards it. For example, if a service in your cluster consumes an external API hosted in a blocked range, its responses will no longer arrive.
 
 A rule limited to a port only affects traffic to that destination port.
+
+A wide range, such as a cloud provider's `/8`, can cut off services your cluster depends on. Prefer the narrowest range that covers the source.
 
 Network ACLs do not filter Amazon DNS, DHCP, instance metadata or Time Sync traffic.
 
