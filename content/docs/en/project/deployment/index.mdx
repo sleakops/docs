@@ -55,6 +55,6 @@ Use **Cancel Deploy**, in the Deployments list or in the deployment's detail, to
 - **Queued**: the deployment is removed before it reaches the cluster.
 - **In progress**: a confirmation asks you to confirm with **Cancel deployment**. Cancelling can't guarantee that hooks haven't already run or that the version isn't already applied in the cluster, so SleakOps checks the cluster before deciding the final state:
   - If the deploy already finished successfully, it ends as **Created**.
-  - Otherwise it ends in **Error**, with a message starting with "Cancelled by user" that says what happened: the deploy had already failed, its result couldn't be confirmed, or it was stopped while running and the release was rolled back to its previous version. A first deployment has no previous version, so it is stopped without a rollback.
+  - Otherwise it ends in **Error**, with a message starting with "Cancelled by user" that says what happened: the deploy had already failed, its result couldn't be confirmed, or it was stopped while running and the release was rolled back to its previous version. On a first deployment, which has no previous version, the partially installed release is removed so you can deploy again.
 
 In every case, the deployments queued behind the cancelled one continue.

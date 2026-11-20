@@ -55,6 +55,6 @@ Usa **Cancel Deploy**, en la lista de Deployments o en el detalle del deployment
 - **Encolado**: el deployment se elimina antes de llegar al clúster.
 - **En curso**: una confirmación te pide confirmar con **Cancel deployment**. Cancelar no garantiza que los hooks no se hayan ejecutado ni que la versión no esté ya aplicada en el clúster, por lo que SleakOps revisa el clúster antes de decidir el estado final:
   - Si el deploy ya terminó correctamente, queda en **Created**.
-  - Si no, queda en **Error**, con un mensaje que empieza con "Cancelled by user" e indica qué pasó: el deploy ya había fallado, no se pudo confirmar su resultado, o se detuvo mientras corría y el release volvió a su versión anterior. Un primer deployment no tiene versión anterior, así que se detiene sin rollback.
+  - Si no, queda en **Error**, con un mensaje que empieza con "Cancelled by user" e indica qué pasó: el deploy ya había fallado, no se pudo confirmar su resultado, o se detuvo mientras corría y el release volvió a su versión anterior. En un primer deployment, que no tiene versión anterior, se elimina el release instalado a medias para que puedas volver a desplegar.
 
 En todos los casos, los deployments encolados detrás del cancelado continúan.
