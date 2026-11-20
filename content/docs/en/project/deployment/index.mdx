@@ -47,3 +47,14 @@ If you skip deploying your changes immediately, or if your modification doesn't 
 - **Publish badge**: environments with content pending that was not yet deployed on the cluster show a **Publish** badge in the Projects list, the Project dashboard and the Deployments list. Clicking it opens the pending deployment's detail, where you review the accumulated changes and publish them. See [Pending Changes & Publishing](/docs/project/deployment/pending_changes).
 
 - Via the [CLI ](/docs/cli).
+
+## Cancelling a Deployment
+
+Use **Cancel Deploy**, in the Deployments list or in the deployment's detail, to stop a deployment that is queued (**Initial**) or in progress (**Creating**). Viewers can't cancel deployments.
+
+- **Queued**: the deployment is removed before it reaches the cluster.
+- **In progress**: a confirmation asks you to confirm with **Cancel deployment**. Cancelling can't guarantee that hooks haven't already run or that the version isn't already applied in the cluster, so SleakOps checks the cluster before deciding the final state:
+  - If the deploy already finished successfully, it ends as **Created**.
+  - Otherwise it ends in **Error**, with a message starting with "Cancelled by user" that says what happened: the deploy had already failed, its result couldn't be confirmed, or it was stopped while running and the release was rolled back to its previous version. A first deployment has no previous version, so it is stopped without a rollback.
+
+In every case, the deployments queued behind the cancelled one continue.

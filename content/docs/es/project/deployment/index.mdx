@@ -47,3 +47,14 @@ Si no realizas el deployment de tus cambios inmediatamente, o si tu modificació
 - **Badge Publish**: los entornos con contenido pendiente que aún no se desplegó en el clúster muestran un badge **Publish** en la lista de Projects, el dashboard del Project y la lista de Deployments. Hacer clic en él abre el detalle del deployment pendiente, donde revisas los cambios acumulados y los publicas. Ver [Cambios Pendientes y Publicación](/docs/project/deployment/pending_changes).
 
 - A través del [CLI ](/docs/cli).
+
+## Cancelar un Deployment
+
+Usa **Cancel Deploy**, en la lista de Deployments o en el detalle del deployment, para detener un deployment encolado (**Initial**) o en curso (**Creating**). Los usuarios viewer no pueden cancelar deployments.
+
+- **Encolado**: el deployment se elimina antes de llegar al clúster.
+- **En curso**: una confirmación te pide confirmar con **Cancel deployment**. Cancelar no garantiza que los hooks no se hayan ejecutado ni que la versión no esté ya aplicada en el clúster, por lo que SleakOps revisa el clúster antes de decidir el estado final:
+  - Si el deploy ya terminó correctamente, queda en **Created**.
+  - Si no, queda en **Error**, con un mensaje que empieza con "Cancelled by user" e indica qué pasó: el deploy ya había fallado, no se pudo confirmar su resultado, o se detuvo mientras corría y el release volvió a su versión anterior. Un primer deployment no tiene versión anterior, así que se detiene sin rollback.
+
+En todos los casos, los deployments encolados detrás del cancelado continúan.
