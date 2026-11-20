@@ -84,7 +84,7 @@ No puedes cambiar el tipo de arquitectura de un Node Pool, pero puedes lograr el
 <summary>
 ### ¿Pueden mis Pods usar las credenciales de AWS del nodo?
 </summary>
-No, en los node pools creados por SleakOps. Sus nodos requieren IMDSv2 (metadatos de instancia basados en token) y sus Pods no pueden acceder a los metadatos de instancia del nodo. Un workload que necesite credenciales de AWS debe usar el rol de IAM que SleakOps le asigna a su Pod. Un node pool importado conserva la configuración de metadatos de instancia que ya tenía.
+No, en los node pools creados por SleakOps. Sus nodos requieren IMDSv2 (metadatos de instancia basados en token) y, por defecto, sus Pods no pueden acceder a los metadatos de instancia del nodo (los Pods con `hostNetwork` sí pueden, y un override del node pool puede subir el hop limit de los metadatos). Un workload que necesite credenciales de AWS debe usar el rol de IAM que SleakOps le asigna a su Pod. Un node pool importado conserva la configuración de metadatos de instancia que ya tenía.
 </details>
 
 <details>

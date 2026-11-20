@@ -86,7 +86,7 @@ You can't change the architect type of a node pool, but you can achieve the desi
 <summary>
 ### Can my Pods use the node's AWS credentials?
 </summary>
-No, on node pools created by SleakOps. Their nodes require IMDSv2 (token-based instance metadata) and their Pods can't reach the node's instance metadata. A workload that needs AWS credentials must use the IAM role SleakOps gives its Pod. A node pool you imported keeps the instance metadata settings it already had.
+No, on node pools created by SleakOps. Their nodes require IMDSv2 (token-based instance metadata) and, by default, their Pods can't reach the node's instance metadata (Pods with `hostNetwork` can, and a node pool override can raise the metadata hop limit). A workload that needs AWS credentials must use the IAM role SleakOps gives its Pod. A node pool you imported keeps the instance metadata settings it already had.
 </details>
 
 <details>
