@@ -44,39 +44,53 @@ Cópialo e impórtalo en el cliente Pritunl, y podrás conectarte:
 </Zoom>
 
 :::tip
-Si tu cuenta usa la nueva VPN (V2) y el cliente Pritunl no puede importar el perfil, puede que su red no tenga permitido llegar al servidor VPN. Un administrador puede permitirla en **Allowed IPs for importing VPN profiles** (ver más abajo).
+Si tu cuenta usa la nueva VPN (V2) y el cliente Pritunl no puede importar el perfil, puede que la red desde la que te conectas no tenga permitido llegar al servidor VPN. Un administrador puede permitirla en **Allowed IPs for port 443** (ver más abajo).
 :::
 
 ## Configura tu VPN
 
-Los administradores pueden cambiar cómo funciona la VPN de cada cuenta. Ve a **Providers**, abre **Accounts & Networking** del proveedor y haz clic en **VPN settings** en la cuenta. Los administradores también encuentran el enlace **Manage VPN settings for this account** en el paso de la VPN de la página de acceso de un Clúster.
+Los administradores pueden cambiar cómo funciona la VPN de cada cuenta desde su página **VPN settings**. Puedes abrirla desde cualquiera de estos lugares:
 
-Estos ajustes están disponibles con la nueva VPN (V2). Las cuentas que se crean ahora la tienen desde el inicio. Si una cuenta todavía usa la VPN anterior, el panel muestra un aviso: ejecuta la migración **VPN V2: Improved Reliability, Security and Management** desde **Upgrades**. Crea la nueva VPN junto a la actual, así nadie pierde el acceso mientras cambias. Cuando termina, cada usuario de la VPN descarga e importa el perfil nuevo. Una actualización posterior, **VPN V2: Retire the Previous VPN Server**, retira el servidor anterior: los perfiles creados antes dejan de funcionar.
+- **Providers** → **Accounts & Networking** del proveedor → **VPN settings** en la cuenta.
+- El nodo **VPN server** del diagrama de red de la cuenta, en la misma página.
+- **Manage VPN settings for this account**, en el paso de la VPN de la página de acceso de un Clúster.
 
-### Servidor
+Solo los administradores pueden abrir esta página.
 
-| **Ajuste** | **Descripción** |
+Estos ajustes están disponibles con la nueva VPN (V2). Las cuentas nuevas la tienen desde el inicio. Si una cuenta todavía usa la VPN anterior, la página muestra un aviso: ejecuta la migración **VPN V2: Improved Reliability, Security and Management** desde **Upgrades**. Crea la nueva VPN junto a la actual, así nadie pierde el acceso mientras cambias. Cuando termina, cada usuario de la VPN descarga e importa el perfil nuevo. Una actualización posterior, **VPN V2: Retire the Previous VPN Server**, retira el servidor anterior: los perfiles creados antes dejan de funcionar.
+
+### Ajustes del servidor
+
+Los ajustes del servidor están agrupados en secciones. Cada campo muestra debajo su rango permitido.
+
+| **Sección** | **Ajustes** |
 | --- | --- |
-| **DNS servers** | Servidores DNS que reciben los clientes de la VPN, en orden de preferencia. Puedes configurar entre 1 y 4. |
-| **Require a one-time code (MFA) to connect** | Los usuarios deben ingresar un código de un solo uso cada vez que se conectan. |
-| **Inactive timeout (seconds)** | Desconecta a los usuarios inactivos. `0` los mantiene conectados. |
-| **Max devices per user** | Cuántos dispositivos puede conectar cada usuario a la vez. `0` significa sin límite. |
-| **Search domain** (Advanced) | Se agrega a los nombres de host cortos, para que los usuarios lleguen a `db` en lugar de `db.internal`. |
-| **Session timeout (seconds)** (Advanced) | Termina cada sesión pasado ese tiempo, esté activa o no. `0` significa sin límite. |
-| **MSS fix** (Advanced) | Limita el tamaño de los segmentos TCP para evitar conexiones que se cuelgan en redes con un MTU pequeño. Déjalo vacío salvo que veas ese problema. |
+| **Network and DNS** | **DNS servers** (entre 1 y 4, en orden de preferencia), **Search domain**, **DNS mapping**, **Block outside DNS**, **Restrict routes**, **Traffic between users**, **MSS fix**, **Jumbo frames**, **LZO compression**, **IPv6** e **IPv6 firewall**. |
+| **Connection and ping** | **Ping interval (seconds)**, **Ping timeout (seconds)** (como mínimo el intervalo de ping más 5), **Link ping interval (seconds)**, **Link ping timeout (seconds)**, **Inactive timeout (seconds)** y **Session timeout (seconds)**. |
+| **Access** | **Require a one-time code (MFA)**, **Several devices per user**, **Max devices per user**, **Max connected users**, **Allowed devices** y **Message before connecting**. |
+| **Security** | **Encryption cipher** y **Hash algorithm**. |
+| **Advanced** | **Debug logging**. |
 
-El puerto del servidor lo administra SleakOps y no se puede cambiar.
+Los valores que aparecen bajo **Managed by SleakOps** se muestran como referencia y no se pueden cambiar: **Client network**, **Port**, **Protocol**, **Network mode**, **VXLAN**, **Groups**, **DH parameter size (bits)**, **WireGuard** y **Replicas**.
+
+:::warning Cada usuario vuelve a importar su perfil
+**Encryption cipher**, **Hash algorithm**, **IPv6**, **IPv6 firewall** y **Allowed devices** forman parte del perfil VPN de cada usuario. Al cambiar alguno, SleakOps te pide confirmar que cada usuario debe volver a importar su perfil: hasta que lo haga, su perfil actual puede no conectar.
+:::
+
+Las credenciales de administrador de Pritunl nunca se muestran en SleakOps. Se guardan en AWS Secrets Manager, en la propia cuenta, en el secreto cuyo nombre contiene `pritunl-v2-secret`.
 
 ### Rutas
 
-Las rutas son las redes a las que llegan los usuarios de la VPN. Puedes agregar una red (IPv4 en notación CIDR, por ejemplo `192.168.50.0/24`), quitarla y activar o desactivar su **NAT**. Activa NAT cuando la red de destino no tiene una ruta de vuelta hacia los clientes de la VPN. Las rutas marcadas como **Managed** dan acceso a la red de la cuenta: las mantiene SleakOps, así que no se pueden cambiar ni quitar.
+Las rutas son las redes a las que llegan los usuarios de la VPN. Puedes agregar una red (IPv4 en notación CIDR, por ejemplo `192.168.50.0/24`), quitarla y activar o desactivar su **NAT**. Activa NAT cuando la red de destino no tiene una ruta de vuelta hacia los clientes de la VPN. No se permite una ruta por defecto (`0.0.0.0/0`).
+
+Las rutas marcadas como **Managed** no se pueden cambiar ni quitar: cubren la red propia de la cuenta, la red de los clientes de la VPN y los servidores DNS. Para cambiar las rutas de DNS, cambia los **DNS servers**. Las rutas hacia las redes de las otras cuentas del proveedor se crean con la VPN, y puedes quitarlas o cambiar su NAT.
 
 :::warning
-**Save server and routes** reinicia el servidor VPN una vez. Los usuarios conectados se desconectan alrededor de un minuto y su cliente Pritunl se reconecta solo.
+**Save server and routes** reinicia el servidor VPN una vez. Los usuarios conectados se desconectan alrededor de un minuto y su cliente Pritunl se reconecta solo. El corte dura más o menos lo que el **Ping timeout** (60 segundos por defecto): un valor más bajo lo acorta.
 :::
 
-### IPs permitidas para importar perfiles de VPN
+### IPs permitidas para el puerto 443
 
-Por defecto solo SleakOps puede llegar al puerto 443 del servidor VPN, y el cliente Pritunl de cada usuario necesita llegar a él para importar su perfil. Agrega los rangos de tu oficina en **Allowed ranges** (IPv4 en notación CIDR, por ejemplo `203.0.113.0/24`), o `0.0.0.0/0` para abrirlo a todos. La conexión VPN en sí no usa este puerto.
+El puerto 443 del servidor VPN está cerrado por defecto, salvo para SleakOps. Agrega los rangos de IP de quienes importan su perfil desde el enlace, porque su cliente Pritunl lo descarga desde este puerto. Una vez conectado a la VPN, la interfaz web está disponible en la dirección privada de la VPN, así que no necesita rangos. Usa `0.0.0.0/0` solo para abrirlo a todos. Guardar esto no desconecta a nadie.
 
-**Save allowed IPs** no desconecta a nadie. El cambio tarda unos minutos en aplicarse.
+Ingresa los rangos en **Allowed ranges** (IPv4 en notación CIDR, por ejemplo `203.0.113.0/24`) y haz clic en **Save allowed IPs**. El cambio tarda uno o dos minutos en aplicarse.
