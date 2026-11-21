@@ -73,7 +73,7 @@ Para permitir la comunicación controlada entre entornos (por ejemplo, entre Man
 
 Los VPC Flow Logs registran el tráfico IP de la VPC de una cuenta de AWS: direcciones de origen y destino, puertos, protocolo y si el tráfico fue aceptado o rechazado. No registran el contenido de los paquetes. Sirven para auditar conexiones, investigar tráfico rechazado o confirmar qué recursos se comunican entre sí.
 
-Los VPC Flow Logs vienen apagados por defecto. Un admin de la cuenta los activa por cuenta desde **Providers** → **Accounts & Networking**, en la sección **VPC Flow Logs** de la cuenta. Las VPC importadas están soportadas y los flow logs que ya tengas en la VPC no se modifican.
+Los VPC Flow Logs vienen apagados por defecto. Los usuarios con el rol **Admin** los activan por cuenta desde **Providers** → **Accounts & Networking**, en la sección **VPC Flow Logs** de la cuenta. La sección aparece cuando la cuenta ya tiene su red configurada. Las VPC importadas están soportadas y los flow logs que ya tengas en la VPC no se modifican.
 
 | **Opción**     | **Valores**                                                     |
 | -------------- | --------------------------------------------------------------- |
@@ -86,7 +86,7 @@ Los logs se escriben en un bucket de Amazon S3 privado y cifrado, en la misma cu
 
 ### Consultar los logs
 
-Descargá los archivos del bucket de S3 o consultalos con Amazon Athena. Por ejemplo, para listar los puertos de destino más rechazados:
+Descargá los archivos del bucket de S3 o consultalos con Amazon Athena. Por ejemplo, para listar los puertos de destino más rechazados, ejecutá las siguientes sentencias por separado, una a la vez:
 
 ```sql
 CREATE EXTERNAL TABLE vpc_flow_logs (
