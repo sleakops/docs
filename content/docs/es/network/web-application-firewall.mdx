@@ -1,0 +1,62 @@
+---
+id: web-application-firewall
+title: Firewall de Aplicaciones Web
+sidebar_label: Firewall de Aplicaciones Web
+sidebar_position: 9
+---
+
+# Firewall de Aplicaciones Web
+
+SleakOps puede poner AWS WAF delante del balanceador público de cada clúster, para frenar el tráfico malicioso antes de que llegue a tus aplicaciones. El firewall usa reglas administradas de AWS: reputación de IP, entradas maliciosas conocidas y el conjunto de reglas base. Viene desactivado por defecto.
+
+Aplica a los clústeres creados por SleakOps (no a los importados) y solo al balanceador público.
+
+## Actívalo
+
+Solo los administradores pueden cambiarlo.
+
+1. Abre **Providers** → **Accounts & Networking** y selecciona la cuenta.
+2. En la tarjeta **Web application firewall**, haz clic en **Manage**.
+3. En la fila del clúster, haz clic en **Configure**.
+4. Activa **Enable the web application firewall** y haz clic en **Enable**.
+
+El firewall arranca en modo **Count**: las solicitudes solo se cuentan y no se bloquea nada. Revisa las coincidencias durante aproximadamente una semana y después pasa el clúster a **Block**.
+
+Un clúster aparece como no disponible cuando:
+
+- Es un clúster importado.
+- Su addon de load balancer necesita actualizarse primero.
+- El clúster todavía no está listo.
+
+## Revisa los falsos positivos
+
+Antes de bloquear, mira qué detectan las reglas:
+
+- En tu cuenta de AWS, abre la consola de **AWS WAF**, selecciona la web ACL `sleakops-<cluster>` y revisa las métricas por regla y las solicitudes muestreadas.
+- Para conservar los logs completos de solicitudes, activa **Keep full request logs for 30 days (Authorization and Cookie headers hidden)** en el mismo formulario. Los logs están en el grupo de CloudWatch Logs `aws-waf-logs-<cluster>`, con retención de 30 días.
+
+Una solicitud bloqueada recibe un `403` del balanceador. Si una regla puntual bloquea tráfico legítimo, selecciónala en **Keep in count mode** en el mismo formulario: solo registra coincidencias mientras las demás siguen bloqueando. Los cuerpos de solicitud de más de 8 KB nunca son bloqueados por la regla de tamaño de cuerpo.
+
+## Suma grupos de reglas opcionales
+
+Puedes sumar otros grupos de reglas administradas de AWS, todos desactivados por defecto: IPs anónimas, inyección SQL y Linux.
+
+## Consulta el costo
+
+AWS cobra el firewall en tu cuenta, no SleakOps. Precios de referencia para us-east-1:
+
+- USD 5 por mes por web ACL.
+- USD 1 por mes por grupo de reglas (USD 8 por mes en total con los grupos por defecto).
+- USD 0,60 por millón de solicitudes.
+
+El registro suma cargos de CloudWatch Logs. Los precios varían según la región: consulta los [precios de AWS WAF](https://aws.amazon.com/waf/pricing/).
+
+## Conoce los límites
+
+- Un balanceador puede tener una sola web ACL. Si tu balanceador público ya tiene una web ACL que asociaste tú, SleakOps no la reemplaza y no activa el firewall.
+- Si uno de tus propios Ingress del mismo ingress group define una annotation de AWS WAF, la tuya gana o el balanceador deja de actualizarse. Quita esa annotation antes de activar el firewall.
+- Si el balanceador no puede consultar a AWS WAF, AWS no reenvía la solicitud a tu aplicación (comportamiento por defecto de AWS), incluso en modo **Count**.
+
+## Desactívalo
+
+Al desactivar el firewall se eliminan la web ACL y sus logs de solicitudes. Eliminar el clúster también los elimina.
