@@ -17,7 +17,7 @@ Only account administrators can see and change this section.
 
 1. Go to **Accounts & Networking** and select the AWS account.
 2. Open the **Load balancer access logs** section.
-3. Optionally set **Retention (days)** (default: 90). You can change it once logs are on for at least one cluster.
+3. Optionally set **Retention (days)** (default: 90, from 1 to 3650 days). You can change it once logs are on for at least one cluster.
 4. For each cluster, switch on **Public ALB** and/or **Private ALB**.
 5. Click **Save**.
 
@@ -25,7 +25,7 @@ SleakOps applies the change and the section shows its progress. To stop collecti
 
 Turning access logs on or off can restart the load balancer controller in the cluster. Your load balancers keep serving traffic, and any Ingress change you make meanwhile is applied once the controller is back.
 
-If setting up fails, SleakOps leaves the load balancer as it was. Save again to retry.
+If setting up fails, SleakOps leaves the load balancer as it was. Switch the toggle back on and save again to retry.
 
 A cluster appears as unavailable when:
 
@@ -40,7 +40,7 @@ SleakOps creates **one S3 bucket per AWS account and region**, named `sleakops-a
 
 - It is private: all public access is blocked and only HTTPS requests are accepted.
 - It is encrypted with S3-managed keys (SSE-S3).
-- Logs are written under `alb/<cluster>/<public|private>/AWSLogs/...`.
+- Logs are written under `alb/<cluster-name>-<id>/<public|private>/AWSLogs/...`. `<cluster-name>-<id>` is the cluster name followed by a short identifier; you can see the exact folder in the bucket.
 - Objects are deleted automatically after the retention you set (default 90 days).
 
 Logs can contain client IP addresses, user agents and URLs with query strings. Treat the bucket as sensitive data. SleakOps does not read your logs.
@@ -69,7 +69,7 @@ Imported clusters are not supported: their load balancer controller is managed b
 
 AWS does not charge for generating ALB access logs. You pay for what the logs use in S3 (storage and requests) and for any queries you run.
 
-Rough estimates, based on list prices and not verified against invoices:
+Rough estimates based on AWS list prices:
 
 | Traffic per load balancer | Approximate S3 cost with 90 days retention |
 |---|---|
@@ -80,4 +80,4 @@ Querying with Amazon Athena is billed per TB of data scanned. Partitioned tables
 
 ## Query the logs with Athena
 
-Use Amazon Athena on the bucket to search your logs with SQL. AWS documents the table definition and sample queries in [Query Application Load Balancer logs](https://docs.aws.amazon.com/athena/latest/ug/application-load-balancer-logs.html). Point the table at `s3://sleakops-alb-logs-<account-id>-<region>/alb/<cluster>/<public|private>/AWSLogs/<account-id>/elasticloadbalancing/<region>/`.
+Use Amazon Athena on the bucket to search your logs with SQL. AWS documents the table definition and sample queries in [Query Application Load Balancer logs](https://docs.aws.amazon.com/athena/latest/ug/application-load-balancer-logs.html). Point the table at `s3://sleakops-alb-logs-<account-id>-<region>/alb/<cluster-name>-<id>/<public|private>/AWSLogs/<account-id>/elasticloadbalancing/<region>/`. `<cluster-name>-<id>` is the cluster name followed by a short identifier; you can see the exact folder in the bucket.
