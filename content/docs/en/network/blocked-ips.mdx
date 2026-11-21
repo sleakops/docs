@@ -17,12 +17,12 @@ Blocked IPs is implemented with **VPC Network ACLs** (NACLs), applied to the acc
 - The VPC's default Network ACL is never modified.
 - Private and data subnets are not affected.
 - If you remove every entry, all traffic is allowed again.
-- If you delete the account or the provider, the dedicated Network ACL is removed and the subnets go back to the default one.
+- If you delete the provider, the dedicated Network ACL is removed and the subnets go back to the default one.
 
 ## Manage the list
 
 1. Go to **Accounts & Networking** and select the account.
-2. Open **Blocked IPs**. Only admins can see and edit it.
+2. In the account's network diagram, click **Blocked IPs** on the public subnets band. Only admins can see and edit it.
 3. Add entries and save. Each entry has an IPv4 range (a single IP is saved as `/32`), an optional protocol (TCP or UDP) with an optional port range, and an optional description.
 
 Changes are applied in the background and take from a few seconds to a few minutes. The page shows when they are being applied. If an apply fails, save again to retry.
@@ -42,7 +42,7 @@ Network ACLs do not filter Amazon DNS, DHCP, instance metadata or Time Sync traf
 | Rule | Detail |
 |---|---|
 | Entries per account | Up to 19. AWS allows 20 rules per direction and one is used to allow the rest of the traffic. |
-| Smallest range | `/8`. Wider ranges, such as `0.0.0.0/0`, are rejected. |
+| Widest range | `/8`. Wider ranges, such as `0.0.0.0/0`, are rejected. |
 | Reserved ranges | Rejected (for example loopback, link-local and multicast). |
 | IP version | IPv4 only. IPv6 is not supported. |
 | Duplicates | The same range, protocol and ports cannot be listed twice. |

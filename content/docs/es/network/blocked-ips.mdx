@@ -17,12 +17,12 @@ IPs bloqueadas se implementa con **Network ACLs de VPC** (NACL), aplicadas a las
 - La Network ACL default de la VPC nunca se modifica.
 - Las subredes privadas y de persistencia no se ven afectadas.
 - Si eliminás todas las entradas, se vuelve a permitir todo el tráfico.
-- Si eliminás la cuenta o el provider, la Network ACL dedicada se elimina y las subredes vuelven a la default.
+- Si eliminás el provider, la Network ACL dedicada se elimina y las subredes vuelven a la default.
 
 ## Administrar la lista
 
 1. Andá a **Accounts & Networking** y seleccioná la cuenta.
-2. Abrí **IPs bloqueadas**. Solo los admins pueden verla y editarla.
+2. En el diagrama de red de la cuenta, hacé clic en **Blocked IPs** en la banda de subredes públicas. Solo los admins pueden verla y editarla.
 3. Agregá entradas y guardá. Cada entrada tiene un rango IPv4 (una IP suelta se guarda como `/32`), un protocolo opcional (TCP o UDP) con un rango de puertos opcional, y una descripción opcional.
 
 Los cambios se aplican en segundo plano y tardan entre unos segundos y unos minutos. La página indica cuándo se están aplicando. Si la aplicación falla, guardá de nuevo para reintentar.
@@ -42,7 +42,7 @@ Las Network ACL no filtran el tráfico de DNS de Amazon, DHCP, metadata de insta
 | Regla | Detalle |
 |---|---|
 | Entradas por cuenta | Hasta 19. AWS permite 20 reglas por dirección y una se usa para permitir el resto del tráfico. |
-| Rango más chico | `/8`. Los rangos más amplios, como `0.0.0.0/0`, se rechazan. |
+| Rango más amplio | `/8`. Los rangos más amplios, como `0.0.0.0/0`, se rechazan. |
 | Rangos reservados | Se rechazan (por ejemplo loopback, link-local y multicast). |
 | Versión de IP | Solo IPv4. IPv6 no está soportado. |
 | Duplicados | No se puede repetir el mismo rango, protocolo y puertos. |
