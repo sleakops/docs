@@ -55,7 +55,7 @@ Logging adds CloudWatch Logs charges. Prices vary by region: see [AWS WAF pricin
 
 - A load balancer can have only one web ACL. If your public load balancer already has a web ACL you attached yourself, SleakOps does not replace it and does not enable the firewall.
 - If one of your own Ingresses in the same ingress group sets an AWS WAF annotation, yours wins or the load balancer stops updating. Remove that annotation before you enable the firewall.
-- If the load balancer can't reach AWS WAF, AWS does not forward the request to your application (AWS default behavior), even in **Count** mode.
+- If the load balancer can't reach AWS WAF, by default it does not forward the request to your application, even in **Count** mode. To keep your applications online instead, select **Let traffic through unfiltered** under **If AWS WAF is unavailable** in the same form: requests then reach your application without protection until AWS WAF is back.
 
 ## Turn it off
 

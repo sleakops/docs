@@ -55,7 +55,7 @@ El registro suma cargos de CloudWatch Logs. Los precios varían según la regió
 
 - Un balanceador puede tener una sola web ACL. Si tu balanceador público ya tiene una web ACL que asociaste tú, SleakOps no la reemplaza y no activa el firewall.
 - Si uno de tus propios Ingress del mismo ingress group define una annotation de AWS WAF, la tuya gana o el balanceador deja de actualizarse. Quita esa annotation antes de activar el firewall.
-- Si el balanceador no puede consultar a AWS WAF, AWS no reenvía la solicitud a tu aplicación (comportamiento por defecto de AWS), incluso en modo **Count**.
+- Si el balanceador no puede consultar a AWS WAF, por defecto no reenvía la solicitud a tu aplicación, incluso en modo **Count**. Para mantener tus aplicaciones en línea, elige **Let traffic through unfiltered** en **If AWS WAF is unavailable** en el mismo formulario: las solicitudes llegan a tu aplicación sin protección hasta que AWS WAF vuelva.
 
 ## Desactívalo
 
