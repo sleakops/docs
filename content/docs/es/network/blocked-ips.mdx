@@ -33,7 +33,7 @@ Las Network ACL **no guardan estado** (son _stateless_): evalúan cada paquete p
 
 Una regla limitada a un puerto solo afecta el tráfico hacia ese puerto de destino.
 
-Un rango amplio, como el `/8` de un proveedor cloud, puede cortar servicios de los que depende tu cluster. Preferí el rango más chico que cubra el origen.
+Un rango amplio, como un `/16` de un proveedor cloud, puede cortar servicios de los que depende tu cluster. Preferí el rango más chico que cubra el origen.
 
 Las Network ACL no filtran el tráfico de DNS de Amazon, DHCP, metadata de instancia ni Time Sync.
 
@@ -41,8 +41,8 @@ Las Network ACL no filtran el tráfico de DNS de Amazon, DHCP, metadata de insta
 
 | Regla | Detalle |
 |---|---|
-| Entradas por cuenta | Hasta 19. AWS permite 20 reglas por dirección y una se usa para permitir el resto del tráfico. |
-| Rango más amplio | `/8`. Los rangos más amplios, como `0.0.0.0/0`, se rechazan. |
+| Entradas por cuenta | Hasta 9. AWS permite 20 reglas por dirección, y editar una entrada usa dos reglas por un momento. |
+| Rango más amplio | `/16`. Los rangos más amplios, como un `/8` o `0.0.0.0/0`, se rechazan. |
 | Rangos reservados | Se rechazan (por ejemplo loopback, link-local y multicast). |
 | Versión de IP | Solo IPv4. IPv6 no está soportado. |
 | Duplicados | No se puede repetir el mismo rango, protocolo y puertos. |

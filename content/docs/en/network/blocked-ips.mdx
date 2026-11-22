@@ -33,7 +33,7 @@ Network ACLs are **stateless**: they evaluate each packet on its own and do not 
 
 A rule limited to a port only affects traffic to that destination port.
 
-A wide range, such as a cloud provider's `/8`, can cut off services your cluster depends on. Prefer the narrowest range that covers the source.
+A wide range, such as a cloud provider's `/16`, can cut off services your cluster depends on. Prefer the narrowest range that covers the source.
 
 Network ACLs do not filter Amazon DNS, DHCP, instance metadata or Time Sync traffic.
 
@@ -41,8 +41,8 @@ Network ACLs do not filter Amazon DNS, DHCP, instance metadata or Time Sync traf
 
 | Rule | Detail |
 |---|---|
-| Entries per account | Up to 19. AWS allows 20 rules per direction and one is used to allow the rest of the traffic. |
-| Widest range | `/8`. Wider ranges, such as `0.0.0.0/0`, are rejected. |
+| Entries per account | Up to 9. AWS allows 20 rules per direction, and editing an entry briefly uses two rules. |
+| Widest range | `/16`. Wider ranges, such as a `/8` or `0.0.0.0/0`, are rejected. |
 | Reserved ranges | Rejected (for example loopback, link-local and multicast). |
 | IP version | IPv4 only. IPv6 is not supported. |
 | Duplicates | The same range, protocol and ports cannot be listed twice. |
