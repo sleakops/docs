@@ -41,12 +41,37 @@ Una solicitud bloqueada recibe un `403` del balanceador. Si una regla puntual bl
 
 Puedes sumar otros grupos de reglas administradas de AWS, todos desactivados por defecto: IPs anónimas, inyección SQL y Linux.
 
+## Permite o bloquea direcciones IP
+
+Puedes definir dos listas opcionales de direcciones IP en el mismo formulario:
+
+- **Always allow these IPs**: las solicitudes de estas direcciones saltean todas las demás reglas del firewall, así que las reglas administradas tampoco las cuentan ni las bloquean. Úsala para tus oficinas o socios de confianza. Deja pasar las solicitudes tanto en modo **Count** como en **Block**.
+- **Always block these IPs**: las solicitudes de estas direcciones se rechazan en modo **Block**. En modo **Count** solo se registran.
+
+Ingresa una dirección IP o un rango por línea, IPv4 o IPv6 (por ejemplo `203.0.113.7` o `198.51.100.0/24`). Límites:
+
+- Hasta 100 entradas por lista.
+- Los rangos no pueden ser más amplios que `/16` en IPv4 ni que `/32` en IPv6. Los rangos reservados, como `127.0.0.0/8`, se rechazan.
+- El mismo rango no puede estar en las dos listas.
+- La lista de bloqueo no puede incluir la IP pública que usan tus aplicaciones para el tráfico saliente, porque bloquearla cortaría sus llamadas a tu propio balanceador.
+
+## Limita las solicitudes por dirección IP
+
+Activa **Limit requests per IP address** y define cuántas solicitudes puede enviar una dirección IP en 5 minutos, entre 10 y 2.000.000.000. En modo **Block**, una dirección que supera el límite se rechaza hasta que su ritmo baje. En modo **Count** solo se registra.
+
+AWS suele reaccionar en unos 30 segundos, así que una ráfaga puede pasar antes de que el límite se aplique. Cambiar el límite reinicia los contadores y las solicitudes pueden quedar sin límite hasta por un minuto.
+
+## Consulta las reglas activas
+
+La tabla **Active rules** del formulario del clúster es de solo lectura. Lista, en el orden en que se evalúan, cada regla con su acción y su capacidad (WCU). La primera regla que permite o bloquea una solicitud decide; las reglas en **Count** solo registran.
+
 ## Consulta el costo
 
 AWS cobra el firewall en tu cuenta, no SleakOps. Precios de referencia para us-east-1:
 
 - USD 5 por mes por web ACL.
 - USD 1 por mes por grupo de reglas (USD 8 por mes en total con los grupos por defecto).
+- USD 1 por mes por cada regla extra: el límite por IP y cada lista de permitidas o bloqueadas que tenga entradas IPv4, IPv6 o ambas (hasta dos reglas por lista). Aparecen en **Active rules**.
 - USD 0,60 por millón de solicitudes.
 
 El registro suma cargos de CloudWatch Logs. Los precios varían según la región: consulta los [precios de AWS WAF](https://aws.amazon.com/waf/pricing/).

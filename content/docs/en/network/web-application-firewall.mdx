@@ -41,12 +41,37 @@ A blocked request gets a `403` from the load balancer. If a specific rule blocks
 
 You can add more AWS managed rule groups, all off by default: anonymous IPs, SQL injection and Linux.
 
+## Allow or block IP addresses
+
+You can set two optional lists of IP addresses in the same form:
+
+- **Always allow these IPs**: requests from these addresses skip every other firewall rule, so the managed rules never count or block them either. Use it for your offices or trusted partners. It lets requests through in both **Count** and **Block** mode.
+- **Always block these IPs**: requests from these addresses are rejected in **Block** mode. In **Count** mode they are only recorded.
+
+Enter one IP address or range per line, IPv4 or IPv6 (for example `203.0.113.7` or `198.51.100.0/24`). Limits:
+
+- Up to 100 entries per list.
+- Ranges can be no wider than `/16` for IPv4 or `/32` for IPv6. Reserved ranges such as `127.0.0.0/8` are rejected.
+- The same range cannot be in both lists.
+- The block list cannot include the public IP your applications use for outbound traffic, because blocking it would cut their calls to your own load balancer.
+
+## Limit requests per IP address
+
+Switch on **Limit requests per IP address** and set how many requests one IP address can send in 5 minutes, between 10 and 2,000,000,000. In **Block** mode an address over the limit is rejected until its rate drops. In **Count** mode it is only recorded.
+
+AWS usually reacts within about 30 seconds, so a burst can get through before the limit applies. Changing the limit resets the counters, and requests may go unlimited for up to a minute.
+
+## See the active rules
+
+The **Active rules** table in the cluster's form is read-only. It lists, in the order they are evaluated, each rule with its action and capacity (WCU). The first rule that allows or blocks a request decides; rules in **Count** only record.
+
 ## Cost
 
 AWS bills the firewall in your account, not SleakOps. Reference prices for us-east-1:
 
 - USD 5 per month per web ACL.
 - USD 1 per month per rule group (USD 8 per month in total with the default rule groups).
+- USD 1 per month for each extra rule: the rate limit, and each allowed or blocked list that has IPv4 entries, IPv6 entries or both (up to two rules per list). They appear in **Active rules**.
 - USD 0.60 per million requests.
 
 Logging adds CloudWatch Logs charges. Prices vary by region: see [AWS WAF pricing](https://aws.amazon.com/waf/pricing/).
