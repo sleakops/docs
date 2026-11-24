@@ -93,7 +93,7 @@ Not on node pools created by SleakOps. Their nodes require IMDSv2 (token-based i
 <summary>
 ### What happens when the "System Nodes IMDSv2 Enforcement" improvement runs?
 </summary>
-It applies IMDSv2 to the cluster's system nodes, the small fixed group that runs the cluster add-ons, on clusters created before it was the default. Clusters created later, and clusters that go through a Kubernetes version upgrade, already have it. You schedule it from [Upgrades](/docs/upgrades).
+It applies IMDSv2 to the cluster's system nodes, the small fixed group that runs the cluster add-ons, on clusters created before it was the default. Clusters created later already have it. You schedule it from [Upgrades](/docs/upgrades).
 
 It is not a reboot in place: AWS replaces the system nodes. It first launches the new nodes (possibly more than one at a time) and waits for them to be ready; then it drains each old node (its Pods move to other nodes) and terminates it, one at a time. Your applications run on node pool nodes and keep running. The add-ons on the system nodes move to the new node within a few minutes. Schedule it in a low-traffic window.
 </details>
