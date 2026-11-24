@@ -94,6 +94,10 @@ Los addons que SleakOps corre en un clúster importado no quedan fijados a ning�
 
 Cuando creás un Proyecto en un Entorno de un clúster importado, el campo **Nodepool** lista por nombre los node pools de Karpenter reales del clúster, más **No node pool** (los workloads corren sin fijar y el scheduler del clúster decide dónde). Al elegir un pool aparece el campo **Architecture**: queda definido y bloqueado cuando el pool fija una sola arquitectura; si no, elegís `(64-Bit) X86` o `(64-Bit) ARM` para tus builds y workloads. Si no se pueden listar los pools reales, igual podés crear el Proyecto sin fijar.
 
+### Seguridad de los nodos
+
+Los nodos, security groups y node classes de un clúster importado son tuyos. SleakOps recomienda exigir IMDSv2 en los nodos y quitar el acceso SSH.
+
 ### Límites
 
 - Los addons esenciales **Karpenter**, **Load Balancer** y **CoreDNS** no se pueden instalar — la capacidad de nodos, el ALB controller y el DNS del clúster siguen en manos del dueño del clúster. Mirá [Addons esenciales](/docs/cluster/addons/essential-addons).

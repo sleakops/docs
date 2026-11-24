@@ -84,6 +84,22 @@ You can't change the architect type of a node pool, but you can achieve the desi
 
 <details>
 <summary>
+### Can my Pods use the node's AWS credentials?
+</summary>
+Not on node pools created by SleakOps. Their nodes require IMDSv2 (token-based instance metadata) and, by default, their Pods can't reach the node's instance metadata (Pods with `hostNetwork` can, and a node pool override can raise the metadata hop limit). A workload that needs AWS credentials must use the IAM role SleakOps gives its Pod. A node pool you imported keeps the instance metadata settings it already had.
+</details>
+
+<details>
+<summary>
+### What happens when the "System Nodes IMDSv2 Enforcement" improvement runs?
+</summary>
+It applies IMDSv2 to the cluster's system nodes, the small fixed group that runs the cluster add-ons, on clusters created before it was the default. Clusters created later already have it. You schedule it from [Upgrades](/docs/upgrades).
+
+It is not a reboot in place: AWS replaces the system nodes. It first launches the new nodes (possibly more than one at a time) and waits for them to be ready; then it drains each old node (its Pods move to other nodes) and terminates it, one at a time. Your applications run on node pool nodes and keep running. The add-ons on the system nodes move to the new node within a few minutes. Schedule it in a low-traffic window.
+</details>
+
+<details>
+<summary>
 ### How do I create a Node Pool?
 </summary>
 Follow [Creating a Node Pool](/docs/cluster/nodepools/creating-nodepool) 
