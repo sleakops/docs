@@ -1,0 +1,61 @@
+---
+id: ips-bloqueadas
+title: IPs bloqueadas
+sidebar_label: IPs bloqueadas
+sidebar_position: 8
+---
+
+# IPs bloqueadas
+
+Bloqueá un scanner, un cliente abusivo o cualquier origen no deseado antes de que su tráfico llegue a tus load balancers públicos. **IPs bloqueadas** deniega el tráfico entrante desde los rangos IPv4 que listes, en el borde de la red de tu cuenta.
+
+## Cómo funciona
+
+IPs bloqueadas se implementa con **Network ACLs de VPC** (NACL), aplicadas a las **subredes públicas** de la cuenta: donde viven tus load balancers públicos, el NAT Gateway y el servidor VPN.
+
+- La primera vez que guardás una lista, SleakOps crea una Network ACL dedicada y asocia a ella las subredes públicas. Contiene una regla de denegación por cada entrada, seguida de una regla que permite el resto del tráfico de entrada y de salida.
+- La Network ACL default de la VPC nunca se modifica.
+- Las subredes privadas y de persistencia no se ven afectadas.
+- Si eliminás todas las entradas, se vuelve a permitir todo el tráfico.
+- Si eliminás el provider, la Network ACL dedicada se elimina y las subredes vuelven a la default.
+
+## Administrar la lista
+
+1. Andá a **Accounts & Networking** y seleccioná la cuenta.
+2. En el diagrama de red de la cuenta, hacé clic en **Blocked IPs** en la banda de subredes públicas. Solo los admins pueden verla y editarla.
+3. Agregá entradas y guardá. Cada entrada tiene un rango IPv4 (una IP suelta se guarda como `/32`), un protocolo opcional (TCP o UDP) con un rango de puertos opcional, y una descripción opcional.
+
+Los cambios se aplican en segundo plano y tardan entre unos segundos y unos minutos. La página indica cuándo se están aplicando. Si la aplicación falla, guardá de nuevo para reintentar.
+
+## Sin estado: qué implica para vos
+
+Las Network ACL **no guardan estado** (son _stateless_): evalúan cada paquete por separado y no recuerdan las conexiones. Por eso, bloquear un rango en la entrada también descarta las **respuestas** de ese rango a las conexiones que tus workloads abren hacia él. Por ejemplo, si un servicio de tu clúster consume una API externa alojada en un rango bloqueado, sus respuestas dejan de llegar.
+
+Una regla limitada a un puerto solo afecta el tráfico hacia ese puerto de destino.
+
+Un rango amplio, como un `/16` de un proveedor cloud, puede cortar servicios de los que depende tu cluster. Preferí el rango más chico que cubra el origen.
+
+Las Network ACL no filtran el tráfico de DNS de Amazon, DHCP, metadata de instancia ni Time Sync.
+
+## Límites y rangos rechazados
+
+| Regla | Detalle |
+|---|---|
+| Entradas por cuenta | Hasta 9. AWS permite 20 reglas por dirección, y editar una entrada usa dos reglas por un momento. |
+| Rango más amplio | `/16`. Los rangos más amplios, como un `/8` o `0.0.0.0/0`, se rechazan. |
+| Rangos reservados | Se rechazan (por ejemplo loopback, link-local y multicast). |
+| Versión de IP | Solo IPv4. IPv6 no está soportado. |
+| Duplicados | No se puede repetir el mismo rango, protocolo y puertos. |
+| Descripción | Hasta 100 caracteres. Se guarda solo en SleakOps. |
+
+Para evitar que te quedes sin acceso o que SleakOps pierda el suyo, se rechaza cualquier rango que se solape con:
+
+- la red de la VPC de la propia cuenta, o las VPC de las otras cuentas del provider;
+- las IPs desde las que opera SleakOps;
+- las IPs públicas de tus NAT Gateways y servidores VPN;
+- las redes de clientes VPN.
+
+## Tené en cuenta
+
+- IPs bloqueadas **no está disponible para cuentas con red importada** (tu propia VPC). En esos casos, administrá las Network ACL directamente en AWS.
+- Es una lista de denegación, no de permitidos, y no es un firewall de aplicación. Filtra solo por IP de origen, protocolo y puerto. Para filtrar por contenido de las requests, usá otras herramientas.
