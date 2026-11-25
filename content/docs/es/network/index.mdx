@@ -75,10 +75,14 @@ Los VPC Flow Logs registran el tráfico IP de la VPC de una cuenta de AWS: direc
 
 Los VPC Flow Logs vienen apagados por defecto. Los usuarios con el rol **Admin** los activan por cuenta desde **Providers** → **Accounts & Networking**, en la sección **VPC Flow Logs** de la cuenta. La sección aparece cuando la cuenta ya tiene su red configurada. Las VPC importadas están soportadas y los flow logs que ya tengas en la VPC no se modifican.
 
-| **Opción**     | **Valores**                                                     |
-| -------------- | --------------------------------------------------------------- |
-| **Traffic**    | All (por defecto), Accepted only, Rejected only                 |
-| **Retention**  | 30, 90 (por defecto), 180 o 365 días                            |
+| **Opción**                           | **Valores**                                                                  |
+| ------------------------------------ | ---------------------------------------------------------------------------- |
+| **Public subnets**                   | All (por defecto), Accepted only, Rejected only, Don't record                |
+| **Private subnets**                  | All (por defecto), Accepted only, Rejected only, Don't record                |
+| **Persistent subnets (databases)**   | All (por defecto), Accepted only, Rejected only, Don't record                |
+| **Retention**                        | 30, 90 (por defecto), 180 o 365 días                                         |
+
+Elegís el tráfico a registrar por separado para cada grupo de subredes. Por defecto se registra todo el tráfico en todas las subredes. Por ejemplo, podés no registrar nada en las subredes privadas y registrar todo en las públicas. **Don't record** deja las subredes de ese grupo sin flow logs. No podés activar los VPC Flow Logs con los tres grupos en **Don't record**; apagá los VPC Flow Logs en su lugar. Cambiar un grupo solo modifica el registro de sus subredes; los demás grupos siguen registrando sin interrupción.
 
 ### Dónde se guardan los logs
 
@@ -127,7 +131,7 @@ AWS cobra los VPC Flow Logs en tu propia cuenta de AWS, no a través de SleakOps
 | Conversión a Parquet                | US$0,03 por GB            |
 | Almacenamiento S3 Standard          | US$0,023 por GB-mes       |
 
-Una cuenta chica suele pagar entre unos centavos y algunos dólares por mes; el costo crece con el tráfico de la VPC. Elegir **Rejected only** reduce el volumen considerablemente.
+Una cuenta chica suele pagar entre unos centavos y algunos dólares por mes; el costo crece con el tráfico de la VPC. Las subredes privadas suelen concentrar la mayor parte del tráfico y, por lo tanto, del volumen de logs y del costo de almacenamiento. Registrar solo el tráfico rechazado (**Rejected only**) allí mantiene el almacenamiento más chico y conserva el registro de las conexiones bloqueadas.
 
 ### Apagar o eliminar
 

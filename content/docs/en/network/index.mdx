@@ -75,10 +75,14 @@ VPC Flow Logs record the IP traffic of the VPC of an AWS account: source and des
 
 VPC Flow Logs are off by default. Users with the **Admin** role turn them on per account from **Providers** → **Accounts & Networking**, in the **VPC Flow Logs** section of the account. The section appears once the account has its network set up. Imported VPCs are supported, and any flow logs you already have on the VPC are not changed.
 
-| **Option**    | **Values**                                               |
-| ------------- | -------------------------------------------------------- |
-| **Traffic**   | All (default), Accepted only, Rejected only              |
-| **Retention** | 30, 90 (default), 180 or 365 days                        |
+| **Option**                           | **Values**                                                              |
+| ------------------------------------ | ----------------------------------------------------------------------- |
+| **Public subnets**                   | All (default), Accepted only, Rejected only, Don't record               |
+| **Private subnets**                  | All (default), Accepted only, Rejected only, Don't record               |
+| **Persistent subnets (databases)**   | All (default), Accepted only, Rejected only, Don't record               |
+| **Retention**                        | 30, 90 (default), 180 or 365 days                                       |
+
+You choose the traffic to record separately for each group of subnets. By default, all traffic is recorded in every subnet. For example, you can record nothing in the private subnets and everything in the public ones. **Don't record** leaves that group's subnets without flow logs. You can't turn VPC Flow Logs on with the three groups set to **Don't record**; turn VPC Flow Logs off instead. Changing one group only changes the recording of its subnets; the other groups keep recording without interruption.
 
 ### Where the logs are stored
 
@@ -127,7 +131,7 @@ AWS charges for VPC Flow Logs on your own AWS account, not through SleakOps. Lis
 | Conversion to Parquet               | US$0.03 per GB          |
 | S3 Standard storage                 | US$0.023 per GB-month   |
 
-A small account typically pays from a few cents to a few dollars per month; the cost grows with the traffic of the VPC. Choosing **Rejected only** reduces the volume considerably.
+A small account typically pays from a few cents to a few dollars per month; the cost grows with the traffic of the VPC. Private subnets usually carry most of the traffic, and so most of the log volume and storage cost. Recording only rejected traffic (**Rejected only**) there keeps storage smaller while keeping the record of blocked connections.
 
 ### Turn off or delete
 
