@@ -69,3 +69,71 @@ Para permitir la comunicación controlada entre entornos (por ejemplo, entre Man
 
 > 💡 Además del acceso mediante Internet Gateway, SleakOps contempla otros mecanismos de conectividad como **Pritunl VPN**, **NAT Gateway** y **Transit Gateway**, dependiendo del caso de uso y el nivel de aislamiento requerido.
 
+## 5. VPC Flow Logs
+
+Los VPC Flow Logs registran el tráfico IP de la VPC de una cuenta de AWS: direcciones de origen y destino, puertos, protocolo y si el tráfico fue aceptado o rechazado. No registran el contenido de los paquetes. Sirven para auditar conexiones, investigar tráfico rechazado o confirmar qué recursos se comunican entre sí.
+
+Los VPC Flow Logs vienen apagados por defecto. Los usuarios con el rol **Admin** los activan por cuenta desde **Providers** → **Accounts & Networking**, en la sección **VPC Flow Logs** de la cuenta. La sección aparece cuando la cuenta ya tiene su red configurada. Las VPC importadas están soportadas y los flow logs que ya tengas en la VPC no se modifican.
+
+| **Opción**                           | **Valores**                                                                  |
+| ------------------------------------ | ---------------------------------------------------------------------------- |
+| **Public subnets**                   | All (por defecto), Accepted only, Rejected only, Don't record                |
+| **Private subnets**                  | All (por defecto), Accepted only, Rejected only, Don't record                |
+| **Persistent subnets (databases)**   | All (por defecto), Accepted only, Rejected only, Don't record                |
+| **Retention**                        | 30, 90 (por defecto), 180 o 365 días                                         |
+
+Elegís el tráfico a registrar por separado para cada grupo de subredes. Por defecto se registra todo el tráfico en todas las subredes. Por ejemplo, podés no registrar nada en las subredes privadas y registrar todo en las públicas. **Don't record** deja las subredes de ese grupo sin flow logs. No podés activar los VPC Flow Logs con los tres grupos en **Don't record**; apagá los VPC Flow Logs en su lugar. Cambiar un grupo solo modifica el registro de sus subredes; los demás grupos siguen registrando sin interrupción.
+
+### Dónde se guardan los logs
+
+Los logs se escriben en un bucket de Amazon S3 privado y cifrado, en la misma cuenta de AWS, con el nombre `sleakops-<aws-account-id>-<region>-vpc-flow-logs`. Los archivos están en formato Parquet, particionados por hora. Se eliminan del bucket cuando termina el período de retención. La consola muestra el estado, la configuración y el nombre del bucket; no muestra los logs.
+
+### Consultar los logs
+
+Descargá los archivos del bucket de S3 o consultalos con Amazon Athena. Por ejemplo, para listar los puertos de destino más rechazados, ejecutá las siguientes sentencias por separado, una a la vez:
+
+```sql
+CREATE EXTERNAL TABLE vpc_flow_logs (
+  version int, account_id string, interface_id string,
+  srcaddr string, dstaddr string, srcport int, dstport int,
+  protocol bigint, packets bigint, bytes bigint,
+  `start` bigint, `end` bigint, action string, log_status string,
+  vpc_id string, subnet_id string, instance_id string,
+  tcp_flags int, type string, pkt_srcaddr string, pkt_dstaddr string,
+  flow_direction string, traffic_path int
+)
+PARTITIONED BY (
+  `aws-account-id` string, `aws-service` string, `aws-region` string,
+  year string, month string, day string, hour string
+)
+STORED AS PARQUET
+LOCATION 's3://sleakops-<aws-account-id>-<region>-vpc-flow-logs/AWSLogs/';
+
+MSCK REPAIR TABLE vpc_flow_logs;
+
+SELECT dstport, count(*) AS rejected
+FROM vpc_flow_logs
+WHERE action = 'REJECT' AND year = '2026' AND month = '11'
+GROUP BY dstport
+ORDER BY rejected DESC
+LIMIT 10;
+```
+
+Ejecutá `MSCK REPAIR TABLE` de nuevo para cargar las particiones de las horas nuevas.
+
+### Costo
+
+AWS cobra los VPC Flow Logs en tu propia cuenta de AWS, no a través de SleakOps. Precios de lista en us-east-1:
+
+| **Concepto**                        | **Precio**                |
+| ----------------------------------- | ------------------------- |
+| Entrega a S3                        | US$0,25 por GB            |
+| Conversión a Parquet                | US$0,03 por GB            |
+| Almacenamiento S3 Standard          | US$0,023 por GB-mes       |
+
+Una cuenta chica suele pagar entre unos centavos y algunos dólares por mes; el costo crece con el tráfico de la VPC. Las subredes privadas suelen concentrar la mayor parte del tráfico y, por lo tanto, del volumen de logs y del costo de almacenamiento. Registrar solo el tráfico rechazado (**Rejected only**) allí mantiene el almacenamiento más chico y conserva el registro de las conexiones bloqueadas.
+
+### Apagar o eliminar
+
+Al apagar los VPC Flow Logs se deja de registrar; los logs ya escritos quedan en el bucket hasta que termina el período de retención. Al eliminar la cuenta, el bucket y sus logs se conservan en tu cuenta de AWS; expiran según la retención que configuraste.
+
