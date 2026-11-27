@@ -33,7 +33,7 @@ Un clúster aparece como no disponible cuando:
 Antes de bloquear, mira qué detectan las reglas:
 
 - En tu cuenta de AWS, abre la consola de **AWS WAF**, selecciona la web ACL `sleakops-<cluster>` y revisa las métricas por regla y las solicitudes muestreadas.
-- Para conservar los logs completos de solicitudes, activa **Keep full request logs for 30 days (Authorization and Cookie headers hidden)** en el mismo formulario. Los logs están en el grupo de CloudWatch Logs `aws-waf-logs-<cluster>`, con retención de 30 días.
+- Para conservar los logs completos de solicitudes, activa **Keep full request logs for 30 days (Authorization and Cookie headers hidden)** en el mismo formulario. Los logs están en el grupo de CloudWatch Logs `aws-waf-logs-<cluster>`, con retención de 30 días. Al desactivarlo se eliminan el grupo de logs y todos sus logs, así que exporta antes los que necesites.
 
 Una solicitud bloqueada recibe un `403` del balanceador. Si una regla puntual bloquea tráfico legítimo, selecciónala en **Keep in count mode** en el mismo formulario: solo registra coincidencias mientras las demás siguen bloqueando. Los cuerpos de solicitud de más de 8 KB nunca son bloqueados por la regla de tamaño de cuerpo.
 
@@ -84,4 +84,4 @@ El registro suma cargos de CloudWatch Logs. Los precios varían según la regió
 
 ## Desactívalo
 
-Al desactivar el firewall se eliminan la web ACL y sus logs de solicitudes. Eliminar el clúster también los elimina.
+Al desactivar el firewall se eliminan la web ACL y sus logs de solicitudes. Eliminar el clúster también los elimina. Si vuelves a activarlo, arranca con la configuración por defecto: vuelve a cargar tus listas de IPs, el límite por IP y el registro.

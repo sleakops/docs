@@ -33,7 +33,7 @@ A cluster appears as unavailable when:
 Check what the rules match before you block:
 
 - In your AWS account, open the **AWS WAF** console, select the web ACL `sleakops-<cluster>` and review the metrics per rule and the sampled requests.
-- To keep full request logs, switch on **Keep full request logs for 30 days (Authorization and Cookie headers hidden)** in the same form. The logs are in the CloudWatch Logs group `aws-waf-logs-<cluster>`, kept for 30 days.
+- To keep full request logs, switch on **Keep full request logs for 30 days (Authorization and Cookie headers hidden)** in the same form. The logs are in the CloudWatch Logs group `aws-waf-logs-<cluster>`, kept for 30 days. Switching it off deletes the log group and every log in it, so export the logs you need first.
 
 A blocked request gets a `403` from the load balancer. If a specific rule blocks legitimate traffic, select it in **Keep in count mode** in the same form: it only records matches while the others keep blocking. Request bodies larger than 8 KB are never blocked by the body size rule.
 
@@ -84,4 +84,4 @@ Logging adds CloudWatch Logs charges. Prices vary by region: see [AWS WAF pricin
 
 ## Turn it off
 
-Disabling the firewall removes the web ACL and its request logs. Deleting the cluster removes them too.
+Disabling the firewall removes the web ACL and its request logs. Deleting the cluster removes them too. If you enable it again, it starts from the default settings: enter your IP lists, rate limit and logging again.
